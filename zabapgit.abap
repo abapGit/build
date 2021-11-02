@@ -15109,11 +15109,15 @@ CLASS zcl_abapgit_gui_hotkey_ctl DEFINITION
     CLASS-METHODS should_show_hint
       RETURNING
         VALUE(rv_yes) TYPE abap_bool.
+    METHODS constructor
+      RAISING
+        zcx_abapgit_exception.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA:
-      mt_hotkeys TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr.
+      mt_hotkeys       TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr,
+      ms_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings.
     CLASS-DATA gv_hint_was_shown TYPE abap_bool .
 
     METHODS render_scripts
@@ -17282,6 +17286,7 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
 
     INTERFACES zif_abapgit_gui_event_handler .
     INTERFACES zif_abapgit_gui_renderable .
+    INTERFACES zif_abapgit_gui_hotkeys.
 
     CLASS-METHODS create
       IMPORTING
@@ -17294,7 +17299,7 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
       IMPORTING
         !io_repo TYPE REF TO zcl_abapgit_repo
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -30031,6 +30036,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '        return;' ).
     lo_buf->add( '      }' ).
     lo_buf->add( '' ).
+    lo_buf->add( '      // Or a SAP event input' ).
+    lo_buf->add( '      var sUiSapEventFormAction = this.getSapEventFormAction(action);' ).
+    lo_buf->add( '      if (sUiSapEventFormAction) {' ).
+    lo_buf->add( '        submitSapeventForm({}, sUiSapEventFormAction, "post");' ).
+    lo_buf->add( '        oEvent.preventDefault();' ).
+    lo_buf->add( '        return;' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '' ).
     lo_buf->add( '    };' ).
     lo_buf->add( '' ).
     lo_buf->add( '  }.bind(this));' ).
@@ -30046,21 +30059,47 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.prototype.getAllSapEventsForSapEventName = function(sSapEvent) {' ).
-    lo_buf->add( '  return [].slice.call(document.querySelectorAll(''a[href*="sapevent:'' + sSapEvent + ''"], a[href*="SAPEVENT:'' + sSapEvent + ''"]''));' ).
+    lo_buf->add( '  return [].slice.call(' ).
+    lo_buf->add( '    document.querySelectorAll(''a[href*="sapevent:'' + sSapEvent + ''"],''' ).
+    lo_buf->add( '                            + ''a[href*="SAPEVENT:'' + sSapEvent + ''"],''' ).
+    lo_buf->add( '                            + ''input[formaction*="sapevent:'' + sSapEvent + ''"],''' ).
+    lo_buf->add( '                            + ''input[formaction*="SAPEVENT:'' + sSapEvent + ''"]''));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.prototype.getSapEventHref = function(sSapEvent) {' ).
     lo_buf->add( '' ).
     lo_buf->add( '  return this.getAllSapEventsForSapEventName(sSapEvent)' ).
+    lo_buf->add( '    .filter(function(el){' ).
+    lo_buf->add( '      // only anchors' ).
+    lo_buf->add( '      return (!!el.href);' ).
+    lo_buf->add( '    })' ).
     lo_buf->add( '    .map(function(oSapEvent){' ).
     lo_buf->add( '      return oSapEvent.href;' ).
     lo_buf->add( '    })' ).
-    lo_buf->add( '    .filter(function(sapEventHref){' ).
-    lo_buf->add( '      // eliminate false positives' ).
-    lo_buf->add( '      return sapEventHref.match(new RegExp("\\b" + sSapEvent + "\\b"));' ).
-    lo_buf->add( '    })' ).
+    lo_buf->add( '    .filter(this.eliminateSapEventFalsePositives(sSapEvent))' ).
     lo_buf->add( '    .pop();' ).
     lo_buf->add( '' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Hotkeys.prototype.getSapEventFormAction = function(sSapEvent) {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  return this.getAllSapEventsForSapEventName(sSapEvent)' ).
+    lo_buf->add( '    .filter(function(el){' ).
+    lo_buf->add( '      // input forms' ).
+    lo_buf->add( '      return (el.type === "submit");' ).
+    lo_buf->add( '    })' ).
+    lo_buf->add( '    .map(function(oSapEvent){' ).
+    lo_buf->add( '      return oSapEvent.formAction;' ).
+    lo_buf->add( '    })' ).
+    lo_buf->add( '    .filter(this.eliminateSapEventFalsePositives(sSapEvent))' ).
+    lo_buf->add( '    .pop();' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Hotkeys.prototype.eliminateSapEventFalsePositives = function(sapEvent){' ).
+    lo_buf->add( '  return function(sapEventAttr) {' ).
+    lo_buf->add( '    return sapEventAttr.match(new RegExp("\\b" + sapEvent + "\\b"));' ).
+    lo_buf->add( '  };' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.prototype.onkeydown = function(oEvent){' ).
@@ -30069,9 +30108,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  if (activeElementType === "INPUT" || activeElementType === "TEXTAREA") {' ).
+    lo_buf->add( '  if (!this.isHotkeyCallPossible()){' ).
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
@@ -30082,6 +30119,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  if (fnHotkey) {' ).
     lo_buf->add( '    fnHotkey.call(this, oEvent);' ).
     lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Hotkeys.prototype.isHotkeyCallPossible = function(){' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");' ).
+    lo_buf->add( '  var activeElementReadOnly = ((document.activeElement && document.activeElement.readOnly) || false);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  return (activeElementReadOnly || ( activeElementType !== "INPUT" && activeElementType !== "TEXTAREA" ));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.addHotkeyToHelpSheet = function(key, description) {' ).
@@ -37148,7 +37193,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
   METHOD checkout_commit_build_list.
 
     DATA: lv_unix_time   TYPE zcl_abapgit_time=>ty_unixtime,
@@ -37256,10 +37301,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
   METHOD choose_branch.
 
     DATA:
-      lo_repo   TYPE REF TO zcl_abapgit_repo_online,
-      lv_url    LIKE lo_repo->ms_data-url,
+      lo_repo        TYPE REF TO zcl_abapgit_repo_online,
+      lv_url         LIKE lo_repo->ms_data-url,
       lv_branch_name LIKE lo_repo->ms_data-branch_name,
-      ls_branch TYPE zif_abapgit_definitions=>ty_git_branch.
+      ls_branch      TYPE zif_abapgit_definitions=>ty_git_branch.
 
     IF mo_repo->is_offline( ) = abap_true.
       RETURN.
@@ -37856,6 +37901,38 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_hotkeys~get_hotkey_actions.
+
+    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
+
+    ls_hotkey_action-ui_component = 'Remote'.
+
+    ls_hotkey_action-description = |Choose branch|.
+    ls_hotkey_action-action      = c_event-choose_branch.
+    ls_hotkey_action-hotkey      = |b|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description = |Choose commit|.
+    ls_hotkey_action-action      = c_event-choose_commit.
+    ls_hotkey_action-hotkey      = |c|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description = |Choose pull request|.
+    ls_hotkey_action-action      = c_event-choose_pull_req.
+    ls_hotkey_action-hotkey      = |p|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description = |Choose tag|.
+    ls_hotkey_action-action      = c_event-choose_tag.
+    ls_hotkey_action-hotkey      = |t|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description = |Choose url|.
+    ls_hotkey_action-action      = c_event-choose_url.
+    ls_hotkey_action-hotkey      = |u|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
     gui_services( )->register_event_handler( me ).
@@ -37879,7 +37956,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
 
     ri_html->add( `</div>` ).
 
+    gui_services( )->get_hotkeys_ctl( )->register_hotkeys( zif_abapgit_gui_hotkeys~get_hotkey_actions( ) ).
+
   ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
@@ -45740,6 +45820,14 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_hotkey_ctl IMPLEMENTATION.
+
+  METHOD constructor.
+
+    super->constructor( ).
+
+    ms_user_settings = zcl_abapgit_persistence_user=>get_instance( )->get_settings( ).
+
+  ENDMETHOD.
   METHOD render_scripts.
 
     DATA lv_json TYPE string.
@@ -45795,6 +45883,13 @@ CLASS zcl_abapgit_gui_hotkey_ctl IMPLEMENTATION.
       IF sy-subrc = 0. " If found command with same hotkey
         DELETE mt_hotkeys INDEX sy-tabix. " Later registered commands enjoys the priority
       ENDIF.
+
+      IF  ms_user_settings-link_hints_enabled = abap_true
+      AND ms_user_settings-link_hint_key      = <ls_hotkey>-hotkey.
+        " Link hint activation key is more important
+        CONTINUE.
+      ENDIF.
+
       APPEND <ls_hotkey> TO mt_hotkeys.
     ENDLOOP.
 
@@ -106432,6 +106527,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-02T05:11:08.178Z
+* abapmerge 0.14.3 - 2021-11-02T13:10:47.834Z
 ENDINTERFACE.
 ****************************************************
