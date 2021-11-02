@@ -652,7 +652,7 @@ CLASS zcx_abapgit_exception DEFINITION
       CHANGING
         !cs_itf TYPE tline .
 ENDCLASS.
-CLASS zcx_abapgit_exception IMPLEMENTATION.
+CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
   METHOD constructor ##ADT_SUPPRESS_GENERATION.
 
     super->constructor( previous = previous ).
@@ -87106,7 +87106,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CMOD IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_clas IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
@@ -87368,15 +87368,17 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     ENDIF.
 
     LOOP AT it_langu_additional INTO lv_langu.
-      CLEAR: ls_i18n_lines.
 
       lt_lines = mi_object_oriented_object_fct->read_documentation(
         iv_class_name = iv_clsname
         iv_language   = lv_langu ).
 
-      ls_i18n_lines-language = lv_langu.
-      ls_i18n_lines-lines    = lt_lines.
-      INSERT ls_i18n_lines INTO TABLE lt_i18n_lines.
+      IF lines( lt_lines ) > 0.
+        CLEAR ls_i18n_lines.
+        ls_i18n_lines-language = lv_langu.
+        ls_i18n_lines-lines    = lt_lines.
+        INSERT ls_i18n_lines INTO TABLE lt_i18n_lines.
+      ENDIF.
 
     ENDLOOP.
 
@@ -87394,9 +87396,14 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   METHOD serialize_tpool.
 
     DATA: lt_tpool      TYPE textpool_table,
+          lv_index      TYPE i,
           lv_langu      TYPE sy-langu,
           lt_i18n_tpool TYPE zif_abapgit_lang_definitions=>ty_i18n_tpools,
           ls_i18n_tpool TYPE zif_abapgit_lang_definitions=>ty_i18n_tpool.
+
+    FIELD-SYMBOLS <ls_tpool> LIKE LINE OF lt_tpool.
+
+    DATA lt_tpool_main LIKE SORTED TABLE OF <ls_tpool> WITH UNIQUE KEY id key.
 
     lt_tpool = mi_object_oriented_object_fct->read_text_pool(
       iv_class_name = iv_clsname
@@ -87404,20 +87411,33 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     ii_xml->add( iv_name = 'TPOOL'
                  ig_data = add_tpool( lt_tpool ) ).
 
-    IF ii_xml->i18n_params( )-main_language_only = abap_true.
+    IF ii_xml->i18n_params( )-main_language_only = abap_true OR lines( lt_tpool ) = 0.
       RETURN.
     ENDIF.
 
+    lt_tpool_main = lt_tpool.
+
     LOOP AT it_langu_additional INTO lv_langu.
-      CLEAR: ls_i18n_tpool.
 
       lt_tpool = mi_object_oriented_object_fct->read_text_pool(
-            iv_class_name = iv_clsname
-            iv_language   = lv_langu ).
+        iv_class_name = iv_clsname
+        iv_language   = lv_langu ).
 
-      ls_i18n_tpool-language = lv_langu.
-      ls_i18n_tpool-textpool = add_tpool( lt_tpool ).
-      INSERT ls_i18n_tpool INTO TABLE lt_i18n_tpool.
+      LOOP AT lt_tpool ASSIGNING <ls_tpool>.
+        lv_index = sy-tabix.
+        READ TABLE lt_tpool_main WITH KEY id = <ls_tpool>-id key = <ls_tpool>-key
+          TRANSPORTING NO FIELDS.
+        IF sy-subrc <> 0.
+          DELETE lt_tpool INDEX lv_index.
+        ENDIF.
+      ENDLOOP.
+
+      IF lines( lt_tpool ) > 0.
+        CLEAR ls_i18n_tpool.
+        ls_i18n_tpool-language = lv_langu.
+        ls_i18n_tpool-textpool = add_tpool( lt_tpool ).
+        INSERT ls_i18n_tpool INTO TABLE lt_i18n_tpool.
+      ENDIF.
 
     ENDLOOP.
 
@@ -106412,6 +106432,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-02T05:09:22.724Z
+* abapmerge 0.14.3 - 2021-11-02T05:11:08.178Z
 ENDINTERFACE.
 ****************************************************
