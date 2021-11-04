@@ -34784,8 +34784,9 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_field_text.
 
-    DATA lv_type TYPE string.
-
+    DATA:
+      lv_type      TYPE string,
+      lv_maxlength TYPE string.
     ii_html->add( |<label for="{ is_field-name }"{ is_attr-hint }>{ is_field-label }{ is_attr-required }</label>| ).
 
     IF is_attr-error IS NOT INITIAL.
@@ -34804,9 +34805,13 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
       lv_type = 'text'.
     ENDIF.
 
+    IF is_field-max > 0.
+      lv_maxlength = |maxlength={ is_field-max }|.
+    ENDIF.
+
     ii_html->add( |<input type="{ lv_type }" name="{ is_field-name }" id="{ is_field-name }"|
                && | value="{ is_attr-value }" { is_field-dblclick }{ is_attr-placeholder }|
-               && |{ is_attr-readonly }{ is_attr-autofocus }>| ).
+               && |{ is_attr-readonly }{ is_attr-autofocus } { lv_maxlength }>| ).
 
     IF is_field-side_action IS NOT INITIAL.
       ii_html->add( '</div>' ).
@@ -44251,15 +44256,20 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_form_schema.
 
+    DATA: lv_commitmsg_comment_length TYPE i.
+
     ro_form = zcl_abapgit_html_form=>create(
       iv_form_id   = 'commit-form'
       iv_help_page = 'https://docs.abapgit.org/guide-stage-commit.html' ).
+
+    lv_commitmsg_comment_length =  mo_settings->get_commitmsg_comment_length( ).
 
     ro_form->text(
       iv_name        = c_id-comment
       iv_label       = 'Comment'
       iv_required    = abap_true
-      iv_max         = mo_settings->get_commitmsg_comment_length( )
+      iv_max         = lv_commitmsg_comment_length
+      iv_placeholder = |Add a mandatory comment with max { lv_commitmsg_comment_length } characters|
     )->textarea(
       iv_name        = c_id-body
       iv_label       = 'Body'
@@ -106697,6 +106707,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-03T13:56:00.663Z
+* abapmerge 0.14.3 - 2021-11-04T05:41:29.063Z
 ENDINTERFACE.
 ****************************************************
