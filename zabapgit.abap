@@ -2101,7 +2101,9 @@ INTERFACE zif_abapgit_definitions .
   TYPES: data TYPE xstring,
     END OF ty_file .
   TYPES:
-    ty_files_tt TYPE STANDARD TABLE OF ty_file WITH DEFAULT KEY .
+    ty_files_tt TYPE STANDARD TABLE OF ty_file WITH DEFAULT KEY
+                     WITH UNIQUE SORTED KEY file_path COMPONENTS path filename
+                     WITH NON-UNIQUE SORTED KEY file COMPONENTS filename.
   TYPES:
     ty_string_tt TYPE STANDARD TABLE OF string WITH DEFAULT KEY .
   TYPES ty_git_branch_type TYPE c LENGTH 2 .
@@ -42775,8 +42777,9 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
                    <ls_local>  LIKE LINE OF it_local,
                    <ls_diff>   LIKE LINE OF mt_diff_files.
     READ TABLE it_remote ASSIGNING <ls_remote>
-      WITH KEY filename = is_status-filename
-               path     = is_status-path.
+      WITH KEY file_path
+       COMPONENTS path     = is_status-path
+                  filename = is_status-filename.
     IF sy-subrc <> 0.
       ASSIGN ls_r_dummy TO <ls_remote>.
     ENDIF.
@@ -51252,7 +51255,8 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     IF zcl_abapgit_objects=>exists( ls_item ) = abap_false.
       " Check if any package is included in remote
       READ TABLE mt_remote TRANSPORTING NO FIELDS
-        WITH KEY filename = zcl_abapgit_filename_logic=>c_package_file.
+        WITH KEY file
+        COMPONENTS filename = zcl_abapgit_filename_logic=>c_package_file.
       IF sy-subrc <> 0.
         " If not, prompt to create it
         lv_package = zcl_abapgit_services_basis=>create_package( iv_package ).
@@ -51774,8 +51778,9 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
     IF lines( lt_remote ) > lc_new_repo_size.
       " Less files means it's a new repo (with just readme and license, for example) which is ok
       READ TABLE lt_remote TRANSPORTING NO FIELDS
-        WITH KEY path = zif_abapgit_definitions=>c_root_dir
-        filename = zif_abapgit_definitions=>c_dot_abapgit.
+        WITH KEY file_path
+        COMPONENTS path     = zif_abapgit_definitions=>c_root_dir
+                   filename = zif_abapgit_definitions=>c_dot_abapgit.
       IF sy-subrc <> 0.
         mi_log->add_warning( |Cannot find .abapgit.xml - Is this an abapGit repository?| ).
       ENDIF.
@@ -52023,8 +52028,9 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     get_files_remote( ).
 
     READ TABLE mt_remote ASSIGNING <ls_remote>
-      WITH KEY path = zif_abapgit_definitions=>c_root_dir
-      filename = zif_abapgit_definitions=>c_dot_abapgit.
+      WITH KEY file_path
+      COMPONENTS path     = zif_abapgit_definitions=>c_root_dir
+                 filename = zif_abapgit_definitions=>c_dot_abapgit.
     IF sy-subrc = 0.
       ro_dot = zcl_abapgit_dot_abapgit=>deserialize( <ls_remote>-data ).
       set_dot_abapgit( ro_dot ).
@@ -52039,8 +52045,9 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     get_files_remote( ).
 
     READ TABLE mt_remote ASSIGNING <ls_remote>
-      WITH KEY path     = zif_abapgit_definitions=>c_root_dir
-               filename = zif_abapgit_apack_definitions=>c_dot_apack_manifest.
+      WITH KEY file_path
+      COMPONENTS path     = zif_abapgit_definitions=>c_root_dir
+                 filename = zif_abapgit_apack_definitions=>c_dot_apack_manifest.
     IF sy-subrc = 0.
       ro_dot = zcl_abapgit_apack_reader=>deserialize( iv_package_name = ms_data-package
                                                       iv_xstr         = <ls_remote>-data ).
@@ -52063,7 +52070,8 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     mi_data_config = ri_config.
 
     READ TABLE mt_remote ASSIGNING <ls_remote>
-      WITH KEY path = zif_abapgit_data_config=>c_default_path.
+      WITH KEY file_path
+      COMPONENTS path = zif_abapgit_data_config=>c_default_path.
     IF sy-subrc = 0.
       ri_config->from_json( mt_remote ).
     ENDIF.
@@ -55803,7 +55811,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
         RETURN.
       ENDIF.
 
-      READ TABLE it_remote WITH KEY filename = is_result-filename INTO ls_remote_file.
+      READ TABLE it_remote WITH KEY file
+        COMPONENTS filename = is_result-filename INTO ls_remote_file.
       IF sy-subrc <> 0. "if file does not exist in remote, we don't need to validate
         RETURN.
       ENDIF.
@@ -68749,7 +68758,9 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
 
     lt_files = mo_files->get_files( ).
 
-    READ TABLE lt_files ASSIGNING <ls_file> WITH KEY filename = lv_filename.
+    READ TABLE lt_files ASSIGNING <ls_file>
+        WITH KEY file
+        COMPONENTS filename = lv_filename.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'SMIM, file not found' ).
     ENDIF.
@@ -95817,10 +95828,14 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
       iv_ext   = iv_ext ).
 
     IF mv_path IS NOT INITIAL.
-      READ TABLE mt_files TRANSPORTING NO FIELDS WITH KEY path     = mv_path
-                                                          filename = lv_filename.
+      READ TABLE mt_files TRANSPORTING NO FIELDS
+          WITH KEY file_path
+          COMPONENTS path     = mv_path
+                     filename = lv_filename.
     ELSE.
-      READ TABLE mt_files TRANSPORTING NO FIELDS WITH KEY filename = lv_filename.
+      READ TABLE mt_files TRANSPORTING NO FIELDS
+          WITH KEY file
+          COMPONENTS filename = lv_filename.
     ENDIF.
 
     IF sy-subrc = 0.
@@ -95868,10 +95883,14 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_file>     LIKE LINE OF mt_files,
                    <ls_accessed> LIKE LINE OF mt_accessed_files.
     IF mv_path IS NOT INITIAL.
-      READ TABLE mt_files ASSIGNING <ls_file> WITH KEY path     = mv_path
-                                                       filename = iv_filename.
+      READ TABLE mt_files ASSIGNING <ls_file>
+          WITH KEY file_path
+          COMPONENTS path     = mv_path
+                     filename = iv_filename.
     ELSE.
-      READ TABLE mt_files ASSIGNING <ls_file> WITH KEY filename = iv_filename.
+      READ TABLE mt_files ASSIGNING <ls_file>
+          WITH KEY file
+          COMPONENTS filename = iv_filename.
     ENDIF.
 
     IF sy-subrc <> 0.
@@ -97272,7 +97291,8 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
         <ls_result> = build_new_local( <ls_local> ).
         " Check if same file exists in different location
         READ TABLE ct_remote ASSIGNING <ls_remote>
-          WITH KEY filename = <ls_local>-file-filename.
+          WITH KEY file
+          COMPONENTS filename = <ls_local>-file-filename.
         IF sy-subrc = 0 AND <ls_local>-file-sha1 = <ls_remote>-sha1.
           <ls_result>-packmove = abap_true.
         ELSEIF sy-subrc = 4.
@@ -104000,9 +104020,10 @@ CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
 
       lr_data = zcl_abapgit_data_utils=>build_table_itab( ls_config-name ).
 
-      READ TABLE it_files INTO ls_file WITH KEY
-        path = zif_abapgit_data_config=>c_default_path
-        filename = zcl_abapgit_data_utils=>build_filename( ls_config ).
+      READ TABLE it_files INTO ls_file
+        WITH KEY file_path
+        COMPONENTS path     = zif_abapgit_data_config=>c_default_path
+                   filename = zcl_abapgit_data_utils=>build_filename( ls_config ).
       IF sy-subrc = 0.
         convert_json_to_itab(
           ir_data = lr_data
@@ -104058,7 +104079,9 @@ CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
     DATA lx_ajson TYPE REF TO zcx_abapgit_ajson_error.
 
     CLEAR mt_config.
-    LOOP AT it_files INTO ls_file WHERE path = zif_abapgit_data_config=>c_default_path
+    LOOP AT it_files INTO ls_file
+        USING KEY file_path
+        WHERE path = zif_abapgit_data_config=>c_default_path
         AND filename CP |*.{ zif_abapgit_data_config=>c_config }.{ zif_abapgit_data_config=>c_default_format }|.
       TRY.
           lo_ajson = zcl_abapgit_ajson=>parse( zcl_abapgit_convert=>xstring_to_string_utf8( ls_file-data ) ).
@@ -105415,6 +105438,7 @@ CLASS zcl_abapgit_background_push_au IMPLEMENTATION.
           APPEND <ls_local> TO ls_user_files-local.
 
           LOOP AT ls_files-remote ASSIGNING <ls_remote>
+              USING KEY file
               WHERE filename = <ls_local>-file-filename
               AND path <> <ls_local>-file-path
               AND filename <> 'package.devc.xml'.
@@ -106704,6 +106728,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-05T04:31:30.040Z
+* abapmerge 0.14.3 - 2021-11-05T04:33:38.155Z
 ENDINTERFACE.
 ****************************************************
