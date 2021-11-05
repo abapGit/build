@@ -94973,7 +94973,7 @@ CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_tadir IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
   METHOD add_local_packages.
 
     FIELD-SYMBOLS:
@@ -94997,13 +94997,14 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
   METHOD add_namespaces.
 
     DATA:
-      lv_name      TYPE progname,
-      lv_namespace TYPE namespace.
+      lv_name           TYPE progname,
+      lv_namespace      TYPE namespace,
+      lv_prev_namespace TYPE namespace,
+      lt_tadir_nspc     TYPE zif_abapgit_definitions=>ty_tadir_tt.
 
     FIELD-SYMBOLS:
       <ls_tadir> LIKE LINE OF ct_tadir,
       <ls_nspc>  LIKE LINE OF ct_tadir.
-
     LOOP AT ct_tadir ASSIGNING <ls_tadir> WHERE obj_name(1) = '/'.
 
       " Namespaces are not in TADIR, but are necessary for creating objects in transportable packages
@@ -95018,8 +95019,10 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
           delimiter_error     = 1
           OTHERS              = 2.
 
-      IF sy-subrc = 0 AND lv_namespace IS NOT INITIAL.
-        READ TABLE ct_tadir TRANSPORTING NO FIELDS
+      IF sy-subrc = 0 AND lv_namespace IS NOT INITIAL
+         AND lv_namespace <> lv_prev_namespace.
+
+        READ TABLE lt_tadir_nspc TRANSPORTING NO FIELDS
           WITH KEY pgmid = 'R3TR' object = 'NSPC' obj_name = lv_namespace.
         IF sy-subrc <> 0.
           APPEND INITIAL LINE TO ct_tadir ASSIGNING <ls_nspc>.
@@ -95027,7 +95030,10 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
           <ls_nspc>-object   = 'NSPC'.
           <ls_nspc>-obj_name = lv_namespace.
           <ls_nspc>-devclass = iv_package.
+
+          INSERT <ls_nspc> INTO TABLE lt_tadir_nspc.
         ENDIF.
+        lv_prev_namespace = lv_namespace.
       ENDIF.
 
     ENDLOOP.
@@ -106728,6 +106734,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-05T04:33:38.155Z
+* abapmerge 0.14.3 - 2021-11-05T04:36:30.834Z
 ENDINTERFACE.
 ****************************************************
