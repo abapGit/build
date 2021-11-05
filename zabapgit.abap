@@ -35212,9 +35212,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD general_page_routing.
 
     DATA: lv_key           TYPE zif_abapgit_persistence=>ty_repo-key,
-          lv_last_repo_key TYPE zif_abapgit_persistence=>ty_repo-key,
-          lt_repo_fav_list TYPE zif_abapgit_repo_srv=>ty_repo_list,
-          lt_repo_all_list TYPE zif_abapgit_repo_srv=>ty_repo_list.
+          lv_last_repo_key TYPE zif_abapgit_persistence=>ty_repo-key.
 
     lv_key = ii_event->query( )->get( 'KEY' ).
 
@@ -40757,11 +40755,6 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       lv_type_icon            TYPE string,
       lv_favorite_icon        TYPE string,
       lv_favorite_class       TYPE string,
-      lv_stage_link           TYPE string,
-      lv_patch_link           TYPE string,
-      lv_zip_import_link      TYPE string,
-      lv_zip_export_link      TYPE string,
-      lv_check_link           TYPE string,
       lv_text                 TYPE string,
       lv_lock                 TYPE string,
       lv_toggle_favorite_link TYPE string,
@@ -40980,9 +40973,8 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD shorten_repo_url.
-    DATA lt_results TYPE match_result_tab.
     DATA lv_new_length TYPE i.
-    DATA: lv_length_to_truncate_to TYPE i.
+    DATA lv_length_to_truncate_to TYPE i.
 
     rv_shortened = iv_full_url.
 
@@ -41713,10 +41705,6 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD is_binary.
-
-    DATA: lv_len TYPE i,
-          lv_idx TYPE i,
-          lv_x   TYPE x.
 
     FIELD-SYMBOLS <lv_data> LIKE iv_d1.
     IF iv_d1 IS NOT INITIAL. " One of them might be new and so empty
@@ -101287,8 +101275,6 @@ CLASS zcl_abapgit_http IMPLEMENTATION.
     DATA: lv_host TYPE string,
           lt_list TYPE zif_abapgit_definitions=>ty_string_tt,
           li_exit TYPE REF TO zif_abapgit_exit.
-
-    FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
     cl_http_server=>get_location( IMPORTING host = lv_host ).
     APPEND lv_host TO lt_list.
 
@@ -106734,6 +106720,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-05T04:36:30.834Z
+* abapmerge 0.14.3 - 2021-11-05T14:22:04.535Z
 ENDINTERFACE.
 ****************************************************
