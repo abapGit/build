@@ -57283,7 +57283,13 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
+
+    SELECT SINGLE changedby FROM vepheader INTO rv_user
+      WHERE vepname = ms_item-obj_name AND version = 'A'.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -57372,7 +57378,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
 
     rv_bool = cl_ws_md_vif_root=>check_existence_by_vif_name(
       name      = lv_name
-      i_version = sews_c_vif_version-active ).
+      i_version = sews_c_vif_version-all ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
@@ -57439,7 +57445,10 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
         version_not_found = 1
         webi_not_exist    = 2
         OTHERS            = 3.
-    IF sy-subrc <> 0.
+    IF sy-subrc = 1.
+      " no active version
+      RETURN.
+    ELSEIF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
@@ -106707,6 +106716,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-04T20:11:19.840Z
+* abapmerge 0.14.3 - 2021-11-05T04:29:02.518Z
 ENDINTERFACE.
 ****************************************************
