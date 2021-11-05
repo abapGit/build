@@ -37973,27 +37973,27 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
 
     ls_hotkey_action-ui_component = 'Remote'.
 
-    ls_hotkey_action-description = |Choose branch|.
+    ls_hotkey_action-description = |Choose Branch|.
     ls_hotkey_action-action      = c_event-choose_branch.
     ls_hotkey_action-hotkey      = |b|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description = |Choose commit|.
+    ls_hotkey_action-description = |Choose Commit|.
     ls_hotkey_action-action      = c_event-choose_commit.
     ls_hotkey_action-hotkey      = |c|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description = |Choose pull request|.
+    ls_hotkey_action-description = |Choose Pull Request|.
     ls_hotkey_action-action      = c_event-choose_pull_req.
     ls_hotkey_action-hotkey      = |p|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description = |Choose tag|.
+    ls_hotkey_action-description = |Choose Tag|.
     ls_hotkey_action-action      = c_event-choose_tag.
     ls_hotkey_action-hotkey      = |t|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description = |Choose url|.
+    ls_hotkey_action-description = |Choose URL|.
     ls_hotkey_action-action      = c_event-choose_url.
     ls_hotkey_action-hotkey      = |u|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
@@ -40519,22 +40519,22 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
     ls_hotkey_action-ui_component = 'Repo'.
 
-    ls_hotkey_action-description   = |Stage changes|.
+    ls_hotkey_action-description   = |Stage Changes|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_stage.
     ls_hotkey_action-hotkey = |s|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description   = |Switch branch|.
+    ls_hotkey_action-description   = |Switch Branch|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-git_branch_switch.
     ls_hotkey_action-hotkey = |b|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description   = |Repository list|.
+    ls_hotkey_action-description   = |Repository List|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-abapgit_home.
     ls_hotkey_action-hotkey = |o|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description   = |Refresh repository|.
+    ls_hotkey_action-description   = |Refresh Repository|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-repo_refresh.
     ls_hotkey_action-hotkey = |r|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
@@ -40549,27 +40549,27 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ls_hotkey_action-hotkey = |d|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description   = |Uninstall repository|.
+    ls_hotkey_action-description   = |Uninstall Repository|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-repo_purge.
     ls_hotkey_action-hotkey = |u|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description   = |Run syntax check|.
+    ls_hotkey_action-description   = |Run Syntax Check|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-repo_syntax_check.
     ls_hotkey_action-hotkey = |c|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description   = |Run code inspector|.
+    ls_hotkey_action-description   = |Run Code Inspector|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-repo_code_inspector.
     ls_hotkey_action-hotkey = |i|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description   = |Show log|.
+    ls_hotkey_action-description   = |Show Log|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-repo_log.
     ls_hotkey_action-hotkey = |l|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description   = |abapGit settings|.
+    ls_hotkey_action-description   = |abapGit Settings|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_settings.
     ls_hotkey_action-hotkey = |x|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
@@ -41639,17 +41639,17 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
 
     ls_hotkey_action-ui_component = 'Patch'.
 
-    ls_hotkey_action-description = |Stage changes|.
+    ls_hotkey_action-description = |Stage Changes|.
     ls_hotkey_action-action      = |stagePatch|.
     ls_hotkey_action-hotkey      = |s|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description = |Refresh local|.
+    ls_hotkey_action-description = |Refresh Local|.
     ls_hotkey_action-action      = |refreshLocal|.
     ls_hotkey_action-hotkey      = |r|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description = |Refresh all|.
+    ls_hotkey_action-description = |Refresh All|.
     ls_hotkey_action-action      = |refreshAll|.
     ls_hotkey_action-hotkey      = |a|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
@@ -42362,17 +42362,17 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
 
     ls_hotkey_action-ui_component = 'Main'.
 
-    ls_hotkey_action-description   = |abapGit settings|.
+    ls_hotkey_action-description   = |abapGit Settings|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_settings.
     ls_hotkey_action-hotkey = |x|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description   = |New online repository|.
+    ls_hotkey_action-description   = |New Online Repository|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-repo_newonline.
     ls_hotkey_action-hotkey = |n|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description   = |New offline repository|.
+    ls_hotkey_action-description   = |New Offline Repository|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-repo_newoffline.
     ls_hotkey_action-hotkey = |o|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
@@ -42403,17 +42403,17 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
     " registered/handled in js
-    ls_hotkey_action-description = |Previous repository|.
+    ls_hotkey_action-description = |Previous Repository|.
     ls_hotkey_action-action = `#`.
     ls_hotkey_action-hotkey = |4|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description = |Next repository|.
+    ls_hotkey_action-description = |Next Repository|.
     ls_hotkey_action-action = `##`.
     ls_hotkey_action-hotkey = |6|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description = |Open repository|.
+    ls_hotkey_action-description = |Open Repository|.
     ls_hotkey_action-action = `###`.
     ls_hotkey_action-hotkey = |Enter|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
@@ -43535,22 +43535,22 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     ls_hotkey_action-ui_component = 'Diff'.
 
-    ls_hotkey_action-description = |Refresh local|.
+    ls_hotkey_action-description = |Refresh Local|.
     ls_hotkey_action-action      = c_actions-refresh_local.
     ls_hotkey_action-hotkey      = |r|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description = |Refresh all|.
+    ls_hotkey_action-description = |Refresh All|.
     ls_hotkey_action-action      = c_actions-refresh_all.
     ls_hotkey_action-hotkey      = |a|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description = |Toogle split/unified|.
+    ls_hotkey_action-description = |Toogle Split/Unified|.
     ls_hotkey_action-action      = c_actions-toggle_unified.
     ls_hotkey_action-hotkey      = |u|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description = |Toogle hidden characters|.
+    ls_hotkey_action-description = |Toogle Hidden Characters|.
     ls_hotkey_action-action      = c_actions-toggle_hidden_chars.
     ls_hotkey_action-hotkey      = |h|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
@@ -106720,6 +106720,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-05T14:22:04.535Z
+* abapmerge 0.14.3 - 2021-11-05T16:23:32.593Z
 ENDINTERFACE.
 ****************************************************
