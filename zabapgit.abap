@@ -46,6 +46,7 @@ INTERFACE zif_abapgit_services_git DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_html_viewer DEFERRED.
 INTERFACE zif_abapgit_html_form DEFERRED.
+INTERFACE zif_abapgit_gui_jumper DEFERRED.
 INTERFACE zif_abapgit_gui_functions DEFERRED.
 INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_html DEFERRED.
@@ -394,6 +395,7 @@ CLASS zcl_abapgit_objects_files DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_check DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_activation DEFINITION DEFERRED.
 CLASS zcl_abapgit_item_state DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_jumper DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_filename_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_file_status DEFINITION DEFERRED.
@@ -3581,6 +3583,32 @@ INTERFACE zif_abapgit_repo_srv .
       zcx_abapgit_exception .
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_gui_jumper.
+
+  METHODS jump
+    IMPORTING
+      !is_item         TYPE zif_abapgit_definitions=>ty_item
+      !iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
+      !iv_sub_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type OPTIONAL
+      !iv_line_number  TYPE i OPTIONAL
+      !iv_new_window   TYPE abap_bool DEFAULT abap_true
+    RETURNING
+      VALUE(rv_exit)   TYPE abap_bool
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS jump_adt
+    IMPORTING
+      !is_item         TYPE zif_abapgit_definitions=>ty_item
+      !iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name
+      !iv_line_number  TYPE i
+    RETURNING
+      VALUE(rv_exit)   TYPE abap_bool
+    RAISING
+      zcx_abapgit_exception.
+
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_popups .
   TYPES:
     ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY .
@@ -6434,6 +6462,41 @@ CLASS zcl_abapgit_folder_logic DEFINITION
       ty_devclass_info_tt TYPE SORTED TABLE OF ty_devclass_info
         WITH UNIQUE KEY devclass .
     DATA mt_parent TYPE ty_devclass_info_tt .
+ENDCLASS.
+CLASS zcl_abapgit_gui_jumper DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_gui_jumper.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    METHODS jump_tr
+      IMPORTING
+        !is_item       TYPE zif_abapgit_definitions=>ty_item
+      RETURNING
+        VALUE(rv_exit) TYPE abap_bool.
+
+    METHODS jump_wb
+      IMPORTING
+        !is_item       TYPE zif_abapgit_definitions=>ty_item
+        !iv_new_window TYPE abap_bool
+      RETURNING
+        VALUE(rv_exit) TYPE abap_bool.
+
+    METHODS jump_wb_line
+      IMPORTING
+        !is_item         TYPE zif_abapgit_definitions=>ty_item
+        !iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name
+        !iv_sub_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type
+        !iv_line_number  TYPE i
+        !iv_new_window   TYPE abap_bool
+      RETURNING
+        VALUE(rv_exit)   TYPE abap_bool.
+
 ENDCLASS.
 CLASS zcl_abapgit_item_state DEFINITION
   FINAL
@@ -18796,6 +18859,9 @@ CLASS zcl_abapgit_ui_factory DEFINITION
         !iv_disable_query_table TYPE abap_bool DEFAULT abap_true
       RETURNING
         VALUE(ri_viewer)        TYPE REF TO zif_abapgit_html_viewer .
+    CLASS-METHODS get_gui_jumper
+      RETURNING
+        VALUE(ri_gui_jumper) TYPE REF TO zif_abapgit_gui_jumper .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -18806,6 +18872,7 @@ CLASS zcl_abapgit_ui_factory DEFINITION
     CLASS-DATA go_gui TYPE REF TO zcl_abapgit_gui .
     CLASS-DATA gi_fe_services TYPE REF TO zif_abapgit_frontend_services .
     CLASS-DATA gi_gui_services TYPE REF TO zif_abapgit_gui_services .
+    CLASS-DATA gi_gui_jumper TYPE REF TO zif_abapgit_gui_jumper .
 ENDCLASS.
 CLASS zcl_abapgit_ui_injector DEFINITION
   CREATE PRIVATE .
@@ -18835,9 +18902,20 @@ CLASS zcl_abapgit_ui_injector DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_adt_link DEFINITION
   FINAL
-  CREATE PUBLIC .
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
+
+    CLASS-METHODS jump
+      IMPORTING
+        !iv_obj_name     TYPE zif_abapgit_definitions=>ty_item-obj_name
+        !iv_obj_type     TYPE zif_abapgit_definitions=>ty_item-obj_type
+        !iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
+        !iv_line_number  TYPE i OPTIONAL
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
 
     CLASS-METHODS generate
       IMPORTING
@@ -18848,28 +18926,31 @@ CLASS zcl_abapgit_adt_link DEFINITION
       RETURNING
         VALUE(rv_result) TYPE string
       RAISING
-        zcx_abapgit_exception .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    CLASS-METHODS:
-      get_adt_objects_and_names
-        IMPORTING
-          iv_obj_name       TYPE zif_abapgit_definitions=>ty_item-obj_name
-          iv_obj_type       TYPE zif_abapgit_definitions=>ty_item-obj_type
-        EXPORTING
-          eo_adt_uri_mapper TYPE REF TO object
-          eo_adt_objectref  TYPE REF TO object
-          ev_program        TYPE progname
-          ev_include        TYPE progname
-        RAISING
-          zcx_abapgit_exception.
+        zcx_abapgit_exception.
 
-    CLASS-METHODS:
-      is_adt_jump_possible
-        IMPORTING io_object                      TYPE REF TO cl_wb_object
-                  io_adt                         TYPE REF TO object
-        RETURNING VALUE(rv_is_adt_jump_possible) TYPE abap_bool
-        RAISING   zcx_abapgit_exception.
+  PRIVATE SECTION.
+
+    CLASS-METHODS get_adt_objects_and_names
+      IMPORTING
+        iv_obj_name       TYPE zif_abapgit_definitions=>ty_item-obj_name
+        iv_obj_type       TYPE zif_abapgit_definitions=>ty_item-obj_type
+      EXPORTING
+        eo_adt_uri_mapper TYPE REF TO object
+        eo_adt_objectref  TYPE REF TO object
+        ev_program        TYPE progname
+        ev_include        TYPE progname
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS is_adt_jump_possible
+      IMPORTING
+        io_object                      TYPE REF TO cl_wb_object
+        io_adt                         TYPE REF TO object
+      RETURNING
+        VALUE(rv_is_adt_jump_possible) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_convert DEFINITION
   CREATE PUBLIC .
@@ -26079,26 +26160,27 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_ADT_LINK IMPLEMENTATION.
+CLASS zcl_abapgit_adt_link IMPLEMENTATION.
   METHOD generate.
 
     DATA: lv_adt_link       TYPE string.
-    DATA: lo_adt_uri_mapper TYPE REF TO object ##needed.
-    DATA: lo_adt_objref     TYPE REF TO object ##needed.
-    DATA: lo_adt_sub_objref TYPE REF TO object ##needed.
+    DATA: lo_adt_uri_mapper TYPE REF TO object.
+    DATA: lo_adt_objref     TYPE REF TO object.
+    DATA: lo_adt_sub_objref TYPE REF TO object.
     DATA: lv_program        TYPE progname.
     DATA: lv_include        TYPE progname.
+
     FIELD-SYMBOLS: <lv_uri> TYPE string.
 
     get_adt_objects_and_names(
-          EXPORTING
-            iv_obj_name       = iv_obj_name
-            iv_obj_type       = iv_obj_type
-          IMPORTING
-            eo_adt_uri_mapper = lo_adt_uri_mapper
-            eo_adt_objectref  = lo_adt_objref
-            ev_program        = lv_program
-            ev_include        = lv_include ).
+      EXPORTING
+        iv_obj_name       = iv_obj_name
+        iv_obj_type       = iv_obj_type
+      IMPORTING
+        eo_adt_uri_mapper = lo_adt_uri_mapper
+        eo_adt_objectref  = lo_adt_objref
+        ev_program        = lv_program
+        ev_include        = lv_include ).
 
     TRY.
         IF iv_sub_obj_name IS NOT INITIAL.
@@ -26130,9 +26212,11 @@ CLASS ZCL_ABAPGIT_ADT_LINK IMPLEMENTATION.
         CONCATENATE 'adt://' sy-sysid <lv_uri> INTO lv_adt_link.
 
         rv_result = lv_adt_link.
+
       CATCH cx_root.
         zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
     ENDTRY.
+
   ENDMETHOD.
   METHOD get_adt_objects_and_names.
 
@@ -26140,6 +26224,7 @@ CLASS ZCL_ABAPGIT_ADT_LINK IMPLEMENTATION.
     DATA lv_obj_name       TYPE trobj_name.
     DATA lo_object         TYPE REF TO cl_wb_object.
     DATA lo_adt            TYPE REF TO object.
+
     FIELD-SYMBOLS <lv_uri> TYPE string.
 
     lv_obj_name = iv_obj_name.
@@ -26224,6 +26309,24 @@ CLASS ZCL_ABAPGIT_ADT_LINK IMPLEMENTATION.
             result     = lv_vit_wb_request.
 
         rv_is_adt_jump_possible = boolc( NOT lv_vit_wb_request = abap_true ).
+
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD jump.
+
+    DATA lv_adt_link TYPE string.
+
+    TRY.
+        lv_adt_link = generate(
+          iv_obj_name     = iv_obj_name
+          iv_obj_type     = iv_obj_type
+          iv_sub_obj_name = iv_sub_obj_name
+          iv_line_number  = iv_line_number ).
+
+        zcl_abapgit_ui_factory=>get_frontend_services( )->execute( iv_document = lv_adt_link ).
 
       CATCH cx_root.
         zcx_abapgit_exception=>raise( 'ADT Jump Error' ).
@@ -31194,6 +31297,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     ENDIF.
 
     ri_gui_functions = gi_gui_functions.
+
+  ENDMETHOD.
+  METHOD get_gui_jumper.
+
+    IF gi_gui_jumper IS INITIAL.
+      CREATE OBJECT gi_gui_jumper TYPE zcl_abapgit_gui_jumper.
+    ENDIF.
+
+    ri_gui_jumper = gi_gui_jumper.
 
   ENDMETHOD.
   METHOD get_gui_services.
@@ -43172,8 +43284,8 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_diff_head.
 
-    DATA: ls_stats    TYPE zif_abapgit_definitions=>ty_count,
-          lv_adt_link TYPE string.
+    DATA: ls_stats TYPE zif_abapgit_definitions=>ty_count,
+          lv_link  TYPE string.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -43201,14 +43313,14 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     IF NOT ( is_diff-lstate = zif_abapgit_definitions=>c_state-unchanged AND
              is_diff-rstate = zif_abapgit_definitions=>c_state-added ) AND
          NOT is_diff-lstate = zif_abapgit_definitions=>c_state-deleted.
-      lv_adt_link = ri_html->a(
+      lv_link = ri_html->a(
         iv_txt = |{ is_diff-path }{ is_diff-filename }|
         iv_typ = zif_abapgit_html=>c_action_type-sapevent
         iv_act = |jump?TYPE={ is_diff-obj_type }&NAME={ is_diff-obj_name }| ).
     ENDIF.
 
-    IF lv_adt_link IS NOT INITIAL.
-      ri_html->add( |<span class="diff_name">{ lv_adt_link }</span>| ).
+    IF lv_link IS NOT INITIAL.
+      ri_html->add( |<span class="diff_name">{ lv_link }</span>| ).
     ELSE.
       ri_html->add( |<span class="diff_name">{ is_diff-path }{ is_diff-filename }</span>| ).
     ENDIF.
@@ -53961,23 +54073,11 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   ENDMETHOD.
   METHOD jump_adt.
 
-    DATA: lv_adt_link TYPE string,
-          lx_error    TYPE REF TO cx_root.
-
-    TRY.
-
-        lv_adt_link = zcl_abapgit_adt_link=>generate(
-          iv_obj_name     = iv_obj_name
-          iv_obj_type     = iv_obj_type
-          iv_sub_obj_name = iv_sub_obj_name
-          iv_line_number  = iv_line_number ).
-
-        zcl_abapgit_ui_factory=>get_frontend_services( )->execute( iv_document = lv_adt_link ).
-
-      CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text = 'ADT Jump Error'
-                                      ix_previous = lx_error ).
-    ENDTRY.
+    zcl_abapgit_adt_link=>jump(
+      iv_obj_name     = iv_obj_name
+      iv_obj_type     = iv_obj_type
+      iv_sub_obj_name = iv_sub_obj_name
+      iv_line_number  = iv_line_number ).
 
   ENDMETHOD.
   METHOD jump_se11.
@@ -56328,14 +56428,15 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
   ENDMETHOD.
   METHOD jump.
 
-    DATA: li_obj              TYPE REF TO zif_abapgit_object,
-          lv_adt_jump_enabled TYPE abap_bool.
+    DATA: li_obj  TYPE REF TO zif_abapgit_object,
+          lv_exit TYPE abap_bool.
 
     " Nothing to do for unsupported objects
     IF is_type_supported( is_item-obj_type ) = abap_false.
       zcx_abapgit_exception=>raise( |Object type { is_item-obj_type } is not supported by this system| ).
     ENDIF.
 
+    " Nothing to do if object does not exist
     li_obj = create_object( is_item     = is_item
                             iv_language = zif_abapgit_definitions=>c_english ).
 
@@ -56343,46 +56444,15 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Object { is_item-obj_type } { is_item-obj_name } doesn't exist| ).
     ENDIF.
 
-    lv_adt_jump_enabled = zcl_abapgit_persist_factory=>get_settings( )->read( )->get_adt_jump_enabled( ).
+    " Open object in new window
+    lv_exit = zcl_abapgit_ui_factory=>get_gui_jumper( )->jump(
+      is_item         = is_item
+      iv_sub_obj_name = iv_sub_obj_name
+      iv_sub_obj_type = iv_sub_obj_type
+      iv_line_number  = iv_line_number ).
 
-    IF lv_adt_jump_enabled = abap_true.
-
-      TRY.
-          zcl_abapgit_objects_super=>jump_adt(
-            iv_obj_name     = is_item-obj_name
-            iv_obj_type     = is_item-obj_type
-            iv_sub_obj_name = iv_sub_obj_name
-            iv_sub_obj_type = iv_sub_obj_type
-            iv_line_number  = iv_line_number ).
-        CATCH zcx_abapgit_exception.
-          li_obj->jump( ).
-      ENDTRY.
-
-    ELSEIF iv_line_number IS NOT INITIAL
-        AND iv_sub_obj_type IS NOT INITIAL
-        AND iv_sub_obj_name IS NOT INITIAL.
-
-      " For the line navigation we have to supply the sub object type (i_sub_obj_type).
-      " If we use is_item-obj_type it navigates only to the object.
-
-      CALL FUNCTION 'RS_TOOL_ACCESS'
-        EXPORTING
-          operation           = 'SHOW'
-          object_name         = is_item-obj_name
-          object_type         = iv_sub_obj_type
-          include             = iv_sub_obj_name
-          position            = iv_line_number
-          in_new_window       = abap_true
-        EXCEPTIONS
-          not_executed        = 1
-          invalid_object_type = 2
-          OTHERS              = 3.
-
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise_t100( ).
-      ENDIF.
-
-    ELSE.
+    " If all fails, try object-specific handler
+    IF lv_exit IS INITIAL.
       li_obj->jump( ).
     ENDIF.
 
@@ -96561,6 +96631,131 @@ CLASS ZCL_ABAPGIT_ITEM_STATE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_gui_jumper IMPLEMENTATION.
+  METHOD jump_tr.
+
+    DATA:
+      lv_e071_object   TYPE e071-object,
+      lv_e071_obj_name TYPE e071-obj_name.
+
+    lv_e071_object   = is_item-obj_type.
+    lv_e071_obj_name = is_item-obj_name.
+
+    CALL FUNCTION 'TR_OBJECT_JUMP_TO_TOOL'
+      EXPORTING
+        iv_action         = 'SHOW'
+        iv_pgmid          = 'R3TR'
+        iv_object         = lv_e071_object
+        iv_obj_name       = lv_e071_obj_name
+      EXCEPTIONS
+        jump_not_possible = 1
+        OTHERS            = 2.
+
+    rv_exit = boolc( sy-subrc = 0 ).
+
+  ENDMETHOD.
+  METHOD jump_wb.
+
+    CALL FUNCTION 'RS_TOOL_ACCESS'
+      EXPORTING
+        operation           = 'SHOW'
+        object_name         = is_item-obj_name
+        object_type         = is_item-obj_type
+        devclass            = is_item-devclass
+        in_new_window       = iv_new_window
+      EXCEPTIONS
+        not_executed        = 1
+        invalid_object_type = 2
+        OTHERS              = 3.
+
+    rv_exit = boolc( sy-subrc = 0 ).
+
+  ENDMETHOD.
+  METHOD jump_wb_line.
+
+    IF iv_line_number IS NOT INITIAL AND iv_sub_obj_type IS NOT INITIAL AND iv_sub_obj_name IS NOT INITIAL.
+
+      " For the line navigation we have to supply the sub object type (iv_sub_obj_type).
+      " If we use is_item-obj_type it navigates only to the object.
+      CALL FUNCTION 'RS_TOOL_ACCESS'
+        EXPORTING
+          operation           = 'SHOW'
+          object_name         = is_item-obj_name
+          object_type         = iv_sub_obj_type
+          devclass            = is_item-devclass
+          include             = iv_sub_obj_name
+          position            = iv_line_number
+          in_new_window       = iv_new_window
+        EXCEPTIONS
+          not_executed        = 1
+          invalid_object_type = 2
+          OTHERS              = 3.
+
+      rv_exit = boolc( sy-subrc = 0 ).
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_jumper~jump.
+
+    " Try all generic jump options
+
+    " 1) ADT Jump
+    rv_exit = zif_abapgit_gui_jumper~jump_adt(
+      is_item         = is_item
+      iv_sub_obj_name = iv_sub_obj_name
+      iv_line_number  = iv_line_number ).
+
+    IF rv_exit = abap_true.
+      RETURN.
+    ENDIF.
+
+    " 2) WB Jump with Line Number
+    rv_exit = jump_wb_line(
+      is_item         = is_item
+      iv_sub_obj_name = iv_sub_obj_name
+      iv_sub_obj_type = iv_sub_obj_type
+      iv_line_number  = iv_line_number
+      iv_new_window   = iv_new_window ).
+
+    IF rv_exit = abap_true.
+      RETURN.
+    ENDIF.
+
+    " 3) WB Jump without Line Number
+    rv_exit = jump_wb(
+      is_item       = is_item
+      iv_new_window = iv_new_window ).
+
+    IF rv_exit = abap_true.
+      RETURN.
+    ENDIF.
+
+    " 4) Transport Tool Jump
+    rv_exit = jump_tr( is_item ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_jumper~jump_adt.
+
+    " Open object in ADT (if enabled)
+
+    DATA lv_adt_jump_enabled TYPE abap_bool.
+
+    lv_adt_jump_enabled = zcl_abapgit_persist_factory=>get_settings( )->read( )->get_adt_jump_enabled( ).
+
+    IF lv_adt_jump_enabled = abap_true.
+      zcl_abapgit_adt_link=>jump(
+        iv_obj_name     = is_item-obj_name
+        iv_obj_type     = is_item-obj_type
+        iv_sub_obj_name = iv_sub_obj_name
+        iv_line_number  = iv_line_number ).
+
+      rv_exit = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
   METHOD get_instance.
     CREATE OBJECT ro_instance.
@@ -106720,6 +106915,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-05T16:23:32.593Z
+* abapmerge 0.14.3 - 2021-11-07T07:16:04.309Z
 ENDINTERFACE.
 ****************************************************
