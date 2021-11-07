@@ -96744,13 +96744,17 @@ CLASS zcl_abapgit_gui_jumper IMPLEMENTATION.
     lv_adt_jump_enabled = zcl_abapgit_persist_factory=>get_settings( )->read( )->get_adt_jump_enabled( ).
 
     IF lv_adt_jump_enabled = abap_true.
-      zcl_abapgit_adt_link=>jump(
-        iv_obj_name     = is_item-obj_name
-        iv_obj_type     = is_item-obj_type
-        iv_sub_obj_name = iv_sub_obj_name
-        iv_line_number  = iv_line_number ).
+      TRY.
+          zcl_abapgit_adt_link=>jump(
+            iv_obj_name     = is_item-obj_name
+            iv_obj_type     = is_item-obj_type
+            iv_sub_obj_name = iv_sub_obj_name
+            iv_line_number  = iv_line_number ).
 
-      rv_exit = abap_true.
+          rv_exit = abap_true.
+        CATCH zcx_abapgit_exception ##NO_HANDLER.
+          " Use fallback
+      ENDTRY.
     ENDIF.
 
   ENDMETHOD.
@@ -106915,6 +106919,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-07T07:16:04.309Z
+* abapmerge 0.14.3 - 2021-11-07T19:54:51.499Z
 ENDINTERFACE.
 ****************************************************
