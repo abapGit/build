@@ -6275,7 +6275,6 @@ CLASS zcl_abapgit_file_status DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS process_local
       IMPORTING
-        !iv_devclass  TYPE devclass
         !io_dot       TYPE REF TO zcl_abapgit_dot_abapgit
         !it_local     TYPE zif_abapgit_definitions=>ty_files_item_tt
         !it_state_idx TYPE zif_abapgit_definitions=>ty_file_signatures_ts
@@ -6289,7 +6288,6 @@ CLASS zcl_abapgit_file_status DEFINITION
       IMPORTING
         !iv_devclass TYPE devclass
         !io_dot      TYPE REF TO zcl_abapgit_dot_abapgit
-        !it_local    TYPE zif_abapgit_definitions=>ty_files_item_tt
         !it_remote   TYPE zif_abapgit_definitions=>ty_files_tt
       CHANGING
         !ct_items    TYPE zif_abapgit_definitions=>ty_items_tt
@@ -6774,7 +6772,7 @@ CLASS zcl_abapgit_serialize DEFINITION
         zcx_abapgit_exception .
     METHODS on_end_of_task
       IMPORTING
-        !p_task TYPE clike .
+        !p_task TYPE clike ##NEEDED.
     METHODS serialize
       IMPORTING
         !it_tadir            TYPE zif_abapgit_definitions=>ty_tadir_tt
@@ -6938,7 +6936,7 @@ CLASS zcl_abapgit_tadir DEFINITION
       CHANGING
         !ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception ##NEEDED.
     METHODS add_local_packages
       IMPORTING
         !it_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt
@@ -6968,7 +6966,7 @@ CLASS zcl_abapgit_tadir DEFINITION
       CHANGING
         !ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception ##NEEDED.
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_config_downl DEFINITION
   INHERITING FROM cl_apl_ecatt_config_download
@@ -7301,8 +7299,7 @@ CLASS zcl_abapgit_object_enho_badi DEFINITION.
   PUBLIC SECTION.
     METHODS: constructor
       IMPORTING
-        is_item  TYPE zif_abapgit_definitions=>ty_item
-        io_files TYPE REF TO zcl_abapgit_objects_files.
+        is_item TYPE zif_abapgit_definitions=>ty_item.
     INTERFACES: zif_abapgit_object_enho.
 
   PROTECTED SECTION.
@@ -7353,9 +7350,8 @@ CLASS zcl_abapgit_object_enho_clif DEFINITION
         cx_enh_root .
     CLASS-METHODS serialize
       IMPORTING
-        !io_xml   TYPE REF TO zif_abapgit_xml_output
-        !io_files TYPE REF TO zcl_abapgit_objects_files
-        !io_clif  TYPE REF TO cl_enh_tool_clif
+        !io_xml  TYPE REF TO zif_abapgit_xml_output
+        !io_clif TYPE REF TO cl_enh_tool_clif
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -7449,10 +7445,10 @@ CLASS zcl_abapgit_object_enho_wdyc DEFINITION.
   PUBLIC SECTION.
     METHODS: constructor
       IMPORTING
-        is_item  TYPE zif_abapgit_definitions=>ty_item
-        io_files TYPE REF TO zcl_abapgit_objects_files.
+        is_item TYPE zif_abapgit_definitions=>ty_item.
     INTERFACES: zif_abapgit_object_enho.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: ms_item  TYPE zif_abapgit_definitions=>ty_item.
 
@@ -7462,10 +7458,10 @@ CLASS zcl_abapgit_object_enho_wdyn DEFINITION.
   PUBLIC SECTION.
     METHODS: constructor
       IMPORTING
-        is_item  TYPE zif_abapgit_definitions=>ty_item
-        io_files TYPE REF TO zcl_abapgit_objects_files.
+        is_item TYPE zif_abapgit_definitions=>ty_item.
     INTERFACES: zif_abapgit_object_enho.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: ms_item  TYPE zif_abapgit_definitions=>ty_item.
 
@@ -8253,7 +8249,6 @@ CLASS zcl_abapgit_objects_super DEFINITION
         !iv_obj_name     TYPE zif_abapgit_definitions=>ty_item-obj_name
         !iv_obj_type     TYPE zif_abapgit_definitions=>ty_item-obj_type
         !iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
-        !iv_sub_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type OPTIONAL
         !iv_line_number  TYPE i OPTIONAL
       RAISING
         zcx_abapgit_exception .
@@ -16492,7 +16487,6 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
           is_file       TYPE zif_abapgit_definitions=>ty_file OPTIONAL
           is_object     TYPE zif_abapgit_definitions=>ty_item OPTIONAL
           it_files      TYPE zif_abapgit_definitions=>ty_stage_tt OPTIONAL
-          iv_patch_mode TYPE abap_bool OPTIONAL
         RAISING
           zcx_abapgit_exception,
 
@@ -17420,7 +17414,6 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
     DATA ms_repo_current TYPE zif_abapgit_persistence=>ty_repo .
     DATA ms_repo_new TYPE zif_abapgit_persistence=>ty_repo .
-    DATA mo_dot TYPE REF TO zcl_abapgit_dot_abapgit .
     DATA mv_pull_req TYPE string .
     DATA mv_mode TYPE i .
     DATA mv_original_url TYPE string .
@@ -37582,6 +37575,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
   METHOD choose_url.
 
     " todo, get url history from DB and show selection popup #3639
+    rv_url = ''.
 
   ENDMETHOD.
   METHOD constructor.
@@ -44640,7 +44634,6 @@ CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
           zcl_abapgit_objects_super=>jump_adt( iv_obj_name     = ls_item-obj_name
                                                iv_obj_type     = ls_item-obj_type
                                                iv_sub_obj_name = ls_sub_item-obj_name
-                                               iv_sub_obj_type = ls_sub_item-obj_type
                                                iv_line_number  = lv_line_number ).
           RETURN.
 
@@ -66965,75 +66958,71 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
   ENDMETHOD.
   METHOD clear_fields.
 
-    FIELD-SYMBOLS: <lv_links> TYPE ANY TABLE.
-    FIELD-SYMBOLS: <lv_value> TYPE data.
-    FIELD-SYMBOLS <ls_item> TYPE any.
+    clear_field(
+      EXPORTING
+        iv_fieldname = 'VERSION'
+      CHANGING
+        cs_metadata  = cs_metadata ).
 
     clear_field(
       EXPORTING
-        iv_fieldname          = 'VERSION'
+        iv_fieldname = 'CREATED_AT'
       CHANGING
-        cs_metadata = cs_metadata ).
+        cs_metadata  = cs_metadata ).
 
     clear_field(
       EXPORTING
-        iv_fieldname          = 'CREATED_AT'
+        iv_fieldname = 'CREATED_BY'
       CHANGING
-        cs_metadata = cs_metadata ).
+        cs_metadata  = cs_metadata ).
 
     clear_field(
       EXPORTING
-        iv_fieldname          = 'CREATED_BY'
+        iv_fieldname = 'CHANGED_AT'
       CHANGING
-        cs_metadata = cs_metadata ).
+        cs_metadata  = cs_metadata ).
 
     clear_field(
       EXPORTING
-        iv_fieldname          = 'CHANGED_AT'
+        iv_fieldname = 'CHANGED_BY'
       CHANGING
-        cs_metadata = cs_metadata ).
+        cs_metadata  = cs_metadata ).
 
     clear_field(
       EXPORTING
-        iv_fieldname          = 'CHANGED_BY'
+        iv_fieldname = 'RESPONSIBLE'
       CHANGING
-        cs_metadata = cs_metadata ).
+        cs_metadata  = cs_metadata ).
 
     clear_field(
       EXPORTING
-        iv_fieldname          = 'RESPONSIBLE'
+        iv_fieldname = 'PACKAGE_REF'
       CHANGING
-        cs_metadata = cs_metadata ).
+        cs_metadata  = cs_metadata ).
 
     clear_field(
       EXPORTING
-      iv_fieldname          = 'PACKAGE_REF'
+        iv_fieldname = 'MASTER_SYSTEM'
       CHANGING
-      cs_metadata = cs_metadata ).
+        cs_metadata  = cs_metadata ).
 
     clear_field(
       EXPORTING
-      iv_fieldname          = 'MASTER_SYSTEM'
+        iv_fieldname = 'DT_UUID'
       CHANGING
-      cs_metadata = cs_metadata ).
+        cs_metadata  = cs_metadata ).
 
     clear_field(
       EXPORTING
-      iv_fieldname          = 'DT_UUID'
+        iv_fieldname = 'ABAP_LANGUAGE_VERSION'
       CHANGING
-      cs_metadata = cs_metadata ).
+        cs_metadata  = cs_metadata ).
 
     clear_field(
       EXPORTING
-      iv_fieldname          = 'ABAP_LANGUAGE_VERSION'
+        iv_fieldname = 'LINKS'
       CHANGING
-      cs_metadata = cs_metadata ).
-
-    clear_field(
-      EXPORTING
-      iv_fieldname          = 'LINKS'
-      CHANGING
-      cs_metadata = cs_metadata ).
+        cs_metadata  = cs_metadata ).
 
   ENDMETHOD.
   METHOD clear_field.
@@ -80111,8 +80100,8 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
     DATA: lt_stamps  TYPE STANDARD TABLE OF ty_stamps WITH DEFAULT KEY,
           lv_program TYPE program.
 
-    FIELD-SYMBOLS: <ls_stamp>   LIKE LINE OF lt_stamps,
-                   <lv_include> LIKE LINE OF mt_includes_all.
+    FIELD-SYMBOLS: <ls_stamp> LIKE LINE OF lt_stamps.
+
     lv_program = main_name( ).
 
     IF mt_includes_all IS INITIAL.
@@ -82083,8 +82072,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
       WHEN cl_enh_tool_badi_impl=>tooltype.
         CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enho_badi
           EXPORTING
-            is_item  = ms_item
-            io_files = mo_files.
+            is_item  = ms_item.
       WHEN cl_enh_tool_hook_impl=>tooltype.
         CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enho_hook
           EXPORTING
@@ -82103,8 +82091,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
       WHEN cl_wdr_cfg_enhancement=>tooltype.
         CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enho_wdyc
           EXPORTING
-            is_item  = ms_item
-            io_files = mo_files.
+            is_item  = ms_item.
       WHEN 'FUGRENH'.
         CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enho_fugr
           EXPORTING
@@ -82113,8 +82100,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
       WHEN 'WDYENH'.
         CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enho_wdyn
           EXPORTING
-            is_item  = ms_item
-            io_files = mo_files.
+            is_item  = ms_item.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( |Unsupported ENHO type { iv_tool }| ).
     ENDCASE.
@@ -92568,11 +92554,9 @@ CLASS zcl_abapgit_object_enho_wdyn IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
-
   METHOD constructor.
     ms_item = is_item.
   ENDMETHOD.
-
   METHOD zif_abapgit_object_enho~deserialize.
 
     DATA: lv_enhname TYPE enhname,
@@ -92621,7 +92605,6 @@ CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'error deserializing ENHO wdyconf' ).
     ENDTRY.
   ENDMETHOD.
-
   METHOD zif_abapgit_object_enho~serialize.
 
     DATA: lo_wdyconf  TYPE REF TO cl_wdr_cfg_enhancement,
@@ -92658,7 +92641,6 @@ CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
                      ii_xml = li_element ).
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_enho_intf IMPLEMENTATION.
@@ -92728,7 +92710,6 @@ CLASS zcl_abapgit_object_enho_intf IMPLEMENTATION.
 
     zcl_abapgit_object_enho_clif=>serialize(
       io_xml  = ii_xml
-      io_files = mo_files
       io_clif = lo_enh_intf ).
 
   ENDMETHOD.
@@ -93405,9 +93386,8 @@ CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
     mo_files->add_abap( lt_source ).
 
     zcl_abapgit_object_enho_clif=>serialize(
-      io_xml   = ii_xml
-      io_files = mo_files
-      io_clif  = lo_enh_class ).
+      io_xml  = ii_xml
+      io_clif = lo_enh_class ).
 
     serialize_includes( lo_enh_class ).
 
@@ -97155,7 +97135,6 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
     " Process local files and new local files
     process_local(
       EXPORTING
-        iv_devclass  = iv_devclass
         io_dot       = io_dot
         it_local     = it_local
         it_state_idx = lt_state_idx
@@ -97169,7 +97148,6 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
       EXPORTING
         iv_devclass = iv_devclass
         io_dot      = io_dot
-        it_local    = it_local
         it_remote   = lt_remote
       CHANGING
         ct_items    = lt_items ).
@@ -106936,6 +106914,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-09T15:15:44.493Z
+* abapmerge 0.14.3 - 2021-11-09T15:23:34.161Z
 ENDINTERFACE.
 ****************************************************
