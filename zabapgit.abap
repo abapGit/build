@@ -70374,6 +70374,7 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
 
     DATA: ls_msg    TYPE hier_mess,
           ls_head   TYPE ttree,
+          ls_ttree  TYPE ttree,
           lt_titles TYPE TABLE OF ttreet,
           lt_nodes  TYPE TABLE OF hier_iface,
           lt_texts  TYPE TABLE OF hier_texts,
@@ -70415,6 +70416,15 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
         OTHERS                   = 2.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    " Set buffer mode for menus (see function BMENU_CREATE_TREE)
+    SELECT SINGLE * FROM ttree INTO ls_ttree
+      WHERE type = 'BMENU' AND id = mv_tree_id.
+    IF sy-subrc = 0.
+      ls_ttree-buffermode = ls_head-buffermode.
+      ls_ttree-buffervar  = ls_head-buffervar.
+      MODIFY ttree FROM ls_ttree.
     ENDIF.
 
   ENDMETHOD.
@@ -106919,6 +106929,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-07T19:54:51.499Z
+* abapmerge 0.14.3 - 2021-11-09T03:34:33.042Z
 ENDINTERFACE.
 ****************************************************
