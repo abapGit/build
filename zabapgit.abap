@@ -30014,11 +30014,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var activeElement = (document.activeElement && document.activeElement) || {};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  // link hints are disabled for input and textareas for obvious reasons.' ).
-    lo_buf->add( '  // Maybe we must add other types here in the future' ).
-    lo_buf->add( '  if (event.key === this.linkHintHotKey && activeElement.type !== "text" && activeElement.type !== "number" && activeElement.nodeName !== "TEXTAREA") {' ).
+    lo_buf->add( '  if (event.key === this.linkHintHotKey && Hotkeys.isHotkeyCallPossible()) {' ).
     lo_buf->add( '' ).
     lo_buf->add( '    // on user hide hints, close an opened dropdown too' ).
     lo_buf->add( '    if (this.areHintsDisplayed && this.activatedDropdown) this.closeActivatedDropdown();' ).
@@ -30247,7 +30243,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if (!this.isHotkeyCallPossible()){' ).
+    lo_buf->add( '  if (!Hotkeys.isHotkeyCallPossible()){' ).
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
@@ -30260,7 +30256,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Hotkeys.prototype.isHotkeyCallPossible = function(){' ).
+    lo_buf->add( 'Hotkeys.isHotkeyCallPossible = function(){' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");' ).
     lo_buf->add( '  var activeElementReadOnly = ((document.activeElement && document.activeElement.readOnly) || false);' ).
@@ -106929,6 +106925,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-09T03:34:33.042Z
+* abapmerge 0.14.3 - 2021-11-09T04:47:01.261Z
 ENDINTERFACE.
 ****************************************************
