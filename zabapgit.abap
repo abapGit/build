@@ -40203,7 +40203,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
         ri_html->add( render_head_line( ) ).
 
         li_log = lo_browser->get_log( ).
-        IF mo_repo->is_offline( ) = abap_false AND li_log->count( ) > 0.
+        IF li_log->count( ) > 0.
           ri_html->add( '<div class="log">' ).
           ri_html->add( zcl_abapgit_log_viewer=>to_html( li_log ) ). " shows eg. list of unsupported objects
           ri_html->add( '</div>' ).
@@ -106936,6 +106936,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-09T13:35:19.817Z
+* abapmerge 0.14.3 - 2021-11-09T15:15:44.493Z
 ENDINTERFACE.
 ****************************************************
