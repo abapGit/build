@@ -15731,6 +15731,7 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
         author          TYPE string VALUE 'author',
         author_name     TYPE string VALUE 'author_name',
         author_email    TYPE string VALUE 'author_email',
+        new_branch_name TYPE string VALUE 'new_branch_name',
       END OF c_id.
 
     CONSTANTS:
@@ -15798,9 +15799,14 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
         VALUE(rv_text) TYPE string.
     METHODS is_valid_email
       IMPORTING
-        !iv_email       TYPE string
+        iv_email        TYPE string
       RETURNING
         VALUE(rv_valid) TYPE abap_bool.
+    METHODS branch_name_to_internal
+      IMPORTING
+        iv_branch_name            TYPE string
+      RETURNING
+        VALUE(rv_new_branch_name) TYPE string.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_data DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -44371,8 +44377,12 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
       iv_placeholder = 'Optionally, specify an author (same as committer by default)'
     )->text(
       iv_name        = c_id-author_email
-      iv_label       = 'Author Email' ).
-
+      iv_label       = 'Author Email'
+    )->text(
+      iv_name        = c_id-new_branch_name
+      iv_label       = 'New Branch Name'
+      iv_placeholder = 'Optionally, enter a new branch name for this commit'
+      iv_condense    = abap_true ).
     ro_form->command(
       iv_label       = 'Commit'
       iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
@@ -44476,6 +44486,9 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
   ENDMETHOD.
   METHOD validate_form.
 
+    DATA: lt_branches        TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
+          lv_new_branch_name TYPE string.
+
     ro_validation_log = mo_form_util->validate( io_form_data ).
 
     IF is_valid_email( io_form_data->get( c_id-committer_email ) ) = abap_false.
@@ -44490,8 +44503,22 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
         iv_val = |Invalid email address| ).
     ENDIF.
 
+    lv_new_branch_name = io_form_data->get( c_id-new_branch_name ).
+    IF lv_new_branch_name IS NOT INITIAL.
+      " check if branch already exists
+      lt_branches = zcl_abapgit_git_transport=>branches( mo_repo->get_url( ) )->get_branches_only( ).
+      READ TABLE lt_branches TRANSPORTING NO FIELDS WITH TABLE KEY name_key
+        COMPONENTS name = branch_name_to_internal( lv_new_branch_name ).
+      IF sy-subrc = 0.
+        ro_validation_log->set(
+          iv_key = c_id-new_branch_name
+          iv_val = |Branch already exists| ).
+      ENDIF.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
+    DATA lv_new_branch_name   TYPE string.
 
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
@@ -44504,6 +44531,10 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
         mo_validation_log = validate_form( mo_form_data ).
 
         IF mo_validation_log->is_empty( ) = abap_true.
+
+          " new branch fields not needed in commit data
+          mo_form_data->strict( abap_false ).
+
           mo_form_data->to_abap( CHANGING cs_container = ms_commit ).
 
           REPLACE ALL OCCURRENCES
@@ -44511,11 +44542,18 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
             IN ms_commit-body
             WITH zif_abapgit_definitions=>c_newline.
 
+          lv_new_branch_name = mo_form_data->get( c_id-new_branch_name ).
+          " create new branch and commit to it if branch name is not empty
+          IF lv_new_branch_name IS NOT INITIAL.
+            lv_new_branch_name = branch_name_to_internal( lv_new_branch_name ).
+            " creates a new branch and automatically switches to it
+            mo_repo->create_branch( lv_new_branch_name ).
+          ENDIF.
+
           zcl_abapgit_services_git=>commit(
             is_commit = ms_commit
             io_repo   = mo_repo
             io_stage  = mo_stage ).
-
           MESSAGE 'Commit was successful' TYPE 'S'.
 
           rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back_to_bookmark.
@@ -44553,6 +44591,12 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
     ri_html->add( '</div>' ).
 
   ENDMETHOD.
+
+  METHOD branch_name_to_internal.
+    rv_new_branch_name = zcl_abapgit_git_branch_list=>complete_heads_branch_name(
+      zcl_abapgit_git_branch_list=>normalize_branch_name( iv_branch_name ) ).
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
@@ -106914,6 +106958,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-09T22:23:30.134Z
+* abapmerge 0.14.3 - 2021-11-10T14:21:02.259Z
 ENDINTERFACE.
 ****************************************************
