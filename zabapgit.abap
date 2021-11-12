@@ -50049,7 +50049,7 @@ CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
     DATA lv_escaped TYPE string.
 
     lv_escaped = escape( val    = iv_line
-                         format = cl_abap_format=>e_html_attr ).
+                         format = cl_abap_format=>e_html_text ).
 
     lv_escaped = show_hidden_chars( lv_escaped ).
 
@@ -106958,6 +106958,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-11T23:05:59.104Z
+* abapmerge 0.14.3 - 2021-11-12T05:56:13.301Z
 ENDINTERFACE.
 ****************************************************
