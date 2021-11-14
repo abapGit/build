@@ -15772,8 +15772,7 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
 
     CONSTANTS:
       BEGIN OF c_event,
-        go_back TYPE string VALUE 'go_back',
-        commit  TYPE string VALUE 'commit',
+        commit TYPE string VALUE 'commit',
       END OF c_event.
 
     DATA mo_form TYPE REF TO zcl_abapgit_html_form.
@@ -15889,7 +15888,9 @@ CLASS zcl_abapgit_gui_page_data DEFINITION
         VALUE(rt_where) TYPE string_table .
     METHODS render_add
       RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     METHODS render_existing
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
@@ -17024,7 +17025,6 @@ CLASS zcl_abapgit_gui_page_sett_bckg DEFINITION
       END OF c_id .
     CONSTANTS:
       BEGIN OF c_event,
-        go_back TYPE string VALUE 'go_back',
         run_now TYPE string VALUE 'run_now',
         save    TYPE string VALUE 'save',
       END OF c_event .
@@ -17091,7 +17091,6 @@ CLASS zcl_abapgit_gui_page_sett_glob DEFINITION
       END OF c_id.
     CONSTANTS:
       BEGIN OF c_event,
-        go_back      TYPE string VALUE 'go_back',
         proxy_bypass TYPE string VALUE 'proxy_bypass',
         save         TYPE string VALUE 'save',
       END OF c_event.
@@ -17177,8 +17176,7 @@ CLASS zcl_abapgit_gui_page_sett_info DEFINITION
       END OF c_id .
     CONSTANTS:
       BEGIN OF c_event,
-        go_back TYPE string VALUE 'go-back',
-        save    TYPE string VALUE 'save',
+        save TYPE string VALUE 'save',
       END OF c_event .
     DATA mo_form TYPE REF TO zcl_abapgit_html_form .
     DATA mo_form_data TYPE REF TO zcl_abapgit_string_map .
@@ -17282,8 +17280,7 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
       END OF c_id .
     CONSTANTS:
       BEGIN OF c_event,
-        go_back TYPE string VALUE 'go_back',
-        save    TYPE string VALUE 'save',
+        save TYPE string VALUE 'save',
       END OF c_event .
 
     DATA mo_form TYPE REF TO zcl_abapgit_html_form .
@@ -17355,8 +17352,7 @@ CLASS zcl_abapgit_gui_page_sett_pers DEFINITION
       END OF c_id.
     CONSTANTS:
       BEGIN OF c_event,
-        go_back TYPE string VALUE 'go_back',
-        save    TYPE string VALUE 'save',
+        save TYPE string VALUE 'save',
       END OF c_event.
 
     DATA mo_form TYPE REF TO zcl_abapgit_html_form.
@@ -17440,7 +17436,6 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
       END OF c_id .
     CONSTANTS:
       BEGIN OF c_event,
-        go_back         TYPE string VALUE 'go-back',
         save            TYPE string VALUE 'save',
         switch          TYPE string VALUE 'switch',
         choose_url      TYPE string VALUE 'choose_url',
@@ -17591,8 +17586,7 @@ CLASS zcl_abapgit_gui_page_sett_repo DEFINITION
       END OF c_id .
     CONSTANTS:
       BEGIN OF c_event,
-        go_back TYPE string VALUE 'go_back',
-        save    TYPE string VALUE 'save',
+        save TYPE string VALUE 'save',
       END OF c_event .
     CONSTANTS c_empty_rows TYPE i VALUE 2 ##NO_TEXT.
 
@@ -18092,6 +18086,7 @@ CLASS zcl_abapgit_html_form DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_html_form .
+    INTERFACES zif_abapgit_gui_hotkeys .
 
     CLASS-METHODS create
       IMPORTING
@@ -18105,7 +18100,9 @@ CLASS zcl_abapgit_html_form DEFINITION
         !io_values         TYPE REF TO zcl_abapgit_string_map
         !io_validation_log TYPE REF TO zcl_abapgit_string_map OPTIONAL
       RETURNING
-        VALUE(ri_html)     TYPE REF TO zif_abapgit_html .
+        VALUE(ri_html)     TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     METHODS command
       IMPORTING
         !iv_label      TYPE csequence
@@ -34647,6 +34644,10 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     ri_html->add( |</form>| ).
     ri_html->add( |</div>| ).
 
+    zcl_abapgit_ui_factory=>get_gui_services(
+      )->get_hotkeys_ctl(
+      )->register_hotkeys( zif_abapgit_gui_hotkeys~get_hotkey_actions( ) ).
+
   ENDMETHOD.
   METHOD render_command.
 
@@ -35060,6 +35061,32 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     APPEND ls_field TO mt_fields.
 
     ro_self = me.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_hotkeys~get_hotkey_actions.
+
+    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
+    FIELD-SYMBOLS: <ls_command> TYPE zif_abapgit_html_form=>ty_command.
+
+    ls_hotkey_action-ui_component = 'Form'.
+
+    READ TABLE mt_commands WITH KEY cmd_type = zif_abapgit_html_form=>c_cmd_type-input_main
+                           ASSIGNING <ls_command>.
+    IF sy-subrc = 0.
+      ls_hotkey_action-description = <ls_command>-label.
+      ls_hotkey_action-action      = <ls_command>-action.
+      ls_hotkey_action-hotkey      = |Enter|.
+      INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+    ENDIF.
+
+    READ TABLE mt_commands WITH KEY action = zif_abapgit_definitions=>c_action-go_back
+                           ASSIGNING <ls_command>.
+    IF sy-subrc = 0.
+      ls_hotkey_action-description = <ls_command>-label.
+      ls_hotkey_action-action      = <ls_command>-action.
+      ls_hotkey_action-hotkey      = |F3|.
+      INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -37164,7 +37191,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
       iv_action      = c_event-save
     )->command(
       iv_label       = 'Back'
-      iv_action      = c_event-go_back ).
+      iv_action      = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
   METHOD read_settings.
@@ -37360,7 +37387,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
-      WHEN c_event-go_back.
+      WHEN zif_abapgit_definitions=>c_action-go_back.
         rs_handled-state = mo_form_util->exit( mo_form_data ).
 
       WHEN c_event-save.
@@ -37732,7 +37759,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
       iv_action      = c_event-switch
     )->command(
       iv_label       = 'Back'
-      iv_action      = c_event-go_back ).
+      iv_action      = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
   METHOD get_mode.
@@ -38021,7 +38048,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
-      WHEN c_event-go_back.
+      WHEN zif_abapgit_definitions=>c_action-go_back.
         IF ms_repo_new <> ms_repo_current.
           mo_repo->refresh( ).
         ENDIF.
@@ -38281,7 +38308,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
       iv_action        = c_event-save
     )->command(
       iv_label         = 'Back'
-      iv_action        = c_event-go_back ).
+      iv_action        = zif_abapgit_definitions=>c_action-go_back ).
 
     " Not available via this form:
     " - User-specific hotkey settings have been discontinued
@@ -38377,7 +38404,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
-      WHEN c_event-go_back.
+      WHEN zif_abapgit_definitions=>c_action-go_back.
         rs_handled-state = mo_form_util->exit( mo_form_data ).
 
       WHEN c_event-save.
@@ -38487,7 +38514,7 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
       iv_action      = c_event-save
     )->command(
       iv_label       = 'Back'
-      iv_action      = c_event-go_back ).
+      iv_action      = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
   METHOD read_settings.
@@ -38572,7 +38599,7 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
-      WHEN c_event-go_back.
+      WHEN zif_abapgit_definitions=>c_action-go_back.
         rs_handled-state = mo_form_util->exit( mo_form_data ).
 
       WHEN c_event-save.
@@ -38753,7 +38780,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
       iv_readonly    = abap_true
     )->command(
       iv_label       = 'Back'
-      iv_action      = c_event-go_back ).
+      iv_action      = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
   METHOD read_settings.
@@ -39044,7 +39071,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
-    IF ii_event->mv_action = c_event-go_back.
+    IF ii_event->mv_action = zif_abapgit_definitions=>c_action-go_back.
       rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back_to_bookmark.
     ENDIF.
 
@@ -39162,7 +39189,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
       iv_action      = c_event-save
     )->command(
       iv_label       = 'Back'
-      iv_action      = c_event-go_back ).
+      iv_action      = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
   METHOD read_proxy_bypass.
@@ -39308,7 +39335,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
-      WHEN c_event-go_back.
+      WHEN zif_abapgit_definitions=>c_action-go_back.
         rs_handled-state = mo_form_util->exit( mo_form_data ).
 
       WHEN c_event-save.
@@ -39437,7 +39464,7 @@ CLASS zcl_abapgit_gui_page_sett_bckg IMPLEMENTATION.
       iv_action      = zif_abapgit_definitions=>c_action-go_background_run
     )->command(
       iv_label       = 'Back'
-      iv_action      = c_event-go_back ).
+      iv_action      = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
   METHOD read_persist.
@@ -39575,7 +39602,7 @@ CLASS zcl_abapgit_gui_page_sett_bckg IMPLEMENTATION.
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
-      WHEN c_event-go_back.
+      WHEN zif_abapgit_definitions=>c_action-go_back.
         rs_handled-state = mo_form_util->exit( mo_form_data ).
 
       WHEN c_event-save.
@@ -44425,7 +44452,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
       iv_action      = c_event-commit
     )->command(
       iv_label       = 'Back'
-      iv_action      = c_event-go_back ).
+      iv_action      = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
   METHOD is_valid_email.
@@ -44559,7 +44586,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
-      WHEN c_event-go_back.
+      WHEN zif_abapgit_definitions=>c_action-go_back.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
 
       WHEN c_event-commit.
@@ -106994,6 +107021,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-14T06:29:47.647Z
+* abapmerge 0.14.3 - 2021-11-14T06:46:43.712Z
 ENDINTERFACE.
 ****************************************************
