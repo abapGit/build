@@ -13667,9 +13667,7 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
     METHODS is_offline
       RETURNING
-        VALUE(rv_offline) TYPE abap_bool
-      RAISING
-        zcx_abapgit_exception .
+        VALUE(rv_offline) TYPE abap_bool .
     METHODS set_files_remote
       IMPORTING
         !it_files TYPE zif_abapgit_definitions=>ty_files_tt .
@@ -30204,9 +30202,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      }' ).
     lo_buf->add( '' ).
     lo_buf->add( '      // Or a SAP event input' ).
-    lo_buf->add( '      var sUiSapEventFormAction = this.getSapEventFormAction(action);' ).
-    lo_buf->add( '      if (sUiSapEventFormAction) {' ).
-    lo_buf->add( '        submitSapeventForm({}, sUiSapEventFormAction, "post");' ).
+    lo_buf->add( '      var sUiSapEventInputAction = this.getSapEventInputAction(action);' ).
+    lo_buf->add( '      if (sUiSapEventInputAction) {' ).
+    lo_buf->add( '        submitSapeventForm({}, sUiSapEventInputAction, "post");' ).
+    lo_buf->add( '        oEvent.preventDefault();' ).
+    lo_buf->add( '        return;' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '      // Or a SAP event main form' ).
+    lo_buf->add( '      var elForm = this.getSapEventForm(action);' ).
+    lo_buf->add( '      if (elForm) {' ).
+    lo_buf->add( '        elForm.submit();' ).
     lo_buf->add( '        oEvent.preventDefault();' ).
     lo_buf->add( '        return;' ).
     lo_buf->add( '      }' ).
@@ -30230,7 +30236,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    document.querySelectorAll(''a[href*="sapevent:'' + sSapEvent + ''"],''' ).
     lo_buf->add( '                            + ''a[href*="SAPEVENT:'' + sSapEvent + ''"],''' ).
     lo_buf->add( '                            + ''input[formaction*="sapevent:'' + sSapEvent + ''"],''' ).
-    lo_buf->add( '                            + ''input[formaction*="SAPEVENT:'' + sSapEvent + ''"]''));' ).
+    lo_buf->add( '                            + ''input[formaction*="SAPEVENT:'' + sSapEvent + ''"],''' ).
+    lo_buf->add( '                            + ''form[action*="sapevent:'' + sSapEvent + ''"] input[type="submit"].main,''' ).
+    lo_buf->add( '                            + ''form[action*="SAPEVENT:'' + sSapEvent + ''"] input[type="submit"].main''));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.prototype.getSapEventHref = function(sSapEvent) {' ).
@@ -30248,7 +30256,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Hotkeys.prototype.getSapEventFormAction = function(sSapEvent) {' ).
+    lo_buf->add( 'Hotkeys.prototype.getSapEventInputAction = function(sSapEvent) {' ).
     lo_buf->add( '' ).
     lo_buf->add( '  return this.getAllSapEventsForSapEventName(sSapEvent)' ).
     lo_buf->add( '    .filter(function(el){' ).
@@ -30259,6 +30267,21 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      return oSapEvent.formAction;' ).
     lo_buf->add( '    })' ).
     lo_buf->add( '    .filter(this.eliminateSapEventFalsePositives(sSapEvent))' ).
+    lo_buf->add( '    .pop();' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'Hotkeys.prototype.getSapEventForm = function(sSapEvent) {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  return this.getAllSapEventsForSapEventName(sSapEvent)' ).
+    lo_buf->add( '    .filter(function(el){' ).
+    lo_buf->add( '      // forms' ).
+    lo_buf->add( '      var parentForm = el.parentNode.parentNode.parentNode;' ).
+    lo_buf->add( '      return (el.type === "submit" && parentForm.nodeName === "FORM");' ).
+    lo_buf->add( '    })' ).
+    lo_buf->add( '    .map(function(oSapEvent){' ).
+    lo_buf->add( '      return oSapEvent.parentNode.parentNode.parentNode;' ).
+    lo_buf->add( '    })' ).
     lo_buf->add( '    .pop();' ).
     lo_buf->add( '' ).
     lo_buf->add( '};' ).
@@ -38168,6 +38191,18 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     ls_hotkey_action-action      = c_event-choose_url.
     ls_hotkey_action-hotkey      = |u|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    IF mo_repo->is_offline( ) = abap_true.
+      ls_hotkey_action-description = |Switch to Online|.
+      ls_hotkey_action-action      = c_event-switch.
+      ls_hotkey_action-hotkey      = |o|.
+      INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+    ELSE.
+      ls_hotkey_action-description = |Switch to Offline|.
+      ls_hotkey_action-action      = c_event-switch.
+      ls_hotkey_action-hotkey      = |o|.
+      INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
@@ -107021,6 +107056,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-14T06:46:43.712Z
+* abapmerge 0.14.3 - 2021-11-14T13:56:40.697Z
 ENDINTERFACE.
 ****************************************************
