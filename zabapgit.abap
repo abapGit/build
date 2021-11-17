@@ -30982,11 +30982,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var toolbarRoot = document.getElementById("toolbar-main");' ).
-    lo_buf->add( '  if (toolbarRoot && toolbarRoot.nodeName === "UL") processUL(toolbarRoot);' ).
-    lo_buf->add( '  toolbarRoot = document.getElementById("toolbar-repo");' ).
-    lo_buf->add( '  if (toolbarRoot && toolbarRoot.nodeName === "UL") processUL(toolbarRoot);' ).
-    lo_buf->add( '  // Add more toolbars ?' ).
+    lo_buf->add( '  [].slice.call(document.querySelectorAll("[id*=toolbar]"))' ).
+    lo_buf->add( '    .filter(function(toolbar){' ).
+    lo_buf->add( '      return (toolbar && toolbar.nodeName === "UL");' ).
+    lo_buf->add( '    }).forEach(function(toolbar){' ).
+    lo_buf->add( '      processUL(toolbar);' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  if (items.length === 0) return;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  items = items.map(function(item) {' ).
@@ -107110,6 +107112,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-15T15:51:45.705Z
+* abapmerge 0.14.3 - 2021-11-17T06:53:51.043Z
 ENDINTERFACE.
 ****************************************************
