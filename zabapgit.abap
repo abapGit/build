@@ -46356,7 +46356,7 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
+CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD advanced_submenu.
     DATA: li_gui_functions        TYPE REF TO zif_abapgit_gui_functions,
           lv_supports_ie_devtools TYPE abap_bool.
@@ -46926,10 +46926,10 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
     IF io_repo->is_offline( ) = abap_true.
       lv_icon = 'plug/darkgrey'.
-      lv_hint = 'Offline repository'.
+      lv_hint = 'Offline Repository'.
     ELSE.
       lv_icon = 'cloud-upload-alt/blue'.
-      lv_hint = 'On-line repository'.
+      lv_hint = 'On-line Repository'.
     ENDIF.
 
     ri_html->add( '<table class="w100"><tr>' ).
@@ -46952,7 +46952,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     IF iv_show_edit = abap_true.
       ri_html->add_a( iv_txt   = ri_html->icon( iv_name  = 'edit-solid'
                                                 iv_class = 'pad-sides'
-                                                iv_hint  = 'Change remote' )
+                                                iv_hint  = 'Change Remote' )
                       iv_act   = |{ zif_abapgit_definitions=>c_action-repo_remote_settings }?| &&
                                  |key={ io_repo->get_key( ) }|
                       iv_class = |url| ).
@@ -46962,8 +46962,8 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       lo_repo_online ?= io_repo.
 
       ri_html->add_a( iv_txt   = ri_html->icon( iv_name  = 'copy-solid'
-                                              iv_class = 'pad-sides'
-                                              iv_hint  = 'Copy URL to Clipboard' )
+                                                iv_class = 'pad-sides'
+                                                iv_hint  = 'Copy URL to Clipboard' )
                       iv_act   = |{ zif_abapgit_definitions=>c_action-clipboard }| &&
                                  |?clipboard={ lo_repo_online->get_url( ) }|
                       iv_class = |url| ).
@@ -46987,13 +46987,14 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       IF io_news->has_updates( ) = abap_true.
         lv_icon = 'arrow-circle-up/warning'.
       ELSE.
-        lv_icon = 'arrow-circle-up/grey80'.
+        lv_icon = 'arrow-circle-up'.
       ENDIF.
-      ri_html->add_a( iv_act = |toggleDisplay('news')|
-                      iv_typ = zif_abapgit_html=>c_action_type-onclick
-                      iv_txt = ri_html->icon( iv_name  = lv_icon
-                                              iv_class = 'pad-sides'
-                                              iv_hint  = 'Display changelog' ) ).
+      ri_html->add_a( iv_act   = |toggleDisplay('news')|
+                      iv_typ   = zif_abapgit_html=>c_action_type-onclick
+                      iv_txt   = ri_html->icon( iv_name  = lv_icon
+                                                iv_class = 'pad-sides'
+                                                iv_hint  = 'Display Changelog' )
+                      iv_class = |url| ).
     ENDIF.
     ri_html->add( '</td>' ).
 
@@ -47008,7 +47009,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     ri_html->add_a( iv_act = |{ zif_abapgit_definitions=>c_action-repo_toggle_fav }?key={ io_repo->get_key( ) }|
                     iv_txt = ri_html->icon( iv_name  = lv_icon
                                             iv_class = 'pad-sides'
-                                            iv_hint  = 'Click to toggle favorite' ) ).
+                                            iv_hint  = 'Toggle Favorite' ) ).
 
     " BG
     IF lo_pback->exists( io_repo->get_key( ) ) = abap_true.
@@ -47018,7 +47019,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     " Write protect
     IF io_repo->get_local_settings( )-write_protected = abap_true.
       ri_html->add_icon( iv_name = 'lock/grey70'
-                         iv_hint = 'Locked from pulls' ).
+                         iv_hint = 'Locked from Pulls' ).
     ENDIF.
 
     " Branch
@@ -47061,6 +47062,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
         ii_html->add_a( iv_txt   = |{ lv_icon_commit }{ lv_commit_short_hash }|
                         iv_act   = |{ zif_abapgit_definitions=>c_action-url }?url={ lv_display_url }|
+                        iv_title = 'Commit'
                         iv_class = |url| ).
       CATCH zcx_abapgit_exception.
         ii_html->add( |<span class="url">{ lv_icon_commit }{ lv_commit_short_hash }</span>| ).
@@ -107112,6 +107114,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-17T13:33:53.865Z
+* abapmerge 0.14.3 - 2021-11-18T17:13:40.880Z
 ENDINTERFACE.
 ****************************************************
