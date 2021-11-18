@@ -31025,6 +31025,19 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      });' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '' ).
+    lo_buf->add( '  // links inside forms' ).
+    lo_buf->add( '  [].slice.call(document.querySelectorAll("form a"))' ).
+    lo_buf->add( '    .filter(function(anchor){' ).
+    lo_buf->add( '      return !!anchor.title;' ).
+    lo_buf->add( '    }).forEach(function(anchor){' ).
+    lo_buf->add( '      items.push({' ).
+    lo_buf->add( '        action: function(){' ).
+    lo_buf->add( '          anchor.click();' ).
+    lo_buf->add( '        },' ).
+    lo_buf->add( '        title: anchor.title' ).
+    lo_buf->add( '      });' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  return items;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -107132,6 +107145,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-18T19:18:58.669Z
+* abapmerge 0.14.3 - 2021-11-18T20:33:22.702Z
 ENDINTERFACE.
 ****************************************************
