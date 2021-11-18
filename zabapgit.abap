@@ -28680,7 +28680,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/* exported addMarginBottom */' ).
     lo_buf->add( '/* exported enumerateJumpAllFiles */' ).
     lo_buf->add( '/* exported createRepoCatalogEnumerator */' ).
-    lo_buf->add( '/* exported enumerateToolbarActions */' ).
+    lo_buf->add( '/* exported enumerateUiActions */' ).
     lo_buf->add( '/* exported onDiffCollapse */' ).
     lo_buf->add( '/* exported restoreScrollPosition */' ).
     lo_buf->add( '' ).
@@ -30960,7 +30960,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  };' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function enumerateToolbarActions() {' ).
+    lo_buf->add( 'function enumerateUiActions() {' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var items = [];' ).
     lo_buf->add( '  function processUL(ulNode, prefix) {' ).
@@ -30982,14 +30982,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
+    lo_buf->add( '  // toolbars' ).
     lo_buf->add( '  [].slice.call(document.querySelectorAll("[id*=toolbar]"))' ).
     lo_buf->add( '    .filter(function(toolbar){' ).
     lo_buf->add( '      return (toolbar && toolbar.nodeName === "UL");' ).
     lo_buf->add( '    }).forEach(function(toolbar){' ).
     lo_buf->add( '      processUL(toolbar);' ).
     lo_buf->add( '    });' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  if (items.length === 0) return;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  items = items.map(function(item) {' ).
     lo_buf->add( '    var action = "";' ).
@@ -31007,6 +31006,24 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      title:     (prefix ? prefix + ": " : "") + anchor.innerText.trim()' ).
     lo_buf->add( '    };' ).
     lo_buf->add( '  });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // forms' ).
+    lo_buf->add( '  [].slice.call(document.querySelectorAll("input[type=''submit'']"))' ).
+    lo_buf->add( '    .forEach(function(input){' ).
+    lo_buf->add( '      items.push({' ).
+    lo_buf->add( '        action: function(){' ).
+    lo_buf->add( '          if ([].slice.call(input.classList).indexOf("main") !== -1){' ).
+    lo_buf->add( '            var parentForm = input.parentNode.parentNode.parentNode;' ).
+    lo_buf->add( '            if (parentForm.nodeName === "FORM"){' ).
+    lo_buf->add( '              parentForm.submit();' ).
+    lo_buf->add( '            }' ).
+    lo_buf->add( '          } else {' ).
+    lo_buf->add( '            submitSapeventForm({}, input.formAction, "post");' ).
+    lo_buf->add( '          }' ).
+    lo_buf->add( '        },' ).
+    lo_buf->add( '        title: input.value + " " + input.title.replace(/\[.*\]/,"")' ).
+    lo_buf->add( '      });' ).
+    lo_buf->add( '    });' ).
     lo_buf->add( '' ).
     lo_buf->add( '  return items;' ).
     lo_buf->add( '}' ).
@@ -34980,7 +34997,8 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     IF is_field-side_action IS NOT INITIAL.
       ii_html->add( '</div>' ).
       ii_html->add( '<div class="command-container">' ).
-      ii_html->add( |<input type="submit" value="&#x2026;" formaction="sapevent:{ is_field-side_action }">| ).
+      ii_html->add( |<input type="submit" value="&#x2026;" formaction="sapevent:{ is_field-side_action }"|
+                 && | title="{ is_field-label }">| ).
       ii_html->add( '</div>' ).
     ENDIF.
 
@@ -45960,7 +45978,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_command_palettes.
 
-    ii_html->add( 'var gCommandPalette = new CommandPalette(enumerateToolbarActions, {' ).
+    ii_html->add( 'var gCommandPalette = new CommandPalette(enumerateUiActions, {' ).
     ii_html->add( '  toggleKey: "F1",' ).
     ii_html->add( '  hotkeyDescription: "Command ..."' ).
     ii_html->add( '});' ).
@@ -107114,6 +107132,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-18T17:13:40.880Z
+* abapmerge 0.14.3 - 2021-11-18T19:18:58.669Z
 ENDINTERFACE.
 ****************************************************
