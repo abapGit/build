@@ -22283,7 +22283,8 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
       lv_obj_name TYPE tadir-obj_name,
       lv_role     TYPE trnrole.
 
-    lv_pkg_name = lv_obj_name = mv_package.
+    lv_pkg_name = mv_package.
+    lv_obj_name = mv_package.
 
     CALL FUNCTION 'TR_GET_REQUEST_TYPE'
       EXPORTING
@@ -25698,7 +25699,7 @@ CLASS zcl_abapgit_hash IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_diff IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_DIFF IMPLEMENTATION.
   METHOD calculate_stats.
 
     FIELD-SYMBOLS: <ls_diff> LIKE LINE OF mt_diff.
@@ -25745,11 +25746,13 @@ CLASS zcl_abapgit_diff IMPLEMENTATION.
       LOOP AT lt_delta ASSIGNING <ls_delta>.
         CLEAR ls_diff.
         IF <ls_delta>-line1 > 0.
-          ls_diff-old_num = lv_i = <ls_delta>-line1.
+          lv_i = <ls_delta>-line1.
+          ls_diff-old_num = lv_i.
           ls_diff-old     = <ls_delta>-text1.
         ENDIF.
         IF <ls_delta>-line2 > 0.
-          ls_diff-new_num = lv_i = <ls_delta>-line2.
+          lv_i = <ls_delta>-line2.
+          ls_diff-new_num = lv_i.
           ls_diff-new     = <ls_delta>-text2.
         ENDIF.
         IF <ls_delta>-flag1 = 'D'.
@@ -63781,7 +63784,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
+CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
   METHOD clear_dd03p_fields.
 
     CONSTANTS lc_comptype_dataelement TYPE comptype VALUE 'E'.
@@ -63923,8 +63926,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
     lv_package = iv_package.
 
     LOOP AT lt_segment_definitions ASSIGNING <ls_segment_definition>.
-      <ls_segment_definition>-segmentheader-presp =
-        <ls_segment_definition>-segmentheader-pwork = cl_abap_syst=>get_user_name( ).
+      <ls_segment_definition>-segmentheader-presp = cl_abap_syst=>get_user_name( ).
+      <ls_segment_definition>-segmentheader-pwork = cl_abap_syst=>get_user_name( ).
 
       CALL FUNCTION 'SEGMENT_READ'
         EXPORTING
@@ -85768,7 +85771,10 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     update_pinf_usages( ii_package    = li_package
                         it_usage_data = lt_usage_data ).
 
-    ls_save_sign-pack = ls_save_sign-permis = ls_save_sign-elems = ls_save_sign-interf = abap_true.
+    ls_save_sign-pack = abap_true.
+    ls_save_sign-permis = abap_true.
+    ls_save_sign-elems = abap_true.
+    ls_save_sign-interf = abap_true.
     li_package->save_generic(
       EXPORTING
         i_save_sign           = ls_save_sign
@@ -97097,7 +97103,8 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
       IF iv_top(1) = '$'.
         zcl_abapgit_factory=>get_sap_package( iv_top )->create_local( ).
       ELSE.
-        ls_package-devclass = ls_package-ctext = iv_top.
+        ls_package-devclass = iv_top.
+        ls_package-ctext = iv_top.
         ls_package-as4user = cl_abap_syst=>get_user_name( ).
         zcl_abapgit_factory=>get_sap_package( iv_top )->create( ls_package ).
       ENDIF.
@@ -107145,6 +107152,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-18T20:33:22.702Z
+* abapmerge 0.14.3 - 2021-11-19T15:20:45.461Z
 ENDINTERFACE.
 ****************************************************
