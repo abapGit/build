@@ -64434,6 +64434,22 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
       corr_insert( iv_package = iv_package
                    ig_object_class = 'DICT' ).
 
+      CALL FUNCTION 'DD_TABL_EXPAND'
+        EXPORTING
+          dd02v_wa          = ls_dd02v
+        TABLES
+          dd03p_tab         = lt_dd03p
+          dd05m_tab         = lt_dd05m
+          dd08v_tab         = lt_dd08v
+          dd35v_tab         = lt_dd35v
+          dd36m_tab         = lt_dd36m
+        EXCEPTIONS
+          illegal_parameter = 1
+          OTHERS            = 2.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+
       CALL FUNCTION 'DDIF_TABL_PUT'
         EXPORTING
           name              = lv_name
@@ -107152,6 +107168,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-19T18:26:30.056Z
+* abapmerge 0.14.3 - 2021-11-22T17:58:39.452Z
 ENDINTERFACE.
 ****************************************************
