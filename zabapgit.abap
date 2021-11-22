@@ -96731,7 +96731,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
       lc_sqsc       TYPE c LENGTH 4  VALUE 'SQSC',
       lc_stob       TYPE c LENGTH 4  VALUE 'STOB',
       lc_ntab       TYPE c LENGTH 14 VALUE 'NTTT NTTB NTDT',
-      lc_ddls       TYPE c LENGTH 4  VALUE 'DDLS',
+      lc_ddls       TYPE c LENGTH 14 VALUE 'DDLS DRUL DTDC',
       lc_switches   TYPE c LENGTH 24 VALUE 'SF01 SF02 SFSW SFBS SFBF',
       lc_enhd       TYPE c LENGTH 4  VALUE 'ENHD'.
 
@@ -107168,6 +107168,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-22T18:28:04.659Z
+* abapmerge 0.14.3 - 2021-11-22T18:31:19.789Z
 ENDINTERFACE.
 ****************************************************
