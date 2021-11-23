@@ -40585,7 +40585,11 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ENDIF.
 
     LOOP AT is_item-files INTO ls_file.
-      ri_html->add( |<div>{ ls_file-path && ls_file-filename }</div>| ).
+      IF mv_show_folders = abap_true.
+        ri_html->add( |<div>{ ls_file-filename }</div>| ).
+      ELSE.
+        ri_html->add( |<div>{ ls_file-path && ls_file-filename }</div>| ).
+      ENDIF.
     ENDLOOP.
 
   ENDMETHOD.
@@ -107168,6 +107172,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-22T18:31:19.789Z
+* abapmerge 0.14.3 - 2021-11-23T00:22:29.674Z
 ENDINTERFACE.
 ****************************************************
