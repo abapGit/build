@@ -2517,9 +2517,10 @@ INTERFACE zif_abapgit_definitions .
     END OF c_git_branch.
   CONSTANTS:
     BEGIN OF c_diff,
-      insert TYPE c LENGTH 1 VALUE 'I',
-      delete TYPE c LENGTH 1 VALUE 'D',
-      update TYPE c LENGTH 1 VALUE 'U',
+      unchanged TYPE c LENGTH 1 VALUE ' ',
+      insert    TYPE c LENGTH 1 VALUE 'I',
+      delete    TYPE c LENGTH 1 VALUE 'D',
+      update    TYPE c LENGTH 1 VALUE 'U',
     END OF c_diff .
   CONSTANTS:
     BEGIN OF c_type,
@@ -16150,9 +16151,12 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         VALUE(rv_is_refrseh) TYPE abap_bool.
     METHODS modify_files_before_diff_calc
       IMPORTING
-        !it_diff_files_old TYPE ty_file_diffs
+         it_diff_files_old TYPE ty_file_diffs
       RETURNING
         VALUE(rt_files)    TYPE zif_abapgit_definitions=>ty_stage_tt.
+    METHODS add_view_sub_menu
+      IMPORTING
+         io_menu TYPE REF TO zcl_abapgit_html_toolbar .
 
     METHODS render_content
         REDEFINITION .
@@ -16228,9 +16232,6 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
       IMPORTING
         !io_menu TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS add_filter_sub_menu
-      IMPORTING
-        !io_menu TYPE REF TO zcl_abapgit_html_toolbar .
-    METHODS add_view_sub_menu
       IMPORTING
         !io_menu TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS render_lines
@@ -25793,7 +25794,7 @@ CLASS zcl_abapgit_diff IMPLEMENTATION.
         ELSEIF <ls_delta>-flag1 = 'M' AND <ls_delta>-flag2 = 'M'.
           ls_diff-result = zif_abapgit_definitions=>c_diff-update.
         ELSEIF <ls_delta>-flag1 = '' AND <ls_delta>-flag2 = ''.
-          ls_diff-result = ''.
+          ls_diff-result = zif_abapgit_definitions=>c_diff-unchanged.
         ELSE.
           ASSERT 0 = 1. " unknown comparison result
         ENDIF.
@@ -41474,6 +41475,8 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
                   iv_act = c_patch_actions-stage
                   iv_id  = 'stage'
                   iv_typ = zif_abapgit_html=>c_action_type-dummy ).
+
+    add_view_sub_menu( io_menu ).
 
   ENDMETHOD.
   METHOD add_to_stage.
@@ -104221,9 +104224,9 @@ CLASS ZCL_ABAPGIT_GIT_ADD_PATCH IMPLEMENTATION.
     LOOP AT mt_diff ASSIGNING <ls_diff>.
 
       CASE <ls_diff>-result.
-        WHEN ' '.
+        WHEN zif_abapgit_definitions=>c_diff-unchanged.
 
-          INSERT <ls_diff>-new INTO TABLE rt_patch.
+          INSERT <ls_diff>-old INTO TABLE rt_patch.
 
         WHEN zif_abapgit_definitions=>c_diff-insert.
 
@@ -107249,6 +107252,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-25T06:34:46.678Z
+* abapmerge 0.14.3 - 2021-11-26T06:43:14.820Z
 ENDINTERFACE.
 ****************************************************
