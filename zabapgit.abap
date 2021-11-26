@@ -43089,7 +43089,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
                       iv_act = c_actions-toggle_hidden_chars
                       iv_chk = ms_view-hidden_chars ).
 
-    lo_sub_view->add( iv_txt = 'Ignore Indentation'
+    lo_sub_view->add( iv_txt = 'Ignore Whitespace'
                       iv_act = c_actions-toggle_ignore_indent
                       iv_chk = ms_view-ignore_indent ).
 
@@ -107492,6 +107492,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-26T07:22:40.646Z
+* abapmerge 0.14.3 - 2021-11-26T15:11:22.667Z
 ENDINTERFACE.
 ****************************************************
