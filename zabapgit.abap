@@ -8297,14 +8297,6 @@ CLASS zcl_abapgit_objects_super DEFINITION
       IMPORTING
         !is_item     TYPE zif_abapgit_definitions=>ty_item
         !iv_language TYPE spras .
-    CLASS-METHODS jump_adt
-      IMPORTING
-        !iv_obj_name     TYPE zif_abapgit_definitions=>ty_item-obj_name
-        !iv_obj_type     TYPE zif_abapgit_definitions=>ty_item-obj_type
-        !iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
-        !iv_line_number  TYPE i OPTIONAL
-      RAISING
-        zcx_abapgit_exception .
   PROTECTED SECTION.
 
     DATA ms_item TYPE zif_abapgit_definitions=>ty_item .
@@ -8322,9 +8314,6 @@ CLASS zcl_abapgit_objects_super DEFINITION
     METHODS tadir_insert
       IMPORTING
         !iv_package TYPE devclass
-      RAISING
-        zcx_abapgit_exception .
-    METHODS jump_se11
       RAISING
         zcx_abapgit_exception .
     METHODS exists_a_lock_entry_for
@@ -44947,10 +44936,10 @@ CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
 
           lv_line_number = <ls_result>-line.
 
-          zcl_abapgit_objects_super=>jump_adt( iv_obj_name     = ls_item-obj_name
-                                               iv_obj_type     = ls_item-obj_type
-                                               iv_sub_obj_name = ls_sub_item-obj_name
-                                               iv_line_number  = lv_line_number ).
+          zcl_abapgit_objects=>jump(
+            is_item         = ls_item
+            iv_sub_obj_name = ls_sub_item-obj_name
+            iv_line_number  = lv_line_number ).
           RETURN.
 
         ENDIF.
@@ -54428,34 +54417,6 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
 
     rv_active = boolc( ms_item-inactive = abap_false ).
   ENDMETHOD.
-  METHOD jump_adt.
-
-    zcl_abapgit_adt_link=>jump(
-      iv_obj_name     = iv_obj_name
-      iv_obj_type     = iv_obj_type
-      iv_sub_obj_name = iv_sub_obj_name
-      iv_line_number  = iv_line_number ).
-
-  ENDMETHOD.
-  METHOD jump_se11.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-        devclass            = ms_item-devclass
-        in_new_window       = abap_true
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Jump to SE11 failed (subrc={ sy-subrc } ).| ).
-    ENDIF.
-
-  ENDMETHOD.
   METHOD serialize_longtexts.
 
     zcl_abapgit_factory=>get_longtexts( )->serialize(
@@ -57104,13 +57065,7 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation   = 'SHOW'
-        object_name = ms_item-obj_name
-        object_type = ms_item-obj_type.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -57376,22 +57331,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-        in_new_window       = abap_true
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from RS_TOOL_ACCESS { sy-subrc }| ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -57461,7 +57401,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
+CLASS zcl_abapgit_object_webi IMPLEMENTATION.
   METHOD handle_endpoint.
 
     DATA: ls_endpoint LIKE LINE OF is_webi-pvependpoint,
@@ -57809,14 +57749,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WEBI IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = ms_item-obj_type
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -58642,14 +58575,7 @@ CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = ms_item-obj_type
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -58677,7 +58603,7 @@ CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_WDYA IMPLEMENTATION.
+CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
   METHOD read.
 
     DATA: li_app  TYPE REF TO if_wdy_md_application,
@@ -58847,14 +58773,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYA IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = ms_item-obj_type
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -58878,7 +58797,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDYA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_WDCC IMPLEMENTATION.
+CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_outline    TYPE wdy_cfg_outline_data,
@@ -59156,14 +59075,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDCC IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'WDCC'
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -59283,7 +59195,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDCC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_WDCA IMPLEMENTATION.
+CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
   METHOD check.
 
     FIELD-SYMBOLS: <ls_message> TYPE LINE OF cts_messages.
@@ -59578,14 +59490,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDCA IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = ms_item-obj_type
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -59645,7 +59550,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WDCA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
+CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
   METHOD create_new_application.
 
     DATA: ls_item   LIKE ms_item,
@@ -60124,14 +60029,7 @@ CLASS ZCL_ABAPGIT_OBJECT_WAPA IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = ms_item-obj_type
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -60829,35 +60727,7 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    DATA: ls_dd25v TYPE dd25v.
-
-    read_view( IMPORTING es_dd25v = ls_dd25v ).
-
-    CASE ls_dd25v-viewclass.
-      WHEN co_viewclass-view_variant.
-
-        CALL FUNCTION 'RS_TOOL_ACCESS'
-          EXPORTING
-            operation           = 'SHOW'
-            object_name         = ms_item-obj_name
-            object_type         = ms_item-obj_type
-            in_new_window       = abap_true
-          EXCEPTIONS
-            not_executed        = 1
-            invalid_object_type = 2
-            OTHERS              = 3.
-
-        IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise_t100( ).
-        ENDIF.
-
-      WHEN OTHERS.
-
-        jump_se11( ).
-
-    ENDCASE.
-
+    " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -62398,22 +62268,7 @@ CLASS zcl_abapgit_object_ucsa IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-        in_new_window       = abap_true
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -62453,7 +62308,7 @@ CLASS zcl_abapgit_object_ucsa IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
+CLASS zcl_abapgit_object_type IMPLEMENTATION.
   METHOD create.
 
     DATA: lv_progname  TYPE reposrc-progname,
@@ -62585,7 +62440,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TYPE IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    jump_se11( ).
+    " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -62718,9 +62573,7 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    jump_se11( ).
-
+    " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -64706,9 +64559,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    jump_se11( ).
-
+    " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -65010,22 +64861,7 @@ CLASS zcl_abapgit_object_sxci IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-        in_new_window       = abap_true
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -67110,22 +66946,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-        in_new_window       = abap_true
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |RC={ sy-subrc } from RS_TOOL_ACCESS| ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -67787,22 +67608,7 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-        in_new_window       = abap_true
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -68001,22 +67807,7 @@ CLASS zcl_abapgit_object_srfc IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name    " Object Name
-        object_type         = ms_item-obj_type    " Object Type
-        in_new_window       = abap_true
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -68069,7 +67860,7 @@ CLASS zcl_abapgit_object_srfc IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SQSC IMPLEMENTATION.
+CLASS zcl_abapgit_object_sqsc IMPLEMENTATION.
   METHOD constructor.
 
     FIELD-SYMBOLS: <lv_dbproxyname> TYPE ty_abap_name.
@@ -68210,11 +68001,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SQSC IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    zcl_abapgit_objects_super=>jump_adt(
-        iv_obj_name = ms_item-obj_name
-        iv_obj_type = ms_item-obj_type ).
-
+    " Covered by ZCL_ABAPGIT_ADT_LINK=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -68247,7 +68034,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SQSC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
+CLASS zcl_abapgit_object_sprx IMPLEMENTATION.
   METHOD check_sprx_tadir.
 
     DATA: lt_abap_keys TYPE prx_abapobjects,
@@ -68490,14 +68277,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPRX IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = ms_item-obj_type
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -68960,28 +68740,7 @@ CLASS zcl_abapgit_object_sots IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    DATA: lv_object_name TYPE eu_lname,
-          lv_object_type TYPE seu_obj.
-
-    lv_object_name = ms_item-obj_name.
-    lv_object_type = ms_item-obj_type.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS_REMOTE'
-      DESTINATION 'NONE'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = lv_object_name
-        object_type         = lv_object_type
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -69317,22 +69076,7 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
                                             iv_argument    = |{ mv_template_id }| ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS_REMOTE'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -69371,7 +69115,6 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_smim IMPLEMENTATION.
@@ -69593,13 +69336,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation   = 'SHOW'
-        object_name = ms_item-obj_name
-        object_type = ms_item-obj_type.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -70488,9 +70225,7 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    jump_se11( ).
-
+    " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -71123,7 +70858,7 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
+CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
   METHOD get.
 
     DATA: lv_switch_id TYPE sfw_switch_id.
@@ -71297,14 +71032,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'SFSW'
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -71350,7 +71078,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFSW IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SFPI IMPLEMENTATION.
+CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
   METHOD interface_to_xstring.
 
     DATA: li_fp_interface TYPE REF TO if_fp_interface,
@@ -71471,13 +71199,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPI IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation   = 'SHOW'
-        object_name = ms_item-obj_name
-        object_type = ms_item-obj_type.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -71491,7 +71213,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPI IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
+CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
   METHOD fix_oref.
 
 * During serialization of a SFPF / SFPI object the interface hierarchy
@@ -71723,13 +71445,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation   = 'SHOW'
-        object_name = ms_item-obj_name
-        object_type = ms_item-obj_type.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -71766,7 +71482,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFPF IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
+CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
   METHOD get.
 
     DATA: lv_bfset TYPE sfw_bset.
@@ -71899,14 +71615,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'SFBS'
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -71956,7 +71665,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
+CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
   METHOD get.
 
     DATA: lv_bf TYPE sfw_bfunction.
@@ -72105,14 +71814,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SFBF IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'SFBF'
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -72957,13 +72659,7 @@ CLASS zcl_abapgit_object_saxx_super IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation   = 'SHOW'
-        object_name = ms_item-obj_name
-        object_type = ms_item-obj_type.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -73062,7 +72758,7 @@ CLASS zcl_abapgit_object_samc IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
+CLASS zcl_abapgit_object_prog IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lt_tpool_i18n TYPE ty_tpools_i18n,
@@ -73307,14 +73003,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'PROG'
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -73340,7 +73029,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_PRAG IMPLEMENTATION.
+CLASS zcl_abapgit_object_prag IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
@@ -73424,17 +73113,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PRAG IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -73927,14 +73606,7 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'PINF'
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -74237,14 +73909,7 @@ CLASS zcl_abapgit_object_pdxx_super IMPLEMENTATION.
                                             iv_argument    = ms_objkey-otype && ms_objkey-objid ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    CALL FUNCTION 'RS_TOOL_ACCESS_REMOTE'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        operation   = 'SHOW'
-        object_name = ms_item-obj_name
-        object_type = ms_item-obj_type
-      EXCEPTIONS
-        OTHERS      = 0.
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
     ASSERT 1 = 2. "Must be redefined
@@ -74939,14 +74604,7 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'PARA'
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -75148,19 +74806,7 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
                                             iv_argument    = |{ ms_item-obj_name }*| ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
     DATA: lv_text      TYPE string,
@@ -75599,7 +75245,6 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
-
   METHOD constructor.
 
     super->constructor( is_item     = is_item
@@ -75786,14 +75431,7 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = mv_profile
-        object_type   = 'OA2P'
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -76364,7 +76002,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
+CLASS zcl_abapgit_object_msag IMPLEMENTATION.
   METHOD delete_documentation.
     DATA: lv_key_s TYPE dokhl-object.
 
@@ -76728,14 +76366,7 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'MSAG'
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -78048,12 +77679,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'INTF'
-        in_new_window = abap_true.
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -78449,7 +78075,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IDOC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_IAXU IMPLEMENTATION.
+CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
   METHOD read.
 
     DATA: ls_name TYPE iacikeyt.
@@ -78660,13 +78286,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IAXU IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation   = 'SHOW'
-        object_name = ms_item-obj_name
-        object_type = ms_item-obj_type.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -78789,13 +78409,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation   = 'SHOW'
-        object_name = ms_item-obj_name
-        object_type = ms_item-obj_type.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -79226,20 +78840,7 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -79260,7 +78861,7 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_IARP IMPLEMENTATION.
+CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor(
@@ -79516,20 +79117,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IARP IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from RS_TOOL_ACCESS. Subrc={ sy-subrc }| ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -79550,7 +79138,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IARP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
+CLASS zcl_abapgit_object_iamu IMPLEMENTATION.
   METHOD load_mime_api.
 
     DATA: ls_mime_name TYPE iacikeym.
@@ -79782,13 +79370,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IAMU IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation   = 'SHOW'
-        object_name = ms_item-obj_name
-        object_type = ms_item-obj_type.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -80858,14 +80440,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'FUGR'
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -80948,7 +80523,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_FTGL IMPLEMENTATION.
+CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
   METHOD clear_field.
 
     FIELD-SYMBOLS: <lg_field> TYPE data.
@@ -81060,22 +80635,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FTGL IMPLEMENTATION.
                                             iv_argument    = |{ mv_toggle_id }*| ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS_REMOTE'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -82285,14 +81845,7 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'ENSC'
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -82430,9 +81983,7 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    jump_se11( ).
-
+    " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -82511,7 +82062,7 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
+CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
   METHOD factory.
 
     CASE iv_tool.
@@ -82644,14 +82195,7 @@ CLASS ZCL_ABAPGIT_OBJECT_ENHS IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'ENHS'
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -82846,14 +82390,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'ENHO'
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -83041,20 +82578,7 @@ CLASS zcl_abapgit_object_enhc IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = ms_item-obj_type
-        in_new_window = abap_true
-      EXCEPTIONS
-        OTHERS        = 1.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -83593,22 +83117,7 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-        in_new_window       = abap_true
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -83670,7 +83179,7 @@ CLASS zcl_abapgit_object_ecat IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
+CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -83877,9 +83386,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
                                             iv_argument    = |{ ms_item-obj_type }{ ms_item-obj_name }| ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    jump_se11( ).
-
+    " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 * fm DDIF_DTEL_GET bypasses buffer, so SELECTs are
@@ -84257,22 +83764,7 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-        in_new_window       = abap_true
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -84800,22 +84292,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-        in_new_window       = abap_true
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -85130,9 +84607,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
                                             iv_argument    = |{ ms_item-obj_type }{ ms_item-obj_name }| ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    jump_se11( ).
-
+    " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -86222,19 +85697,7 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = 'DEVC'
-        in_new_window       = abap_true
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
     DATA: ls_package_data TYPE scompkdtln,
@@ -86556,15 +86019,7 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    TRY.
-        jump_adt( iv_obj_name = ms_item-obj_name
-                  iv_obj_type = ms_item-obj_type ).
-
-      CATCH zcx_abapgit_exception.
-        zcx_abapgit_exception=>raise( 'DDLX Jump Error' ).
-    ENDTRY.
-
+    " Covered by ZCL_ABAPGIT_ADT_LINK=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -86746,8 +86201,8 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
         IF sy-subrc = 0.
           ASSIGN COMPONENT 'DDLNAME' OF STRUCTURE <lg_entity_view> TO <lg_ddlname>.
 
-          jump_adt( iv_obj_name = <lg_ddlname>
-                    iv_obj_type = 'DDLS' ).
+          zcl_abapgit_adt_link=>jump( iv_obj_name = <lg_ddlname>
+                                      iv_obj_type = 'DDLS' ).
 
         ENDIF.
 
@@ -87213,16 +86668,7 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    TRY.
-
-        jump_adt( iv_obj_name = ms_item-obj_name
-                  iv_obj_type = ms_item-obj_type ).
-
-      CATCH zcx_abapgit_exception.
-        zcx_abapgit_exception=>raise( 'DCLS Jump Error' ).
-    ENDTRY.
-
+    " Covered by ZCL_ABAPGIT_ADT_LINK=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -87862,21 +87308,7 @@ CLASS zcl_abapgit_object_cmpt IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -88072,7 +87504,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CMOD IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
+CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
@@ -88587,12 +88019,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'CLAS'
-        in_new_window = abap_true.
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -89002,7 +88429,7 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
+CLASS zcl_abapgit_object_char IMPLEMENTATION.
   METHOD instantiate_char_and_lock.
 
     DATA: lv_new  TYPE abap_bool,
@@ -89197,21 +88624,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CHAR IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -89725,22 +89138,7 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-        in_new_window       = abap_true
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -90872,22 +90270,7 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation           = 'SHOW'
-        object_name         = ms_item-obj_name
-        object_type         = ms_item-obj_type
-        in_new_window       = abap_true
-      EXCEPTIONS
-        not_executed        = 1
-        invalid_object_type = 2
-        OTHERS              = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -91054,14 +90437,7 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    CALL FUNCTION 'RS_TOOL_ACCESS'
-      EXPORTING
-        operation     = 'SHOW'
-        object_name   = ms_item-obj_name
-        object_type   = 'ACID'
-        in_new_window = abap_true.
-
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -107492,6 +106868,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-11-26T15:11:22.667Z
+* abapmerge 0.14.3 - 2021-11-29T20:53:14.426Z
 ENDINTERFACE.
 ****************************************************
