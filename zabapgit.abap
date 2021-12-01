@@ -17138,6 +17138,7 @@ CLASS zcl_abapgit_gui_page_sett_glob DEFINITION
         commitmsg_comment_length TYPE string VALUE 'commitmsg_comment_length',
         commitmsg_comment_deflt  TYPE string VALUE 'commitmsg_comment_deflt',
         commitmsg_body_size      TYPE string VALUE 'commitmsg_body_size',
+        commitmsg_hide_author    TYPE string VALUE 'commitmsg_hide_author',
         devint_settings          TYPE string VALUE 'devint_settings',
         run_critical_tests       TYPE string VALUE 'run_critical_tests',
         experimental_features    TYPE string VALUE 'experimental_features',
@@ -20358,6 +20359,12 @@ CLASS zcl_abapgit_settings DEFINITION
     METHODS get_commitmsg_body_size
       RETURNING
         VALUE(rv_length) TYPE i .
+    METHODS set_commitmsg_hide_author
+      IMPORTING
+        !iv_hide_author TYPE abap_bool.
+    METHODS get_commitmsg_hide_author
+      RETURNING
+        VALUE(rv_hide_author) TYPE abap_bool.
     METHODS get_settings_xml
       RETURNING
         VALUE(rv_settings_xml) TYPE string
@@ -20435,6 +20442,7 @@ CLASS zcl_abapgit_settings DEFINITION
              commitmsg_comment_length TYPE i,
              commitmsg_comment_deflt  TYPE string,
              commitmsg_body_size      TYPE i,
+             commitmsg_hide_author    TYPE abap_bool,
            END OF ty_s_settings.
 
     DATA: ms_settings      TYPE ty_s_settings,
@@ -21929,6 +21937,9 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   METHOD get_commitmsg_comment_length.
     rv_length = ms_settings-commitmsg_comment_length.
   ENDMETHOD.
+  METHOD get_commitmsg_hide_author.
+    rv_hide_author = ms_settings-commitmsg_hide_author.
+  ENDMETHOD.
   METHOD get_experimental_features.
     rv_run = ms_settings-experimental_features.
   ENDMETHOD.
@@ -22023,6 +22034,9 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_commitmsg_comment_length.
     ms_settings-commitmsg_comment_length = iv_length.
+  ENDMETHOD.
+  METHOD set_commitmsg_hide_author.
+    ms_settings-commitmsg_hide_author = iv_hide_author.
   ENDMETHOD.
   METHOD set_defaults.
 
@@ -39226,7 +39240,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -39297,7 +39311,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
       iv_required    = abap_true
       iv_label       = 'Maximum Line Size of Body'
       iv_hint        = |At least { zcl_abapgit_settings=>c_commitmsg_body_size_dft } characters|
-      iv_min         = zcl_abapgit_settings=>c_commitmsg_body_size_dft ).
+      iv_min         = zcl_abapgit_settings=>c_commitmsg_body_size_dft
+    )->checkbox(
+      iv_name        = c_id-commitmsg_hide_author
+      iv_label       = 'Hide Author Fields' ).
 
     IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
       ro_form->start_group(
@@ -39365,6 +39382,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
     mo_form_data->set(
       iv_key = c_id-commitmsg_body_size
       iv_val = |{ mo_settings->get_commitmsg_body_size( ) }| ).
+    mo_form_data->set(
+      iv_key = c_id-commitmsg_hide_author
+      iv_val = boolc( mo_settings->get_commitmsg_hide_author( ) = abap_true ) ) ##TYPE.
 
     " Dev Internal
     IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
@@ -39421,6 +39441,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
     mo_settings->set_commitmsg_comment_default( mo_form_data->get( c_id-commitmsg_comment_deflt ) ).
     lv_value = mo_form_data->get( c_id-commitmsg_body_size ).
     mo_settings->set_commitmsg_body_size( lv_value ).
+    mo_settings->set_commitmsg_hide_author( boolc( mo_form_data->get( c_id-commitmsg_hide_author ) = abap_true ) ).
 
     " Dev Internal
     IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
@@ -44449,6 +44470,10 @@ CLASS zcl_abapgit_gui_page_data IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
+  METHOD branch_name_to_internal.
+    rv_new_branch_name = zcl_abapgit_git_branch_list=>complete_heads_branch_name(
+      zcl_abapgit_git_branch_list=>normalize_branch_name( iv_branch_name ) ).
+  ENDMETHOD.
   METHOD constructor.
 
     super->constructor( ).
@@ -44631,15 +44656,19 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
     )->text(
       iv_name        = c_id-committer_email
       iv_label       = 'Committer Email'
-      iv_required    = abap_true
-    )->text(
-      iv_name        = c_id-author_name
-      iv_label       = 'Author Name'
-      iv_placeholder = 'Optionally, specify an author (same as committer by default)'
-    )->text(
-      iv_name        = c_id-author_email
-      iv_label       = 'Author Email'
-    )->text(
+      iv_required    = abap_true ).
+
+    IF mo_settings->get_commitmsg_hide_author( ) IS INITIAL.
+      ro_form->text(
+        iv_name        = c_id-author_name
+        iv_label       = 'Author Name'
+        iv_placeholder = 'Optionally, specify an author (same as committer by default)'
+      )->text(
+        iv_name        = c_id-author_email
+        iv_label       = 'Author Email' ).
+    ENDIF.
+
+    ro_form->text(
       iv_name        = c_id-new_branch_name
       iv_label       = 'New Branch Name'
       iv_placeholder = 'Optionally, enter a new branch name for this commit'
@@ -44852,12 +44881,6 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
     ri_html->add( '</div>' ).
 
   ENDMETHOD.
-
-  METHOD branch_name_to_internal.
-    rv_new_branch_name = zcl_abapgit_git_branch_list=>complete_heads_branch_name(
-      zcl_abapgit_git_branch_list=>normalize_branch_name( iv_branch_name ) ).
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
@@ -106868,6 +106891,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-01T08:12:22.872Z
+* abapmerge 0.14.3 - 2021-12-01T14:28:41.078Z
 ENDINTERFACE.
 ****************************************************
