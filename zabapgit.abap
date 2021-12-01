@@ -30643,7 +30643,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.registerStagePatch = function registerStagePatch(){' ).
+    lo_buf->add( 'Patch.prototype.registerStagePatch = function (){' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var elStage = document.querySelector("#" + this.ID.STAGE);' ).
     lo_buf->add( '  var REFRESH_PREFIX = "refresh";' ).
@@ -106891,6 +106891,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-01T14:28:41.078Z
+* abapmerge 0.14.3 - 2021-12-01T14:31:36.513Z
 ENDINTERFACE.
 ****************************************************
