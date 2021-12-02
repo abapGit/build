@@ -30074,6 +30074,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  //   <span class="pending">12</span><span>3</span>' ).
     lo_buf->add( '  // </span>' ).
     lo_buf->add( '  for (var i = 0, N = hintTargets.length; i < N; i++) {' ).
+    lo_buf->add( '    // skip hidden fields' ).
+    lo_buf->add( '    if (hintTargets[i].type === "HIDDEN") {' ).
+    lo_buf->add( '      continue;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '' ).
     lo_buf->add( '    var hint = {};' ).
     lo_buf->add( '    hint.container     = document.createElement("span");' ).
     lo_buf->add( '    hint.pendingSpan   = document.createElement("span");' ).
@@ -30096,8 +30101,18 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    hint.container.dataset.code = codeCounter.toString(); // not really needed, more for debug' ).
     lo_buf->add( '' ).
     lo_buf->add( '    if (hintTargets[i].nodeName === "INPUT" || hintTargets[i].nodeName === "TEXTAREA") {' ).
-    lo_buf->add( '      // does not work if inside the input, so appending right after' ).
-    lo_buf->add( '      hintTargets[i].insertAdjacentElement("afterend", hint.container);' ).
+    lo_buf->add( '      // does not work if inside the input node' ).
+    lo_buf->add( '      if (hintTargets[i].type === "checkbox" || hintTargets[i].type === "radio") {' ).
+    lo_buf->add( '        if (hintTargets[i].nextElementSibling.nodeName === "LABEL" ) {' ).
+    lo_buf->add( '          // insert at end of label' ).
+    lo_buf->add( '          hintTargets[i].nextElementSibling.appendChild(hint.container);' ).
+    lo_buf->add( '        } else {' ).
+    lo_buf->add( '          // skip because something changed in ZCL_ABAPGIT_HTML_FORM' ).
+    lo_buf->add( '        }' ).
+    lo_buf->add( '      } else {' ).
+    lo_buf->add( '        // inserting right after' ).
+    lo_buf->add( '        hintTargets[i].insertAdjacentElement("afterend", hint.container);' ).
+    lo_buf->add( '      }' ).
     lo_buf->add( '    } else {' ).
     lo_buf->add( '      hintTargets[i].appendChild(hint.container);' ).
     lo_buf->add( '    }' ).
@@ -30179,7 +30194,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    this.activatedDropdown = hint.parent.parentElement;' ).
     lo_buf->add( '    this.activatedDropdown.classList.toggle("force-nav-hover");' ).
     lo_buf->add( '    hint.parent.focus();' ).
-    lo_buf->add( '  } else if (hint.parent.type === "checkbox") {' ).
+    lo_buf->add( '  } else if (hint.parent.type === "checkbox" || hint.parent.type === "radio") {' ).
     lo_buf->add( '    this.toggleCheckbox(hint);' ).
     lo_buf->add( '  } else if (hint.parent.type === "submit") {' ).
     lo_buf->add( '    hint.parent.click();' ).
@@ -106891,6 +106906,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-01T14:31:36.513Z
+* abapmerge 0.14.3 - 2021-12-02T06:58:47.526Z
 ENDINTERFACE.
 ****************************************************
