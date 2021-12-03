@@ -30103,11 +30103,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    if (hintTargets[i].nodeName === "INPUT" || hintTargets[i].nodeName === "TEXTAREA") {' ).
     lo_buf->add( '      // does not work if inside the input node' ).
     lo_buf->add( '      if (hintTargets[i].type === "checkbox" || hintTargets[i].type === "radio") {' ).
-    lo_buf->add( '        if (hintTargets[i].nextElementSibling.nodeName === "LABEL" ) {' ).
+    lo_buf->add( '        if (hintTargets[i].nextElementSibling && hintTargets[i].nextElementSibling.nodeName === "LABEL" ) {' ).
     lo_buf->add( '          // insert at end of label' ).
     lo_buf->add( '          hintTargets[i].nextElementSibling.appendChild(hint.container);' ).
     lo_buf->add( '        } else {' ).
-    lo_buf->add( '          // skip because something changed in ZCL_ABAPGIT_HTML_FORM' ).
+    lo_buf->add( '          // inserting right after' ).
+    lo_buf->add( '          hintTargets[i].insertAdjacentElement("afterend", hint.container);' ).
     lo_buf->add( '        }' ).
     lo_buf->add( '      } else {' ).
     lo_buf->add( '        // inserting right after' ).
@@ -106906,6 +106907,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-02T06:58:47.526Z
+* abapmerge 0.14.3 - 2021-12-03T14:11:03.233Z
 ENDINTERFACE.
 ****************************************************
