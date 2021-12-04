@@ -44462,7 +44462,6 @@ CLASS zcl_abapgit_gui_page_data IMPLEMENTATION.
         iv_action      = c_event-update ).
       lo_form->command(
         iv_label       = 'Remove'
-        iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
         iv_action      = c_event-remove ).
       ri_html->add( lo_form->render( lo_form_data ) ).
     ENDLOOP.
@@ -106907,6 +106906,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-03T14:11:03.233Z
+* abapmerge 0.14.3 - 2021-12-04T03:04:01.866Z
 ENDINTERFACE.
 ****************************************************
