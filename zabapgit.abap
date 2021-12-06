@@ -1901,6 +1901,10 @@ INTERFACE zif_abapgit_frontend_services.
     RAISING
       zcx_abapgit_exception.
 
+  METHODS is_webgui
+    RETURNING
+      VALUE(rv_is_webgui) TYPE abap_bool.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_functions.
@@ -47441,7 +47445,7 @@ CLASS zcl_abapgit_gui_buttons IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
+CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
   METHOD zif_abapgit_frontend_services~file_download.
 
     TYPES ty_hex TYPE x LENGTH 200.
@@ -47757,6 +47761,13 @@ CLASS ZCL_ABAPGIT_FRONTEND_SERVICES IMPLEMENTATION.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~is_webgui.
+
+    CALL FUNCTION 'GUI_IS_ITS'
+      IMPORTING
+        return = rv_is_webgui.
+
   ENDMETHOD.
 
 ENDCLASS.
@@ -96735,6 +96746,11 @@ CLASS zcl_abapgit_gui_jumper IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_jumper~jump.
 
+    " WebGUI cannot open windows or ADT
+    IF zcl_abapgit_ui_factory=>get_frontend_services( )->is_webgui( ) = abap_true.
+      zcx_abapgit_exception=>raise( |Jump not possible in WebGUI| ).
+    ENDIF.
+
     " Try all generic jump options
 
     " 1) ADT Jump
@@ -106910,6 +106926,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-06T20:35:35.111Z
+* abapmerge 0.14.3 - 2021-12-06T21:14:33.778Z
 ENDINTERFACE.
 ****************************************************
