@@ -35458,6 +35458,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
 * todo, more to be added here
     REPLACE ALL OCCURRENCES OF '%3F' IN rv_string WITH '?'.
     REPLACE ALL OCCURRENCES OF '%3D' IN rv_string WITH '='.
+    REPLACE ALL OCCURRENCES OF '%2f' IN rv_string WITH '/'.
     REPLACE ALL OCCURRENCES OF gv_non_breaking_space IN rv_string WITH ` `.
 
   ENDMETHOD.
@@ -43265,6 +43266,9 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
       READ TABLE lt_status ASSIGNING <ls_status>
         WITH KEY path = is_file-path filename = is_file-filename.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |File { is_file-path }{ is_file-filename } not found| ).
+      ENDIF.
 
       append_diff( it_remote = lt_remote
                    it_local  = lt_local
@@ -106906,6 +106910,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-04T03:04:01.866Z
+* abapmerge 0.14.3 - 2021-12-06T20:35:35.111Z
 ENDINTERFACE.
 ****************************************************
