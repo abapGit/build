@@ -4114,6 +4114,11 @@ INTERFACE zif_abapgit_exit .
       VALUE(rs_handled) TYPE zif_abapgit_gui_event_handler=>ty_handling_result
     RAISING
       zcx_abapgit_exception .
+  METHODS adjust_display_filename
+    IMPORTING
+      !iv_filename       TYPE string
+    RETURNING
+      VALUE(rv_filename) TYPE string.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_merge .
@@ -23177,7 +23182,7 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
+CLASS zcl_abapgit_exit IMPLEMENTATION.
   METHOD get_instance.
 
     IF gi_exit IS INITIAL.
@@ -23202,6 +23207,19 @@ CLASS ZCL_ABAPGIT_EXIT IMPLEMENTATION.
               iv_commit_hash        = iv_commit_hash
             CHANGING
               cv_display_url        = cv_display_url ).
+        CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+      ENDTRY.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~adjust_display_filename.
+
+    IF gi_exit IS NOT INITIAL.
+      TRY.
+          rv_filename = gi_exit->adjust_display_filename( iv_filename ).
+          IF rv_filename IS INITIAL.
+            rv_filename = iv_filename.
+          ENDIF.
         CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
       ENDTRY.
     ENDIF.
@@ -40671,6 +40689,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
   METHOD render_item_files.
 
     DATA: ls_file LIKE LINE OF is_item-files.
+    DATA li_exit TYPE REF TO zif_abapgit_exit.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -40678,11 +40697,13 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    li_exit = zcl_abapgit_exit=>get_instance( ).
+
     LOOP AT is_item-files INTO ls_file.
       IF mv_show_folders = abap_true.
-        ri_html->add( |<div>{ ls_file-filename }</div>| ).
+        ri_html->add( |<div>{ li_exit->adjust_display_filename( ls_file-filename ) }</div>| ).
       ELSE.
-        ri_html->add( |<div>{ ls_file-path && ls_file-filename }</div>| ).
+        ri_html->add( |<div>{ li_exit->adjust_display_filename( ls_file-path && ls_file-filename ) }</div>| ).
       ENDIF.
     ENDLOOP.
 
@@ -106926,6 +106947,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-06T21:14:33.778Z
+* abapmerge 0.14.3 - 2021-12-08T07:09:03.092Z
 ENDINTERFACE.
 ****************************************************
