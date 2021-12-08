@@ -26884,6 +26884,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  text-align: right;' ).
     lo_buf->add( '  padding-left: 0.5em;' ).
     lo_buf->add( '  padding-right: 0.7em;' ).
+    lo_buf->add( '  min-width: 70px;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab th.cmd .icon{' ).
     lo_buf->add( '  padding-right: 8px;' ).
@@ -106947,6 +106948,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-08T07:09:03.092Z
+* abapmerge 0.14.3 - 2021-12-08T16:58:37.564Z
 ENDINTERFACE.
 ****************************************************
