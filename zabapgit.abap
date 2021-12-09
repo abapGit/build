@@ -30877,6 +30877,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.renderAndBindElements();' ).
     lo_buf->add( '  this.hookEvents();' ).
     lo_buf->add( '  Hotkeys.addHotkeyToHelpSheet(opts.toggleKey, opts.hotkeyDescription);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (!CommandPalette.instances) {' ).
+    lo_buf->add( '    CommandPalette.instances = [];' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  CommandPalette.instances.push(this);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'CommandPalette.prototype.hookEvents = function(){' ).
@@ -31016,6 +31021,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'CommandPalette.prototype.toggleDisplay = function(forceState) {' ).
     lo_buf->add( '  var isDisplayed = (this.elements.palette.style.display !== "none");' ).
     lo_buf->add( '  var tobeDisplayed = (forceState !== undefined) ? forceState : !isDisplayed;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (tobeDisplayed) {' ).
+    lo_buf->add( '    // auto close other command palettes' ).
+    lo_buf->add( '    CommandPalette.instances.forEach(function(instance){' ).
+    lo_buf->add( '      instance.elements.palette.style.display = "none";' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  this.elements.palette.style.display = tobeDisplayed ? "" : "none";' ).
     lo_buf->add( '  if (tobeDisplayed) {' ).
     lo_buf->add( '    this.elements.input.value = "";' ).
@@ -31023,6 +31036,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    this.applyFilter();' ).
     lo_buf->add( '    this.selectFirst();' ).
     lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'CommandPalette.prototype.getCommandByElement = function(element) {' ).
@@ -106977,6 +106991,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-09T05:59:59.741Z
+* abapmerge 0.14.3 - 2021-12-09T13:39:14.982Z
 ENDINTERFACE.
 ****************************************************
