@@ -47,7 +47,6 @@ INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_html_viewer DEFERRED.
 INTERFACE zif_abapgit_html_form DEFERRED.
 INTERFACE zif_abapgit_gui_jumper DEFERRED.
-INTERFACE zif_abapgit_gui_functions DEFERRED.
 INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_html DEFERRED.
 INTERFACE zif_abapgit_gui_services DEFERRED.
@@ -179,7 +178,6 @@ CLASS zcl_abapgit_gui_page_addonline DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_addofflin DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_hotkey_ctl DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_functions DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_component DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_buttons DEFINITION DEFERRED.
@@ -1812,12 +1810,14 @@ INTERFACE zif_abapgit_frontend_services.
       VALUE(rv_xstr) TYPE xstring
     RAISING
       zcx_abapgit_exception.
+
   METHODS file_download
     IMPORTING
       !iv_path TYPE string
       !iv_xstr TYPE xstring
     RAISING
       zcx_abapgit_exception .
+
   METHODS show_file_save_dialog
     IMPORTING
       !iv_title            TYPE string
@@ -1827,6 +1827,7 @@ INTERFACE zif_abapgit_frontend_services.
       VALUE(rv_path)       TYPE string
     RAISING
       zcx_abapgit_exception.
+
   METHODS show_file_open_dialog
     IMPORTING
       !iv_title            TYPE string
@@ -1901,26 +1902,21 @@ INTERFACE zif_abapgit_frontend_services.
     RAISING
       zcx_abapgit_exception.
 
+  METHODS gui_is_available
+    RETURNING
+      VALUE(rv_gui_is_available) TYPE abap_bool.
+
+  METHODS is_sapgui_for_java
+    RETURNING
+      VALUE(rv_result) TYPE abap_bool.
+
+  METHODS is_sapgui_for_windows
+    RETURNING
+      VALUE(rv_result) TYPE abap_bool.
+
   METHODS is_webgui
     RETURNING
       VALUE(rv_is_webgui) TYPE abap_bool.
-
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_gui_functions.
-
-  METHODS:
-    gui_is_available
-      RETURNING
-        VALUE(rv_gui_is_available) TYPE abap_bool,
-
-    is_sapgui_for_java
-      RETURNING
-        VALUE(rv_result) TYPE abap_bool,
-
-    is_sapgui_for_windows
-      RETURNING
-        VALUE(rv_result) TYPE abap_bool.
 
 ENDINTERFACE.
 
@@ -15234,16 +15230,6 @@ CLASS zcl_abapgit_gui_component DEFINITION
   PRIVATE SECTION.
     DATA mi_gui_services TYPE REF TO zif_abapgit_gui_services.
 ENDCLASS.
-CLASS zcl_abapgit_gui_functions DEFINITION
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-    INTERFACES:
-      zif_abapgit_gui_functions.
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-ENDCLASS.
 CLASS zcl_abapgit_gui_hotkey_ctl DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
   FINAL
@@ -18933,9 +18919,6 @@ CLASS zcl_abapgit_ui_factory DEFINITION
     CLASS-METHODS get_tag_popups
       RETURNING
         VALUE(ri_tag_popups) TYPE REF TO zif_abapgit_tag_popups .
-    CLASS-METHODS get_gui_functions
-      RETURNING
-        VALUE(ri_gui_functions) TYPE REF TO zif_abapgit_gui_functions .
     CLASS-METHODS get_gui
       RETURNING
         VALUE(ro_gui) TYPE REF TO zcl_abapgit_gui
@@ -18963,7 +18946,6 @@ CLASS zcl_abapgit_ui_factory DEFINITION
 
     CLASS-DATA gi_popups TYPE REF TO zif_abapgit_popups .
     CLASS-DATA gi_tag_popups TYPE REF TO zif_abapgit_tag_popups .
-    CLASS-DATA gi_gui_functions TYPE REF TO zif_abapgit_gui_functions .
     CLASS-DATA gi_html_viewer TYPE REF TO zif_abapgit_html_viewer .
     CLASS-DATA go_gui TYPE REF TO zcl_abapgit_gui .
     CLASS-DATA gi_fe_services TYPE REF TO zif_abapgit_frontend_services .
@@ -18981,9 +18963,9 @@ CLASS zcl_abapgit_ui_injector DEFINITION
     CLASS-METHODS set_tag_popups
       IMPORTING
         !ii_tag_popups TYPE REF TO zif_abapgit_tag_popups .
-    CLASS-METHODS set_gui_functions
+    CLASS-METHODS set_frontend_services
       IMPORTING
-        !ii_gui_functions TYPE REF TO zif_abapgit_gui_functions .
+        !ii_fe_serv TYPE REF TO zif_abapgit_frontend_services .
     CLASS-METHODS set_gui_services
       IMPORTING
         !ii_gui_services TYPE REF TO zif_abapgit_gui_services .
@@ -18993,6 +18975,9 @@ CLASS zcl_abapgit_ui_injector DEFINITION
     CLASS-METHODS set_html_viewer
       IMPORTING
         !ii_html_viewer TYPE REF TO zif_abapgit_html_viewer .
+    CLASS-METHODS set_gui_jumper
+      IMPORTING
+        !ii_gui_jumper TYPE REF TO zif_abapgit_gui_jumper .
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -26490,15 +26475,20 @@ CLASS kHGwlHozdwRdXiqHvuagHhZDCxeUTC IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_UI_INJECTOR IMPLEMENTATION.
+CLASS zcl_abapgit_ui_injector IMPLEMENTATION.
   METHOD get_dummy_gui_services.
 
     ri_gui_services = kHGwlHozdwRdXiqHvuagHhZDCxeUTC=>create( ).
 
   ENDMETHOD.
-  METHOD set_gui_functions.
+  METHOD set_frontend_services.
 
-    zcl_abapgit_ui_factory=>gi_gui_functions = ii_gui_functions.
+    zcl_abapgit_ui_factory=>gi_fe_services = ii_fe_serv.
+
+  ENDMETHOD.
+  METHOD set_gui_jumper.
+
+    zcl_abapgit_ui_factory=>gi_gui_jumper = ii_gui_jumper.
 
   ENDMETHOD.
   METHOD set_gui_services.
@@ -31486,15 +31476,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     ro_gui = go_gui.
 
   ENDMETHOD.
-  METHOD get_gui_functions.
-
-    IF gi_gui_functions IS INITIAL.
-      CREATE OBJECT gi_gui_functions TYPE zcl_abapgit_gui_functions.
-    ENDIF.
-
-    ri_gui_functions = gi_gui_functions.
-
-  ENDMETHOD.
   METHOD get_gui_jumper.
 
     IF gi_gui_jumper IS INITIAL.
@@ -32486,7 +32467,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
+CLASS zcl_abapgit_services_basis IMPLEMENTATION.
   METHOD create_package.
 
     DATA ls_package_data TYPE scompkdtln.
@@ -32516,11 +32497,12 @@ CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
           lv_exe_full_path    TYPE string,
           lo_frontend_serv    TYPE REF TO zif_abapgit_frontend_services.
 
-    IF zcl_abapgit_ui_factory=>get_gui_functions( )->is_sapgui_for_windows( ) = abap_false.
+    lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
+
+    IF lo_frontend_serv->is_sapgui_for_windows( ) = abap_false.
       zcx_abapgit_exception=>raise( |IE DevTools not supported on frontend OS| ).
     ENDIF.
 
-    lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
     lo_frontend_serv->get_system_directory( CHANGING cv_system_directory = lv_system_directory ).
 
     cl_gui_cfw=>flush( ).
@@ -32543,7 +32525,7 @@ CLASS ZCL_ABAPGIT_SERVICES_BASIS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
+CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   METHOD check_sapgui.
 
     CONSTANTS:
@@ -32562,7 +32544,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    IF zcl_abapgit_ui_factory=>get_gui_functions( )->is_sapgui_for_java( ) = abap_false.
+    IF zcl_abapgit_ui_factory=>get_frontend_services( )->is_sapgui_for_java( ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -32655,6 +32637,16 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
   METHOD open_dotabap_homepage.
     open_url_in_browser( c_dotabap_homepage ).
   ENDMETHOD.
+  METHOD open_url_in_browser.
+    DATA lx_error TYPE REF TO zcx_abapgit_exception.
+
+    TRY.
+        zcl_abapgit_ui_factory=>get_frontend_services( )->execute( iv_document = iv_url ).
+      CATCH zcx_abapgit_exception INTO lx_error.
+        zcx_abapgit_exception=>raise( iv_text     = 'Opening page in external browser failed.'
+                                      ix_previous = lx_error ).
+    ENDTRY.
+  ENDMETHOD.
   METHOD prepare_gui_startup.
 
     DATA: lv_repo_key    TYPE zif_abapgit_persistence=>ty_value,
@@ -32742,18 +32734,6 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
-  METHOD open_url_in_browser.
-    DATA lx_error TYPE REF TO zcx_abapgit_exception.
-
-    TRY.
-        zcl_abapgit_ui_factory=>get_frontend_services( )->execute( iv_document = iv_url ).
-      CATCH zcx_abapgit_exception INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = 'Opening page in external browser failed.'
-                                      ix_previous = lx_error ).
-    ENDTRY.
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_popups IMPLEMENTATION.
@@ -33631,14 +33611,10 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_PASSWORD_DIALOG IMPLEMENTATION.
+CLASS zcl_abapgit_password_dialog IMPLEMENTATION.
   METHOD popup.
 
-    DATA lv_gui_is_available TYPE abap_bool.
-
-    lv_gui_is_available = zcl_abapgit_ui_factory=>get_gui_functions( )->gui_is_available( ).
-
-    IF lv_gui_is_available = abap_true.
+    IF zcl_abapgit_ui_factory=>get_frontend_services( )->gui_is_available( ) = abap_true.
       PERFORM password_popup
         IN PROGRAM (sy-cprog)
         USING iv_repo_url
@@ -46508,52 +46484,6 @@ CLASS zcl_abapgit_gui_hotkey_ctl IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_FUNCTIONS IMPLEMENTATION.
-  METHOD zif_abapgit_gui_functions~gui_is_available.
-
-    CALL FUNCTION 'GUI_IS_AVAILABLE'
-      IMPORTING
-        return = rv_gui_is_available.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_functions~is_sapgui_for_java.
-
-    CALL FUNCTION 'GUI_HAS_JAVABEANS'
-      IMPORTING
-        return = rv_result.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_gui_functions~is_sapgui_for_windows.
-    DATA: lv_platform TYPE i.
-
-    cl_gui_frontend_services=>get_platform(
-      RECEIVING
-        platform             = lv_platform
-      EXCEPTIONS
-        error_no_gui         = 1
-        cntl_error           = 2
-        not_supported_by_gui = 3
-        OTHERS               = 4 ).
-    IF sy-subrc <> 0.
-      rv_result = abap_false.
-    ENDIF.
-
-    CASE lv_platform.
-      WHEN cl_gui_frontend_services=>platform_nt351 OR
-           cl_gui_frontend_services=>platform_nt40 OR
-           cl_gui_frontend_services=>platform_nt50 OR
-           cl_gui_frontend_services=>platform_windows95 OR
-           cl_gui_frontend_services=>platform_windows98 OR
-           cl_gui_frontend_services=>platform_windowsxp.
-        " Everything after Windows XP is reported as Windows XP
-        rv_result = abap_true.
-      WHEN OTHERS.
-        rv_result = abap_false.
-    ENDCASE.
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   METHOD gui_services.
     IF mi_gui_services IS NOT BOUND.
@@ -46570,11 +46500,10 @@ ENDCLASS.
 
 CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD advanced_submenu.
-    DATA: li_gui_functions        TYPE REF TO zif_abapgit_gui_functions,
-          lv_supports_ie_devtools TYPE abap_bool.
 
-    li_gui_functions = zcl_abapgit_ui_factory=>get_gui_functions( ).
-    lv_supports_ie_devtools = li_gui_functions->is_sapgui_for_windows( ).
+    DATA lv_supports_ie_devtools TYPE abap_bool.
+
+    lv_supports_ie_devtools = zcl_abapgit_ui_factory=>get_frontend_services( )->is_sapgui_for_windows( ).
 
     CREATE OBJECT ro_menu.
 
@@ -47468,6 +47397,116 @@ CLASS zcl_abapgit_gui_buttons IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
+  METHOD zif_abapgit_frontend_services~clipboard_export.
+
+    DATA lv_rc TYPE i.
+
+    " Note: do not use a string table for 'it_data'!
+    cl_gui_frontend_services=>clipboard_export(
+      EXPORTING
+        no_auth_check        = iv_no_auth_check
+      IMPORTING
+        data                 = it_data
+      CHANGING
+        rc                   = lv_rc
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        no_authority         = 4
+        OTHERS               = 5 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~directory_browse.
+
+    cl_gui_frontend_services=>directory_browse(
+      EXPORTING
+        window_title         = iv_window_title
+        initial_folder       = iv_initial_folder
+      CHANGING
+        selected_folder      = cv_selected_folder
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~directory_create.
+
+    cl_gui_frontend_services=>directory_create(
+      EXPORTING
+        directory                = iv_directory
+      CHANGING
+        rc                       = cv_rc
+      EXCEPTIONS
+        directory_create_failed  = 1
+        cntl_error               = 2
+        error_no_gui             = 3
+        directory_access_denied  = 4
+        directory_already_exists = 5
+        path_not_found           = 6
+        unknown_error            = 7
+        not_supported_by_gui     = 8
+        wrong_parameter          = 9
+        OTHERS                   = 10 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~directory_exist.
+
+    cl_gui_frontend_services=>directory_exist(
+      EXPORTING
+        directory            = iv_directory
+      RECEIVING
+        result               = rv_exists
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        wrong_parameter      = 3
+        not_supported_by_gui = 4
+        OTHERS               = 5 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~execute.
+
+    cl_gui_frontend_services=>execute(
+      EXPORTING
+        document               = iv_document
+        application            = iv_application
+        parameter              = iv_parameter
+        default_directory      = iv_default_directory
+        maximized              = iv_maximized
+        minimized              = iv_minimized
+        synchronous            = iv_synchronous
+        operation              = iv_operation
+      EXCEPTIONS
+        cntl_error             = 1
+        error_no_gui           = 2
+        bad_parameter          = 3
+        file_not_found         = 4
+        path_not_found         = 5
+        file_extension_unknown = 6
+        error_execute_failed   = 7
+        synchronous_failed     = 8
+        not_supported_by_gui   = 9
+        OTHERS                 = 10 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_frontend_services~file_download.
 
     TYPES ty_hex TYPE x LENGTH 200.
@@ -47557,6 +47596,106 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
     rv_xstr = rv_xstr(lv_length).
 
   ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~get_file_separator.
+
+    cl_gui_frontend_services=>get_file_separator(
+      CHANGING
+        file_separator       = cv_file_separator
+      EXCEPTIONS
+        not_supported_by_gui = 1
+        error_no_gui         = 2
+        cntl_error           = 3
+        OTHERS               = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~get_gui_version.
+
+    cl_gui_frontend_services=>get_gui_version(
+      CHANGING
+        version_table            = ct_version_table
+        rc                       = cv_rc
+      EXCEPTIONS
+        get_gui_version_failed   = 1
+        cant_write_version_table = 2
+        gui_no_version           = 3
+        cntl_error               = 4
+        error_no_gui             = 5
+        not_supported_by_gui     = 6
+        OTHERS                   = 7 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~get_system_directory.
+
+    cl_gui_frontend_services=>get_system_directory(
+      CHANGING
+        system_directory     = cv_system_directory
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~gui_is_available.
+
+    CALL FUNCTION 'GUI_IS_AVAILABLE'
+      IMPORTING
+        return = rv_gui_is_available.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~is_sapgui_for_java.
+
+    CALL FUNCTION 'GUI_HAS_JAVABEANS'
+      IMPORTING
+        return = rv_result.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~is_sapgui_for_windows.
+
+    DATA: lv_platform TYPE i.
+
+    cl_gui_frontend_services=>get_platform(
+      RECEIVING
+        platform             = lv_platform
+      EXCEPTIONS
+        error_no_gui         = 1
+        cntl_error           = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4 ).
+    IF sy-subrc <> 0.
+      rv_result = abap_false.
+    ENDIF.
+
+    CASE lv_platform.
+      WHEN cl_gui_frontend_services=>platform_nt351 OR
+           cl_gui_frontend_services=>platform_nt40 OR
+           cl_gui_frontend_services=>platform_nt50 OR
+           cl_gui_frontend_services=>platform_windows95 OR
+           cl_gui_frontend_services=>platform_windows98 OR
+           cl_gui_frontend_services=>platform_windowsxp.
+        " Everything after Windows XP is reported as Windows XP
+        rv_result = abap_true.
+      WHEN OTHERS.
+        rv_result = abap_false.
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~is_webgui.
+
+    CALL FUNCTION 'GUI_IS_ITS'
+      IMPORTING
+        return = rv_is_webgui.
+
+  ENDMETHOD.
   METHOD zif_abapgit_frontend_services~show_file_open_dialog.
 
     DATA:
@@ -47633,165 +47772,6 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_frontend_services~clipboard_export.
-    DATA lv_rc TYPE i.
-
-    " Note: do not use a string table for 'it_data'!
-    cl_gui_frontend_services=>clipboard_export(
-      EXPORTING
-        no_auth_check        = iv_no_auth_check
-      IMPORTING
-        data                 = it_data
-      CHANGING
-        rc                   = lv_rc
-      EXCEPTIONS
-        cntl_error           = 1
-        error_no_gui         = 2
-        not_supported_by_gui = 3
-        no_authority         = 4
-        OTHERS               = 5 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_frontend_services~execute.
-    cl_gui_frontend_services=>execute(
-      EXPORTING
-        document               = iv_document
-        application            = iv_application
-        parameter              = iv_parameter
-        default_directory      = iv_default_directory
-        maximized              = iv_maximized
-        minimized              = iv_minimized
-        synchronous            = iv_synchronous
-        operation              = iv_operation
-      EXCEPTIONS
-        cntl_error             = 1
-        error_no_gui           = 2
-        bad_parameter          = 3
-        file_not_found         = 4
-        path_not_found         = 5
-        file_extension_unknown = 6
-        error_execute_failed   = 7
-        synchronous_failed     = 8
-        not_supported_by_gui   = 9
-        OTHERS                 = 10 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_frontend_services~get_system_directory.
-    cl_gui_frontend_services=>get_system_directory(
-      CHANGING
-        system_directory     = cv_system_directory
-      EXCEPTIONS
-        cntl_error           = 1
-        error_no_gui         = 2
-        not_supported_by_gui = 3
-        OTHERS               = 4 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_frontend_services~directory_browse.
-    cl_gui_frontend_services=>directory_browse(
-      EXPORTING
-        window_title         = iv_window_title
-        initial_folder       = iv_initial_folder
-      CHANGING
-        selected_folder      = cv_selected_folder
-      EXCEPTIONS
-        cntl_error           = 1
-        error_no_gui         = 2
-        not_supported_by_gui = 3
-        OTHERS               = 4 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_frontend_services~get_file_separator.
-    cl_gui_frontend_services=>get_file_separator(
-      CHANGING
-        file_separator       = cv_file_separator
-      EXCEPTIONS
-        not_supported_by_gui = 1
-        error_no_gui         = 2
-        cntl_error           = 3
-        OTHERS               = 4 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_frontend_services~get_gui_version.
-    cl_gui_frontend_services=>get_gui_version(
-      CHANGING
-        version_table            = ct_version_table
-        rc                       = cv_rc
-      EXCEPTIONS
-        get_gui_version_failed   = 1
-        cant_write_version_table = 2
-        gui_no_version           = 3
-        cntl_error               = 4
-        error_no_gui             = 5
-        not_supported_by_gui     = 6
-        OTHERS                   = 7 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_frontend_services~directory_exist.
-    cl_gui_frontend_services=>directory_exist(
-      EXPORTING
-        directory            = iv_directory
-      RECEIVING
-        result               = rv_exists
-      EXCEPTIONS
-        cntl_error           = 1
-        error_no_gui         = 2
-        wrong_parameter      = 3
-        not_supported_by_gui = 4
-        OTHERS               = 5 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_frontend_services~directory_create.
-    cl_gui_frontend_services=>directory_create(
-      EXPORTING
-        directory                = iv_directory
-      CHANGING
-        rc                       = cv_rc
-      EXCEPTIONS
-        directory_create_failed  = 1
-        cntl_error               = 2
-        error_no_gui             = 3
-        directory_access_denied  = 4
-        directory_already_exists = 5
-        path_not_found           = 6
-        unknown_error            = 7
-        not_supported_by_gui     = 8
-        wrong_parameter          = 9
-        OTHERS                   = 10 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-  ENDMETHOD.
-  METHOD zif_abapgit_frontend_services~is_webgui.
-
-    CALL FUNCTION 'GUI_IS_ITS'
-      IMPORTING
-        return = rv_is_webgui.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_FREE_SEL_DIALOG IMPLEMENTATION.
@@ -52385,7 +52365,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
     " If abapGit was used to update itself, then restart to avoid LOAD_PROGRAM_&_MISMATCH dumps
     " because abapGit code was changed at runtime
-    IF zcl_abapgit_ui_factory=>get_gui_functions( )->gui_is_available( ) = abap_true AND
+    IF zcl_abapgit_ui_factory=>get_frontend_services( )->gui_is_available( ) = abap_true AND
        zcl_abapgit_url=>is_abapgit_repo( ms_data-url ) = abap_true AND
        sy-batch = abap_false AND
        sy-cprog = lc_abapgit_prog.
@@ -56282,7 +56262,6 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
           ls_result           TYPE zif_abapgit_comparator=>ty_result,
           lv_answer           TYPE string,
           li_comparator       TYPE REF TO zif_abapgit_comparator,
-          lv_gui_is_available TYPE abap_bool,
           ls_item             TYPE zif_abapgit_definitions=>ty_item.
 
     FIND ALL OCCURRENCES OF '.' IN is_result-filename MATCH COUNT lv_count.
@@ -56322,8 +56301,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
                            is_item = ls_item ).
 
       "continue or abort?
-      lv_gui_is_available = zcl_abapgit_ui_factory=>get_gui_functions( )->gui_is_available( ).
-      IF lv_gui_is_available = abap_true.
+      IF zcl_abapgit_ui_factory=>get_frontend_services( )->gui_is_available( ) = abap_true.
         CALL FUNCTION 'POPUP_TO_CONFIRM'
           EXPORTING
             titlebar              = 'Warning'
@@ -96341,7 +96319,7 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
+CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
   METHOD activate.
 
     " Make sure that all changes are committed since any activation error will lead to a rollback
@@ -96466,7 +96444,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_ACTIVATION IMPLEMENTATION.
 
     IF gt_objects IS NOT INITIAL.
 
-      IF zcl_abapgit_ui_factory=>get_gui_functions( )->gui_is_available( ) = abap_true.
+      IF zcl_abapgit_ui_factory=>get_frontend_services( )->gui_is_available( ) = abap_true.
         IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_activate_wo_popup( ) = abap_true.
           lv_popup = abap_false.
         ELSE.
@@ -106953,6 +106931,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-09T02:18:17.429Z
+* abapmerge 0.14.3 - 2021-12-09T05:50:49.283Z
 ENDINTERFACE.
 ****************************************************
