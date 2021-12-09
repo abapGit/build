@@ -56732,6 +56732,11 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
 
+    " Might be called for objects without tadir entry
+    IF is_item IS INITIAL.
+      RETURN.
+    ENDIF.
+
     " For unsupported objects, assume object exists
     IF is_type_supported( is_item-obj_type ) = abap_false.
       rv_bool = abap_true.
@@ -106948,6 +106953,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-08T16:58:37.564Z
+* abapmerge 0.14.3 - 2021-12-09T02:18:17.429Z
 ENDINTERFACE.
 ****************************************************
