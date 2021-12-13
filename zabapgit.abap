@@ -23218,11 +23218,12 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     IF gi_exit IS NOT INITIAL.
       TRY.
           rv_filename = gi_exit->adjust_display_filename( iv_filename ).
-          IF rv_filename IS INITIAL.
-            rv_filename = iv_filename.
-          ENDIF.
         CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
       ENDTRY.
+    ENDIF.
+
+    IF rv_filename IS INITIAL.
+      rv_filename = iv_filename.
     ENDIF.
 
   ENDMETHOD.
@@ -107027,6 +107028,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-13T06:47:01.495Z
+* abapmerge 0.14.3 - 2021-12-13T06:50:28.324Z
 ENDINTERFACE.
 ****************************************************
