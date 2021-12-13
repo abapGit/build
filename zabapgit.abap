@@ -1138,7 +1138,7 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_ajson.
 
-  CONSTANTS version TYPE string VALUE 'v1.1.1-beta'. "#EC NOTEXT
+  CONSTANTS version TYPE string VALUE 'v1.1.1'. "#EC NOTEXT
   CONSTANTS origin TYPE string VALUE 'https://github.com/sbcgua/ajson'. "#EC NOTEXT
   CONSTANTS license TYPE string VALUE 'MIT'. "#EC NOTEXT
 
@@ -107027,6 +107027,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-11T06:31:49.184Z
+* abapmerge 0.14.3 - 2021-12-13T06:47:01.495Z
 ENDINTERFACE.
 ****************************************************
