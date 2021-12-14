@@ -2933,6 +2933,12 @@ INTERFACE zif_abapgit_oo_object_fnc.
         iv_no_masterlang TYPE abap_bool OPTIONAL
       RAISING
         zcx_abapgit_exception,
+    delete_documentation
+      IMPORTING
+        iv_object_name TYPE dokhl-object
+        iv_language    TYPE spras
+      RAISING
+        zcx_abapgit_exception,
     get_includes
       IMPORTING
         iv_object_name     TYPE sobj_name
@@ -7572,8 +7578,9 @@ CLASS zcl_abapgit_oo_base DEFINITION
         RETURNING VALUE(rt_vseoattrib) TYPE seoo_attributes_r.
 
   PRIVATE SECTION.
-
+    CONSTANTS c_docu_state_active TYPE dokstate VALUE 'A'. " See include SDOC_CONSTANTS
     DATA mv_skip_test_classes TYPE abap_bool .
+
 ENDCLASS.
 CLASS zcl_abapgit_oo_class DEFINITION
   INHERITING FROM zcl_abapgit_oo_base
@@ -77638,11 +77645,14 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
     ii_xml->read( EXPORTING iv_name = 'LINES'
                   CHANGING cg_data = lt_lines ).
 
+    lv_object = ms_item-obj_name.
+
     IF lines( lt_lines ) = 0.
+      mi_object_oriented_object_fct->delete_documentation(
+        iv_object_name = lv_object
+        iv_language    = mv_language ).
       RETURN.
     ENDIF.
-
-    lv_object = ms_item-obj_name.
 
     mi_object_oriented_object_fct->create_documentation(
       it_lines       = lt_lines
@@ -87750,11 +87760,14 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     ii_xml->read( EXPORTING iv_name = 'LINES'
                   CHANGING cg_data = lt_lines ).
 
+    lv_object = ms_item-obj_name.
+
     IF lines( lt_lines ) = 0.
+      mi_object_oriented_object_fct->delete_documentation(
+        iv_object_name = lv_object
+        iv_language    = mv_language ).
       RETURN.
     ENDIF.
-
-    lv_object = ms_item-obj_name.
 
     mi_object_oriented_object_fct->create_documentation(
       it_lines       = lt_lines
@@ -92330,6 +92343,7 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
         langu         = iv_language
         object        = iv_object_name
         no_masterlang = iv_no_masterlang
+        state         = c_docu_state_active
       TABLES
         line          = it_lines
       EXCEPTIONS
@@ -92337,6 +92351,21 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
         OTHERS        = 2.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_oo_object_fnc~delete_documentation.
+    CALL FUNCTION 'DOCU_DEL'
+      EXPORTING
+        id       = 'CL'
+        langu    = iv_language
+        object   = iv_object_name
+        typ      = 'E'
+      EXCEPTIONS
+        ret_code = 1
+        OTHERS   = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Error from DOCU_DEL' ).
     ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~create_sotr.
@@ -92403,20 +92432,21 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
 
     CALL FUNCTION 'DOCU_GET'
       EXPORTING
-        id                = 'CL'
-        langu             = iv_language
-        object            = lv_object
+        id                     = 'CL'
+        langu                  = iv_language
+        object                 = lv_object
+        version_active_or_last = space " retrieve active version
       IMPORTING
-        dokstate          = lv_state
+        dokstate               = lv_state
       TABLES
-        line              = lt_lines
+        line                   = lt_lines
       EXCEPTIONS
-        no_docu_on_screen = 1
-        no_docu_self_def  = 2
-        no_docu_temp      = 3
-        ret_code          = 4
-        OTHERS            = 5.
-    IF sy-subrc = 0 AND lv_state = 'R'.
+        no_docu_on_screen      = 1
+        no_docu_self_def       = 2
+        no_docu_temp           = 3
+        ret_code               = 4
+        OTHERS                 = 5.
+    IF sy-subrc = 0 AND lv_state = c_docu_state_active.
       rt_lines = lt_lines.
     ELSE.
       CLEAR rt_lines.
@@ -107044,6 +107074,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-14T02:55:15.695Z
+* abapmerge 0.14.3 - 2021-12-14T05:37:11.570Z
 ENDINTERFACE.
 ****************************************************
