@@ -69065,9 +69065,7 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
             rt_tmpl_cont = <lt_content>.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise(
-            iv_text     = lx_error->get_text( )
-            ix_previous = lx_error ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     es_template = <lg_template>.
@@ -86078,8 +86076,7 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
                                     p_version    = swbm_version_active ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error->previous ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -86138,8 +86135,7 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
         tadir_insert( iv_package ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error->previous ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -86251,8 +86247,7 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
                      ig_data = <lg_data> ).
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise( iv_text     = lx_error->get_text( )
-                                      ix_previous = lx_error->previous ).
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -107049,6 +107044,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-13T20:32:08.338Z
+* abapmerge 0.14.3 - 2021-12-14T02:55:15.695Z
 ENDINTERFACE.
 ****************************************************
