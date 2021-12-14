@@ -97200,7 +97200,7 @@ CLASS zcl_abapgit_filename_logic IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_file_status IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
   METHOD build_existing.
 
     DATA: ls_file_sig LIKE LINE OF it_state.
@@ -97740,6 +97740,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
           WITH KEY path = <ls_remote>-path filename = <ls_remote>-filename
           BINARY SEARCH.
         IF sy-subrc = 0.
+          <ls_result>-match = abap_false.
           <ls_result>-lstate = zif_abapgit_definitions=>c_state-deleted.
         ENDIF.
       ENDIF.
@@ -107074,6 +107075,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-14T05:37:11.570Z
+* abapmerge 0.14.3 - 2021-12-14T16:57:45.933Z
 ENDINTERFACE.
 ****************************************************
