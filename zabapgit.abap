@@ -60446,6 +60446,9 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
     DELETE ct_params WHERE name = c_param_names-version.
     DELETE ct_params WHERE name = c_param_names-filesize.
 
+    " Avoid diffs due to different order
+    SORT ct_params.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
@@ -107562,6 +107565,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-18T13:52:16.952Z
+* abapmerge 0.14.3 - 2021-12-19T19:44:19.463Z
 ENDINTERFACE.
 ****************************************************
