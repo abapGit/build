@@ -3092,15 +3092,17 @@ INTERFACE zif_abapgit_object .
       zcx_abapgit_exception .
   METHODS deserialize
     IMPORTING
-      !iv_package TYPE devclass
-      !io_xml     TYPE REF TO zif_abapgit_xml_input
-      !iv_step    TYPE zif_abapgit_definitions=>ty_deserialization_step
-      !ii_log     TYPE REF TO zif_abapgit_log
+      !iv_package   TYPE devclass
+      !io_xml       TYPE REF TO zif_abapgit_xml_input
+      !iv_step      TYPE zif_abapgit_definitions=>ty_deserialization_step
+      !ii_log       TYPE REF TO zif_abapgit_log
+      !iv_transport TYPE trkorr
     RAISING
       zcx_abapgit_exception .
   METHODS delete
     IMPORTING
-      iv_package TYPE devclass
+      !iv_package   TYPE devclass
+      !iv_transport TYPE trkorr
     RAISING
       zcx_abapgit_exception .
   METHODS exists
@@ -8149,8 +8151,9 @@ CLASS zcl_abapgit_objects DEFINITION
         !iv_package TYPE devclass .
     CLASS-METHODS delete_object
       IMPORTING
-        !iv_package TYPE devclass
-        !is_item    TYPE zif_abapgit_definitions=>ty_item
+        !iv_package   TYPE devclass
+        !is_item      TYPE zif_abapgit_definitions=>ty_item
+        !iv_transport TYPE trkorr
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS compare_remote_to_local
@@ -8163,10 +8166,11 @@ CLASS zcl_abapgit_objects DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS deserialize_objects
       IMPORTING
-        !is_step  TYPE zif_abapgit_objects=>ty_step_data
-        !ii_log   TYPE REF TO zif_abapgit_log
+        !is_step      TYPE zif_abapgit_objects=>ty_step_data
+        !ii_log       TYPE REF TO zif_abapgit_log
+        !iv_transport TYPE trkorr
       CHANGING
-        !ct_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+        !ct_files     TYPE zif_abapgit_definitions=>ty_file_signatures_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS check_objects_locked
@@ -11426,10 +11430,10 @@ CLASS zcl_abapgit_object_sqsc DEFINITION
       delete_interface_if_it_exists
         IMPORTING
           iv_package   TYPE devclass
+          iv_transport TYPE trkorr
           iv_interface TYPE ty_abap_name
         RAISING
           zcx_abapgit_exception.
-
 ENDCLASS.
 CLASS zcl_abapgit_object_srfc DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
@@ -56304,7 +56308,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
+CLASS zcl_abapgit_objects IMPLEMENTATION.
   METHOD changed_by.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -56601,8 +56605,9 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
 
         TRY.
             delete_object(
-              iv_package = <ls_tadir>-devclass
-              is_item    = ls_item ).
+              iv_package   = <ls_tadir>-devclass
+              is_item      = ls_item
+              iv_transport = is_checks-transport-transport ).
 
             INSERT <ls_tadir> INTO TABLE lt_deleted.
             DELETE lt_tadir.
@@ -56648,7 +56653,8 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     li_obj = create_object( is_item     = is_item
                             iv_language = zif_abapgit_definitions=>c_english ).
 
-    li_obj->delete( iv_package ).
+    li_obj->delete( iv_package   = iv_package
+                    iv_transport = iv_transport ).
 
     IF li_obj->get_metadata( )-delete_tadir = abap_true.
 
@@ -56815,9 +56821,13 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     "run deserialize for all steps and it's objects
     SORT lt_steps BY order.
     LOOP AT lt_steps ASSIGNING <ls_step>.
-      deserialize_objects( EXPORTING is_step = <ls_step>
-                                     ii_log  = ii_log
-                           CHANGING ct_files = rt_accessed_files ).
+      deserialize_objects(
+        EXPORTING
+          is_step      = <ls_step>
+          ii_log       = ii_log
+          iv_transport = is_checks-transport-transport
+        CHANGING
+          ct_files     = rt_accessed_files ).
     ENDLOOP.
 
     update_package_tree( io_repo->get_package( ) ).
@@ -56852,10 +56862,11 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
         iv_text    = |Deserialize { is_step-descr } - { <ls_obj>-item-obj_name }| ).
 
       TRY.
-          <ls_obj>-obj->deserialize( iv_package = <ls_obj>-package
-                                     io_xml     = <ls_obj>-xml
-                                     iv_step    = is_step-step_id
-                                     ii_log     = ii_log ).
+          <ls_obj>-obj->deserialize( iv_package   = <ls_obj>-package
+                                     io_xml       = <ls_obj>-xml
+                                     iv_step      = is_step-step_id
+                                     ii_log       = ii_log
+                                     iv_transport = iv_transport ).
           APPEND LINES OF <ls_obj>-obj->mo_files->get_accessed_files( ) TO ct_files.
 
           ii_log->add_success( iv_msg = |Object { <ls_obj>-item-obj_name } imported|
@@ -57263,7 +57274,8 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
     ENDIF.
 
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( iv_package ).
+      zif_abapgit_object~delete( iv_package   = iv_package
+                                 iv_transport = iv_transport ).
     ENDIF.
 
     io_xml->read( EXPORTING iv_name = 'ATTRIBUTES'
@@ -63417,7 +63429,8 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
           lt_param_values TYPE ty_param_values,
           ls_rsstcd       TYPE rsstcd.
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( iv_package ).
+      zif_abapgit_object~delete( iv_package   = iv_package
+                                 iv_transport = iv_transport ).
     ENDIF.
 
     io_xml->read( EXPORTING iv_name = 'TSTC'
@@ -68186,7 +68199,8 @@ CLASS zcl_abapgit_object_sqsc IMPLEMENTATION.
           is_item     = ls_item
           iv_language = mv_language.
 
-      lo_interface->zif_abapgit_object~delete( iv_package ).
+      lo_interface->zif_abapgit_object~delete( iv_package   = iv_package
+                                               iv_transport = iv_transport ).
 
     ENDIF.
 
@@ -68223,6 +68237,7 @@ CLASS zcl_abapgit_object_sqsc IMPLEMENTATION.
 
       delete_interface_if_it_exists(
           iv_package   = iv_package
+          iv_transport = iv_transport
           iv_interface = ls_proxy-header-interface_pool ).
 
       CALL METHOD mo_proxy->('IF_DBPROC_PROXY_UI~CREATE')
@@ -71424,7 +71439,8 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
     lv_xstr = cl_ixml_80_20=>render_to_xstring( io_xml->get_raw( ) ).
 
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( iv_package ).
+      zif_abapgit_object~delete( iv_package   = iv_package
+                                 iv_transport = iv_transport ).
     ENDIF.
 
     TRY.
@@ -72861,7 +72877,8 @@ CLASS zcl_abapgit_object_saxx_super IMPLEMENTATION.
         cg_data = <lg_data> ).
 
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( iv_package ).
+      zif_abapgit_object~delete( iv_package   = iv_package
+                                 iv_transport = iv_transport ).
     ENDIF.
 
     TRY.
@@ -78533,7 +78550,8 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
     ls_attr-devclass = iv_package.
 
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( iv_package ).
+      zif_abapgit_object~delete( iv_package   = iv_package
+                                 iv_transport = iv_transport ).
     ENDIF.
 
     save( is_attr = ls_attr ).
@@ -82051,7 +82069,8 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
                   CHANGING  cg_data = lt_comp_spots ).
 
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( iv_package ).
+      zif_abapgit_object~delete( iv_package   = iv_package
+                                 iv_transport = iv_transport ).
     ENDIF.
 
     lv_package = iv_package.
@@ -82405,7 +82424,8 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
           li_enhs      TYPE REF TO zif_abapgit_object_enhs.
 
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( iv_package ).
+      zif_abapgit_object~delete( iv_package   = iv_package
+                                 iv_transport = iv_transport ).
     ENDIF.
 
     io_xml->read( EXPORTING iv_name = 'TOOL'
@@ -82614,7 +82634,8 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
           li_enho     TYPE REF TO zif_abapgit_object_enho.
 
     IF zif_abapgit_object~exists( ) = abap_true.
-      zif_abapgit_object~delete( iv_package ).
+      zif_abapgit_object~delete( iv_package   = iv_package
+                                 iv_transport = iv_transport ).
     ENDIF.
 
     io_xml->read( EXPORTING iv_name = 'TOOL'
@@ -107565,6 +107586,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-19T19:44:19.463Z
+* abapmerge 0.14.3 - 2021-12-20T17:48:25.899Z
 ENDINTERFACE.
 ****************************************************
