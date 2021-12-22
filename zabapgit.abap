@@ -15305,6 +15305,14 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
       IMPORTING
         ii_html TYPE REF TO zif_abapgit_html
         iv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result.
+    CLASS-METHODS render_path
+      IMPORTING
+        !iv_path        TYPE string
+        !iv_interactive TYPE abap_bool DEFAULT abap_true
+      RETURNING
+        VALUE(ri_html)  TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
 
     CLASS-METHODS render_repo_top_commit_hash
@@ -26932,6 +26940,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'span.branch,' ).
     lo_buf->add( 'span.user-box,' ).
     lo_buf->add( 'span.package-box,' ).
+    lo_buf->add( 'span.path-box,' ).
     lo_buf->add( 'span.transport-box {' ).
     lo_buf->add( '  padding: 2px 4px;' ).
     lo_buf->add( '  border: 1px solid;' ).
@@ -28088,6 +28097,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border-color: #d3ccd2;' ).
     lo_buf->add( '  background-color: #ebe3ea;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( 'span.path-box,' ).
     lo_buf->add( 'span.transport-box {' ).
     lo_buf->add( '  border-color: #a7e3cf;' ).
     lo_buf->add( '  background-color: #dbf3eb;' ).
@@ -28614,7 +28624,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  background-color: var(--theme-background-color);' ).
     lo_buf->add( '  color: var(--theme-primary-font-color);' ).
     lo_buf->add( '}' ).
-    lo_buf->add( 'select, input, textarea { ' ).
+    lo_buf->add( 'select, input, textarea {' ).
     lo_buf->add( '  color: var(--theme-primary-font-color);' ).
     lo_buf->add( '  border-color: #ffffff;' ).
     lo_buf->add( '  background-color: var(--theme-background-color);' ).
@@ -28644,6 +28654,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  background-color: #705a6d;' ).
     lo_buf->add( '  border-color: #987095;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( 'span.path-box,' ).
     lo_buf->add( 'span.transport-box {' ).
     lo_buf->add( '  background-color: #456d5d;' ).
     lo_buf->add( '  border-color: #60a087;' ).
@@ -28653,8 +28664,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '#debug-output { color: var(--theme-greyscale-dark); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* abapGit logo in header and footer */' ).
-    lo_buf->add( '.logo .icon.icon-abapgit { ' ).
-    lo_buf->add( '  color: var(--theme-primary-font-color); ' ).
+    lo_buf->add( '.logo .icon.icon-abapgit {' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* TUTORIAL */' ).
@@ -28680,32 +28691,32 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '.repo_tab th {' ).
     lo_buf->add( '  border-top-color: var(--theme-greyscale-dark);' ).
-    lo_buf->add( '  background-color: black; ' ).
+    lo_buf->add( '  background-color: black;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab td {' ).
     lo_buf->add( '  border-top-color: var(--theme-greyscale-dark);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* STAGE */' ).
-    lo_buf->add( '.stage_tab { ' ).
+    lo_buf->add( '.stage_tab {' ).
     lo_buf->add( '  border-color: var(--theme-greyscale-dark);' ).
-    lo_buf->add( '  background-color: var(--theme-background-color); ' ).
+    lo_buf->add( '  background-color: var(--theme-background-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.stage_tab th {' ).
     lo_buf->add( '  border-top-color: var(--theme-greyscale-dark);' ).
-    lo_buf->add( '  background-color: black; ' ).
+    lo_buf->add( '  background-color: black;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '.stage_tab td { ' ).
-    lo_buf->add( '  color: var(--theme-primary-font-color); ' ).
+    lo_buf->add( '.stage_tab td {' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color);' ).
     lo_buf->add( '  border-top-color:  var(--theme-greyscale-dark);' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '.stage_tab td.status.highlight { ' ).
+    lo_buf->add( '.stage_tab td.status.highlight {' ).
     lo_buf->add( '  color: var(--theme-primary-font-color) !important;' ).
     lo_buf->add( '  background-color: var(--theme-background-color);' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '.stage_tab td.status { ' ).
+    lo_buf->add( '.stage_tab td.status {' ).
     lo_buf->add( '  color: #777;' ).
-    lo_buf->add( '  background-color: var(--theme-background-color); ' ).
+    lo_buf->add( '  background-color: var(--theme-background-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.stage_tab th { background-color: var(--theme-container-background-color); }' ).
     lo_buf->add( '.stage_tab tr:hover {background-color: var(--theme-list-hover-background-color) !important;}' ).
@@ -28773,7 +28784,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/* DIALOGS */' ).
     lo_buf->add( '.dialog {' ).
     lo_buf->add( '  color: var(--theme-primary-font-color-reduced);' ).
-    lo_buf->add( '  background-color: var(--theme-container-background-color); ' ).
+    lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog li.dialog-commands a {' ).
     lo_buf->add( '  border-color: #ccc;' ).
@@ -40188,6 +40199,18 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     REPLACE FIRST OCCURRENCE OF mv_cur_dir IN lv_path WITH ''.
     lv_encode = zcl_abapgit_html_action_utils=>dir_encode( lv_path ).
 
+    " remove leading and trailing / for display
+    IF lv_path <> '/'.
+      IF lv_path(1) = '/'.
+        lv_path = lv_path+1.
+      ENDIF.
+      IF substring( val = reverse( lv_path )
+                    len = 1 ) = '/'.
+        lv_path = substring( val = lv_path
+                             len = strlen( lv_path ) - 1 ).
+      ENDIF.
+    ENDIF.
+
     rv_html = li_html->a(
       iv_txt = lv_path
       iv_act = |{ c_actions-change_dir }?{ lv_encode }| ).
@@ -40620,11 +40643,11 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
           " Repo content table
           ri_html->add( '<table class="repo_tab">' ).
 
+          ri_html->add( render_order_by( ) ).
+
           IF zcl_abapgit_path=>is_root( mv_cur_dir ) = abap_false.
             ri_html->add( render_parent_dir( ) ).
           ENDIF.
-
-          ri_html->add( render_order_by( ) ).
 
           LOOP AT lt_repo_items ASSIGNING <ls_item>.
             IF mv_max_lines > 0 AND sy-tabix > mv_max_lines.
@@ -40697,7 +40720,9 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ri_html->add( '<table class="w100"><tr>' ).
 
     IF mv_show_folders = abap_true.
-      ri_html->add( |<td class="current_dir">{ mv_cur_dir }</td>| ).
+      ri_html->add( '<td class="current_dir">' ).
+      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_path( mv_cur_dir ) ).
+      ri_html->add( '</td>' ).
     ENDIF.
 
     ri_html->add( '<td class="right">' ).
@@ -40939,7 +40964,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     ri_html->add( '<tr class="folder">' ).
     ri_html->add( |<td class="icon">{ ri_html->icon( 'folder' ) }</td>| ).
-    ri_html->add( |<td class="object" colspan="4">{ build_dir_jump_link( '..' ) }</td>| ).
+    ri_html->add( |<td class="dir" colspan="4">{ build_dir_jump_link( '..' ) }</td>| ).
     IF mo_repo->has_remote_source( ) = abap_true.
       ri_html->add( |<td colspan="1"></td>| ). " Dummy for online
     ENDIF.
@@ -47166,6 +47191,48 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ELSE.
       ri_html->add( iv_package ).
     ENDIF.
+    ri_html->add( '</span>' ).
+
+  ENDMETHOD.
+  METHOD render_path.
+
+    DATA:
+      lv_path    TYPE string,
+      lv_jump    TYPE string,
+      lv_folder  TYPE string,
+      lt_folders TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    IF iv_path IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    lv_jump = |{ zcl_abapgit_gui_page_repo_view=>c_actions-change_dir }?PATH=|.
+
+    ri_html->add( |<span class="path-box">| ).
+
+    IF iv_interactive = abap_true.
+      SPLIT iv_path AT '/' INTO TABLE lt_folders.
+
+      LOOP AT lt_folders INTO lv_folder.
+        IF lv_folder IS INITIAL.
+          " root
+          lv_path = '/'.
+        ELSEIF sy-tabix < lines( lt_folders ).
+          lv_path = lv_path && lv_folder && '/'.
+          ri_html->add_a( iv_act = lv_jump && lv_path
+                          iv_txt = lv_folder ).
+        ELSE.
+          " no link for current folder
+          ri_html->add( | <strong>{ lv_folder }</strong> | ).
+        ENDIF.
+        ri_html->add( '/' ).
+      ENDLOOP.
+    ELSE.
+      ri_html->add( iv_path ).
+    ENDIF.
+
     ri_html->add( '</span>' ).
 
   ENDMETHOD.
@@ -107586,6 +107653,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2021-12-20T17:48:25.899Z
+* abapmerge 0.14.3 - 2021-12-22T15:32:47.241Z
 ENDINTERFACE.
 ****************************************************
