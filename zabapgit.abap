@@ -8570,14 +8570,6 @@ CLASS zcl_abapgit_object_amsd DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RAISING
           zcx_abapgit_exception,
 
-      get_transport_req_if_needed
-        IMPORTING
-          iv_package                  TYPE devclass
-        RETURNING
-          VALUE(rv_transport_request) TYPE trkorr
-        RAISING
-          zcx_abapgit_exception,
-
       get_wb_object_operator
         RETURNING
           VALUE(ri_wb_object_operator) TYPE REF TO object
@@ -8589,7 +8581,6 @@ CLASS zcl_abapgit_object_amsd DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       mv_logical_db_schema_key TYPE seu_objkey,
       mi_persistence           TYPE REF TO if_wb_object_persist,
       mi_wb_object_operator    TYPE REF TO object.
-
 ENDCLASS.
 CLASS zcl_abapgit_object_area DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
@@ -8714,13 +8705,6 @@ CLASS zcl_abapgit_object_bdef DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         !iv_fieldname TYPE csequence
       CHANGING
         !cs_metadata  TYPE any .
-    METHODS get_transport_req_if_needed
-      IMPORTING
-        !iv_package                 TYPE devclass
-      RETURNING
-        VALUE(rv_transport_request) TYPE trkorr
-      RAISING
-        zcx_abapgit_exception .
     METHODS get_wb_object_operator
       RETURNING
         VALUE(ri_wb_object_operator) TYPE REF TO object
@@ -9180,14 +9164,6 @@ CLASS zcl_abapgit_object_drul DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RAISING
           zcx_abapgit_exception,
 
-      get_transport_req_if_needed
-        IMPORTING
-          iv_package                  TYPE devclass
-        RETURNING
-          VALUE(rv_transport_request) TYPE trkorr
-        RAISING
-          zcx_abapgit_exception,
-
       get_wb_object_operator
         RETURNING
           VALUE(ri_wb_object_operator) TYPE REF TO object
@@ -9199,7 +9175,6 @@ CLASS zcl_abapgit_object_drul DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       mv_dependency_rule_key TYPE seu_objkey,
       mi_persistence         TYPE REF TO if_wb_object_persist,
       mi_wb_object_operator  TYPE REF TO object.
-
 ENDCLASS.
 CLASS zcl_abapgit_object_dsys DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -9270,14 +9245,6 @@ CLASS zcl_abapgit_object_dtdc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RAISING
           zcx_abapgit_exception,
 
-      get_transport_req_if_needed
-        IMPORTING
-          iv_package                  TYPE devclass
-        RETURNING
-          VALUE(rv_transport_request) TYPE trkorr
-        RAISING
-          zcx_abapgit_exception,
-
       get_wb_object_operator
         RETURNING
           VALUE(ri_wb_object_operator) TYPE REF TO object
@@ -9289,7 +9256,6 @@ CLASS zcl_abapgit_object_dtdc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       mv_dynamic_cache_key  TYPE seu_objkey,
       mi_persistence        TYPE REF TO if_wb_object_persist,
       mi_wb_object_operator TYPE REF TO object.
-
 ENDCLASS.
 CLASS zcl_abapgit_object_dtel DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -11448,8 +11414,7 @@ CLASS zcl_abapgit_object_sqsc DEFINITION
       END OF ty_proxy.
 
     DATA:
-      mo_proxy     TYPE REF TO object,
-      mv_transport TYPE e070use-ordernum.
+      mo_proxy TYPE REF TO object.
 
     METHODS:
       delete_interface_if_it_exists
@@ -11503,13 +11468,6 @@ CLASS zcl_abapgit_object_srvb DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           iv_fieldname       TYPE csequence
         CHANGING
           cs_service_binding TYPE any.
-    METHODS get_transport_req_if_needed
-      IMPORTING
-        !iv_package                 TYPE devclass
-      RETURNING
-        VALUE(rv_transport_request) TYPE trkorr
-      RAISING
-        zcx_abapgit_exception .
     METHODS get_wb_object_operator
       RETURNING
         VALUE(ro_object_operator) TYPE REF TO object
@@ -11539,7 +11497,6 @@ CLASS zcl_abapgit_object_srvb DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       mr_service_binding       TYPE REF TO data,
       mr_srvb_svrs_config      TYPE REF TO object,
       mo_object_operator       TYPE REF TO object.
-
 ENDCLASS.
 CLASS zcl_abapgit_object_srvd DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -11577,13 +11534,6 @@ CLASS zcl_abapgit_object_srvd DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         !io_xml               TYPE REF TO zif_abapgit_xml_input
       RETURNING
         VALUE(ro_object_data) TYPE REF TO if_wb_object_data_model
-      RAISING
-        zcx_abapgit_exception .
-    METHODS get_transport_req_if_needed
-      IMPORTING
-        !iv_package                 TYPE devclass
-      RETURNING
-        VALUE(rv_transport_request) TYPE trkorr
       RAISING
         zcx_abapgit_exception .
     METHODS get_wb_object_operator
@@ -12518,14 +12468,16 @@ CLASS zcl_abapgit_object_wdca DEFINITION
         zcx_abapgit_exception .
     METHODS save
       IMPORTING
-        !is_outline TYPE wdy_cfg_outline_data
-        !it_data    TYPE wdy_cfg_persist_data_appl_tab
-        !iv_package TYPE devclass
+        !is_outline   TYPE wdy_cfg_outline_data
+        !it_data      TYPE wdy_cfg_persist_data_appl_tab
+        !iv_package   TYPE devclass
+        !iv_transport TYPE trkorr
       RAISING
         zcx_abapgit_exception .
     METHODS delete
       IMPORTING
-        !iv_package TYPE devclass
+        !iv_package   TYPE devclass
+        !iv_transport TYPE trkorr
       RAISING
         zcx_abapgit_exception .
     METHODS check
@@ -13150,6 +13102,7 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
       IMPORTING
         !it_functions TYPE ty_function_tt
         !ii_log       TYPE REF TO zif_abapgit_log
+        !iv_transport TYPE trkorr
       RAISING
         zcx_abapgit_exception .
     METHODS serialize_xml
@@ -13159,8 +13112,9 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
         zcx_abapgit_exception .
     METHODS deserialize_xml
       IMPORTING
-        !ii_xml     TYPE REF TO zif_abapgit_xml_input
-        !iv_package TYPE devclass
+        !ii_xml       TYPE REF TO zif_abapgit_xml_input
+        !iv_package   TYPE devclass
+        !iv_transport TYPE trkorr
       RAISING
         zcx_abapgit_exception .
     METHODS serialize_includes
@@ -13228,6 +13182,8 @@ CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objec
   PROTECTED SECTION.
 
     METHODS deserialize_proxy
+      IMPORTING
+        !iv_transport TYPE trkorr
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_abap
@@ -59596,8 +59552,7 @@ CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
       ls_outline   TYPE wdy_cfg_outline_data,
       lv_operation TYPE i,
       lv_name      TYPE wdy_md_object_name,
-      lv_exists    TYPE wdy_boolean,
-      lv_transport TYPE trkorr.
+      lv_exists    TYPE wdy_boolean.
 
     ls_key = ms_item-obj_name.
 
@@ -59621,8 +59576,7 @@ CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
           RETURN.
         ENDIF.
 
-        lv_transport = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
-        lo_cfg->set_transport( trkorr   = lv_transport
+        lo_cfg->set_transport( trkorr   = iv_transport
                                devclass = iv_package ).
 
         lv_operation = if_wdr_cfg_constants=>c_cts_operation-e_delete.
@@ -59630,7 +59584,7 @@ CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
         DO 2 TIMES.
           lo_cfg->do_next_step(
             IMPORTING
-              e_messages = lt_messages
+              e_messages  = lt_messages
             CHANGING
               c_operation = lv_operation ).
           check( lt_messages ).
@@ -59714,8 +59668,7 @@ CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
       ls_data      LIKE LINE OF it_data,
       lv_operation TYPE i,
       lv_name      TYPE wdy_md_object_name,
-      lv_exists    TYPE wdy_boolean,
-      lv_transport TYPE trkorr.
+      lv_exists    TYPE wdy_boolean.
 
     MOVE-CORRESPONDING is_outline TO ls_key.
 
@@ -59741,8 +59694,7 @@ CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
     ENDTRY.
 
     TRY.
-        lv_transport = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
-        lo_cfg->set_transport( trkorr   = lv_transport
+        lo_cfg->set_transport( trkorr   = iv_transport
                                devclass = iv_package ).
         lo_cfg->set_save_data( ls_data ).
         lo_cfg->set_config_description( is_outline ).
@@ -59783,7 +59735,8 @@ CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    delete( iv_package = iv_package ).
+    delete( iv_package   = iv_package
+            iv_transport = iv_transport ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -59799,9 +59752,11 @@ CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'DATA'
                   CHANGING  cg_data = lt_data ).
 
-    save( is_outline = ls_outline
-          it_data    = lt_data
-          iv_package = iv_package ).
+    save( is_outline   = ls_outline
+          it_data      = lt_data
+          iv_package   = iv_package
+          iv_transport = iv_transport ).
+
     TRY.
         lv_xml_string = mo_files->read_string( iv_extra = 'appl_config'
                                                iv_ext   = 'xml' ).
@@ -67128,7 +67083,87 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
+CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
+  METHOD clear_field.
+
+    FIELD-SYMBOLS: <lv_value> TYPE data.
+
+    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_metadata
+           TO <lv_value>.
+    ASSERT sy-subrc = 0.
+
+    CLEAR: <lv_value>.
+
+  ENDMETHOD.
+  METHOD clear_fields.
+
+    clear_field(
+      EXPORTING
+        iv_fieldname = 'VERSION'
+      CHANGING
+        cs_metadata  = cs_metadata ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname = 'CREATED_AT'
+      CHANGING
+        cs_metadata  = cs_metadata ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname = 'CREATED_BY'
+      CHANGING
+        cs_metadata  = cs_metadata ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname = 'CHANGED_AT'
+      CHANGING
+        cs_metadata  = cs_metadata ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname = 'CHANGED_BY'
+      CHANGING
+        cs_metadata  = cs_metadata ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname = 'RESPONSIBLE'
+      CHANGING
+        cs_metadata  = cs_metadata ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname = 'PACKAGE_REF'
+      CHANGING
+        cs_metadata  = cs_metadata ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname = 'MASTER_SYSTEM'
+      CHANGING
+        cs_metadata  = cs_metadata ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname = 'DT_UUID'
+      CHANGING
+        cs_metadata  = cs_metadata ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname = 'ABAP_LANGUAGE_VERSION'
+      CHANGING
+        cs_metadata  = cs_metadata ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname = 'LINKS'
+      CHANGING
+        cs_metadata  = cs_metadata ).
+
+  ENDMETHOD.
   METHOD constructor.
     super->constructor( is_item = is_item
                         iv_language = iv_language ).
@@ -67141,6 +67176,146 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
       CATCH cx_sy_create_error.
         zcx_abapgit_exception=>raise( |SRVD not supported by your NW release| ).
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD get_object_data.
+
+    DATA:
+      lr_metadata TYPE REF TO data,
+      lr_data     TYPE REF TO data.
+
+    FIELD-SYMBOLS:
+      <lv_metadata_node> TYPE any,
+      <ls_metadata>      TYPE any,
+      <lv_source>        TYPE any,
+      <lg_data>          TYPE any.
+
+    CREATE DATA lr_data TYPE ('CL_SRVD_WB_OBJECT_DATA=>TY_SRVD_OBJECT_DATA').
+    ASSIGN lr_data->* TO <lg_data>.
+    ASSERT sy-subrc = 0.
+
+    ASSIGN COMPONENT 'METADATA' OF STRUCTURE <lg_data> TO <lv_metadata_node>.
+    ASSERT sy-subrc = 0.
+
+    CREATE DATA lr_metadata  TYPE ('CL_SRVD_WB_OBJECT_DATA=>TY_METADATA_EXTENDED').
+    ASSIGN lr_metadata->* TO <ls_metadata>.
+    ASSERT sy-subrc = 0.
+
+    io_xml->read(
+      EXPORTING
+        iv_name = mc_xml_parent_name
+      CHANGING
+        cg_data = <ls_metadata> ).
+
+    <lv_metadata_node> = <ls_metadata>.
+
+    ASSIGN COMPONENT 'CONTENT-SOURCE' OF STRUCTURE <lg_data> TO <lv_source>.
+    ASSERT sy-subrc = 0.
+
+    <lv_source> = mo_files->read_string( mc_source_file ).
+    IF <lv_source> IS INITIAL.
+      <lv_source> = mo_files->read_string( 'assrvd' ).
+    ENDIF.
+
+    CREATE OBJECT ro_object_data TYPE ('CL_SRVD_WB_OBJECT_DATA').
+    ro_object_data->set_data( p_data = <lg_data>  ).
+
+  ENDMETHOD.
+  METHOD get_wb_object_operator.
+
+    DATA:
+      ls_object_type TYPE wbobjtype,
+      lx_error       TYPE REF TO cx_root.
+
+    IF mo_object_operator IS BOUND.
+      ro_object_operator = mo_object_operator.
+    ENDIF.
+
+    ls_object_type-objtype_tr = 'SRVD'.
+    ls_object_type-subtype_wb = 'SRV'.
+
+    TRY.
+        CALL METHOD ('CL_WB_OBJECT_OPERATOR')=>('CREATE_INSTANCE')
+          EXPORTING
+            object_type = ls_object_type
+            object_key  = mv_service_definition_key
+          RECEIVING
+            result      = mo_object_operator.
+
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
+    ENDTRY.
+
+    ro_object_operator = mo_object_operator.
+
+  ENDMETHOD.
+  METHOD is_ddic.
+    rv_ddic = abap_false.
+  ENDMETHOD.
+  METHOD is_delete_tadir.
+    rv_delete_tadir = abap_true.
+  ENDMETHOD.
+  METHOD merge_object_data.
+
+    DATA:
+      lo_object_data        TYPE REF TO object,
+      lo_object_data_old    TYPE REF TO if_wb_object_data_model,
+      lr_new                TYPE REF TO data,
+      lr_old                TYPE REF TO data,
+      lo_wb_object_operator TYPE REF TO object.
+
+    FIELD-SYMBOLS:
+      <ls_new>       TYPE any,
+      <ls_old>       TYPE any,
+      <lv_field_old> TYPE any,
+      <lv_field_new> TYPE any.
+
+    CREATE OBJECT lo_object_data TYPE ('CL_SRVD_WB_OBJECT_DATA').
+    lo_object_data = io_object_data.
+
+    CREATE DATA lr_new TYPE ('CL_SRVD_WB_OBJECT_DATA=>TY_SRVD_OBJECT_DATA').
+    ASSIGN lr_new->* TO <ls_new>.
+    ASSERT sy-subrc = 0.
+
+    CREATE DATA lr_old TYPE ('CL_SRVD_WB_OBJECT_DATA=>TY_SRVD_OBJECT_DATA').
+    ASSIGN lr_old->* TO <ls_old>.
+    ASSERT sy-subrc = 0.
+
+    CALL METHOD lo_object_data->('IF_WB_OBJECT_DATA_MODEL~GET_DATA')
+      EXPORTING
+        p_metadata_only  = abap_false
+        p_data_selection = 'AL'
+      IMPORTING
+        p_data           = <ls_new>.
+
+    lo_wb_object_operator = get_wb_object_operator( ).
+
+    CALL METHOD lo_wb_object_operator->('IF_WB_OBJECT_OPERATOR~READ')
+      EXPORTING
+        data_selection = 'AL' " if_wb_object_data_selection_co=>c_all_data
+      IMPORTING
+        eo_object_data = lo_object_data_old.
+
+    CALL METHOD lo_object_data_old->('GET_DATA')
+      EXPORTING
+        p_metadata_only  = abap_false
+        p_data_selection = 'AL' " if_wb_object_data_selection_co=>c_all_data
+      IMPORTING
+        p_data           = <ls_old>.
+
+    ASSIGN COMPONENT 'METADATA-DESCRIPTION' OF STRUCTURE <ls_old> TO <lv_field_old>.
+    ASSIGN COMPONENT 'METADATA-DESCRIPTION' OF STRUCTURE <ls_new> TO <lv_field_new>.
+    <lv_field_old> = <lv_field_new>.
+
+    ASSIGN COMPONENT 'CONTENT-SOURCE' OF STRUCTURE <ls_old> TO <lv_field_old>.
+    ASSIGN COMPONENT 'CONTENT-SOURCE' OF STRUCTURE <ls_new> TO <lv_field_new>.
+    <lv_field_old> = <lv_field_new>.
+
+    CREATE OBJECT ro_object_data_merged TYPE ('CL_SRVD_WB_OBJECT_DATA').
+
+    CALL METHOD ro_object_data_merged->('SET_DATA')
+      EXPORTING
+        p_data = <ls_old>.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -67167,17 +67342,14 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
   METHOD zif_abapgit_object~delete.
     DATA:
       lx_error              TYPE REF TO cx_root,
-      li_wb_object_operator TYPE REF TO object,
-      lv_transport_request  TYPE trkorr.
-
-    lv_transport_request = get_transport_req_if_needed( iv_package ).
+      li_wb_object_operator TYPE REF TO object.
 
     li_wb_object_operator = get_wb_object_operator( ).
 
     TRY.
         CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~DELETE')
           EXPORTING
-            transport_request = lv_transport_request.
+            transport_request = iv_transport.
 
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
@@ -67188,7 +67360,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
     DATA:
       lo_object_data        TYPE REF TO if_wb_object_data_model,
       lx_error              TYPE REF TO cx_root,
-      lv_transport_request  TYPE trkorr,
       lo_wb_object_operator TYPE REF TO object,
       lo_merged_data_all    TYPE REF TO if_wb_object_data_model,
       lo_merged_data_prop   TYPE REF TO if_wb_object_data_model,
@@ -67203,7 +67374,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
 
     TRY.
         lo_object_data = get_object_data( io_xml ).
-        lv_transport_request = get_transport_req_if_needed( iv_package ).
         lo_wb_object_operator = get_wb_object_operator( ).
 
         CREATE DATA lr_wbobjtype TYPE ('WBOBJTYPE').
@@ -67235,7 +67405,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
                   data_selection    = 'AL' "if_wb_object_data_selection_co=>c_all_data
                   version           = 'I' "swbm_version_inactive
                   package           = iv_package
-                  transport_request = lv_transport_request.
+                  transport_request = iv_transport.
             WHEN '2'. "if_wb_adt_plugin_resource_co=>co_sfs_res_category_compound_s.
               CALL METHOD lo_wb_object_operator->('IF_WB_OBJECT_OPERATOR~CREATE')
                 EXPORTING
@@ -67243,13 +67413,13 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
                   data_selection    = 'P' "if_wb_object_data_selection_co=>c_properties
                   version           = 'I' "swbm_version_inactive
                   package           = iv_package
-                  transport_request = lv_transport_request.
+                  transport_request = iv_transport.
               CALL METHOD lo_wb_object_operator->('IF_WB_OBJECT_OPERATOR~UPDATE')
                 EXPORTING
                   io_object_data    = lo_object_data
                   data_selection    = 'D' "if_wb_object_data_selection_co=>c_data_content
                   version           = 'I' "swbm_version_inactive
-                  transport_request = lv_transport_request.
+                  transport_request = iv_transport.
             WHEN OTHERS.
               zcx_abapgit_exception=>raise( |Category '{ <lv_category> }' not supported| ).
           ENDCASE.
@@ -67262,7 +67432,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
                   io_object_data    = lo_merged_data_all
                   data_selection    = 'AL' "if_wb_object_data_selection_co=>c_all_data
                   version           = 'I' "swbm_version_inactive
-                  transport_request = lv_transport_request.
+                  transport_request = iv_transport.
             WHEN '2'. "if_wb_adt_plugin_resource_co=>co_sfs_res_category_compound_s.
               lo_merged_data_prop = merge_object_data( lo_object_data ).
               lo_merged_data_cont = merge_object_data( lo_object_data ).
@@ -67271,13 +67441,13 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
                   io_object_data    = lo_merged_data_prop
                   data_selection    = 'P' "if_wb_object_data_selection_co=>c_properties
                   version           = 'I' "swbm_version_inactive
-                  transport_request = lv_transport_request.
+                  transport_request = iv_transport.
               CALL METHOD lo_wb_object_operator->('IF_WB_OBJECT_OPERATOR~UPDATE')
                 EXPORTING
                   io_object_data    = lo_merged_data_cont
                   data_selection    = 'D' "if_wb_object_data_selection_co=>c_data_content
                   version           = 'I' "swbm_version_inactive
-                  transport_request = lv_transport_request.
+                  transport_request = iv_transport.
             WHEN OTHERS.
               zcx_abapgit_exception=>raise( |Category '{ <lv_category> }' not supported| ).
           ENDCASE.
@@ -67384,241 +67554,9 @@ CLASS ZCL_ABAPGIT_OBJECT_SRVD IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD merge_object_data.
-
-    DATA:
-      lo_object_data        TYPE REF TO object,
-      lo_object_data_old    TYPE REF TO if_wb_object_data_model,
-      lr_new                TYPE REF TO data,
-      lr_old                TYPE REF TO data,
-      lo_wb_object_operator TYPE REF TO object.
-
-    FIELD-SYMBOLS:
-      <ls_new>       TYPE any,
-      <ls_old>       TYPE any,
-      <lv_field_old> TYPE any,
-      <lv_field_new> TYPE any.
-
-    CREATE OBJECT lo_object_data TYPE ('CL_SRVD_WB_OBJECT_DATA').
-    lo_object_data = io_object_data.
-
-    CREATE DATA lr_new TYPE ('CL_SRVD_WB_OBJECT_DATA=>TY_SRVD_OBJECT_DATA').
-    ASSIGN lr_new->* TO <ls_new>.
-    ASSERT sy-subrc = 0.
-
-    CREATE DATA lr_old TYPE ('CL_SRVD_WB_OBJECT_DATA=>TY_SRVD_OBJECT_DATA').
-    ASSIGN lr_old->* TO <ls_old>.
-    ASSERT sy-subrc = 0.
-
-    CALL METHOD lo_object_data->('IF_WB_OBJECT_DATA_MODEL~GET_DATA')
-      EXPORTING
-        p_metadata_only  = abap_false
-        p_data_selection = 'AL'
-      IMPORTING
-        p_data           = <ls_new>.
-
-    lo_wb_object_operator = get_wb_object_operator( ).
-
-    CALL METHOD lo_wb_object_operator->('IF_WB_OBJECT_OPERATOR~READ')
-      EXPORTING
-        data_selection = 'AL' " if_wb_object_data_selection_co=>c_all_data
-      IMPORTING
-        eo_object_data = lo_object_data_old.
-
-    CALL METHOD lo_object_data_old->('GET_DATA')
-      EXPORTING
-        p_metadata_only  = abap_false
-        p_data_selection = 'AL' " if_wb_object_data_selection_co=>c_all_data
-      IMPORTING
-        p_data           = <ls_old>.
-
-    ASSIGN COMPONENT 'METADATA-DESCRIPTION' OF STRUCTURE <ls_old> TO <lv_field_old>.
-    ASSIGN COMPONENT 'METADATA-DESCRIPTION' OF STRUCTURE <ls_new> TO <lv_field_new>.
-    <lv_field_old> = <lv_field_new>.
-
-    ASSIGN COMPONENT 'CONTENT-SOURCE' OF STRUCTURE <ls_old> TO <lv_field_old>.
-    ASSIGN COMPONENT 'CONTENT-SOURCE' OF STRUCTURE <ls_new> TO <lv_field_new>.
-    <lv_field_old> = <lv_field_new>.
-
-    CREATE OBJECT ro_object_data_merged TYPE ('CL_SRVD_WB_OBJECT_DATA').
-
-    CALL METHOD ro_object_data_merged->('SET_DATA')
-      EXPORTING
-        p_data = <ls_old>.
-
-  ENDMETHOD.
-  METHOD is_delete_tadir.
-    rv_delete_tadir = abap_true.
-  ENDMETHOD.
-  METHOD is_ddic.
-    rv_ddic = abap_false.
-  ENDMETHOD.
-  METHOD get_wb_object_operator.
-
-    DATA:
-      ls_object_type TYPE wbobjtype,
-      lx_error       TYPE REF TO cx_root.
-
-    IF mo_object_operator IS BOUND.
-      ro_object_operator = mo_object_operator.
-    ENDIF.
-
-    ls_object_type-objtype_tr = 'SRVD'.
-    ls_object_type-subtype_wb = 'SRV'.
-
-    TRY.
-        CALL METHOD ('CL_WB_OBJECT_OPERATOR')=>('CREATE_INSTANCE')
-          EXPORTING
-            object_type = ls_object_type
-            object_key  = mv_service_definition_key
-          RECEIVING
-            result      = mo_object_operator.
-
-      CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise_with_text( lx_error ).
-    ENDTRY.
-
-    ro_object_operator = mo_object_operator.
-
-  ENDMETHOD.
-  METHOD get_transport_req_if_needed.
-
-    DATA: li_sap_package TYPE REF TO zif_abapgit_sap_package.
-
-    li_sap_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
-
-    IF li_sap_package->are_changes_recorded_in_tr_req( ) = abap_true.
-      rv_transport_request = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_object_data.
-
-    DATA:
-      lr_metadata TYPE REF TO data,
-      lr_data     TYPE REF TO data.
-
-    FIELD-SYMBOLS:
-      <lv_metadata_node> TYPE any,
-      <ls_metadata>      TYPE any,
-      <lv_source>        TYPE any,
-      <lg_data>          TYPE any.
-
-    CREATE DATA lr_data TYPE ('CL_SRVD_WB_OBJECT_DATA=>TY_SRVD_OBJECT_DATA').
-    ASSIGN lr_data->* TO <lg_data>.
-    ASSERT sy-subrc = 0.
-
-    ASSIGN COMPONENT 'METADATA' OF STRUCTURE <lg_data> TO <lv_metadata_node>.
-    ASSERT sy-subrc = 0.
-
-    CREATE DATA lr_metadata  TYPE ('CL_SRVD_WB_OBJECT_DATA=>TY_METADATA_EXTENDED').
-    ASSIGN lr_metadata->* TO <ls_metadata>.
-    ASSERT sy-subrc = 0.
-
-    io_xml->read(
-      EXPORTING
-        iv_name = mc_xml_parent_name
-      CHANGING
-        cg_data = <ls_metadata> ).
-
-    <lv_metadata_node> = <ls_metadata>.
-
-    ASSIGN COMPONENT 'CONTENT-SOURCE' OF STRUCTURE <lg_data> TO <lv_source>.
-    ASSERT sy-subrc = 0.
-
-    <lv_source> = mo_files->read_string( mc_source_file ).
-    IF <lv_source> IS INITIAL.
-      <lv_source> = mo_files->read_string( 'assrvd' ).
-    ENDIF.
-
-    CREATE OBJECT ro_object_data TYPE ('CL_SRVD_WB_OBJECT_DATA').
-    ro_object_data->set_data( p_data = <lg_data>  ).
-
-  ENDMETHOD.
-  METHOD clear_fields.
-
-    clear_field(
-      EXPORTING
-        iv_fieldname = 'VERSION'
-      CHANGING
-        cs_metadata  = cs_metadata ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname = 'CREATED_AT'
-      CHANGING
-        cs_metadata  = cs_metadata ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname = 'CREATED_BY'
-      CHANGING
-        cs_metadata  = cs_metadata ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname = 'CHANGED_AT'
-      CHANGING
-        cs_metadata  = cs_metadata ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname = 'CHANGED_BY'
-      CHANGING
-        cs_metadata  = cs_metadata ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname = 'RESPONSIBLE'
-      CHANGING
-        cs_metadata  = cs_metadata ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname = 'PACKAGE_REF'
-      CHANGING
-        cs_metadata  = cs_metadata ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname = 'MASTER_SYSTEM'
-      CHANGING
-        cs_metadata  = cs_metadata ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname = 'DT_UUID'
-      CHANGING
-        cs_metadata  = cs_metadata ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname = 'ABAP_LANGUAGE_VERSION'
-      CHANGING
-        cs_metadata  = cs_metadata ).
-
-    clear_field(
-      EXPORTING
-        iv_fieldname = 'LINKS'
-      CHANGING
-        cs_metadata  = cs_metadata ).
-
-  ENDMETHOD.
-  METHOD clear_field.
-
-    FIELD-SYMBOLS: <lv_value> TYPE data.
-
-    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_metadata
-           TO <lv_value>.
-    ASSERT sy-subrc = 0.
-
-    CLEAR: <lv_value>.
-
-  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
-
   METHOD clear_field.
 
     FIELD-SYMBOLS: <lv_value> TYPE data.
@@ -67680,19 +67618,50 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
       CHANGING
       cs_service_binding = cs_service_binding ).
   ENDMETHOD.
+  METHOD constructor.
 
-  METHOD get_transport_req_if_needed.
+    super->constructor(
+        is_item     = is_item
+        iv_language = iv_language ).
 
-    DATA: li_sap_package TYPE REF TO zif_abapgit_sap_package.
+    mv_service_binding_key = ms_item-obj_name.
 
-    li_sap_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
+    TRY.
+        CREATE DATA mr_service_binding TYPE ('CL_SRVB_OBJECT_DATA=>TY_OBJECT_DATA').
+        CREATE OBJECT mi_persistence TYPE ('CL_SRVB_OBJECT_PERSIST').
 
-    IF li_sap_package->are_changes_recorded_in_tr_req( ) = abap_true.
-      rv_transport_request = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
-    ENDIF.
+      CATCH cx_sy_create_error.
+        zcx_abapgit_exception=>raise( |SRVB not supported by your NW release| ).
+    ENDTRY.
+
+    mv_is_inactive_supported = is_ai_supported(  ).
 
   ENDMETHOD.
+  METHOD get_object_data.
 
+    FIELD-SYMBOLS:
+      <ls_service_binding> TYPE any,
+      <lv_language>        TYPE data.
+
+    ASSIGN mr_service_binding->* TO <ls_service_binding>.
+    ASSERT sy-subrc = 0.
+
+    io_xml->read(
+      EXPORTING
+        iv_name = 'SRVB'
+      CHANGING
+        cg_data = <ls_service_binding> ).
+    " We have to set the language explicitly,
+    " because otherwise the description isn't stored
+    ASSIGN COMPONENT 'METADATA-LANGUAGE' OF STRUCTURE <ls_service_binding>
+           TO <lv_language>.
+    ASSERT sy-subrc = 0.
+    <lv_language> = mv_language.
+
+    CREATE OBJECT ro_object_data TYPE ('CL_SRVB_OBJECT_DATA').
+    ro_object_data->set_data( p_data = <ls_service_binding>  ).
+
+  ENDMETHOD.
   METHOD get_wb_object_operator.
 
     DATA:
@@ -67721,33 +67690,18 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
     ro_object_operator = mo_object_operator.
 
   ENDMETHOD.
-
-  METHOD get_object_data.
-
-    FIELD-SYMBOLS:
-      <ls_service_binding> TYPE any,
-      <lv_language>        TYPE data.
-
-    ASSIGN mr_service_binding->* TO <ls_service_binding>.
-    ASSERT sy-subrc = 0.
-
-    io_xml->read(
-      EXPORTING
-        iv_name = 'SRVB'
-      CHANGING
-        cg_data = <ls_service_binding> ).
-    " We have to set the language explicitly,
-    " because otherwise the description isn't stored
-    ASSIGN COMPONENT 'METADATA-LANGUAGE' OF STRUCTURE <ls_service_binding>
-           TO <lv_language>.
-    ASSERT sy-subrc = 0.
-    <lv_language> = mv_language.
-
-    CREATE OBJECT ro_object_data TYPE ('CL_SRVB_OBJECT_DATA').
-    ro_object_data->set_data( p_data = <ls_service_binding>  ).
+  METHOD is_ai_supported.
+    TRY.
+        CREATE OBJECT mr_srvb_svrs_config TYPE ('CL_SRVB_SVRS_CONFIG')
+            EXPORTING iv_objtype = 'SRVB'.
+      CATCH cx_sy_create_error.
+        rv_ai_supported = abap_false.
+    ENDTRY.
+    CALL METHOD mr_srvb_svrs_config->('HAS_INACTIVE_VERSION')
+      RECEIVING
+        rv_has_inactive = rv_ai_supported.
 
   ENDMETHOD.
-
   METHOD merge_object_data.
 
     DATA:
@@ -67807,40 +67761,6 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
         p_data = <ls_old>.
 
   ENDMETHOD.
-
-  METHOD is_ai_supported.
-    TRY.
-        CREATE OBJECT mr_srvb_svrs_config TYPE ('CL_SRVB_SVRS_CONFIG')
-            EXPORTING iv_objtype = 'SRVB'.
-      CATCH cx_sy_create_error.
-        rv_ai_supported = abap_false.
-    ENDTRY.
-    CALL METHOD mr_srvb_svrs_config->('HAS_INACTIVE_VERSION')
-      RECEIVING
-        rv_has_inactive = rv_ai_supported.
-
-  ENDMETHOD.
-
-  METHOD constructor.
-
-    super->constructor(
-        is_item     = is_item
-        iv_language = iv_language ).
-
-    mv_service_binding_key = ms_item-obj_name.
-
-    TRY.
-        CREATE DATA mr_service_binding TYPE ('CL_SRVB_OBJECT_DATA=>TY_OBJECT_DATA').
-        CREATE OBJECT mi_persistence TYPE ('CL_SRVB_OBJECT_PERSIST').
-
-      CATCH cx_sy_create_error.
-        zcx_abapgit_exception=>raise( |SRVB not supported by your NW release| ).
-    ENDTRY.
-
-    mv_is_inactive_supported = is_ai_supported(  ).
-
-  ENDMETHOD.
-
   METHOD zif_abapgit_object~changed_by.
 
     DATA:
@@ -67881,14 +67801,12 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
     DATA:
       lo_object_data        TYPE REF TO if_wb_object_data_model,
       lx_error              TYPE REF TO cx_root,
-      lv_transport_request  TYPE trkorr,
       lo_wb_object_operator TYPE REF TO object,
       lo_merged_data_all    TYPE REF TO if_wb_object_data_model,
       lv_version            TYPE r3state.
 
     TRY.
         lo_object_data = get_object_data( io_xml ).
-        lv_transport_request = get_transport_req_if_needed( iv_package ).
         lo_wb_object_operator = get_wb_object_operator( ).
 
         IF mv_is_inactive_supported = abap_true.
@@ -67907,7 +67825,7 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
               data_selection    = 'AL' "if_wb_object_data_selection_co=>c_all_data
               version           = lv_version
               package           = iv_package
-              transport_request = lv_transport_request.
+              transport_request = iv_transport.
 
         ELSE.
 
@@ -67917,7 +67835,7 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
               io_object_data    = lo_merged_data_all
               data_selection    = 'AL' "if_wb_object_data_selection_co=>c_all_data
               version           = lv_version
-              transport_request = lv_transport_request.
+              transport_request = iv_transport.
 
         ENDIF.
 
@@ -68267,10 +68185,6 @@ CLASS zcl_abapgit_object_sqsc IMPLEMENTATION.
 
     <lv_dbproxyname> = ms_item-obj_name.
 
-    mv_transport = zcl_abapgit_default_transport=>get_instance(
-                                               )->get(
-                                               )-ordernum.
-
   ENDMETHOD.
   METHOD delete_interface_if_it_exists.
 
@@ -68307,7 +68221,7 @@ CLASS zcl_abapgit_object_sqsc IMPLEMENTATION.
     TRY.
         CALL METHOD mo_proxy->('IF_DBPROC_PROXY_UI~DELETE')
           EXPORTING
-            if_transport_req = mv_transport.
+            if_transport_req = iv_transport.
 
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
@@ -68335,7 +68249,7 @@ CLASS zcl_abapgit_object_sqsc IMPLEMENTATION.
       CALL METHOD mo_proxy->('IF_DBPROC_PROXY_UI~CREATE')
         EXPORTING
           if_interface_pool = ls_proxy-header-interface_pool
-          if_transport_req  = mv_transport
+          if_transport_req  = iv_transport
           if_package        = iv_package
           if_langu          = mv_language.
 
@@ -68344,7 +68258,7 @@ CLASS zcl_abapgit_object_sqsc IMPLEMENTATION.
     TRY.
         CALL METHOD mo_proxy->('IF_DBPROC_PROXY_UI~WRITE_TO_SOURCE')
           EXPORTING
-            if_transport_req  = mv_transport
+            if_transport_req  = iv_transport
             is_header         = ls_proxy-header
             it_parameter      = ls_proxy-parameters
             it_parameter_type = ls_proxy-parameter_types.
@@ -73250,15 +73164,13 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
 
     DATA:
       lv_program    LIKE sy-repid,
-      lv_obj_name   TYPE e071-obj_name,
-      lv_corrnumber TYPE e071-trkorr.
+      lv_obj_name   TYPE e071-obj_name.
 
     lv_program = ms_item-obj_name.
-    lv_corrnumber = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
 
     CALL FUNCTION 'RS_DELETE_PROGRAM'
       EXPORTING
-        corrnumber                 = lv_corrnumber
+        corrnumber                 = iv_transport
         program                    = lv_program
         suppress_popup             = abap_true
         mass_delete_call           = abap_true
@@ -77879,15 +77791,14 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_proxy.
 
-    DATA: lv_transport    TYPE e070use-ordernum,
+    DATA: lv_transport    TYPE trkorr,
           li_proxy_object TYPE REF TO if_px_main,
           lv_name         TYPE prx_r3name,
           lx_proxy_fault  TYPE REF TO cx_proxy_fault.
 
-    lv_transport = zcl_abapgit_default_transport=>get_instance(
-                                               )->get( )-ordernum.
-
     lv_name = ms_item-obj_name.
+
+    lv_transport = iv_transport.
 
     TRY.
         li_proxy_object = cl_pxn_factory=>create(
@@ -78015,7 +77926,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
 
     IF ls_vseointerf-clsproxy = abap_true.
       " Proxy interfaces are managed via SPRX
-      deserialize_proxy( ).
+      deserialize_proxy( iv_transport ).
       RETURN.
     ENDIF.
 
@@ -79898,6 +79809,38 @@ CLASS zcl_abapgit_object_g4ba IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
+  METHOD belongs_incl_to_other_fugr.
+    " make sure that the include belongs to the function group
+    " like in LSEAPFAP Form TADIR_MAINTENANCE
+    DATA ls_tadir TYPE tadir.
+    DATA lv_namespace TYPE rs38l-namespace.
+    DATA lv_area TYPE rs38l-area.
+    DATA lv_include TYPE rs38l-include.
+
+    rv_belongs_to_other_fugr = abap_false.
+    IF iv_include(1) = 'L' OR iv_include+1 CS '/L'.
+      lv_include = iv_include.
+      ls_tadir-object = 'FUGR'.
+
+      CALL FUNCTION 'FUNCTION_INCLUDE_SPLIT'
+        IMPORTING
+          namespace = lv_namespace
+          group     = lv_area
+        CHANGING
+          include   = lv_include
+        EXCEPTIONS
+          OTHERS    = 1.
+      IF lv_area(1) = 'X'.    " "EXIT"-function-module
+        ls_tadir-object = 'FUGS'.
+      ENDIF.
+      IF sy-subrc = 0.
+        CONCATENATE lv_namespace lv_area INTO ls_tadir-obj_name.
+        IF ls_tadir-obj_name <> ms_item-obj_name.
+          rv_belongs_to_other_fugr = abap_true.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+  ENDMETHOD.
   METHOD check_rfc_parameters.
 
 * function module RS_FUNCTIONMODULE_INSERT does the same deep down, but the right error
@@ -79948,11 +79891,9 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
           lv_namespace TYPE rs38l-namespace,
           lt_source    TYPE TABLE OF abaptxt255,
           lv_msg       TYPE string,
-          lx_error     TYPE REF TO zcx_abapgit_exception,
-          lv_corrnum   TYPE e070use-ordernum.
+          lx_error     TYPE REF TO zcx_abapgit_exception.
 
     FIELD-SYMBOLS: <ls_func> LIKE LINE OF it_functions.
-    lv_corrnum = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
 
     LOOP AT it_functions ASSIGNING <ls_func>.
 
@@ -80021,7 +79962,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
           exception_class         = <ls_func>-exception_classes
           namespace               = lv_namespace
           remote_basxml_supported = <ls_func>-remote_basxml
-          corrnum                 = lv_corrnum
+          corrnum                 = iv_transport
         IMPORTING
           function_include        = lv_include
         TABLES
@@ -80136,8 +80077,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
           lv_areat        TYPE tlibt-areat,
           lv_stext        TYPE tftit-stext,
           lv_group        TYPE rs38l-area,
-          lv_abap_version TYPE trdir-uccheck,
-          lv_corrnum      TYPE e070use-ordernum.
+          lv_abap_version TYPE trdir-uccheck.
 
     lv_abap_version = get_abap_version( ii_xml ).
     lv_complete = ms_item-obj_name.
@@ -80168,7 +80108,6 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
     ii_xml->read( EXPORTING iv_name = 'AREAT'
                   CHANGING cg_data = lv_areat ).
     lv_stext = lv_areat.
-    lv_corrnum = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
 
     CALL FUNCTION 'RS_FUNCTION_POOL_INSERT'
       EXPORTING
@@ -80177,7 +80116,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
         namespace               = lv_namespace
         devclass                = iv_package
         unicode_checks          = lv_abap_version
-        corrnum                 = lv_corrnum
+        corrnum                 = iv_transport
         suppress_corr_check     = abap_false
       EXCEPTIONS
         name_already_exists     = 1
@@ -80718,19 +80657,18 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   METHOD zif_abapgit_object~delete.
 
     DATA: lv_area     TYPE rs38l-area,
-          lt_includes TYPE ty_sobj_name_tt,
-          lv_corrnum  TYPE e070use-ordernum.
+          lt_includes TYPE ty_sobj_name_tt.
+
     lt_includes = includes( ).
 
     lv_area = ms_item-obj_name.
-    lv_corrnum = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
 
     CALL FUNCTION 'RS_FUNCTION_POOL_DELETE'
       EXPORTING
         area                   = lv_area
         suppress_popups        = abap_true
         skip_progress_ind      = abap_true
-        corrnum                = lv_corrnum
+        corrnum                = iv_transport
       EXCEPTIONS
         canceled_in_corr       = 1
         enqueue_system_failure = 2
@@ -80757,14 +80695,16 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
           ls_cua          TYPE ty_cua.
 
     deserialize_xml(
-      ii_xml     = io_xml
-      iv_package = iv_package ).
+      ii_xml       = io_xml
+      iv_package   = iv_package
+      iv_transport = iv_transport ).
 
     io_xml->read( EXPORTING iv_name = 'FUNCTIONS'
                   CHANGING cg_data = lt_functions ).
     deserialize_functions(
       it_functions = lt_functions
-      ii_log       = ii_log ).
+      ii_log       = ii_log
+      iv_transport = iv_transport ).
 
     deserialize_includes(
       ii_xml     = io_xml
@@ -80879,38 +80819,6 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
                    ig_data = ls_cua ).
     ENDIF.
 
-  ENDMETHOD.
-  METHOD belongs_incl_to_other_fugr.
-    " make sure that the include belongs to the function group
-    " like in LSEAPFAP Form TADIR_MAINTENANCE
-    DATA ls_tadir TYPE tadir.
-    DATA lv_namespace TYPE rs38l-namespace.
-    DATA lv_area TYPE rs38l-area.
-    DATA lv_include TYPE rs38l-include.
-
-    rv_belongs_to_other_fugr = abap_false.
-    IF iv_include(1) = 'L' OR iv_include+1 CS '/L'.
-      lv_include = iv_include.
-      ls_tadir-object = 'FUGR'.
-
-      CALL FUNCTION 'FUNCTION_INCLUDE_SPLIT'
-        IMPORTING
-          namespace = lv_namespace
-          group     = lv_area
-        CHANGING
-          include   = lv_include
-        EXCEPTIONS
-          OTHERS    = 1.
-      IF lv_area(1) = 'X'.    " "EXIT"-function-module
-        ls_tadir-object = 'FUGS'.
-      ENDIF.
-      IF sy-subrc = 0.
-        CONCATENATE lv_namespace lv_area INTO ls_tadir-obj_name.
-        IF ls_tadir-obj_name <> ms_item-obj_name.
-          rv_belongs_to_other_fugr = abap_true.
-        ENDIF.
-      ENDIF.
-    ENDIF.
   ENDMETHOD.
 ENDCLASS.
 
@@ -81470,7 +81378,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_FDT0 IMPLEMENTATION.
+CLASS zcl_abapgit_object_fdt0 IMPLEMENTATION.
   METHOD before_xml_deserialize.
 
     DATA lv_application_id TYPE fdt_admn_0000s-application_id.
@@ -81806,16 +81714,12 @@ CLASS ZCL_ABAPGIT_OBJECT_FDT0 IMPLEMENTATION.
   METHOD zif_abapgit_object~delete.
 
     DATA lv_is_local TYPE abap_bool.
-    DATA lv_ordernum TYPE trkorr.
     DATA lt_application_id TYPE TABLE OF fdt_admn_0000s-application_id.
     DATA ls_object_category_sel TYPE if_fdt_query=>s_object_category_sel.
     DATA lv_failure TYPE abap_bool.
     DATA lx_fdt_input TYPE REF TO cx_fdt_input.
 
     lv_is_local = check_is_local( ).
-    IF lv_is_local = abap_false.
-      lv_ordernum = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
-    ENDIF.
 
     SELECT application_id FROM fdt_admn_0000s INTO TABLE lt_application_id
       WHERE object_type = 'AP'
@@ -81917,7 +81821,6 @@ CLASS ZCL_ABAPGIT_OBJECT_FDT0 IMPLEMENTATION.
     DATA lx_fdt_input TYPE REF TO cx_fdt_input.
     DATA lo_dom_tree TYPE REF TO if_ixml_document.
     DATA lv_is_local TYPE abap_bool.
-    DATA lv_ordernum TYPE trkorr.
     DATA lt_message TYPE if_fdt_types=>t_message.
     DATA lv_create TYPE abap_bool.
 
@@ -81951,15 +81854,13 @@ CLASS ZCL_ABAPGIT_OBJECT_FDT0 IMPLEMENTATION.
 
         ELSE. "Transportable Object
 
-          lv_ordernum = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
-
           lo_dexc->import_xml(
             EXPORTING
               io_dom_tree            = lo_dom_tree
               iv_create              = lv_create
               iv_activate            = abap_true
               iv_simulate            = abap_false
-              iv_workbench_trrequest = lv_ordernum
+              iv_workbench_trrequest = iv_transport
             IMPORTING
               et_message             = lt_message ).
 
@@ -83966,17 +83867,6 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
     <lv_created_by> = <lv_created_by_old>.
 
   ENDMETHOD.
-  METHOD get_transport_req_if_needed.
-
-    DATA: li_sap_package TYPE REF TO zif_abapgit_sap_package.
-
-    li_sap_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
-
-    IF li_sap_package->are_changes_recorded_in_tr_req( ) = abap_true.
-      rv_transport_request = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD get_wb_object_operator.
 
     DATA:
@@ -84030,17 +83920,14 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
 
     DATA:
       lx_error              TYPE REF TO cx_root,
-      lv_transport_request  TYPE trkorr,
       li_wb_object_operator TYPE REF TO object.
-
-    lv_transport_request = get_transport_req_if_needed( iv_package ).
 
     TRY.
         li_wb_object_operator = get_wb_object_operator( ).
 
         CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~DELETE')
           EXPORTING
-            transport_request = lv_transport_request.
+            transport_request = iv_transport.
 
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
@@ -84052,8 +83939,7 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
     DATA:
       li_object_data_model  TYPE REF TO if_wb_object_data_model,
       li_wb_object_operator TYPE REF TO object,
-      lx_error              TYPE REF TO cx_root,
-      lv_transport_request  TYPE trkorr.
+      lx_error              TYPE REF TO cx_root.
 
     FIELD-SYMBOLS:
       <ls_dynamic_cache> TYPE any,
@@ -84081,8 +83967,6 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
 
         tadir_insert( iv_package ).
 
-        lv_transport_request = get_transport_req_if_needed( iv_package ).
-
         IF zif_abapgit_object~exists( ) = abap_true.
 
           " We need to populate created_at, created_by, because otherwise update  is not possible
@@ -84092,7 +83976,7 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
           CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~UPDATE')
             EXPORTING
               io_object_data    = li_object_data_model
-              transport_request = lv_transport_request.
+              transport_request = iv_transport.
 
         ELSE.
 
@@ -84103,13 +83987,13 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
               io_object_data    = li_object_data_model
               data_selection    = 'P' " if_wb_object_data_selection_co=>c_properties
               package           = iv_package
-              transport_request = lv_transport_request.
+              transport_request = iv_transport.
 
           CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~UPDATE')
             EXPORTING
               io_object_data    = li_object_data_model
               data_selection    = 'D' " if_wb_object_data_selection_co=>c_data_content
-              transport_request = lv_transport_request.
+              transport_request = iv_transport.
 
         ENDIF.
 
@@ -84495,17 +84379,6 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
     <lv_created_by> = <lv_created_by_old>.
 
   ENDMETHOD.
-  METHOD get_transport_req_if_needed.
-
-    DATA: li_sap_package TYPE REF TO zif_abapgit_sap_package.
-
-    li_sap_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
-
-    IF li_sap_package->are_changes_recorded_in_tr_req( ) = abap_true.
-      rv_transport_request = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD get_wb_object_operator.
 
     DATA:
@@ -84559,16 +84432,14 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
 
     DATA:
       lx_error              TYPE REF TO cx_root,
-      lv_transport_request  TYPE trkorr,
       li_wb_object_operator TYPE REF TO object.
 
-    lv_transport_request = get_transport_req_if_needed( iv_package ).
     li_wb_object_operator = get_wb_object_operator( ).
 
     TRY.
         CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~DELETE')
           EXPORTING
-            transport_request = lv_transport_request.
+            transport_request = iv_transport.
 
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
@@ -84580,8 +84451,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
     DATA:
       li_object_data_model  TYPE REF TO if_wb_object_data_model,
       li_wb_object_operator TYPE REF TO object,
-      lx_error              TYPE REF TO cx_root,
-      lv_transport_request  TYPE trkorr.
+      lx_error              TYPE REF TO cx_root.
 
     FIELD-SYMBOLS:
       <ls_dependency_rule> TYPE any,
@@ -84609,8 +84479,6 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
 
         tadir_insert( iv_package ).
 
-        lv_transport_request = get_transport_req_if_needed( iv_package ).
-
         IF zif_abapgit_object~exists( ) = abap_true.
 
           " We need to populate created_at, created_by, because otherwise update  is not possible
@@ -84620,7 +84488,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
           CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~UPDATE')
             EXPORTING
               io_object_data    = li_object_data_model
-              transport_request = lv_transport_request.
+              transport_request = iv_transport.
 
         ELSE.
 
@@ -84631,13 +84499,13 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
               io_object_data    = li_object_data_model
               data_selection    = 'P' " if_wb_object_data_selection_co=>c_properties
               package           = iv_package
-              transport_request = lv_transport_request.
+              transport_request = iv_transport.
 
           CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~UPDATE')
             EXPORTING
               io_object_data    = li_object_data_model
               data_selection    = 'D' " if_wb_object_data_selection_co=>c_data_content
-              transport_request = lv_transport_request.
+              transport_request = iv_transport.
 
         ENDIF.
 
@@ -89250,17 +89118,6 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
     ro_object_data->set_data(  p_data = <lg_data>  ).
 
   ENDMETHOD.
-  METHOD get_transport_req_if_needed.
-
-    DATA: li_sap_package TYPE REF TO zif_abapgit_sap_package.
-
-    li_sap_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
-
-    IF li_sap_package->are_changes_recorded_in_tr_req( ) = abap_true.
-      rv_transport_request = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD get_wb_object_operator.
 
     DATA:
@@ -89376,17 +89233,14 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
 
     DATA:
       lx_error              TYPE REF TO cx_root,
-      li_wb_object_operator TYPE REF TO object,
-      lv_transport_request  TYPE trkorr.
-
-    lv_transport_request = get_transport_req_if_needed( iv_package ).
+      li_wb_object_operator TYPE REF TO object.
 
     li_wb_object_operator = get_wb_object_operator( ).
 
     TRY.
         CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~DELETE')
           EXPORTING
-            transport_request = lv_transport_request.
+            transport_request = iv_transport.
 
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
@@ -89400,7 +89254,6 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
       lo_object_data_merged TYPE REF TO if_wb_object_data_model,
       lo_wb_object_operator TYPE REF TO object,
       lx_error              TYPE REF TO cx_root,
-      lv_transport_request  TYPE trkorr,
       lr_wbobjtype          TYPE REF TO data,
       lr_category           TYPE REF TO data.
 
@@ -89412,7 +89265,6 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
     TRY.
 
         lo_object_data = get_object_data( io_xml ).
-        lv_transport_request = get_transport_req_if_needed( iv_package ).
 
         CREATE DATA lr_wbobjtype TYPE ('WBOBJTYPE').
         ASSIGN lr_wbobjtype->* TO <ls_wbobjtype>.
@@ -89443,7 +89295,7 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
                   data_selection    = 'AL' " if_wb_object_data_selection_co=>c_all_data
                   version           = 'I'
                   package           = iv_package
-                  transport_request = lv_transport_request.
+                  transport_request = iv_transport.
             WHEN '2'. "if_wb_adt_plugin_resource_co=>co_sfs_res_category_compound_s.
               CALL METHOD lo_wb_object_operator->('IF_WB_OBJECT_OPERATOR~CREATE')
                 EXPORTING
@@ -89451,14 +89303,14 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
                   data_selection    = 'P' " if_wb_object_data_selection_co=>c_properties
                   version           = 'I'
                   package           = iv_package
-                  transport_request = lv_transport_request.
+                  transport_request = iv_transport.
 
               CALL METHOD lo_wb_object_operator->('IF_WB_OBJECT_OPERATOR~UPDATE')
                 EXPORTING
                   io_object_data    = lo_object_data
                   data_selection    = 'D' "if_wb_object_data_selection_co=>c_data_content
                   version           = 'I'
-                  transport_request = lv_transport_request.
+                  transport_request = iv_transport.
             WHEN OTHERS.
           ENDCASE.
         ELSE.
@@ -89470,20 +89322,20 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
                   io_object_data    = lo_object_data_merged
                   data_selection    = 'AL' "if_wb_object_data_selection_co=>c_all_data
                   version           = 'I'
-                  transport_request = lv_transport_request.
+                  transport_request = iv_transport.
             WHEN '2'. "if_wb_adt_plugin_resource_co=>co_sfs_res_category_compound_s.
               CALL METHOD lo_wb_object_operator->('IF_WB_OBJECT_OPERATOR~UPDATE')
                 EXPORTING
                   io_object_data    = lo_object_data_merged
                   data_selection    = 'P' "if_wb_object_data_selection_co=>c_properties
                   version           = 'I'
-                  transport_request = lv_transport_request.
+                  transport_request = iv_transport.
               CALL METHOD lo_wb_object_operator->('IF_WB_OBJECT_OPERATOR~UPDATE')
                 EXPORTING
                   io_object_data    = lo_object_data_merged
                   data_selection    = 'D' "if_wb_object_data_selection_co=>c_data_content
                   version           = 'I'
-                  transport_request = lv_transport_request.
+                  transport_request = iv_transport.
             WHEN OTHERS.
           ENDCASE.
         ENDIF.
@@ -90480,17 +90332,6 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
     <lv_created_by> = <lv_created_by_old>.
 
   ENDMETHOD.
-  METHOD get_transport_req_if_needed.
-
-    DATA: li_sap_package TYPE REF TO zif_abapgit_sap_package.
-
-    li_sap_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
-
-    IF li_sap_package->are_changes_recorded_in_tr_req( ) = abap_true.
-      rv_transport_request = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD get_wb_object_operator.
 
     DATA:
@@ -90544,16 +90385,14 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
 
     DATA:
       li_wb_object_operator TYPE REF TO object,
-      lx_error              TYPE REF TO cx_root,
-      lv_transport_request  TYPE trkorr.
+      lx_error              TYPE REF TO cx_root.
 
-    lv_transport_request = get_transport_req_if_needed( iv_package ).
     li_wb_object_operator = get_wb_object_operator( ).
 
     TRY.
         CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~DELETE')
           EXPORTING
-            transport_request = lv_transport_request.
+            transport_request = iv_transport.
 
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
@@ -90565,8 +90404,7 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
     DATA:
       li_object_data_model  TYPE REF TO if_wb_object_data_model,
       li_wb_object_operator TYPE REF TO object,
-      lx_error              TYPE REF TO cx_root,
-      lv_transport_request  TYPE trkorr.
+      lx_error              TYPE REF TO cx_root.
 
     FIELD-SYMBOLS:
       <ls_logical_db_schema> TYPE any.
@@ -90587,8 +90425,6 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
 
         tadir_insert( iv_package ).
 
-        lv_transport_request = get_transport_req_if_needed( iv_package ).
-
         IF zif_abapgit_object~exists( ) = abap_true.
 
           " We need to populate created_at, created_by, because otherwise update  is not possible
@@ -90598,7 +90434,7 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
           CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~UPDATE')
             EXPORTING
               io_object_data    = li_object_data_model
-              transport_request = lv_transport_request.
+              transport_request = iv_transport.
 
         ELSE.
 
@@ -90609,13 +90445,13 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
               io_object_data    = li_object_data_model
               data_selection    = 'P' " if_wb_object_data_selection_co=>c_properties
               package           = iv_package
-              transport_request = lv_transport_request.
+              transport_request = iv_transport.
 
           CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~UPDATE')
             EXPORTING
               io_object_data    = li_object_data_model
               data_selection    = 'D' " if_wb_object_data_selection_co=>c_data_content
-              transport_request = lv_transport_request.
+              transport_request = iv_transport.
 
         ENDIF.
 
@@ -107834,6 +107670,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-03T09:19:52.238Z
+* abapmerge 0.14.3 - 2022-01-03T09:51:55.203Z
 ENDINTERFACE.
 ****************************************************
