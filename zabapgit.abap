@@ -394,6 +394,7 @@ CLASS zcl_abapgit_objects_files DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_check DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_activation DEFINITION DEFERRED.
 CLASS zcl_abapgit_item_state DEFINITION DEFERRED.
+CLASS zcl_abapgit_item_graph DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_jumper DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_filename_logic DEFINITION DEFERRED.
@@ -6327,13 +6328,18 @@ CLASS zcl_abapgit_file_deserialize DEFINITION
         !it_results       TYPE zif_abapgit_definitions=>ty_results_tt
         !ii_log           TYPE REF TO zif_abapgit_log OPTIONAL
       RETURNING
-        VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt.
+        VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt .
     CLASS-METHODS prioritize_deser
       IMPORTING
+        !ii_log           TYPE REF TO zif_abapgit_log
         !it_results       TYPE zif_abapgit_definitions=>ty_results_tt
       RETURNING
-        VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt.
-
+        VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt .
+    CLASS-METHODS map_results_to_items
+      IMPORTING
+        !it_results     TYPE zif_abapgit_definitions=>ty_results_tt
+      RETURNING
+        VALUE(rt_items) TYPE zif_abapgit_definitions=>ty_items_tt .
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
   FINAL
@@ -6592,6 +6598,39 @@ CLASS zcl_abapgit_gui_jumper DEFINITION
         !iv_new_window   TYPE abap_bool
       RETURNING
         VALUE(rv_exit)   TYPE abap_bool.
+
+ENDCLASS.
+CLASS zcl_abapgit_item_graph DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS constructor
+      IMPORTING
+        !it_items TYPE zif_abapgit_definitions=>ty_items_tt .
+    METHODS add_edge
+      IMPORTING
+        !is_from TYPE zif_abapgit_definitions=>ty_item
+        !is_to   TYPE zif_abapgit_definitions=>ty_item .
+    METHODS has_vertices
+      RETURNING
+        VALUE(rv_bool) TYPE abap_bool .
+    METHODS get_next
+      IMPORTING
+        !ii_log        TYPE REF TO zif_abapgit_log
+      RETURNING
+        VALUE(rs_item) TYPE zif_abapgit_definitions=>ty_item .
+  PRIVATE SECTION.
+    TYPES: BEGIN OF ty_edge,
+             from TYPE zif_abapgit_definitions=>ty_item,
+             to   TYPE zif_abapgit_definitions=>ty_item,
+           END OF ty_edge.
+
+    DATA mt_vertices TYPE STANDARD TABLE OF zif_abapgit_definitions=>ty_item WITH DEFAULT KEY.
+    DATA mt_edges TYPE STANDARD TABLE OF ty_edge WITH DEFAULT KEY.
+    DATA mv_warning TYPE abap_bool.
+
+    METHODS remove_vertex IMPORTING iv_index TYPE i.
 
 ENDCLASS.
 CLASS zcl_abapgit_item_state DEFINITION
@@ -97266,6 +97305,64 @@ CLASS ZCL_ABAPGIT_ITEM_STATE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_ITEM_GRAPH IMPLEMENTATION.
+  METHOD add_edge.
+    DATA ls_edge LIKE LINE OF mt_edges.
+    ASSERT is_from IS NOT INITIAL.
+    ASSERT is_to IS NOT INITIAL.
+    ls_edge-from = is_from.
+    ls_edge-to   = is_to.
+    APPEND ls_edge TO mt_edges.
+  ENDMETHOD.
+  METHOD constructor.
+    INSERT LINES OF it_items INTO TABLE mt_vertices.
+  ENDMETHOD.
+  METHOD get_next.
+* find a vertex with no inbound edges, if it does not exist pick anything
+
+    DATA ls_vertex LIKE LINE OF mt_vertices.
+    DATA lv_index  TYPE i.
+
+    LOOP AT mt_vertices INTO ls_vertex.
+      lv_index = sy-tabix.
+      READ TABLE mt_edges WITH KEY
+        to-obj_type = ls_vertex-obj_type
+        to-obj_name = ls_vertex-obj_name
+        TRANSPORTING NO FIELDS.
+      IF sy-subrc <> 0.
+        remove_vertex( lv_index ).
+        rs_item = ls_vertex.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+
+    IF mv_warning = abap_false.
+* only issue the warning once per graph
+      ii_log->add_warning( |Cycle detected in item graph| ).
+      mv_warning = abap_true.
+    ENDIF.
+
+    READ TABLE mt_vertices INTO rs_item INDEX 1.
+    ASSERT sy-subrc = 0.
+    remove_vertex( 1 ).
+
+  ENDMETHOD.
+  METHOD has_vertices.
+    rv_bool = boolc( lines( mt_vertices ) > 0 ).
+  ENDMETHOD.
+  METHOD remove_vertex.
+    DATA ls_vertex LIKE LINE OF mt_vertices.
+
+    READ TABLE mt_vertices INDEX iv_index INTO ls_vertex.
+    ASSERT sy-subrc = 0.
+
+    DELETE mt_vertices INDEX iv_index.
+    DELETE mt_edges WHERE
+      from-obj_type = ls_vertex-obj_type AND
+      from-obj_name = ls_vertex-obj_name.
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_gui_jumper IMPLEMENTATION.
   METHOD jump_tr.
 
@@ -98263,7 +98360,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_file_deserialize IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_FILE_DESERIALIZE IMPLEMENTATION.
   METHOD filter_files_to_deserialize.
 
     DATA lt_objects LIKE rt_results.
@@ -98353,106 +98450,122 @@ CLASS zcl_abapgit_file_deserialize IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_results.
 
+    DATA lt_results TYPE zif_abapgit_definitions=>ty_results_tt.
+
+    lt_results = filter_files_to_deserialize(
+      it_results = zcl_abapgit_file_status=>status( io_repo )
+      ii_log     = ii_log ).
+
     rt_results = prioritize_deser(
-                   filter_files_to_deserialize(
-                     it_results = zcl_abapgit_file_status=>status( io_repo )
-                     ii_log     = ii_log ) ).
+      ii_log     = ii_log
+      it_results = lt_results ).
+
+  ENDMETHOD.
+  METHOD map_results_to_items.
+
+    DATA ls_item LIKE LINE OF rt_items.
+    FIELD-SYMBOLS: <ls_result> TYPE zif_abapgit_definitions=>ty_result.
+
+    LOOP AT it_results ASSIGNING <ls_result>.
+      ls_item-devclass = <ls_result>-package.
+      ls_item-obj_type = <ls_result>-obj_type.
+      ls_item-obj_name = <ls_result>-obj_name.
+      INSERT ls_item INTO TABLE rt_items.
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD prioritize_deser.
 
-* todo, refactor this method #3536
+    DATA lt_items    TYPE zif_abapgit_definitions=>ty_items_tt.
+    DATA ls_item     LIKE LINE OF lt_items.
+    DATA lt_requires TYPE zif_abapgit_definitions=>ty_items_tt.
+    DATA ls_require  LIKE LINE OF lt_requires.
+    DATA ls_result   LIKE LINE OF it_results.
+    DATA lo_graph    TYPE REF TO zcl_abapgit_item_graph.
 
-    FIELD-SYMBOLS: <ls_result> LIKE LINE OF it_results.
+    lt_items = map_results_to_items( it_results ).
 
-* WEBI has to be handled before SPRX.
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'WEBI'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
+    CREATE OBJECT lo_graph EXPORTING it_items = lt_items.
 
-* SPRX has to be handled before depended objects CLAS/INFT/TABL etc.
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'SPRX'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
+    LOOP AT lt_items INTO ls_item.
+      CLEAR lt_requires.
 
-* XSLT has to be handled before CLAS/PROG
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'XSLT'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
+* TODO: BEGIN extract to object handler method in ZIF_ABAPGIT_OBJECT:
+*    METHODS get_deserialize_order
+*      IMPORTING
+*        it_items TYPE ty_items_tt
+*      RETURNING
+*        VALUE(rt_requries) TYPE ty_items_tt
 
-* PROG before internet services, as the services might use the screens
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'PROG'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
+      CASE ls_item-obj_type.
+        WHEN 'SPRX'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'WEBI'.
+        WHEN 'CLAS'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'SPRX'
+            AND obj_type <> 'XSLT'.
+        WHEN 'PROG'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'XSLT'.
+        WHEN 'INTF'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'SPRX'.
+        WHEN 'TABL'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'SPRX'.
+        WHEN 'ISRP'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'IASP'.
+        WHEN 'DCLS'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'DDLS'.
+        WHEN 'ODSO'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'IOBJ'.
+        WHEN 'SCP1'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'TOBJ'.
+        WHEN 'CHAR'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'OTGR'.
+        WHEN 'PINF'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'CLAS'
+            AND obj_type <> 'INTF'
+            AND obj_type <> 'TABL'
+            AND obj_type <> 'DOMA'
+            AND obj_type <> 'DTEL'.
+        WHEN 'DEVC'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'PINF'.
+        WHEN 'ENHC'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'ENHO'.
+        WHEN 'ENHO'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'ENSC'.
+        WHEN 'ENSC'.
+          lt_requires = lt_items.
+          DELETE lt_requires WHERE obj_type <> 'ENHS'.
+      ENDCASE.
+* TODO: END extract to object handler method
 
-* ISAP has to be handled before ISRP
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'IASP'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
-* DDLS has to be handled before DCLS
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'DDLS'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
-* IOBJ has to be handled before ODSO
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'IOBJ'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
-* TOBJ has to be handled before SCP1
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'TOBJ'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
-* OTGR has to be handled before CHAR
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'OTGR'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
-    LOOP AT it_results ASSIGNING <ls_result>
-        WHERE obj_type <> 'IASP'
-        AND obj_type <> 'PROG'
-        AND obj_type <> 'XSLT'
-        AND obj_type <> 'PINF'
-        AND obj_type <> 'DEVC'
-        AND obj_type <> 'ENHS'
-        AND obj_type <> 'ENHO'
-        AND obj_type <> 'ENHC'
-        AND obj_type <> 'ENSC'
-        AND obj_type <> 'DDLS'
-        AND obj_type <> 'SPRX'
-        AND obj_type <> 'WEBI'
-        AND obj_type <> 'IOBJ'
-        AND obj_type <> 'TOBJ'
-        AND obj_type <> 'OTGR'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
-* Enhancements might refer to other objects of the repo so create them after
-* Order: spots, composite spots, implementations, composite implementations
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'ENHS'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'ENSC'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'ENHO'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'ENHC'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
-
-* PINF after everything as it can expose objects
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'PINF'.
-      APPEND <ls_result> TO rt_results.
+      LOOP AT lt_requires INTO ls_require.
+        lo_graph->add_edge(
+          is_from = ls_require
+          is_to   = ls_item ).
+      ENDLOOP.
     ENDLOOP.
 
-* DEVC after PINF, as it can refer for package interface usage
-    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type = 'DEVC'.
-      APPEND <ls_result> TO rt_results.
-    ENDLOOP.
+    WHILE lo_graph->has_vertices( ) = abap_true.
+      ls_item = lo_graph->get_next( ii_log ).
+      READ TABLE it_results INTO ls_result WITH KEY
+        obj_name = ls_item-obj_name
+        obj_type = ls_item-obj_type.
+      ASSERT sy-subrc = 0.
+      APPEND ls_result TO rt_results.
+    ENDWHILE.
 
   ENDMETHOD.
 ENDCLASS.
@@ -107670,6 +107783,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-03T09:51:55.203Z
+* abapmerge 0.14.3 - 2022-01-03T09:56:10.269Z
 ENDINTERFACE.
 ****************************************************
