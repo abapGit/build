@@ -64289,6 +64289,12 @@ CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
 
     ls_tobj = read_extra( ls_objh-objectname ).
 
+    IF ls_tobj-tvdir-detail = ``.
+      " to prevent xslt serialization error,
+      " force clear if numc field is empty
+      CLEAR ls_tobj-tvdir-detail.
+    ENDIF.
+
     io_xml->add( iv_name = 'TOBJ'
                  ig_data = ls_tobj ).
 
@@ -108101,6 +108107,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-04T06:36:57.220Z
+* abapmerge 0.14.3 - 2022-01-04T16:08:02.683Z
 ENDINTERFACE.
 ****************************************************
