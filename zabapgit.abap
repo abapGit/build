@@ -61,6 +61,7 @@ INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
 INTERFACE zif_abapgit_repo_srv DEFERRED.
 INTERFACE zif_abapgit_repo_online DEFERRED.
 INTERFACE zif_abapgit_repo_listener DEFERRED.
+INTERFACE zif_abapgit_object_filter DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
 INTERFACE zif_abapgit_persistence DEFERRED.
 INTERFACE zif_abapgit_persist_user DEFERRED.
@@ -209,6 +210,7 @@ CLASS zcl_abapgit_repo_offline DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_filter DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_content_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_filter_tran DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_user DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_repo DEFINITION DEFERRED.
@@ -2763,6 +2765,16 @@ INTERFACE zif_abapgit_cts_api .
       VALUE(rt_transports) TYPE ty_transport_list
     RAISING
       zcx_abapgit_exception .
+  METHODS get_r3tr_obj_for_limu_obj
+    IMPORTING
+      iv_object   TYPE tadir-object
+      iv_obj_name TYPE trobj_name
+    EXPORTING
+      ev_object   TYPE tadir-object
+      ev_obj_name TYPE trobj_name
+    RAISING
+      zcx_abapgit_exception .
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_data_config .
@@ -3512,6 +3524,15 @@ INTERFACE zif_abapgit_persist_user .
     RAISING
       zcx_abapgit_exception.
 
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_object_filter .
+
+  METHODS get_filter
+    RETURNING
+      VALUE(rt_filter) TYPE zif_abapgit_definitions=>ty_tadir_tt
+    RAISING
+      zcx_abapgit_exception.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_repo_listener .
@@ -4265,6 +4286,7 @@ INTERFACE zif_abapgit_stage_logic .
   METHODS get
     IMPORTING
       !io_repo        TYPE REF TO zcl_abapgit_repo_online
+      !ii_obj_filter  TYPE REF TO zif_abapgit_object_filter OPTIONAL
     RETURNING
       VALUE(rs_files) TYPE zif_abapgit_definitions=>ty_stage_files
     RAISING
@@ -13767,6 +13789,63 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
         RETURNING VALUE(rs_data) TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
 
 ENDCLASS.
+CLASS zcl_abapgit_object_filter_tran DEFINITION
+  CREATE PUBLIC.
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_object_filter.
+
+    TYPES ty_trrngtrkor_tt TYPE RANGE OF trkorr.
+    TYPES: BEGIN OF ty_e071_filter,
+             pgmid    TYPE tadir-pgmid,
+             object   TYPE tadir-object,
+             obj_name TYPE trobj_name,
+           END OF ty_e071_filter,
+           ty_e071_filter_tt TYPE STANDARD TABLE OF ty_e071_filter.
+
+    METHODS set_filter_values
+      IMPORTING
+        iv_package  TYPE tadir-devclass
+        it_r_trkorr TYPE ty_trrngtrkor_tt
+      RAISING
+        zcx_abapgit_exception .
+
+    METHODS get_filter_values
+      EXPORTING
+        ev_package  TYPE tadir-devclass
+        et_r_trkorr TYPE ty_trrngtrkor_tt.
+
+  PROTECTED SECTION.
+    METHODS adjust_local_filter
+      IMPORTING
+                it_e071_filter   TYPE ty_e071_filter_tt
+                iv_package       TYPE tadir-devclass
+      RETURNING VALUE(rt_filter) TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+                zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+
+    DATA mt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt .
+    DATA mt_r_trkorr TYPE ty_trrngtrkor_tt .
+    DATA mv_package TYPE tadir-devclass.
+
+    METHODS generate_local_filter
+      IMPORTING
+        iv_package       TYPE tadir-devclass
+        it_r_trkorr      TYPE ty_trrngtrkor_tt
+      RETURNING
+        VALUE(rt_filter) TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+
+    METHODS init .
+
+    METHODS get_all_sub_packages
+      IMPORTING
+        iv_package       TYPE tadir-devclass
+      RETURNING
+        VALUE(rt_filter) TYPE zif_abapgit_definitions=>ty_tadir_tt.
+ENDCLASS.
 CLASS zcl_abapgit_repo DEFINITION
   ABSTRACT
   CREATE PUBLIC .
@@ -13802,6 +13881,7 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS get_files_local
       IMPORTING
         !ii_log         TYPE REF TO zif_abapgit_log OPTIONAL
+        !ii_obj_filter  TYPE REF TO zif_abapgit_object_filter OPTIONAL
       RETURNING
         VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_item_tt
       RAISING
@@ -13810,6 +13890,8 @@ CLASS zcl_abapgit_repo DEFINITION
       RETURNING
         VALUE(rt_checksums) TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
     METHODS get_files_remote
+      IMPORTING
+        ii_obj_filter   TYPE REF TO zif_abapgit_object_filter OPTIONAL
       RETURNING
         VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
       RAISING
@@ -13874,7 +13956,7 @@ CLASS zcl_abapgit_repo DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS has_remote_source
-          ABSTRACT
+      ABSTRACT
       RETURNING
         VALUE(rv_yes) TYPE abap_bool .
     METHODS status
@@ -14042,6 +14124,16 @@ CLASS zcl_abapgit_repo_filter DEFINITION
       CHANGING
         ct_tadir  TYPE zif_abapgit_definitions=>ty_tadir_tt .
 
+    METHODS apply_object_filter
+      IMPORTING
+        it_filter   TYPE zif_abapgit_definitions=>ty_tadir_tt
+        io_dot      TYPE REF TO zcl_abapgit_dot_abapgit OPTIONAL
+        iv_devclass TYPE devclass OPTIONAL
+      CHANGING
+        ct_files    TYPE zif_abapgit_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception.
+
   PROTECTED SECTION.
 
     METHODS filter_generated_tadir
@@ -14114,6 +14206,7 @@ CLASS zcl_abapgit_repo_online DEFINITION
         REDEFINITION .
     METHODS has_remote_source
         REDEFINITION .
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -21925,7 +22018,7 @@ CLASS zcl_abapgit_version IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
+CLASS zcl_abapgit_stage_logic IMPLEMENTATION.
   METHOD remove_identical.
 
     DATA: lv_index  TYPE i,
@@ -21985,8 +22078,8 @@ CLASS ZCL_ABAPGIT_STAGE_LOGIC IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_stage_logic~get.
 
-    rs_files-local  = io_repo->get_files_local( ).
-    rs_files-remote = io_repo->get_files_remote( ).
+    rs_files-local  = io_repo->get_files_local( ii_obj_filter = ii_obj_filter ).
+    rs_files-remote = io_repo->get_files_remote( ii_obj_filter ).
     rs_files-status = io_repo->status( ).
     remove_identical( CHANGING cs_files = rs_files ).
     remove_ignored( EXPORTING io_repo  = io_repo
@@ -52068,7 +52161,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_files_remote.
     fetch_remote( ).
-    rt_files = super->get_files_remote( ).
+    rt_files = super->get_files_remote( ii_obj_filter ).
   ENDMETHOD.
   METHOD get_name.
     rv_name = super->get_name( ).
@@ -52228,7 +52321,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
 
     reset_remote( ).
     set( iv_branch_name     = iv_branch_name
-         iv_selected_commit = space  ).
+         iv_selected_commit = space ).
 
   ENDMETHOD.
   METHOD zif_abapgit_repo_online~select_commit.
@@ -52247,7 +52340,8 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
 
     DATA lv_offs TYPE i.
 
-    IF iv_overwrite = abap_true. " For repo settings page
+    " For repo settings page
+    IF iv_overwrite = abap_true.
       set( iv_switched_origin = iv_url ).
       RETURN.
     ENDIF.
@@ -52314,7 +52408,7 @@ CLASS zcl_abapgit_repo_offline IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO_FILTER IMPLEMENTATION.
+CLASS zcl_abapgit_repo_filter IMPLEMENTATION.
   METHOD apply.
 
     DATA: lt_filter TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_tadir
@@ -52389,6 +52483,61 @@ CLASS ZCL_ABAPGIT_REPO_FILTER IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD apply_object_filter.
+    DATA lr_file TYPE REF TO  zif_abapgit_definitions=>ty_file.
+    DATA ls_item TYPE zif_abapgit_definitions=>ty_item.
+    DATA ls_tadir TYPE zif_abapgit_definitions=>ty_tadir.
+    DATA lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    DATA lt_items TYPE zif_abapgit_definitions=>ty_items_tt.
+
+    DATA: lt_filter TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_tadir
+                      WITH NON-UNIQUE KEY object obj_name.
+
+    lt_filter = it_filter.
+
+    LOOP AT ct_files REFERENCE INTO lr_file.
+      IF lr_file->filename = zif_abapgit_definitions=>c_dot_abapgit.
+        CONTINUE.
+      ENDIF.
+
+      zcl_abapgit_filename_logic=>file_to_object(
+        EXPORTING
+          iv_filename = lr_file->filename
+          iv_path     = lr_file->path
+          iv_devclass = iv_devclass
+          io_dot      = io_dot
+        IMPORTING
+          es_item     = ls_item ).
+
+      CLEAR lt_tadir.
+      CLEAR ls_tadir.
+
+      ls_tadir-object = ls_item-obj_type.
+      ls_tadir-obj_name = ls_item-obj_name.
+      ls_tadir-devclass = ls_item-devclass.
+
+      INSERT ls_tadir INTO TABLE lt_tadir.
+
+      filter_generated_tadir( CHANGING ct_tadir = lt_tadir ).
+
+      IF lt_tadir IS INITIAL.
+        DELETE ct_files.
+        CONTINUE.
+      ENDIF.
+
+      READ TABLE lt_filter TRANSPORTING NO FIELDS
+      WITH KEY object = ls_tadir-object
+               obj_name = ls_tadir-obj_name
+      BINARY SEARCH.
+
+      IF sy-subrc <> 0.
+        DELETE ct_files.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
@@ -52745,9 +52894,9 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     " Deserialize objects
     TRY.
         lt_updated_files = zcl_abapgit_objects=>deserialize(
-            io_repo   = me
-            is_checks = is_checks
-            ii_log    = ii_log ).
+          io_repo   = me
+          is_checks = is_checks
+          ii_log    = ii_log ).
       CATCH zcx_abapgit_exception INTO lx_error.
 * ensure to reset default transport request task
         zcl_abapgit_default_transport=>get_instance( )->reset( ).
@@ -52865,7 +53014,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD get_files_local.
 
     DATA lo_serialize TYPE REF TO zcl_abapgit_serialize.
-
+    DATA lt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt.
     " Serialization happened before and no refresh request
     IF lines( mt_local ) > 0 AND mv_request_local_refresh = abap_false.
       rt_files = mt_local.
@@ -52877,17 +53026,38 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
         io_dot_abapgit    = get_dot_abapgit( )
         is_local_settings = get_local_settings( ).
 
+    IF ii_obj_filter IS NOT INITIAL.
+      lt_filter = ii_obj_filter->get_filter( ).
+    ENDIF.
+
     rt_files = lo_serialize->files_local(
       iv_package     = get_package( )
       ii_data_config = get_data_config( )
-      ii_log         = ii_log ).
+      ii_log         = ii_log
+      it_filter      = lt_filter ).
 
     mt_local                 = rt_files.
     mv_request_local_refresh = abap_false. " Fulfill refresh
 
   ENDMETHOD.
   METHOD get_files_remote.
+    DATA lt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    DATA lr_filter TYPE REF TO zcl_abapgit_repo_filter.
+
     rt_files = mt_remote.
+    IF ii_obj_filter IS NOT INITIAL.
+      lt_filter = ii_obj_filter->get_filter( ).
+
+      CREATE OBJECT lr_filter.
+      lr_filter->apply_object_filter(
+        EXPORTING
+          it_filter   = lt_filter
+          io_dot      = get_dot_abapgit( )
+          iv_devclass = get_package( )
+        CHANGING
+          ct_files    = rt_files ).
+
+    ENDIF.
   ENDMETHOD.
   METHOD get_key.
     rv_key = ms_data-key.
@@ -52987,11 +53157,9 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
         ls_last_item       = <ls_local>-item.
       ENDIF.
 
-      compare_with_remote_checksum( EXPORTING
-                                      it_remote_files = lt_remote
-                                      is_local_file = <ls_local>-file
-                                    CHANGING
-                                      cs_checksum = <ls_checksum> ).
+      compare_with_remote_checksum( EXPORTING it_remote_files = lt_remote
+                                              is_local_file   = <ls_local>-file
+                                    CHANGING  cs_checksum     = <ls_checksum> ).
 
     ENDLOOP.
     set( it_checksums = lt_checksums ).
@@ -53161,9 +53329,9 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD status.
 
     IF lines( mt_status ) = 0.
-      mt_status = zcl_abapgit_file_status=>status(
-        io_repo = me
-        ii_log  = ii_log ).
+      mt_status = zcl_abapgit_file_status=>status( io_repo = me
+                                                   ii_log  = ii_log ).
+
     ENDIF.
 
     rt_results = mt_status.
@@ -53275,6 +53443,136 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     set( it_checksums = lt_checksums ).
 
   ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_object_filter_tran IMPLEMENTATION.
+  METHOD generate_local_filter.
+    DATA lt_e071_filter TYPE ty_e071_filter_tt.
+
+    SELECT DISTINCT pgmid
+                object
+                obj_name
+           INTO CORRESPONDING FIELDS OF TABLE lt_e071_filter
+           FROM e071
+      WHERE trkorr IN it_r_trkorr.
+    IF sy-subrc <> 0.
+      CLEAR lt_e071_filter.
+    ENDIF.
+    rt_filter = adjust_local_filter(
+      iv_package     = iv_package
+      it_e071_filter = lt_e071_filter ).
+  ENDMETHOD.
+
+  METHOD get_filter_values.
+    et_r_trkorr = mt_r_trkorr.
+    ev_package = mv_package.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object_filter~get_filter.
+    rt_filter = mt_filter.
+  ENDMETHOD.
+
+  METHOD init.
+    CLEAR mt_filter.
+    CLEAR mt_r_trkorr.
+    CLEAR mv_package.
+  ENDMETHOD.
+
+  METHOD set_filter_values.
+    init( ).
+    mt_r_trkorr = it_r_trkorr.
+    mv_package = iv_package.
+    IF it_r_trkorr IS NOT INITIAL.
+      mt_filter = generate_local_filter(
+        iv_package  = mv_package
+        it_r_trkorr = mt_r_trkorr ).
+
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD adjust_local_filter.
+
+    DATA lt_e071_filter TYPE ty_e071_filter_tt.
+    DATA lr_e071_filter TYPE REF TO ty_e071_filter.
+    DATA ls_filter TYPE zif_abapgit_definitions=>ty_tadir.
+    DATA lv_trobj_name_new TYPE trobj_name.
+    DATA lv_trobj_type_new TYPE tadir-object.
+    DATA lt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    DATA lr_cts_api TYPE REF TO zif_abapgit_cts_api.
+
+    lt_e071_filter = it_e071_filter.
+
+    LOOP AT lt_e071_filter REFERENCE INTO lr_e071_filter.
+
+      IF lr_e071_filter->pgmid = 'LIMU'.
+        "Get Main Object from LIMU Object (Example the Class (R3TR) of a Method (LIMU))
+
+        lr_cts_api = zcl_abapgit_factory=>get_cts_api( ).
+
+        TRY.
+            lr_cts_api->get_r3tr_obj_for_limu_obj(
+              EXPORTING
+                iv_object   = lr_e071_filter->object
+                iv_obj_name = lr_e071_filter->obj_name
+              IMPORTING
+                ev_object   = lv_trobj_type_new
+                ev_obj_name = lv_trobj_name_new ).
+          CATCH zcx_abapgit_exception.
+            CONTINUE.
+        ENDTRY.
+
+        CLEAR ls_filter.
+        ls_filter-pgmid = 'R3TR'.
+        ls_filter-object = lv_trobj_type_new.
+        ls_filter-obj_name = lv_trobj_name_new.
+      ELSE.
+        ls_filter-pgmid = lr_e071_filter->pgmid.
+        ls_filter-object = lr_e071_filter->object.
+        ls_filter-obj_name = lr_e071_filter->obj_name.
+      ENDIF.
+      INSERT ls_filter INTO TABLE rt_filter.
+    ENDLOOP.
+
+    IF iv_package IS NOT INITIAL.
+      ls_filter-pgmid = 'R3TR'.
+      ls_filter-object = 'DEVC'.
+      ls_filter-obj_name = iv_package.
+      INSERT ls_filter INTO TABLE rt_filter.
+
+      lt_filter = get_all_sub_packages( iv_package ).
+      INSERT LINES OF lt_filter INTO TABLE rt_filter.
+
+    ENDIF.
+
+    SORT rt_filter.
+    DELETE ADJACENT DUPLICATES FROM rt_filter.
+
+    IF rt_filter IS INITIAL.
+
+      zcx_abapgit_exception=>raise( 'No objects found for transport filter' ).
+
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD get_all_sub_packages.
+
+    DATA li_package TYPE REF TO zif_abapgit_sap_package.
+    DATA lt_list TYPE  zif_abapgit_sap_package=>ty_devclass_tt.
+    DATA lr_list TYPE REF TO devclass.
+    DATA ls_filter TYPE zif_abapgit_definitions=>ty_tadir.
+
+    li_package = zcl_abapgit_factory=>get_sap_package( iv_package = iv_package ).
+    lt_list = li_package->list_subpackages( ).
+    LOOP AT lt_list REFERENCE INTO lr_list.
+      ls_filter-pgmid = 'R3TR'.
+      ls_filter-object = 'DEVC'.
+      ls_filter-obj_name = lr_list->*.
+      INSERT ls_filter INTO TABLE rt_filter.
+    ENDLOOP.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
@@ -98324,7 +98622,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     DATA lt_remote TYPE zif_abapgit_definitions=>ty_files_tt.
     DATA li_exit TYPE REF TO zif_abapgit_exit.
 
-    lt_local = io_repo->get_files_local( ii_log ).
+    lt_local = io_repo->get_files_local( ii_log = ii_log ).
 
     IF lines( lt_local ) <= 2.
       " Less equal two means that we have only the .abapgit.xml and the package in
@@ -106064,7 +106362,7 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_CTS_API IMPLEMENTATION.
+CLASS zcl_abapgit_cts_api IMPLEMENTATION.
   METHOD get_current_transport_for_obj.
     DATA: lv_object_lockable   TYPE abap_bool,
           lv_locked            TYPE abap_bool,
@@ -106252,14 +106550,14 @@ CLASS ZCL_ABAPGIT_CTS_API IMPLEMENTATION.
            iv_object_name = is_item-obj_name ) = abap_true.
 
         rv_transport = get_current_transport_for_obj(
-                         iv_object_type = is_item-obj_type
-                         iv_object_name = is_item-obj_name ).
+          iv_object_type = is_item-obj_type
+          iv_object_name = is_item-obj_name ).
 
       ELSEIF is_object_type_transportable( is_item-obj_type ) = abap_true.
 
         rv_transport = get_current_transport_from_db(
-                         iv_object_type = is_item-obj_type
-                         iv_object_name = is_item-obj_name  ).
+          iv_object_type = is_item-obj_type
+          iv_object_name = is_item-obj_name ).
 
       ENDIF.
 
@@ -106271,6 +106569,26 @@ CLASS ZCL_ABAPGIT_CTS_API IMPLEMENTATION.
       rv_possible = zcl_abapgit_factory=>get_sap_package( iv_package )->are_changes_recorded_in_tr_req( ).
     ENDIF.
   ENDMETHOD.
+  METHOD zif_abapgit_cts_api~get_r3tr_obj_for_limu_obj.
+
+    CLEAR ev_object.
+    CLEAR ev_obj_name.
+
+    CALL FUNCTION 'GET_R3TR_OBJECT_FROM_LIMU_OBJ'
+      EXPORTING
+        p_limu_objtype = iv_object
+        p_limu_objname = iv_obj_name
+      IMPORTING
+        p_r3tr_objtype = ev_object
+        p_r3tr_objname = ev_obj_name
+      EXCEPTIONS
+        no_mapping     = 1
+        OTHERS         = 2.
+    IF sy-subrc <> 0 OR ev_obj_name IS INITIAL.
+      zcx_abapgit_exception=>raise( |No R3TR Object found for { iv_object } { iv_obj_name }| ).
+    ENDIF.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
@@ -107783,6 +108101,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-03T10:00:34.336Z
+* abapmerge 0.14.3 - 2022-01-04T06:36:57.220Z
 ENDINTERFACE.
 ****************************************************
