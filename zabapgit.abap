@@ -2463,7 +2463,7 @@ INTERFACE zif_abapgit_definitions .
       lstate     TYPE ty_item_state,
       rstate     TYPE ty_item_state,
       files      TYPE ty_repo_file_tt,
-      changed_by TYPE xubname,
+      changed_by TYPE syuname,
       packmove   TYPE abap_bool,
     END OF ty_repo_item .
   TYPES:
@@ -3082,7 +3082,7 @@ INTERFACE zif_abapgit_longtexts .
       !iv_longtext_id TYPE dokil-id
       !it_dokil       TYPE zif_abapgit_definitions=>ty_dokil_tt OPTIONAL
     RETURNING
-      VALUE(rv_user)  TYPE xubname
+      VALUE(rv_user)  TYPE syuname
     RAISING
       zcx_abapgit_exception .
   METHODS serialize
@@ -3160,7 +3160,7 @@ INTERFACE zif_abapgit_object .
       zcx_abapgit_exception .
   METHODS changed_by
     RETURNING
-      VALUE(rv_user) TYPE xubname
+      VALUE(rv_user) TYPE syuname
     RAISING
       zcx_abapgit_exception .
   METHODS jump
@@ -3289,9 +3289,9 @@ INTERFACE zif_abapgit_persistence.
            branch_name     TYPE string,
            selected_commit TYPE zif_abapgit_definitions=>ty_sha1,
            package         TYPE devclass,
-           created_by      TYPE xubname,
+           created_by      TYPE syuname,
            created_at      TYPE timestampl,
-           deserialized_by TYPE xubname,
+           deserialized_by TYPE syuname,
            deserialized_at TYPE timestampl,
            offline         TYPE abap_bool,
            switched_origin TYPE string,
@@ -4543,7 +4543,7 @@ CLASS zcl_abapgit_background_push_au DEFINITION
         zcx_abapgit_exception .
     METHODS determine_user_details
       IMPORTING
-        !iv_changed_by TYPE xubname
+        !iv_changed_by TYPE syuname
       RETURNING
         VALUE(rs_user) TYPE zif_abapgit_definitions=>ty_git_user .
     METHODS push_deletions
@@ -8171,7 +8171,7 @@ CLASS zcl_abapgit_objects DEFINITION
       IMPORTING
         !is_item       TYPE zif_abapgit_definitions=>ty_item
       RETURNING
-        VALUE(rv_user) TYPE xubname .
+        VALUE(rv_user) TYPE syuname .
     CLASS-METHODS is_supported
       IMPORTING
         !is_item        TYPE zif_abapgit_definitions=>ty_item
@@ -8410,7 +8410,7 @@ CLASS zcl_abapgit_objects_super DEFINITION
 
   PUBLIC SECTION.
 
-    CONSTANTS c_user_unknown TYPE xubname VALUE 'UNKNOWN'.
+    CONSTANTS c_user_unknown TYPE syuname VALUE 'UNKNOWN'.
 
     METHODS constructor
       IMPORTING
@@ -9391,7 +9391,7 @@ CLASS zcl_abapgit_object_ecatt_super DEFINITION
   PRIVATE SECTION.
     TYPES:
       BEGIN OF ty_last_changed,
-        luser TYPE xubname,
+        luser TYPE syuname,
         ldate TYPE d,
         ltime TYPE t,
       END OF ty_last_changed.
@@ -9431,7 +9431,7 @@ CLASS zcl_abapgit_object_ecatt_super DEFINITION
         IMPORTING
           ii_document               TYPE REF TO if_ixml_document
         RETURNING
-          VALUE(rv_changed_by_user) TYPE xubname,
+          VALUE(rv_changed_by_user) TYPE syuname,
 
       get_change_information
         IMPORTING
@@ -15397,7 +15397,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS render_user_name
       IMPORTING
-        !iv_username       TYPE xubname
+        !iv_username       TYPE syuname
         !iv_interactive    TYPE abap_bool DEFAULT abap_true
         !iv_icon_only      TYPE abap_bool DEFAULT abap_false
         !iv_suppress_title TYPE abap_bool DEFAULT abap_false
@@ -16279,7 +16279,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         rstate     TYPE c LENGTH 1,
         fstate     TYPE c LENGTH 1, " FILE state - Abstraction for shorter ifs
         o_diff     TYPE REF TO zcl_abapgit_diff,
-        changed_by TYPE xubname,
+        changed_by TYPE syuname,
         type       TYPE string,
       END OF ty_file_diff.
     TYPES:
@@ -16741,7 +16741,7 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
         rstate     TYPE char1,
         fstate     TYPE char1, " FILE state - Abstraction for shorter ifs
         o_diff     TYPE REF TO zcl_abapgit_diff,
-        changed_by TYPE xubname,
+        changed_by TYPE syuname,
         type       TYPE string,
       END OF ty_file_diff .
 
@@ -16989,9 +16989,9 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
         url             TYPE string,
         package         TYPE devclass,
         branch          TYPE string,
-        created_by      TYPE xubname,
+        created_by      TYPE syuname,
         created_at      TYPE string,
-        deserialized_by TYPE xubname,
+        deserialized_by TYPE syuname,
         deserialized_at TYPE string,
         write_protected TYPE abap_bool,
       END OF ty_overview,
@@ -17524,7 +17524,7 @@ CLASS zcl_abapgit_gui_page_sett_info DEFINITION
         zcx_abapgit_exception .
     METHODS format_user
       IMPORTING
-        !iv_username   TYPE xubname
+        !iv_username   TYPE syuname
       RETURNING
         VALUE(rv_user) TYPE string .
     METHODS format_timestamp
@@ -17948,7 +17948,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
     TYPES:
       BEGIN OF ty_changed_by,
         item TYPE zif_abapgit_definitions=>ty_item,
-        name TYPE xubname,
+        name TYPE syuname,
       END OF ty_changed_by .
     TYPES:
       ty_changed_by_tt TYPE SORTED TABLE OF ty_changed_by WITH UNIQUE KEY item .
@@ -17986,7 +17986,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         !is_file       TYPE zif_abapgit_definitions=>ty_file
         !is_item       TYPE zif_abapgit_definitions=>ty_item OPTIONAL
         !is_status     TYPE zif_abapgit_definitions=>ty_result
-        !iv_changed_by TYPE xubname OPTIONAL
+        !iv_changed_by TYPE syuname OPTIONAL
         !iv_transport  TYPE trkorr OPTIONAL
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
@@ -18264,7 +18264,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS jump_display_user
       IMPORTING
-        !iv_username TYPE xubname
+        !iv_username TYPE syuname
       RAISING
         zcx_abapgit_exception .
     METHODS call_browser
@@ -80934,7 +80934,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     TYPES: BEGIN OF ty_stamps,
-             user TYPE xubname,
+             user TYPE syuname,
              date TYPE d,
              time TYPE t,
            END OF ty_stamps.
@@ -106760,13 +106760,13 @@ CLASS zcl_abapgit_background_push_au IMPLEMENTATION.
     TYPES: BEGIN OF ty_changed,
              filename   TYPE string,
              path       TYPE string,
-             changed_by TYPE xubname,
+             changed_by TYPE syuname,
            END OF ty_changed.
 
     DATA: ls_comment    TYPE zif_abapgit_definitions=>ty_comment,
           ls_files      TYPE zif_abapgit_definitions=>ty_stage_files,
           lt_changed    TYPE STANDARD TABLE OF ty_changed WITH DEFAULT KEY,
-          lt_users      TYPE STANDARD TABLE OF xubname WITH DEFAULT KEY,
+          lt_users      TYPE STANDARD TABLE OF syuname WITH DEFAULT KEY,
           ls_user_files LIKE ls_files,
           lv_changed_by LIKE LINE OF lt_users,
           lo_stage      TYPE REF TO zcl_abapgit_stage.
@@ -108107,6 +108107,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-06T07:16:05.917Z
+* abapmerge 0.14.3 - 2022-01-06T07:19:41.079Z
 ENDINTERFACE.
 ****************************************************
