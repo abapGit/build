@@ -3226,7 +3226,7 @@ INTERFACE zif_abapgit_dot_abapgit.
 
   TYPES:
     BEGIN OF ty_requirement,
-      component   TYPE dlvunit,
+      component   TYPE tdevc-dlvunit,
       min_release TYPE saprelease,
       min_patch   TYPE sappatchlv,
     END OF ty_requirement .
@@ -19687,8 +19687,8 @@ CLASS zcl_abapgit_requirement_helper DEFINITION
     TYPES:
       BEGIN OF ty_requirement_status,
         met               TYPE abap_bool,
-        component         TYPE dlvunit,
-        description       TYPE cvers_sdu-desc_text,
+        component         TYPE tdevc-dlvunit,
+        description       TYPE string,
         installed_release TYPE saprelease,
         installed_patch   TYPE sappatchlv,
         required_release  TYPE saprelease,
@@ -108107,6 +108107,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-04T16:08:02.683Z
+* abapmerge 0.14.3 - 2022-01-06T07:16:05.917Z
 ENDINTERFACE.
 ****************************************************
