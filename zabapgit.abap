@@ -71996,14 +71996,22 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_name    TYPE fpname,
-          lo_wb_form TYPE REF TO cl_fp_wb_form.
-    lo_wb_form ?= load( ).
+    DATA: lv_name TYPE fpname.
 
     lv_name = ms_item-obj_name.
 
     TRY.
-        lo_wb_form->delete( lv_name ).
+        TRY.
+            CALL METHOD cl_fp_wb_form=>('DELETE')
+              EXPORTING
+                i_name     = lv_name
+                i_ordernum = iv_transport
+                i_dark     = abap_true. " > 740
+          CATCH cx_sy_dyn_call_error.
+            cl_fp_wb_form=>delete(
+              i_name     = lv_name
+              i_ordernum = iv_transport ).
+        ENDTRY.
       CATCH cx_fp_api.
         zcx_abapgit_exception=>raise( 'SFPI error, delete' ).
     ENDTRY.
@@ -72029,12 +72037,37 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
         ENDIF.
 
         IF zif_abapgit_object~exists( ) = abap_true.
-          cl_fp_wb_form=>delete( lv_name ).
+          TRY.
+              CALL METHOD cl_fp_wb_form=>('DELETE')
+                EXPORTING
+                  i_name     = lv_name
+                  i_ordernum = iv_transport
+                  i_dark     = abap_true. " > 740
+            CATCH cx_sy_dyn_call_error.
+              cl_fp_wb_form=>delete(
+                i_name     = lv_name
+                i_ordernum = iv_transport ).
+          ENDTRY.
         ENDIF.
 
         tadir_insert( iv_package ).
-        li_wb_object = cl_fp_wb_form=>create( i_name = lv_name
-                                              i_form = li_form ).
+
+        TRY.
+            CALL METHOD cl_fp_wb_form=>('CREATE')
+              EXPORTING
+                i_name     = lv_name
+                i_form     = li_form
+                i_ordernum = iv_transport
+                i_dark     = abap_true " > 740
+              RECEIVING
+                r_wb_form  = li_wb_object.
+          CATCH cx_sy_dyn_call_error.
+            li_wb_object = cl_fp_wb_form=>create(
+              i_name     = lv_name
+              i_form     = li_form
+              i_ordernum = iv_transport ).
+        ENDTRY.
+
         li_wb_object->save( ).
         li_wb_object->free( ).
       CATCH cx_fp_api INTO lx_fp_err.
@@ -82864,19 +82897,26 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
 
     DATA: lv_enh_id     TYPE enhname,
           li_enh_object TYPE REF TO if_enh_object,
-          lx_enh_root   TYPE REF TO cx_enh_root.
+          lx_enh_root   TYPE REF TO cx_enh_root,
+          lv_corrnum    TYPE trkorr.
 
     IF zif_abapgit_object~exists( ) = abap_false.
       RETURN.
     ENDIF.
+
+    lv_corrnum = iv_transport.
 
     lv_enh_id = ms_item-obj_name.
     TRY.
         li_enh_object = cl_enh_factory=>get_enhancement(
           enhancement_id = lv_enh_id
           lock           = abap_true ).
-        li_enh_object->delete( nevertheless_delete = abap_true
-                               run_dark            = abap_true ).
+        li_enh_object->delete(
+          EXPORTING
+            nevertheless_delete = abap_true
+            run_dark            = abap_true
+          CHANGING
+            trkorr              = lv_corrnum ).
         li_enh_object->unlock( ).
       CATCH cx_enh_root INTO lx_enh_root.
         zcx_abapgit_exception=>raise_with_text( lx_enh_root ).
@@ -108030,6 +108070,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-10T08:28:27.216Z
+* abapmerge 0.14.3 - 2022-01-10T09:22:39.466Z
 ENDINTERFACE.
 ****************************************************
