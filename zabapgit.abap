@@ -3730,6 +3730,9 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_jumper.
 
+  TYPES:
+    ty_bdcdata_tt TYPE STANDARD TABLE OF bdcdata WITH DEFAULT KEY.
+
   METHODS jump
     IMPORTING
       !is_item         TYPE zif_abapgit_definitions=>ty_item
@@ -3749,6 +3752,14 @@ INTERFACE zif_abapgit_gui_jumper.
       !iv_line_number  TYPE i
     RETURNING
       VALUE(rv_exit)   TYPE abap_bool
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS jump_batch_input
+    IMPORTING
+      !iv_tcode      TYPE sy-tcode
+      !it_bdcdata    TYPE ty_bdcdata_tt
+      !iv_new_window TYPE abap_bool DEFAULT abap_true
     RAISING
       zcx_abapgit_exception.
 
@@ -61187,19 +61198,9 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
     ls_bdcdata-fval = '=ONLI'.
     APPEND ls_bdcdata TO lt_bdcdata.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode     = 'SMW0'
-        mode_val  = 'E'
-      TABLES
-        using_tab = lt_bdcdata
-      EXCEPTIONS
-        OTHERS    = 1.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, SE35' ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'SMW0'
+      it_bdcdata = lt_bdcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -61773,19 +61774,9 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
     ls_bcdata-fval = '=CLSH'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode     = 'SE54'
-        mode_val  = 'E'
-      TABLES
-        using_tab = lt_bcdata
-      EXCEPTIONS
-        OTHERS    = 1.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, SE35' ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'SE54'
+      it_bdcdata = lt_bcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -62267,19 +62258,9 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'RSUD3-OBJ_KEY'.
     <ls_bdcdata>-fval = ms_item-obj_name.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode                 = 'SD11'
-        mode_val              = 'E'
-      TABLES
-        using_tab             = lt_bdcdata
-      EXCEPTIONS
-        system_failure        = 1
-        communication_failure = 2
-        resource_failure      = 3
-        OTHERS                = 4
-        ##fm_subrc_ok.                                                   "#EC CI_SUBRC
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'SD11'
+      it_bdcdata = lt_bdcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -62293,7 +62274,7 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
+CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
   METHOD access_free.
 
     " Release the lock on the object.
@@ -62841,19 +62822,9 @@ CLASS ZCL_ABAPGIT_OBJECT_UDMO IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'RSUD3-OBJ_KEY'.
     <ls_bdcdata>-fval = ms_item-obj_name.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode                 = 'SD11'
-        mode_val              = 'E'
-      TABLES
-        using_tab             = lt_bdcdata
-      EXCEPTIONS
-        system_failure        = 1
-        communication_failure = 2
-        resource_failure      = 3
-        OTHERS                = 4
-        ##fm_subrc_ok.                                                   "#EC CI_SUBRC
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'SD11'
+      it_bdcdata = lt_bdcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -64049,19 +64020,9 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'TSTC-TCODE'.
     <ls_bdcdata>-fval = ms_item-obj_name.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode                 = 'SE93'
-        mode_val              = 'E'
-      TABLES
-        using_tab             = lt_bdcdata
-      EXCEPTIONS
-        system_failure        = 1
-        communication_failure = 2
-        resource_failure      = 3
-        OTHERS                = 4
-        ##fm_subrc_ok.    "#EC CI_SUBRC
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode      = 'SE93'
+      it_bdcdata    = lt_bdcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -66573,7 +66534,7 @@ CLASS zcl_abapgit_object_sucu IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_STYL IMPLEMENTATION.
+CLASS zcl_abapgit_object_styl IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_style TYPE ty_style,
@@ -66687,19 +66648,9 @@ CLASS ZCL_ABAPGIT_OBJECT_STYL IMPLEMENTATION.
     ls_bcdata-fval = '=SHOW'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode     = 'SE72'
-        mode_val  = 'E'
-      TABLES
-        using_tab = lt_bcdata
-      EXCEPTIONS
-        OTHERS    = 1.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, STYL' ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'SE72'
+      it_bdcdata = lt_bcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -67052,19 +67003,9 @@ CLASS zcl_abapgit_object_ssst IMPLEMENTATION.
     ls_bcdata-fval = '=DISPLAY'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode     = 'SMARTSTYLES'
-        mode_val  = 'E'
-      TABLES
-        using_tab = lt_bcdata
-      EXCEPTIONS
-        OTHERS    = 1.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, SSST' ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'SMARTSTYLES'
+      it_bdcdata = lt_bcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -67444,16 +67385,9 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'BDC_OKCODE'.
     <ls_bdcdata>-fval = '=DISPLAY'.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode     = 'SMARTFORMS'
-        mode_val  = 'E'
-      TABLES
-        using_tab = lt_bdcdata
-      EXCEPTIONS
-        OTHERS    = 1
-        ##fm_subrc_ok.                                                   "#EC CI_SUBRC
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'SMARTFORMS'
+      it_bdcdata = lt_bdcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -70547,19 +70481,9 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
     ls_bcdata-fval = '=ONLI'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode     = 'SICF'
-        mode_val  = 'E'
-      TABLES
-        using_tab = lt_bcdata
-      EXCEPTIONS
-        OTHERS    = 1.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, SICF' ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'SICF'
+      it_bdcdata = lt_bcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -70815,19 +70739,9 @@ CLASS zcl_abapgit_object_shma IMPLEMENTATION.
     ls_bcdata-fval = '=SHOW'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode     = 'SHMA'
-        mode_val  = 'E'
-      TABLES
-        using_tab = lt_bcdata
-      EXCEPTIONS
-        OTHERS    = 1.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, SHMA' ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'SHMA'
+      it_bdcdata = lt_bcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -71364,22 +71278,9 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'BMENUNAME-ID'.
     <ls_bdcdata>-fval = ms_item-obj_name.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode                 = 'SE43'
-        mode_val              = 'E'
-      TABLES
-        using_tab             = lt_bdcdata
-      EXCEPTIONS
-        system_failure        = 1
-        communication_failure = 2
-        resource_failure      = 3
-        OTHERS                = 4.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, SHI3' ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'SE43'
+      it_bdcdata = lt_bdcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -74525,21 +74426,9 @@ CLASS zcl_abapgit_object_pers IMPLEMENTATION.
     ls_bcdata-fval = '=PERSDISPLAY'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode                   = 'PERSREG'
-        mode_val                = 'E'
-      TABLES
-        using_tab               = lt_bcdata
-      EXCEPTIONS
-        call_transaction_denied = 1
-        tcode_invalid           = 2
-        OTHERS                  = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |error from ABAP4_CALL_TRANSACTION, PERSREG. SUBRC= {  sy-subrc }| ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'PERSREG'
+      it_bdcdata = lt_bcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -76689,19 +76578,9 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
     ls_bcdata-fval = '=DISP'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode     = 'SNRO'
-        mode_val  = 'E'
-      TABLES
-        using_tab = lt_bcdata
-      EXCEPTIONS
-        OTHERS    = 1.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, NROB' ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'SNRO'
+      it_bdcdata = lt_bcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -77447,21 +77326,9 @@ CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'GS_SCREEN_100-VERSION'.
     <ls_bdcdata>-fval = lv_version.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode                   = '/IWBEP/REG_SERVICE'
-        mode_val                = 'E'
-      TABLES
-        using_tab               = lt_bdcdata
-      EXCEPTIONS
-        call_transaction_denied = 1
-        tcode_invalid           = 2
-        OTHERS                  = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from ABAP4_CALL_TRANSACTION. Subrc={ sy-subrc }| ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = '/IWBEP/REG_SERVICE'
+      it_bdcdata = lt_bdcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -77727,21 +77594,9 @@ CLASS zcl_abapgit_object_iwmo IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'GS_MODEL_SCREEN_100-VERSION'.
     <ls_bdcdata>-fval = lv_version.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode                   = '/IWBEP/REG_MODEL'
-        mode_val                = 'E'
-      TABLES
-        using_tab               = lt_bdcdata
-      EXCEPTIONS
-        call_transaction_denied = 1
-        tcode_invalid           = 2
-        OTHERS                  = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from ABAP4_CALL_TRANSACTION. Subrc={ sy-subrc }| ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = '/IWBEP/REG_MODEL'
+      it_bdcdata = lt_bdcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -78566,19 +78421,9 @@ CLASS zcl_abapgit_object_iext IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'BDC_OKCODE'.
     <ls_bdcdata>-fval = '=DISP'.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode     = 'WE30'
-        mode_val  = 'E'
-      TABLES
-        using_tab = lt_bdcdata
-      EXCEPTIONS
-        OTHERS    = 1.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'WE30'
+      it_bdcdata = lt_bdcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -78607,7 +78452,7 @@ CLASS zcl_abapgit_object_iext IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_IDOC IMPLEMENTATION.
+CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
   METHOD clear_idoc_segement_field.
 
     FIELD-SYMBOLS <lg_any_field> TYPE any.
@@ -78766,19 +78611,9 @@ CLASS ZCL_ABAPGIT_OBJECT_IDOC IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'BDC_OKCODE'.
     <ls_bdcdata>-fval = '=DISP'.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode     = 'WE30'
-        mode_val  = 'E'
-      TABLES
-        using_tab = lt_bdcdata
-      EXCEPTIONS
-        OTHERS    = 1.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'WE30'
+      it_bdcdata = lt_bdcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -81653,16 +81488,9 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'RSSCF-TDFORM'.
     <ls_bdcdata>-fval = ms_item-obj_name.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode     = 'SE71'
-        mode_val  = 'E'
-      TABLES
-        using_tab = lt_bdcdata
-      EXCEPTIONS
-        OTHERS    = 1
-        ##fm_subrc_ok.                                                   "#EC CI_SUBRC
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'SE71'
+      it_bdcdata = lt_bdcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -85591,19 +85419,9 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
     ls_bcdata-fval = '=SHOW'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode     = 'SE61'
-        mode_val  = 'E'
-      TABLES
-        using_tab = lt_bcdata
-      EXCEPTIONS
-        OTHERS    = 1.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, DOCT' ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'SE61'
+      it_bdcdata = lt_bcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -85617,7 +85435,7 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
+CLASS zcl_abapgit_object_dial IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     rv_user = c_user_unknown.
@@ -85669,18 +85487,10 @@ CLASS ZCL_ABAPGIT_OBJECT_DIAL IMPLEMENTATION.
     ls_bcdata-fval = '=BACK'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      EXPORTING
-        tcode     = 'SE35'
-        mode_val  = 'E'
-      TABLES
-        using_tab = lt_bcdata
-      EXCEPTIONS
-        OTHERS    = 1.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from ABAP4_CALL_TRANSACTION, SE35' ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode      = 'SE35'
+      it_bdcdata    = lt_bcdata
+      iv_new_window = abap_false ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -87668,19 +87478,10 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
     <ls_bdc_data>-fnam = 'BDC_OKCODE'.
     <ls_bdc_data>-fval = '=ACT_DISP'.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      EXPORTING
-        tcode                   = 'S_CUS_ACTIVITY'
-        mode_val                = 'E'
-      TABLES
-        using_tab               = lt_bdc_data
-      EXCEPTIONS
-        call_transaction_denied = 1
-        tcode_invalid           = 2
-        OTHERS                  = 3.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from JUMP CUS1: { sy-subrc }| ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'S_CUS_ACTIVITY'
+      it_bdcdata = lt_bdc_data ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -89052,22 +88853,9 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
     ls_bdcdata-fval = '=DISP'.
     APPEND ls_bdcdata TO lt_bdcdata.
 
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      STARTING NEW TASK 'GIT'
-      EXPORTING
-        tcode                 = 'SCDO'
-        mode_val              = 'E'
-      TABLES
-        using_tab             = lt_bdcdata
-      EXCEPTIONS
-        system_failure        = 1
-        communication_failure = 2
-        resource_failure      = 3
-        OTHERS                = 4.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |ERROR: Jump { mv_object }| ).
-    ENDIF.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode   = 'SCDO'
+      it_bdcdata = lt_bdcdata ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -97888,6 +97676,42 @@ CLASS zcl_abapgit_gui_jumper IMPLEMENTATION.
           " Use fallback
       ENDTRY.
     ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_jumper~jump_batch_input.
+
+    DATA lv_msg TYPE c LENGTH 80.
+
+    IF iv_new_window = abap_true.
+      CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
+        STARTING NEW TASK 'GIT'
+        EXPORTING
+          tcode                 = iv_tcode
+          mode_val              = 'E'
+        TABLES
+          using_tab             = it_bdcdata
+        EXCEPTIONS
+          system_failure        = 1 MESSAGE lv_msg
+          communication_failure = 2 MESSAGE lv_msg
+          resource_failure      = 3
+          OTHERS                = 4.
+    ELSE.
+      CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
+        EXPORTING
+          tcode                 = iv_tcode
+          mode_val              = 'E'
+        TABLES
+          using_tab             = it_bdcdata
+        EXCEPTIONS
+          OTHERS                = 4.
+    ENDIF.
+
+    CASE sy-subrc.
+      WHEN 1 OR 2.
+        zcx_abapgit_exception=>raise( |Batch input error for transaction { iv_tcode }: { lv_msg }| ).
+      WHEN 3 OR 4.
+        zcx_abapgit_exception=>raise( |Batch input error for transaction { iv_tcode }| ).
+    ENDCASE.
 
   ENDMETHOD.
 ENDCLASS.
@@ -108206,6 +108030,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-10T08:20:51.435Z
+* abapmerge 0.14.3 - 2022-01-10T08:28:27.216Z
 ENDINTERFACE.
 ****************************************************
