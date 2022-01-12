@@ -6882,9 +6882,7 @@ CLASS zcl_abapgit_objects_files DEFINITION
       IMPORTING
         !iv_extra  TYPE clike OPTIONAL
         !iv_ext    TYPE string
-        !iv_string TYPE string
-      RAISING
-        zcx_abapgit_exception .
+        !iv_string TYPE string.
     METHODS read_string
       IMPORTING
         !iv_extra        TYPE clike OPTIONAL
@@ -6898,9 +6896,7 @@ CLASS zcl_abapgit_objects_files DEFINITION
         !iv_extra     TYPE clike OPTIONAL
         !ii_xml       TYPE REF TO zif_abapgit_xml_output
         !iv_normalize TYPE abap_bool DEFAULT abap_true
-        !is_metadata  TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
-      RAISING
-        zcx_abapgit_exception .
+        !is_metadata  TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL.
     METHODS read_xml
       IMPORTING
         !iv_extra     TYPE clike OPTIONAL
@@ -6919,9 +6915,7 @@ CLASS zcl_abapgit_objects_files DEFINITION
     METHODS add_abap
       IMPORTING
         !iv_extra TYPE clike OPTIONAL
-        !it_abap  TYPE STANDARD TABLE
-      RAISING
-        zcx_abapgit_exception .
+        !it_abap  TYPE STANDARD TABLE.
     METHODS add
       IMPORTING
         !is_file TYPE zif_abapgit_definitions=>ty_file .
@@ -6929,9 +6923,7 @@ CLASS zcl_abapgit_objects_files DEFINITION
       IMPORTING
         !iv_extra TYPE clike OPTIONAL
         !iv_ext   TYPE string
-        !iv_data  TYPE xstring
-      RAISING
-        zcx_abapgit_exception .
+        !iv_data  TYPE xstring.
     METHODS read_raw
       IMPORTING
         !iv_extra      TYPE clike OPTIONAL
@@ -6958,6 +6950,9 @@ CLASS zcl_abapgit_objects_files DEFINITION
     METHODS get_file_pattern
       RETURNING
         VALUE(rv_pattern) TYPE string .
+    METHODS is_json_metadata
+      RETURNING
+        VALUE(rv_result) TYPE abap_bool.
   PROTECTED SECTION.
 
     METHODS read_file
@@ -57720,8 +57715,10 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     li_obj->serialize( li_xml ).
 
-    lo_files->add_xml( ii_xml      = li_xml
-                       is_metadata = li_obj->get_metadata( ) ).
+    IF lo_files->is_json_metadata( ) = abap_false.
+      lo_files->add_xml( ii_xml      = li_xml
+                         is_metadata = li_obj->get_metadata( ) ).
+    ENDIF.
 
     rs_files_and_item-files = lo_files->get_files( ).
 
@@ -96936,6 +96933,20 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
     REPLACE ALL OCCURRENCES OF '#' IN rv_pattern WITH '##'.
     REPLACE ALL OCCURRENCES OF '+' IN rv_pattern WITH '#+'.
   ENDMETHOD.
+  METHOD is_json_metadata.
+
+    DATA lv_pattern TYPE string.
+
+    FIELD-SYMBOLS <ls_file> LIKE LINE OF mt_files.
+
+    lv_pattern = |*.{ to_lower( ms_item-obj_type ) }.json|.
+
+    LOOP AT mt_files ASSIGNING <ls_file> WHERE filename CP lv_pattern.
+      rv_result = abap_true.
+      EXIT.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD read_abap.
 
     DATA: lv_filename TYPE string,
@@ -108189,6 +108200,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-11T06:23:41.704Z
+* abapmerge 0.14.3 - 2022-01-12T15:55:36.533Z
 ENDINTERFACE.
 ****************************************************
