@@ -27897,6 +27897,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  margin-left: -30px;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( '.link-hint-i {' ).
+    lo_buf->add( '  margin-left: -30px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.link-hint .pending { color: hsla(0, 0%, 0%, 0.2); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* Tooltip arrow */' ).
@@ -30490,7 +30494,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'LinkHints.prototype.deployHintContainers = function() {' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var hintTargets = document.querySelectorAll("a, input, textarea");' ).
+    lo_buf->add( '  var hintTargets = document.querySelectorAll("a, input, textarea, i");' ).
     lo_buf->add( '  var codeCounter = this.getHintStartValue(hintTargets.length);' ).
     lo_buf->add( '  var hintsMap    = { first: codeCounter };' ).
     lo_buf->add( '' ).
@@ -30517,8 +30521,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    hint.container.classList.add("link-hint");' ).
     lo_buf->add( '    if (hint.parent.nodeName === "INPUT" || hint.parent.nodeName === "TEXTAREA"){' ).
     lo_buf->add( '      hint.container.classList.add("link-hint-input");' ).
-    lo_buf->add( '    } else {' ).
+    lo_buf->add( '    } else if (hint.parent.nodeName === "A") {' ).
     lo_buf->add( '      hint.container.classList.add("link-hint-a");' ).
+    lo_buf->add( '    } else if (hint.parent.nodeName === "I" && hint.parent.classList.contains("cursor-pointer")) {' ).
+    lo_buf->add( '      hint.container.classList.add("link-hint-i");' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      continue;' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '' ).
     lo_buf->add( '    hint.container.classList.add("nodisplay");            // hide by default' ).
@@ -108202,6 +108210,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-14T10:49:00.517Z
+* abapmerge 0.14.3 - 2022-01-17T11:11:10.539Z
 ENDINTERFACE.
 ****************************************************
