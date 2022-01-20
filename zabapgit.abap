@@ -3351,16 +3351,23 @@ INTERFACE zif_abapgit_persist_repo .
       !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
     RAISING
       zcx_abapgit_exception .
+  METHODS exists
+    IMPORTING
+      !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+    RETURNING
+      VALUE(rv_yes) TYPE abap_bool.
   METHODS list
     RETURNING
       VALUE(rt_repos) TYPE zif_abapgit_persistence=>ty_repos
     RAISING
       zcx_abapgit_exception .
-  METHODS list_favorites
-    IMPORTING it_keys         TYPE zif_abapgit_persistence=>ty_repo_keys
-    RETURNING VALUE(rt_repos) TYPE zif_abapgit_persistence=>ty_repos
+  METHODS list_by_keys
+    IMPORTING
+      it_keys         TYPE zif_abapgit_persistence=>ty_repo_keys
+    RETURNING
+      VALUE(rt_repos) TYPE zif_abapgit_persistence=>ty_repos
     RAISING
-              zcx_abapgit_exception .
+      zcx_abapgit_exception .
   METHODS lock
     IMPORTING
       !iv_mode TYPE enqmode
@@ -51867,7 +51874,7 @@ CLASS ZCL_ABAPGIT_SYNTAX_ABAP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO_SRV IMPLEMENTATION.
   METHOD add.
 
     DATA: lo_repo LIKE LINE OF mt_list.
@@ -51921,16 +51928,6 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     add( ro_repo ).
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_repo_srv~list_favorites.
-
-    IF mv_init = abap_false OR mv_only_favorites = abap_false.
-      refresh_favorites( ).
-    ENDIF.
-
-    rt_list = mt_list.
-
-  ENDMETHOD.
   METHOD refresh_all.
 
     DATA: lt_list TYPE zif_abapgit_persistence=>ty_repos.
@@ -51948,20 +51945,40 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     mv_only_favorites = abap_false.
 
   ENDMETHOD.
-
   METHOD refresh_favorites.
 
     DATA: lt_list           TYPE zif_abapgit_persistence=>ty_repos,
           lt_user_favorites TYPE zif_abapgit_persist_user=>ty_favorites.
 
-    FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
+    DATA lo_repo TYPE REF TO zcl_abapgit_repo.
+    DATA lv_repo_index TYPE i.
+    DATA lo_repo_db TYPE REF TO zif_abapgit_persist_repo.
 
-    CLEAR mt_list.
+    FIELD-SYMBOLS: <ls_repo_record> LIKE LINE OF lt_list.
 
+    lo_repo_db        = zcl_abapgit_persist_factory=>get_repo( ).
     lt_user_favorites = zcl_abapgit_persistence_user=>get_instance( )->get_favorites( ).
-    lt_list = zcl_abapgit_persist_factory=>get_repo( )->list_favorites( lt_user_favorites ).
-    LOOP AT lt_list ASSIGNING <ls_list>.
-      instantiate_and_add( <ls_list> ).
+    lt_list           = lo_repo_db->list_by_keys( lt_user_favorites ).
+
+    SORT lt_list BY package.
+
+    LOOP AT mt_list INTO lo_repo.
+      lv_repo_index = sy-tabix.
+
+      READ TABLE lt_list TRANSPORTING NO FIELDS WITH KEY package = lo_repo->get_package( ).
+      IF sy-subrc = 0.
+        DELETE lt_list INDEX sy-tabix.
+        CONTINUE. " Leave the repo be
+      ELSEIF lo_repo_db->exists( lo_repo->get_key( ) ) = abap_false.
+        " Not a fav, and also does not exist, probably uninstalled
+        DELETE mt_list INDEX lv_repo_index.
+      ENDIF.
+
+    ENDLOOP.
+
+    " Create remaining (new) favs
+    LOOP AT lt_list ASSIGNING <ls_repo_record>.
+      instantiate_and_add( <ls_repo_record> ).
     ENDLOOP.
 
     mv_init = abap_true.
@@ -52192,6 +52209,28 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     rt_list = mt_list.
 
   ENDMETHOD.
+  METHOD zif_abapgit_repo_srv~list_favorites.
+
+    DATA lt_user_favorites TYPE zif_abapgit_persist_user=>ty_favorites.
+    DATA lo_repo TYPE REF TO zcl_abapgit_repo.
+
+    lt_user_favorites = zcl_abapgit_persistence_user=>get_instance( )->get_favorites( ).
+    SORT lt_user_favorites BY table_line.
+
+    IF mv_init = abap_false OR mv_only_favorites = abap_false.
+      refresh_favorites( ).
+    ENDIF.
+
+    LOOP AT mt_list INTO lo_repo.
+      READ TABLE lt_user_favorites
+        TRANSPORTING NO FIELDS
+        WITH KEY table_line = lo_repo->get_key( ).
+      IF sy-subrc = 0.
+        APPEND lo_repo TO rt_list.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD zif_abapgit_repo_srv~new_offline.
 
     DATA: ls_repo        TYPE zif_abapgit_persistence=>ty_repo,
@@ -52375,7 +52414,6 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_repo_online IMPLEMENTATION.
@@ -54341,7 +54379,7 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
   METHOD constructor.
 
     DATA ls_dummy_meta_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask.
@@ -54419,6 +54457,14 @@ CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
         output = rv_next_repo_id.
 
   ENDMETHOD.
+  METHOD get_repo_from_content.
+    MOVE-CORRESPONDING from_xml( is_content-data_str ) TO rs_result.
+    IF rs_result-local_settings-write_protected = abap_false AND
+       zcl_abapgit_factory=>get_environment( )->is_repo_object_changes_allowed( ) = abap_false.
+      rs_result-local_settings-write_protected = abap_true.
+    ENDIF.
+    rs_result-key = is_content-value.
+  ENDMETHOD.
   METHOD to_xml.
 
     DATA: ls_xml TYPE zif_abapgit_persistence=>ty_repo_xml.
@@ -54462,6 +54508,20 @@ CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
                    iv_value = iv_key ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_persist_repo~exists.
+
+    DATA lt_keys TYPE zif_abapgit_persistence=>ty_repo_keys.
+    DATA lt_content TYPE zif_abapgit_persistence=>ty_contents.
+
+    APPEND iv_key TO lt_keys.
+
+    lt_content = mo_db->list_by_keys(
+      it_keys = lt_keys
+      iv_type = zcl_abapgit_persistence_db=>c_type_repo ).
+
+    rv_yes = boolc( lines( lt_content ) > 0 ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_persist_repo~list.
 
     DATA: lt_content TYPE zif_abapgit_persistence=>ty_contents,
@@ -54476,8 +54536,7 @@ CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_persist_repo~list_favorites.
+  METHOD zif_abapgit_persist_repo~list_by_keys.
     DATA: lt_content TYPE zif_abapgit_persistence=>ty_contents,
           ls_content LIKE LINE OF lt_content,
           ls_repo    LIKE LINE OF rt_repos.
@@ -54491,7 +54550,6 @@ CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
       INSERT ls_repo INTO TABLE rt_repos.
     ENDLOOP.
   ENDMETHOD.
-
   METHOD zif_abapgit_persist_repo~lock.
 
     mo_db->lock( iv_mode  = iv_mode
@@ -54554,15 +54612,6 @@ CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
                    iv_data  = lv_blob ).
 
   ENDMETHOD.
-  METHOD get_repo_from_content.
-    MOVE-CORRESPONDING from_xml( is_content-data_str ) TO rs_result.
-    IF rs_result-local_settings-write_protected = abap_false AND
-       zcl_abapgit_factory=>get_environment( )->is_repo_object_changes_allowed( ) = abap_false.
-      rs_result-local_settings-write_protected = abap_true.
-    ENDIF.
-    rs_result-key = is_content-value.
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
@@ -108975,6 +109024,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-18T09:42:14.270Z
+* abapmerge 0.14.3 - 2022-01-20T11:06:56.821Z
 ENDINTERFACE.
 ****************************************************
