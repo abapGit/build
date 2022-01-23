@@ -18984,6 +18984,11 @@ CLASS zcl_abapgit_popups DEFINITION
     DATA mr_table TYPE REF TO data .
     DATA mv_cancel TYPE abap_bool VALUE abap_false.
     DATA mo_table_descr TYPE REF TO cl_abap_tabledescr .
+    DATA:
+      BEGIN OF ms_start_pos,
+        col TYPE i,
+        row TYPE i,
+      END OF ms_start_pos.
 
     METHODS add_field
       IMPORTING
@@ -19027,6 +19032,13 @@ CLASS zcl_abapgit_popups DEFINITION
         !ct_fields         TYPE ty_lt_fields
       RAISING
         zcx_abapgit_exception .
+    METHODS set_starting_position
+      IMPORTING
+        !iv_width  TYPE i
+        !iv_height TYPE i
+      RAISING
+        zcx_abapgit_exception .
+
 ENDCLASS.
 CLASS zcl_abapgit_services_abapgit DEFINITION
   FINAL
@@ -33498,6 +33510,30 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     mo_select_list_popup->refresh( ).
 
   ENDMETHOD.
+  METHOD set_starting_position.
+
+    CONSTANTS:
+      lc_min_size TYPE i VALUE 10,
+      lc_min_pos  TYPE i VALUE 5.
+
+    " Magic math to approximate starting position of popup
+    IF sy-scols > lc_min_size AND iv_width > 0.
+      ms_start_pos-col = nmax(
+        val1 = ( sy-scols - iv_width ) / 2
+        val2 = lc_min_pos ).
+    ELSE.
+      ms_start_pos-col = lc_min_pos.
+    ENDIF.
+
+    IF sy-srows > lc_min_size AND iv_height > 0.
+      ms_start_pos-row = nmax(
+        val1 = ( sy-srows - iv_height ) / 2 - 1
+        val2 = lc_min_pos ).
+    ELSE.
+      ms_start_pos-row = lc_min_pos.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_popups~branch_list_popup.
 
     DATA: lo_branches    TYPE REF TO zcl_abapgit_git_branch_list,
@@ -33587,12 +33623,16 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       <ls_sel>-varoption = zif_abapgit_popups=>c_new_branch_label.
     ENDIF.
 
+    set_starting_position(
+      iv_width  = 24
+      iv_height = lines( lt_selection ) ).
+
     CALL FUNCTION 'POPUP_TO_DECIDE_LIST'
       EXPORTING
         textline1  = 'Select branch'
         titel      = 'Select branch'
-        start_col  = 30
-        start_row  = 5
+        start_col  = ms_start_pos-col
+        start_row  = ms_start_pos-row
         cursorline = lv_default
       IMPORTING
         answer     = lv_answer
@@ -33707,12 +33747,16 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       <ls_sel>-varoption = |{ <ls_pull>-number } - { <ls_pull>-title } @{ <ls_pull>-user }|.
     ENDLOOP.
 
+    set_starting_position(
+      iv_width  = 74
+      iv_height = lines( lt_selection ) ).
+
     CALL FUNCTION 'POPUP_TO_DECIDE_LIST'
       EXPORTING
         textline1 = 'Select pull request'
         titel     = 'Select pull request'
-        start_col = 30
-        start_row = 5
+        start_col = ms_start_pos-col
+        start_row = ms_start_pos-row
       IMPORTING
         answer    = lv_answer
       TABLES
@@ -33827,6 +33871,10 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_popups~popup_to_confirm.
 
+    set_starting_position(
+      iv_width  = 65
+      iv_height = 5 ).
+
     CALL FUNCTION 'POPUP_TO_CONFIRM'
       EXPORTING
         titlebar              = iv_titlebar
@@ -33837,6 +33885,8 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
         icon_button_2         = iv_icon_button_2
         default_button        = iv_default_button
         display_cancel_button = iv_display_cancel_button
+        start_column          = ms_start_pos-col
+        start_row             = ms_start_pos-row
       IMPORTING
         answer                = rv_answer
       EXCEPTIONS
@@ -33935,6 +33985,10 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ASSIGN mr_table->* TO <lt_table>.
     ASSERT sy-subrc = 0.
 
+    set_starting_position(
+      iv_width  = iv_end_column - iv_start_column
+      iv_height = iv_end_line - iv_start_line ).
+
     TRY.
         cl_salv_table=>factory( IMPORTING r_salv_table = mo_select_list_popup
                                 CHANGING  t_table = <lt_table> ).
@@ -33951,10 +34005,10 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
         mo_select_list_popup->set_screen_status( pfstatus = lv_pfstatus
                                                  report = 'SAPMSVIM' ).
 
-        mo_select_list_popup->set_screen_popup( start_column = iv_start_column
-                                                end_column   = iv_end_column
-                                                start_line   = iv_start_line
-                                                end_line     = iv_end_line ).
+        mo_select_list_popup->set_screen_popup( start_column = ms_start_pos-col
+                                                end_column   = ms_start_pos-col + iv_end_column - iv_start_column
+                                                start_line   = ms_start_pos-row
+                                                end_line     = ms_start_pos-row + iv_end_line - iv_start_line ).
 
         lo_events = mo_select_list_popup->get_event( ).
 
@@ -34090,10 +34144,16 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     DATA lv_answer TYPE c LENGTH 1.
     FIELD-SYMBOLS: <ls_field> TYPE sval.
 
+    set_starting_position(
+      iv_width  = 120
+      iv_height = lines( ct_fields ) ).
+
     CALL FUNCTION 'POPUP_GET_VALUES'
       EXPORTING
         no_value_check = iv_no_value_check
         popup_title    = iv_popup_title
+        start_column   = ms_start_pos-col
+        start_row      = ms_start_pos-row
       IMPORTING
         returncode     = lv_answer
       TABLES
@@ -38154,16 +38214,18 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
     <ls_column>-name = 'MESSAGE'.
     <ls_column>-text = 'Message'.
+    <ls_column>-length = 60.
     APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
     <ls_column>-name = 'DATETIME'.
     <ls_column>-text = 'Datetime'.
+    <ls_column>-length = 17.
 
     li_popups = zcl_abapgit_ui_factory=>get_popups( ).
     li_popups->popup_to_select_from_list(
       EXPORTING
         it_list               = it_value_tab
         iv_title              = |Checkout Commit|
-        iv_end_column         = 83
+        iv_end_column         = 100
         iv_striped_pattern    = abap_true
         iv_optimize_col_width = abap_false
         iv_selection_mode     = if_salv_c_selection_mode=>single
@@ -38872,7 +38934,6 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     gui_services( )->get_hotkeys_ctl( )->register_hotkeys( zif_abapgit_gui_hotkeys~get_hotkey_actions( ) ).
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
@@ -109024,6 +109085,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-22T07:58:08.435Z
+* abapmerge 0.14.3 - 2022-01-23T07:51:12.916Z
 ENDINTERFACE.
 ****************************************************
