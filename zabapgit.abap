@@ -13128,12 +13128,6 @@ CLASS zcl_abapgit_objects_program DEFINITION INHERITING FROM zcl_abapgit_objects
         !is_progdir TYPE ty_progdir
       RAISING
         zcx_abapgit_exception .
-    METHODS insert_tpool
-      IMPORTING
-        !is_progdir TYPE ty_progdir
-        !it_tpool   TYPE textpool_table
-      RAISING
-        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_object_clas DEFINITION
   INHERITING FROM zcl_abapgit_objects_program
@@ -55514,7 +55508,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
+CLASS zcl_abapgit_objects_program IMPLEMENTATION.
   METHOD add_tpool.
 
     FIELD-SYMBOLS: <ls_tpool_in>  LIKE LINE OF it_tpool,
@@ -55806,10 +55800,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
         iv_package = iv_package ).
     ENDIF.
 
-    insert_tpool(
-      is_progdir = is_progdir
-      it_tpool   = it_tpool ).
-
     update_progdir( is_progdir ).
 
     zcl_abapgit_objects_activation=>add(
@@ -55928,19 +55918,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
 
     ELSEIF sy-subrc > 0.
       zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD insert_tpool.
-
-    IF NOT it_tpool[] IS INITIAL.
-      INSERT TEXTPOOL is_progdir-name
-        FROM it_tpool
-        LANGUAGE mv_language
-        STATE 'I'.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'Error from INSERT TEXTPOOL' ).
-      ENDIF.
     ENDIF.
 
   ENDMETHOD.
@@ -109085,6 +109062,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-23T07:51:12.916Z
+* abapmerge 0.14.3 - 2022-01-24T13:17:58.029Z
 ENDINTERFACE.
 ****************************************************
