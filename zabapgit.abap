@@ -2606,6 +2606,7 @@ INTERFACE zif_abapgit_definitions .
       abapgit_home                  TYPE string VALUE 'abapgit_home',
       zip_import                    TYPE string VALUE 'zip_import',
       zip_export                    TYPE string VALUE 'zip_export',
+      zip_export_transport          TYPE string VALUE 'zip_export_transport',
       zip_package                   TYPE string VALUE 'zip_package',
       zip_transport                 TYPE string VALUE 'zip_transport',
       zip_object                    TYPE string VALUE 'zip_object',
@@ -2633,6 +2634,7 @@ INTERFACE zif_abapgit_definitions .
       go_repo_diff                  TYPE string VALUE 'go_repo_diff',
       go_file_diff                  TYPE string VALUE 'go_fill_diff',
       go_stage                      TYPE string VALUE 'go_stage',
+      go_stage_transport            TYPE string VALUE 'go_stage_transport',
       go_commit                     TYPE string VALUE 'go_commit',
       go_branch_overview            TYPE string VALUE 'go_branch_overview',
       go_tag_overview               TYPE string VALUE 'go_tag_overview',
@@ -2689,7 +2691,7 @@ INTERFACE zif_abapgit_definitions .
       main_language_only    TYPE abap_bool,
       translation_languages TYPE ty_languages,
     END OF ty_i18n_params .
-
+  TYPES ty_trrngtrkor_tt TYPE RANGE OF trkorr.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_apack_definitions .
@@ -3884,6 +3886,15 @@ INTERFACE zif_abapgit_popups .
       VALUE(rs_pull) TYPE zif_abapgit_pr_enum_provider=>ty_pull_request
     RAISING
       zcx_abapgit_exception .
+  METHODS popup_select_tr_requests
+    IMPORTING is_selection        TYPE trwbo_selection
+              iv_title            TYPE trwbo_title
+              iv_username_pattern TYPE any DEFAULT sy-uname
+    RETURNING VALUE(rt_r_trkorr)  TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt
+    RAISING   zcx_abapgit_exception.
+  METHODS popup_select_wb_tc_tr_and_tsk
+    RETURNING VALUE(rt_r_trkorr) TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt
+    RAISING   zcx_abapgit_exception.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_services_git.
@@ -13928,7 +13939,6 @@ CLASS zcl_abapgit_object_filter_tran DEFINITION
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object_filter.
 
-    TYPES ty_trrngtrkor_tt TYPE RANGE OF trkorr.
     TYPES: BEGIN OF ty_e071_filter,
              pgmid    TYPE tadir-pgmid,
              object   TYPE tadir-object,
@@ -13939,14 +13949,14 @@ CLASS zcl_abapgit_object_filter_tran DEFINITION
     METHODS set_filter_values
       IMPORTING
         iv_package  TYPE tadir-devclass
-        it_r_trkorr TYPE ty_trrngtrkor_tt
+        it_r_trkorr TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt
       RAISING
         zcx_abapgit_exception .
 
     METHODS get_filter_values
       EXPORTING
         ev_package  TYPE tadir-devclass
-        et_r_trkorr TYPE ty_trrngtrkor_tt.
+        et_r_trkorr TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt.
 
   PROTECTED SECTION.
     METHODS adjust_local_filter
@@ -13960,13 +13970,13 @@ CLASS zcl_abapgit_object_filter_tran DEFINITION
   PRIVATE SECTION.
 
     DATA mt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt .
-    DATA mt_r_trkorr TYPE ty_trrngtrkor_tt .
+    DATA mt_r_trkorr TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt .
     DATA mv_package TYPE tadir-devclass.
 
     METHODS generate_local_filter
       IMPORTING
         iv_package       TYPE tadir-devclass
-        it_r_trkorr      TYPE ty_trrngtrkor_tt
+        it_r_trkorr      TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt
       RETURNING
         VALUE(rt_filter) TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
@@ -17111,6 +17121,7 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
         iv_only_favorites TYPE abap_bool.
     METHODS
       get_only_favorites RETURNING VALUE(rv_result) TYPE abap_bool.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
@@ -17214,9 +17225,6 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
                 iv_css_class   TYPE string OPTIONAL
       RETURNING VALUE(rv_html) TYPE string.
 
-    METHODS action_link
-      IMPORTING iv_content     TYPE string
-      RETURNING VALUE(rv_html) TYPE string.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_repo_view DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -17393,6 +17401,7 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception.
+
     METHODS order_files
       CHANGING
         ct_files TYPE zif_abapgit_definitions=>ty_repo_file_tt.
@@ -18068,9 +18077,10 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
 
     METHODS constructor
       IMPORTING
-        io_repo TYPE REF TO zcl_abapgit_repo_online
-        iv_seed TYPE string OPTIONAL
+        io_repo       TYPE REF TO zcl_abapgit_repo_online
+        iv_seed       TYPE string OPTIONAL
         iv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result DEFAULT zif_abapgit_definitions=>c_sci_result-no_run
+        ii_obj_filter TYPE REF TO zif_abapgit_object_filter OPTIONAL
       RAISING
         zcx_abapgit_exception.
 
@@ -18095,6 +18105,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
     DATA mv_seed TYPE string .               " Unique page id to bind JS sessionStorage
     DATA mv_filter_value TYPE string .
     DATA mv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result.
+    DATA mi_obj_filter TYPE REF TO zif_abapgit_object_filter.
 
     METHODS check_selected
       IMPORTING
@@ -18390,6 +18401,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
     METHODS get_page_stage
       IMPORTING
         !ii_event      TYPE REF TO zif_abapgit_gui_event
+        ii_obj_filter  TYPE REF TO zif_abapgit_object_filter OPTIONAL
       RETURNING
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
@@ -18426,7 +18438,7 @@ CLASS zcl_abapgit_gui_router DEFINITION
         VALUE(rv_state) TYPE i .
     METHODS main_page
       RETURNING VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
-      RAISING zcx_abapgit_exception.
+      RAISING   zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_html_action_utils DEFINITION
   CREATE PUBLIC .
@@ -18775,6 +18787,8 @@ CLASS zcl_abapgit_html_toolbar DEFINITION
         !iv_aux        TYPE string OPTIONAL
         !iv_id         TYPE string OPTIONAL
         !iv_title      TYPE string OPTIONAL
+        !iv_class      TYPE string OPTIONAL
+        !iv_li_class   TYPE string OPTIONAL
       RETURNING
         VALUE(ro_self) TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS count
@@ -18800,17 +18814,19 @@ CLASS zcl_abapgit_html_toolbar DEFINITION
 
     TYPES:
       BEGIN OF ty_item,
-        txt   TYPE string,
-        act   TYPE string,
-        ico   TYPE string,
-        sub   TYPE REF TO zcl_abapgit_html_toolbar,
-        opt   TYPE c LENGTH 1,
-        typ   TYPE c LENGTH 1,
-        cur   TYPE abap_bool,
-        chk   TYPE abap_bool,
-        aux   TYPE string,
-        id    TYPE string,
-        title TYPE string,
+        txt      TYPE string,
+        act      TYPE string,
+        ico      TYPE string,
+        sub      TYPE REF TO zcl_abapgit_html_toolbar,
+        opt      TYPE c LENGTH 1,
+        typ      TYPE c LENGTH 1,
+        cur      TYPE abap_bool,
+        chk      TYPE abap_bool,
+        aux      TYPE string,
+        id       TYPE string,
+        title    TYPE string,
+        class    TYPE string,
+        li_class TYPE string,
       END OF ty_item .
     TYPES:
       ty_items TYPE STANDARD TABLE OF ty_item .
@@ -19001,16 +19017,16 @@ CLASS zcl_abapgit_popups DEFINITION
       EXPORTING
         !et_list TYPE INDEX TABLE .
     METHODS on_select_list_link_click
-        FOR EVENT link_click OF cl_salv_events_table
+      FOR EVENT link_click OF cl_salv_events_table
       IMPORTING
         !row
         !column .
     METHODS on_select_list_function_click
-        FOR EVENT added_function OF cl_salv_events_table
+      FOR EVENT added_function OF cl_salv_events_table
       IMPORTING
         !e_salv_function .
     METHODS on_double_click
-        FOR EVENT double_click OF cl_salv_events_table
+      FOR EVENT double_click OF cl_salv_events_table
       IMPORTING
         !row
         !column .
@@ -27685,14 +27701,16 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  font-style: italic;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'span.action_link.enabled{' ).
+    lo_buf->add( 'li.action_link.enabled{' ).
     lo_buf->add( '  visibility: visible;' ).
     lo_buf->add( '  position: relative;' ).
+    lo_buf->add( '  display: block;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'span.action_link:not(enabled){' ).
+    lo_buf->add( 'li.action_link:not(enabled){' ).
     lo_buf->add( '  visibility: hidden;' ).
     lo_buf->add( '  position: fixed; /* so it does not take up space when hidden */' ).
+    lo_buf->add( '  display: none;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '' ).
@@ -33948,18 +33966,18 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
                          iv_fieldname = 'LINE'
                          iv_fieldtext = 'Branch name'
                          iv_value     = lv_transports_as_text
-               CHANGING ct_fields     = lt_fields ).
+               CHANGING  ct_fields    = lt_fields ).
 
     add_field( EXPORTING iv_tabname   = 'ABAPTXT255'
                          iv_fieldname = 'LINE'
                          iv_fieldtext = 'Commit text'
                          iv_value     = lv_desc_as_text
-               CHANGING ct_fields     = lt_fields ).
+               CHANGING  ct_fields    = lt_fields ).
 
-    _popup_3_get_values( EXPORTING iv_popup_title    = 'Transport to new Branch'
-                         IMPORTING ev_value_1        = lv_branch_name
-                                   ev_value_2        = lv_commit_text
-                         CHANGING  ct_fields         = lt_fields ).
+    _popup_3_get_values( EXPORTING iv_popup_title = 'Transport to new Branch'
+                         IMPORTING ev_value_1     = lv_branch_name
+                                   ev_value_2     = lv_commit_text
+                         CHANGING  ct_fields      = lt_fields ).
 
     rs_transport_branch-branch_name = lv_branch_name.
     rs_transport_branch-commit_text = lv_commit_text.
@@ -33991,7 +34009,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
     TRY.
         cl_salv_table=>factory( IMPORTING r_salv_table = mo_select_list_popup
-                                CHANGING  t_table = <lt_table> ).
+                                CHANGING  t_table      = <lt_table> ).
 
         CASE iv_selection_mode.
           WHEN if_salv_c_selection_mode=>single.
@@ -34003,7 +34021,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
         ENDCASE.
 
         mo_select_list_popup->set_screen_status( pfstatus = lv_pfstatus
-                                                 report = 'SAPMSVIM' ).
+                                                 report   = 'SAPMSVIM' ).
 
         mo_select_list_popup->set_screen_popup( start_column = ms_start_pos-col
                                                 end_column   = ms_start_pos-col + iv_end_column - iv_start_column
@@ -34187,6 +34205,61 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_popups~popup_select_tr_requests.
+    DATA ls_r_trkorr TYPE LINE OF zif_abapgit_definitions=>ty_trrngtrkor_tt.
+    DATA lr_request TYPE REF TO trwbo_request_header.
+    DATA lt_request TYPE trwbo_request_headers.
+
+    CALL FUNCTION 'TRINT_SELECT_REQUESTS'
+      EXPORTING
+        iv_username_pattern    = iv_username_pattern
+        is_selection           = is_selection
+        iv_complete_projects   = abap_false
+        iv_via_selscreen       = 'X'
+        iv_title               = iv_title
+      IMPORTING
+        et_requests            = lt_request
+      EXCEPTIONS
+        action_aborted_by_user = 1
+        OTHERS                 = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Selection Canceled' ).
+    ENDIF.
+
+    IF lt_request IS INITIAL.
+      zcx_abapgit_exception=>raise( 'No Request Found' ).
+    ENDIF.
+
+    LOOP AT lt_request REFERENCE INTO lr_request.
+      ls_r_trkorr-sign = 'I'.
+      ls_r_trkorr-option = 'EQ'.
+      ls_r_trkorr-low = lr_request->trkorr.
+      INSERT ls_r_trkorr INTO TABLE rt_r_trkorr.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_popups~popup_select_wb_tc_tr_and_tsk.
+    DATA ls_selection  TYPE trwbo_selection.
+    DATA lv_title TYPE trwbo_title.
+
+    ls_selection-trkorrpattern = space.
+    ls_selection-connect_req_task_conditions = 'X'.
+    ls_selection-reqfunctions = 'KTRXS'.
+    ls_selection-reqstatus = 'RNODL'.
+    ls_selection-taskstatus = 'RNODL'.
+    CONDENSE ls_selection-reqfunctions NO-GAPS.
+    ls_selection-taskfunctions = 'QRSX'.
+    CONCATENATE sy-sysid '*' INTO ls_selection-trkorrpattern.
+
+    lv_title = 'Select Transports / Tasks'.
+
+    rt_r_trkorr = zif_abapgit_popups~popup_select_tr_requests(
+      is_selection        = ls_selection
+      iv_title            = lv_title
+      iv_username_pattern = '*' ).
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_password_dialog IMPLEMENTATION.
@@ -34759,7 +34832,7 @@ CLASS ZCL_ABAPGIT_HTML_VIEWER_GUI IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
+CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
   METHOD add.
     DATA ls_item TYPE ty_item.
 
@@ -34782,6 +34855,8 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
     ls_item-aux   = iv_aux.
     ls_item-id    = iv_id.
     ls_item-title = iv_title.
+    ls_item-class = iv_class.
+    ls_item-li_class = iv_li_class.
 
     APPEND ls_item TO mt_items.
 
@@ -34837,12 +34912,13 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_items.
 
-    DATA: lv_class     TYPE string,
-          lv_icon      TYPE string,
-          lv_id        TYPE string,
-          lv_check     TYPE string,
-          lv_aux       TYPE string,
-          lv_has_icons TYPE abap_bool.
+    DATA: lv_class       TYPE string,
+          lv_class_value TYPE string,
+          lv_icon        TYPE string,
+          lv_id          TYPE string,
+          lv_check       TYPE string,
+          lv_aux         TYPE string,
+          lv_has_icons   TYPE abap_bool.
 
     FIELD-SYMBOLS <ls_item> LIKE LINE OF mt_items.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
@@ -34866,7 +34942,7 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
 
     " Render items
     LOOP AT mt_items ASSIGNING <ls_item>.
-      CLEAR: lv_class, lv_icon.
+      CLEAR: lv_class, lv_class_value, lv_icon.
 
       IF <ls_item>-typ = zif_abapgit_html=>c_action_type-separator.
         ri_html->add( |<li class="separator">{ <ls_item>-txt }</li>| ).
@@ -34884,30 +34960,40 @@ CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
           lv_icon = ri_html->icon( <ls_item>-ico ).
         ENDIF.
       ENDIF.
-
       IF <ls_item>-cur = abap_true.
-        lv_class = ' class="current-menu-item"'.
+        IF <ls_item>-li_class IS INITIAL.
+          lv_class_value =  'current-menu-item'.
+        ELSE.
+          lv_class_value =  |current-menu-item { <ls_item>-li_class }|.
+        ENDIF.
+      ELSE.
+        lv_class_value =  <ls_item>-li_class.
       ENDIF.
-
+      IF lv_class_value IS NOT INITIAL.
+        lv_class =   | class="{ lv_class_value }"|.
+      ENDIF.
       IF <ls_item>-aux IS NOT INITIAL.
         lv_aux = | data-aux="{ <ls_item>-aux }"|.
       ENDIF.
 
       ri_html->add( |<li{ lv_class }{ lv_check }{ lv_aux }>| ).
+
       IF <ls_item>-sub IS INITIAL.
         ri_html->add_a( iv_txt   = lv_icon && <ls_item>-txt
                         iv_typ   = <ls_item>-typ
                         iv_act   = <ls_item>-act
                         iv_id    = <ls_item>-id
                         iv_opt   = <ls_item>-opt
-                        iv_title = <ls_item>-title ).
+                        iv_title = <ls_item>-title
+                        iv_class = <ls_item>-class ).
       ELSE.
         ri_html->add_a( iv_txt   = lv_icon && <ls_item>-txt
                         iv_typ   = zif_abapgit_html=>c_action_type-dummy
                         iv_act   = ''
                         iv_id    = <ls_item>-id
                         iv_opt   = <ls_item>-opt
-                        iv_title = <ls_item>-title ).
+                        iv_title = <ls_item>-title
+                        iv_class = <ls_item>-class ).
         ri_html->add( <ls_item>-sub->render_items( iv_sort ) ).
       ENDIF.
       ri_html->add( '</li>' ).
@@ -36109,8 +36195,11 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   ENDMETHOD.
   METHOD general_page_routing.
 
-    DATA: lv_key           TYPE zif_abapgit_persistence=>ty_repo-key,
-          lv_last_repo_key TYPE zif_abapgit_persistence=>ty_repo-key.
+    DATA: lv_key              TYPE zif_abapgit_persistence=>ty_repo-key,
+          lv_last_repo_key    TYPE zif_abapgit_persistence=>ty_repo-key,
+          lo_obj_filter_trans TYPE REF TO zcl_abapgit_object_filter_tran,
+          lo_repo             TYPE REF TO zcl_abapgit_repo,
+          lt_r_trkorr         TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt.
 
     lv_key = ii_event->query( )->get( 'KEY' ).
 
@@ -36148,6 +36237,19 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_w_bookmark.
       WHEN zif_abapgit_definitions=>c_action-go_stage.                        " Go Staging page
         rs_handled-page  = get_page_stage( ii_event ).
+        rs_handled-state = get_state_diff( ii_event ).
+      WHEN zif_abapgit_definitions=>c_action-go_stage_transport.              " Go Staging page by Transport
+
+        lt_r_trkorr = zcl_abapgit_ui_factory=>get_popups( )->popup_select_wb_tc_tr_and_tsk( ).
+
+        lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
+
+        CREATE OBJECT lo_obj_filter_trans.
+        lo_obj_filter_trans->set_filter_values( iv_package  = lo_repo->get_package( )
+                                                it_r_trkorr = lt_r_trkorr ).
+
+        rs_handled-page = get_page_stage( ii_event      = ii_event
+                                          ii_obj_filter = lo_obj_filter_trans ).
         rs_handled-state = get_state_diff( ii_event ).
       WHEN zif_abapgit_definitions=>c_action-go_branch_overview.              " Go repo branch overview
         rs_handled-page  = get_page_branch_overview( lv_key ).
@@ -36259,9 +36361,11 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         lo_repo->refresh( ).
         CREATE OBJECT lo_stage_page
           EXPORTING
-            io_repo = lo_repo
-            iv_seed = lv_seed
-            iv_sci_result = zif_abapgit_definitions=>c_sci_result-passed.
+            io_repo       = lo_repo
+            iv_seed       = lv_seed
+            iv_sci_result = zif_abapgit_definitions=>c_sci_result-passed
+            ii_obj_filter = ii_obj_filter.
+
         ri_page = lo_stage_page.
       ELSE.
         ri_page = lo_code_inspector_page.
@@ -36286,8 +36390,9 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
       CREATE OBJECT lo_stage_page
         EXPORTING
-          io_repo = lo_repo
-          iv_seed = lv_seed.
+          io_repo       = lo_repo
+          iv_seed       = lv_seed
+          ii_obj_filter = ii_obj_filter.
 
       ri_page = lo_stage_page.
 
@@ -36599,15 +36704,17 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   ENDMETHOD.
   METHOD zip_services.
 
-    DATA: lv_key            TYPE zif_abapgit_persistence=>ty_repo-key,
-          lo_repo           TYPE REF TO zcl_abapgit_repo,
-          lv_path           TYPE string,
-          lv_dest           TYPE rfcdest,
-          lv_msg            TYPE c LENGTH 200,
-          lv_xstr           TYPE xstring,
-          lv_package        TYPE zif_abapgit_persistence=>ty_repo-package,
-          lv_folder_logic   TYPE string,
-          lv_main_lang_only TYPE zif_abapgit_persistence=>ty_local_settings-main_language_only.
+    DATA: lv_key              TYPE zif_abapgit_persistence=>ty_repo-key,
+          lo_repo             TYPE REF TO zcl_abapgit_repo,
+          lv_path             TYPE string,
+          lv_dest             TYPE rfcdest,
+          lv_msg              TYPE c LENGTH 200,
+          lv_xstr             TYPE xstring,
+          lv_package          TYPE zif_abapgit_persistence=>ty_repo-package,
+          lv_folder_logic     TYPE string,
+          lv_main_lang_only   TYPE zif_abapgit_persistence=>ty_local_settings-main_language_only,
+          lo_obj_filter_trans TYPE REF TO zcl_abapgit_object_filter_tran,
+          lt_r_trkorr         TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt.
 
     CONSTANTS:
       BEGIN OF lc_page,
@@ -36675,6 +36782,20 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-zip_export.                      " Export repo as ZIP
         lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
         lv_xstr = zcl_abapgit_zip=>encode_files( lo_repo->get_files_local( ) ).
+        file_download( iv_package = lo_repo->get_package( )
+                       iv_xstr    = lv_xstr ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+      WHEN zif_abapgit_definitions=>c_action-zip_export_transport.                      " Export repo as ZIP
+
+        lt_r_trkorr = zcl_abapgit_ui_factory=>get_popups( )->popup_select_wb_tc_tr_and_tsk( ).
+        lo_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
+        lo_repo->refresh( ).
+        CREATE OBJECT lo_obj_filter_trans.
+        lo_obj_filter_trans->set_filter_values( iv_package  = lo_repo->get_package( )
+                                                it_r_trkorr = lt_r_trkorr ).
+
+        lv_xstr = zcl_abapgit_zip=>encode_files( lo_repo->get_files_local( ii_obj_filter = lo_obj_filter_trans ) ).
+        lo_repo->refresh( ).
         file_download( iv_package = lo_repo->get_package( )
                        iv_xstr    = lv_xstr ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
@@ -37203,6 +37324,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     mo_repo               = io_repo.
     mv_seed               = iv_seed.
     mv_sci_result         = iv_sci_result.
+    mi_obj_filter         = ii_obj_filter.
 
     IF mv_seed IS INITIAL. " Generate based on time unless obtained from diff page
       GET TIME STAMP FIELD lv_ts.
@@ -37355,7 +37477,9 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD init_files.
-    ms_files = zcl_abapgit_factory=>get_stage_logic( )->get( mo_repo ).
+    ms_files = zcl_abapgit_factory=>get_stage_logic( )->get( io_repo       = mo_repo
+                                                             ii_obj_filter = mi_obj_filter ).
+
     IF lines( ms_files-local ) = 0 AND lines( ms_files-remote ) = 0.
       zcx_abapgit_exception=>raise( 'There are no changes that could be staged' ).
     ENDIF.
@@ -37531,7 +37655,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
       READ TABLE lt_changed_by INTO ls_changed_by WITH KEY item = <ls_local>-item. "#EC CI_SUBRC
       READ TABLE lt_transports INTO ls_transport WITH KEY
         obj_type = <ls_local>-item-obj_type
-        obj_name = <ls_local>-item-obj_name. "#EC CI_SUBRC
+        obj_name = <ls_local>-item-obj_name.              "#EC CI_SUBRC
       READ TABLE ms_files-status ASSIGNING <ls_status>
         WITH TABLE KEY
           path     = <ls_local>-file-path
@@ -40545,10 +40669,16 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     IF mv_are_changes_recorded_in_tr = abap_true.
       ro_advanced_dropdown->add(
-          iv_txt  = 'Add All Objects to Transport'
-          iv_act = |{ zif_abapgit_definitions=>c_action-repo_add_all_obj_to_trans_req }?key={ mv_key }| ).
+        iv_txt = 'Add All Objects to Transport'
+        iv_act = |{ zif_abapgit_definitions=>c_action-repo_add_all_obj_to_trans_req }?key={ mv_key }| ).
     ENDIF.
-
+    IF mo_repo->is_offline( ) = abap_true.
+      ro_advanced_dropdown->add( iv_txt = 'Export by Transport'
+                                 iv_act = |{ zif_abapgit_definitions=>c_action-zip_export_transport }?key={ mv_key }| ).
+    ELSE.
+      ro_advanced_dropdown->add( iv_txt = 'Stage by Transport'
+                                 iv_act = |{ zif_abapgit_definitions=>c_action-go_stage_transport }?key={ mv_key }| ).
+    ENDIF.
     ro_advanced_dropdown->add( iv_txt = 'Syntax Check'
                                iv_act = |{ zif_abapgit_definitions=>c_action-repo_syntax_check }?key={ mv_key }| ).
     ro_advanced_dropdown->add( iv_txt = 'Run Code Inspector'
@@ -40572,21 +40702,21 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
         iv_act = |{ zif_abapgit_definitions=>c_action-repo_open_in_master_lang }?key={ mv_key }| ).
     ENDIF.
 
-    ro_advanced_dropdown->add( iv_txt = 'Remove'
+    ro_advanced_dropdown->add( iv_txt   = 'Remove'
                                iv_title = `Remove abapGit's records of the repository (the system's `
-                                       && `development objects will remain unaffected)`
-                               iv_act = |{ zif_abapgit_definitions=>c_action-repo_remove }?key={ mv_key }| ).
+                                          && `development objects will remain unaffected)`
+                               iv_act   = |{ zif_abapgit_definitions=>c_action-repo_remove }?key={ mv_key }| ).
 
     CLEAR lv_crossout.
     IF mo_repo->get_local_settings( )-write_protected = abap_true
         OR zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>c_authorization-uninstall ) = abap_false.
       lv_crossout = zif_abapgit_html=>c_html_opt-crossout.
     ENDIF.
-    ro_advanced_dropdown->add( iv_txt = 'Uninstall'
+    ro_advanced_dropdown->add( iv_txt   = 'Uninstall'
                                iv_title = `Delete all development objects belonging to this package `
-                                       && `(and subpackages) from the system`
-                               iv_act = |{ zif_abapgit_definitions=>c_action-repo_purge }?key={ mv_key }|
-                               iv_opt = lv_crossout ).
+                                          && `(and subpackages) from the system`
+                               iv_act   = |{ zif_abapgit_definitions=>c_action-repo_purge }?key={ mv_key }|
+                               iv_opt   = lv_crossout ).
 
   ENDMETHOD.
   METHOD build_branch_dropdown.
@@ -40681,10 +40811,10 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ro_menu->add(
       iv_txt = zcl_abapgit_gui_buttons=>repo_list( )
       iv_act = zif_abapgit_definitions=>c_action-abapgit_home
-    )->add(
-      iv_txt = zcl_abapgit_gui_buttons=>help( )
-      iv_title = 'Help'
-      io_sub = zcl_abapgit_gui_chunk_lib=>help_submenu( ) ).
+               )->add(
+                 iv_txt = zcl_abapgit_gui_buttons=>help( )
+                 iv_title = 'Help'
+                 io_sub = zcl_abapgit_gui_chunk_lib=>help_submenu( ) ).
 
   ENDMETHOD.
   METHOD build_main_toolbar.
@@ -40802,9 +40932,9 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     CREATE OBJECT ro_toolbar.
 
     ro_toolbar->add(
-        iv_txt = 'Changes First'
-        iv_chk = mv_diff_first
-        iv_act = c_actions-toggle_diff_first ).
+      iv_txt = 'Changes First'
+      iv_chk = mv_diff_first
+      iv_act = c_actions-toggle_diff_first ).
 
     ro_toolbar->add(
       iv_txt = 'Changes Only'
@@ -41447,7 +41577,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
       WHEN c_actions-change_dir.        " Change dir
         lv_path         = ii_event->query( )->get( 'PATH' ).
-        mv_cur_dir      = zcl_abapgit_path=>change_dir(
+        mv_cur_dir = zcl_abapgit_path=>change_dir(
           iv_cur_dir = mv_cur_dir
           iv_cd      = lv_path ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
@@ -41871,83 +42001,74 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   METHOD render_actions.
 
     CONSTANTS:
-      lc_separator     TYPE string VALUE `<span class="separator">|</span>`,
       lc_dummy_key     TYPE string VALUE `?key=#`,
       lc_offline_class TYPE string VALUE `action_offline_repo`,
       lc_online_class  TYPE string VALUE `action_online_repo`,
       lc_action_class  TYPE string VALUE `action_link`.
 
-    DATA:
-      lv_settings_link TYPE string,
-      lv_check_link    TYPE string,
-      lv_stage_link    TYPE string,
-      lv_patch_link    TYPE string,
-      lv_diff_link     TYPE string,
-      lv_pull_link     TYPE string.
+    DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
+    DATA lo_toolbar_more_sub TYPE REF TO zcl_abapgit_html_toolbar.
 
-    DATA:
-      lv_zip_import_link TYPE string,
-      lv_zip_export_link TYPE string.
+    CREATE OBJECT lo_toolbar EXPORTING iv_id = 'toolbar-ovp'.
 
-    ii_html->add( |<div class="float-right">| ).
+    lo_toolbar->add( iv_txt      = |Pull|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-git_reset }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class } { lc_online_class }|
+                     iv_li_class = |{ lc_action_class }| ).
 
-    lv_pull_link = ii_html->a(
-      iv_txt   = |Pull|
-      iv_act   = |{ zif_abapgit_definitions=>c_action-git_reset }{ lc_dummy_key }|
-      iv_class = |{ lc_action_class } { lc_online_class }| ).
+    lo_toolbar->add( iv_txt      = |Stage|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-go_stage }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class } { lc_online_class }|
+                     iv_li_class = |{ lc_action_class }| ).
 
-    ii_html->add( action_link( lv_pull_link && lc_separator ) ).
+    lo_toolbar->add( iv_txt      = |Patch|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-go_patch }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class } { lc_online_class }|
+                     iv_li_class = |{ lc_action_class }| ).
 
-    lv_stage_link = ii_html->a(
-      iv_txt   = |Stage|
-      iv_act   = |{ zif_abapgit_definitions=>c_action-go_stage }{ lc_dummy_key }|
-      iv_class = |{ lc_action_class } { lc_online_class } | ).
+    lo_toolbar->add( iv_txt      = |Diff|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-go_repo_diff }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class } { lc_online_class }|
+                     iv_li_class = |{ lc_action_class }| ).
 
-    ii_html->add( action_link( lv_stage_link && lc_separator ) ).
+    lo_toolbar->add( iv_txt      = |Check|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class }|
+                     iv_li_class = |{ lc_action_class }| ).
+    lo_toolbar->add( iv_txt      = |Import|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-zip_import }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class } { lc_offline_class }|
+                     iv_li_class = |{ lc_action_class }| ).
 
-    lv_patch_link = ii_html->a(
-      iv_txt   = |Patch|
-      iv_act   = |{ zif_abapgit_definitions=>c_action-go_patch }{ lc_dummy_key }|
-      iv_class = |{ lc_action_class } { lc_online_class } | ).
+    lo_toolbar->add( iv_txt      = |Export|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-zip_export }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class } { lc_offline_class }|
+                     iv_li_class = |{ lc_action_class }| ).
 
-    ii_html->add( action_link( lv_patch_link && lc_separator ) ).
+    lo_toolbar->add( iv_txt      = |Settings|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-repo_settings }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class }|
+                     iv_li_class = |{ lc_action_class }| ).
 
-    lv_diff_link = ii_html->a(
-      iv_txt   = |Diff|
-      iv_act   = |{ zif_abapgit_definitions=>c_action-go_repo_diff }{ lc_dummy_key }|
-      iv_class = |{ lc_action_class } { lc_online_class }| ).
+    CREATE OBJECT lo_toolbar_more_sub EXPORTING iv_id = 'toolbar-ovp-more_sub'.
 
-    ii_html->add( action_link( lv_diff_link && lc_separator ) ).
+    lo_toolbar_more_sub->add( iv_txt      = |Stage by Transport|
+                              iv_act      = |{ zif_abapgit_definitions=>c_action-go_stage_transport }{ lc_dummy_key }|
+                              iv_class    = |{ lc_action_class } { lc_online_class }|
+                              iv_li_class = |{ lc_action_class }| ).
 
-    lv_check_link = ii_html->a(
-      iv_txt   = |Check|
-      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }{ lc_dummy_key }|
-      iv_class = |{ lc_action_class }| ).
+    lo_toolbar_more_sub->add( iv_txt      = |Export by Transport|
+                              iv_act      = |{ zif_abapgit_definitions=>c_action-zip_export_transport }{ lc_dummy_key }|
+                              iv_class    = |{ lc_action_class } { lc_offline_class }|
+                              iv_li_class = |{ lc_action_class }| ).
 
-    ii_html->add( action_link( lv_check_link && lc_separator ) ).
+    lo_toolbar->add( iv_txt      = |More|
+                     io_sub      = lo_toolbar_more_sub
+                     iv_class    = |{ lc_action_class }|
+                     iv_li_class = |{ lc_action_class }| ).
 
-    lv_zip_import_link = ii_html->a(
-      iv_txt   = |Import|
-      iv_act   = |{ zif_abapgit_definitions=>c_action-zip_import }{ lc_dummy_key }|
-      iv_class = |{ lc_action_class } { lc_offline_class }| ).
+    ii_html->add( lo_toolbar->render( iv_right = abap_true ) ).
 
-    ii_html->add( action_link( lv_zip_import_link && lc_separator ) ).
-
-    lv_zip_export_link = ii_html->a(
-      iv_txt   = |Export|
-      iv_act   = |{ zif_abapgit_definitions=>c_action-zip_export }{ lc_dummy_key }|
-      iv_class = |{ lc_action_class } { lc_offline_class }| ).
-
-    ii_html->add( action_link( lv_zip_export_link && lc_separator ) ).
-
-    lv_settings_link = ii_html->a(
-      iv_txt   = |Settings|
-      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_settings }{ lc_dummy_key }|
-      iv_class = |{ lc_action_class }| ).
-
-    ii_html->add( action_link( lv_settings_link ) ).
-
-    ii_html->add( |</div>| ).
   ENDMETHOD.
 
   METHOD shorten_repo_url.
@@ -42133,9 +42254,6 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD action_link.
-    rv_html = |<span class="action_link">| && iv_content && |</span>|.
-  ENDMETHOD.
   METHOD set_only_favorites.
     mv_only_favorites = iv_only_favorites.
   ENDMETHOD.
@@ -109057,6 +109175,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-24T16:11:42.552Z
+* abapmerge 0.14.3 - 2022-01-25T09:01:23.539Z
 ENDINTERFACE.
 ****************************************************
