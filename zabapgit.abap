@@ -4412,6 +4412,15 @@ CLASS zcl_abapgit_apack_helper DEFINITION
     TYPES: END OF ty_dependency_status .
     TYPES:
       ty_dependency_statuses TYPE STANDARD TABLE OF ty_dependency_status WITH NON-UNIQUE DEFAULT KEY .
+    TYPES:
+      BEGIN OF ty_color_line,
+        exception(1) TYPE c,
+        color        TYPE lvc_t_scol.
+        INCLUDE TYPE ty_dependency_status.
+    TYPES: t_hyperlink  TYPE salv_t_int4_column,
+      END OF ty_color_line.
+
+    TYPES: ty_color_tab TYPE STANDARD TABLE OF ty_color_line WITH DEFAULT KEY.
 
     CLASS-METHODS get_dependencies_met_status
       IMPORTING
@@ -4430,6 +4439,14 @@ CLASS zcl_abapgit_apack_helper DEFINITION
         !it_dependencies TYPE ty_dependency_statuses
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS get_color_table
+      IMPORTING
+        !io_alv          TYPE REF TO cl_salv_table
+        !it_dependencies TYPE ty_dependency_statuses
+      CHANGING
+        !ct_color_table  TYPE ty_color_tab
+      RAISING
+        cx_salv_existing.
 ENDCLASS.
 CLASS zcl_abapgit_apack_migration DEFINITION
   FINAL
@@ -18980,6 +18997,21 @@ CLASS zcl_abapgit_popups DEFINITION
 
     INTERFACES zif_abapgit_popups .
 
+    TYPES:
+      BEGIN OF ty_popup_position,
+        start_column LIKE  sy-cucol,
+        start_row    LIKE  sy-curow,
+        end_column   LIKE  sy-cucol,
+        end_row      LIKE  sy-curow,
+      END OF ty_popup_position.
+
+    CLASS-METHODS center
+      IMPORTING
+        !iv_width          TYPE i
+        !iv_height         TYPE i
+      RETURNING
+        VALUE(rs_position) TYPE ty_popup_position.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS c_default_column TYPE abap_componentdescr-name VALUE `DEFAULT_COLUMN` ##NO_TEXT.
@@ -18994,11 +19026,7 @@ CLASS zcl_abapgit_popups DEFINITION
     DATA mr_table TYPE REF TO data .
     DATA mv_cancel TYPE abap_bool VALUE abap_false.
     DATA mo_table_descr TYPE REF TO cl_abap_tabledescr .
-    DATA:
-      BEGIN OF ms_start_pos,
-        col TYPE i,
-        row TYPE i,
-      END OF ms_start_pos.
+    DATA ms_position TYPE ty_popup_position.
 
     METHODS add_field
       IMPORTING
@@ -19017,16 +19045,16 @@ CLASS zcl_abapgit_popups DEFINITION
       EXPORTING
         !et_list TYPE INDEX TABLE .
     METHODS on_select_list_link_click
-      FOR EVENT link_click OF cl_salv_events_table
+        FOR EVENT link_click OF cl_salv_events_table
       IMPORTING
         !row
         !column .
     METHODS on_select_list_function_click
-      FOR EVENT added_function OF cl_salv_events_table
+        FOR EVENT added_function OF cl_salv_events_table
       IMPORTING
         !e_salv_function .
     METHODS on_double_click
-      FOR EVENT double_click OF cl_salv_events_table
+        FOR EVENT double_click OF cl_salv_events_table
       IMPORTING
         !row
         !column .
@@ -19042,13 +19070,6 @@ CLASS zcl_abapgit_popups DEFINITION
         !ct_fields         TYPE ty_lt_fields
       RAISING
         zcx_abapgit_exception .
-    METHODS set_starting_position
-      IMPORTING
-        !iv_width  TYPE i
-        !iv_height TYPE i
-      RAISING
-        zcx_abapgit_exception .
-
 ENDCLASS.
 CLASS zcl_abapgit_services_abapgit DEFINITION
   FINAL
@@ -25480,6 +25501,7 @@ CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
           lt_color_negative TYPE lvc_t_scol,
           lt_color_positive TYPE lvc_t_scol,
           ls_color          TYPE lvc_s_scol,
+          ls_position       TYPE zcl_abapgit_popups=>ty_popup_position,
           lx_ex             TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <ls_line>        TYPE ty_color_line,
@@ -25521,10 +25543,15 @@ CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
         lo_column = lo_columns->get_column( 'REQUIRED_PATCH' ).
         lo_column->set_short_text( 'Req. SP L.' ).
 
-        lo_alv->set_screen_popup( start_column = 30
-                                  end_column   = 100
-                                  start_line   = 10
-                                  end_line     = 20 ).
+        ls_position = zcl_abapgit_popups=>center(
+          iv_width  = 70
+          iv_height = 10 ).
+
+        lo_alv->set_screen_popup( start_column = ls_position-start_column
+                                  end_column   = ls_position-end_column
+                                  start_line   = ls_position-start_row
+                                  end_line     = ls_position-end_row ).
+
         lo_alv->get_display_settings( )->set_list_header( 'Requirements' ).
         lo_alv->display( ).
 
@@ -33298,6 +33325,33 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     <ls_field>-field_obl  = iv_obligatory.
 
   ENDMETHOD.
+  METHOD center.
+
+    CONSTANTS:
+      lc_min_size TYPE i VALUE 10,
+      lc_min_pos  TYPE i VALUE 5.
+
+    " Magic math to approximate starting position of popup
+    IF sy-scols > lc_min_size AND iv_width > 0 AND sy-scols > iv_width.
+      rs_position-start_column = nmax(
+        val1 = ( sy-scols - iv_width ) / 2
+        val2 = lc_min_pos ).
+    ELSE.
+      rs_position-start_column = lc_min_pos.
+    ENDIF.
+
+    IF sy-srows > lc_min_size AND iv_height > 0 AND sy-srows > iv_height.
+      rs_position-start_row = nmax(
+        val1 = ( sy-srows - iv_height ) / 2 - 1
+        val2 = lc_min_pos ).
+    ELSE.
+      rs_position-start_row = lc_min_pos.
+    ENDIF.
+
+    rs_position-end_column = rs_position-start_column + iv_width.
+    rs_position-end_row = rs_position-start_row + iv_height.
+
+  ENDMETHOD.
   METHOD create_new_table.
 
     " create and populate a table on the fly derived from
@@ -33528,30 +33582,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     mo_select_list_popup->refresh( ).
 
   ENDMETHOD.
-  METHOD set_starting_position.
-
-    CONSTANTS:
-      lc_min_size TYPE i VALUE 10,
-      lc_min_pos  TYPE i VALUE 5.
-
-    " Magic math to approximate starting position of popup
-    IF sy-scols > lc_min_size AND iv_width > 0.
-      ms_start_pos-col = nmax(
-        val1 = ( sy-scols - iv_width ) / 2
-        val2 = lc_min_pos ).
-    ELSE.
-      ms_start_pos-col = lc_min_pos.
-    ENDIF.
-
-    IF sy-srows > lc_min_size AND iv_height > 0.
-      ms_start_pos-row = nmax(
-        val1 = ( sy-srows - iv_height ) / 2 - 1
-        val2 = lc_min_pos ).
-    ELSE.
-      ms_start_pos-row = lc_min_pos.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD zif_abapgit_popups~branch_list_popup.
 
     DATA: lo_branches    TYPE REF TO zcl_abapgit_git_branch_list,
@@ -33641,7 +33671,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       <ls_sel>-varoption = zif_abapgit_popups=>c_new_branch_label.
     ENDIF.
 
-    set_starting_position(
+    ms_position = center(
       iv_width  = 24
       iv_height = lines( lt_selection ) ).
 
@@ -33649,8 +33679,8 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       EXPORTING
         textline1  = 'Select branch'
         titel      = 'Select branch'
-        start_col  = ms_start_pos-col
-        start_row  = ms_start_pos-row
+        start_col  = ms_position-start_column
+        start_row  = ms_position-start_row
         cursorline = lv_default
       IMPORTING
         answer     = lv_answer
@@ -33765,7 +33795,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       <ls_sel>-varoption = |{ <ls_pull>-number } - { <ls_pull>-title } @{ <ls_pull>-user }|.
     ENDLOOP.
 
-    set_starting_position(
+    ms_position = center(
       iv_width  = 74
       iv_height = lines( lt_selection ) ).
 
@@ -33773,8 +33803,8 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       EXPORTING
         textline1 = 'Select pull request'
         titel     = 'Select pull request'
-        start_col = ms_start_pos-col
-        start_row = ms_start_pos-row
+        start_col = ms_position-start_column
+        start_row = ms_position-start_row
       IMPORTING
         answer    = lv_answer
       TABLES
@@ -33887,9 +33917,67 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_popups~popup_select_tr_requests.
+    DATA ls_r_trkorr TYPE LINE OF zif_abapgit_definitions=>ty_trrngtrkor_tt.
+    DATA lr_request TYPE REF TO trwbo_request_header.
+    DATA lt_request TYPE trwbo_request_headers.
+
+    ms_position = center(
+      iv_width  = 120
+      iv_height = 10 ).
+
+    CALL FUNCTION 'TRINT_SELECT_REQUESTS'
+      EXPORTING
+        iv_username_pattern    = iv_username_pattern
+        is_selection           = is_selection
+        iv_complete_projects   = abap_false
+        is_popup               = ms_position
+        iv_via_selscreen       = 'X'
+        iv_title               = iv_title
+      IMPORTING
+        et_requests            = lt_request
+      EXCEPTIONS
+        action_aborted_by_user = 1
+        OTHERS                 = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Selection canceled' ).
+    ENDIF.
+
+    IF lt_request IS INITIAL.
+      zcx_abapgit_exception=>raise( 'No Request Found' ).
+    ENDIF.
+
+    LOOP AT lt_request REFERENCE INTO lr_request.
+      ls_r_trkorr-sign = 'I'.
+      ls_r_trkorr-option = 'EQ'.
+      ls_r_trkorr-low = lr_request->trkorr.
+      INSERT ls_r_trkorr INTO TABLE rt_r_trkorr.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_popups~popup_select_wb_tc_tr_and_tsk.
+    DATA ls_selection  TYPE trwbo_selection.
+    DATA lv_title TYPE trwbo_title.
+
+    ls_selection-trkorrpattern = space.
+    ls_selection-connect_req_task_conditions = 'X'.
+    ls_selection-reqfunctions = 'KTRXS'.
+    ls_selection-reqstatus = 'RNODL'.
+    ls_selection-taskstatus = 'RNODL'.
+    CONDENSE ls_selection-reqfunctions NO-GAPS.
+    ls_selection-taskfunctions = 'QRSX'.
+    CONCATENATE sy-sysid '*' INTO ls_selection-trkorrpattern.
+
+    lv_title = 'Select Transports / Tasks'.
+
+    rt_r_trkorr = zif_abapgit_popups~popup_select_tr_requests(
+      is_selection        = ls_selection
+      iv_title            = lv_title
+      iv_username_pattern = '*' ).
+  ENDMETHOD.
   METHOD zif_abapgit_popups~popup_to_confirm.
 
-    set_starting_position(
+    ms_position = center(
       iv_width  = 65
       iv_height = 5 ).
 
@@ -33903,8 +33991,8 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
         icon_button_2         = iv_icon_button_2
         default_button        = iv_default_button
         display_cancel_button = iv_display_cancel_button
-        start_column          = ms_start_pos-col
-        start_row             = ms_start_pos-row
+        start_column          = ms_position-start_column
+        start_row             = ms_position-start_row
       IMPORTING
         answer                = rv_answer
       EXCEPTIONS
@@ -34003,7 +34091,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ASSIGN mr_table->* TO <lt_table>.
     ASSERT sy-subrc = 0.
 
-    set_starting_position(
+    ms_position = center(
       iv_width  = iv_end_column - iv_start_column
       iv_height = iv_end_line - iv_start_line ).
 
@@ -34023,10 +34111,10 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
         mo_select_list_popup->set_screen_status( pfstatus = lv_pfstatus
                                                  report   = 'SAPMSVIM' ).
 
-        mo_select_list_popup->set_screen_popup( start_column = ms_start_pos-col
-                                                end_column   = ms_start_pos-col + iv_end_column - iv_start_column
-                                                start_line   = ms_start_pos-row
-                                                end_line     = ms_start_pos-row + iv_end_line - iv_start_line ).
+        mo_select_list_popup->set_screen_popup( start_column = ms_position-start_column
+                                                end_column   = ms_position-end_column
+                                                start_line   = ms_position-start_row
+                                                end_line     = ms_position-end_row ).
 
         lo_events = mo_select_list_popup->get_event( ).
 
@@ -34162,7 +34250,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     DATA lv_answer TYPE c LENGTH 1.
     FIELD-SYMBOLS: <ls_field> TYPE sval.
 
-    set_starting_position(
+    ms_position = center(
       iv_width  = 120
       iv_height = lines( ct_fields ) ).
 
@@ -34170,8 +34258,8 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       EXPORTING
         no_value_check = iv_no_value_check
         popup_title    = iv_popup_title
-        start_column   = ms_start_pos-col
-        start_row      = ms_start_pos-row
+        start_column   = ms_position-start_column
+        start_row      = ms_position-start_row
       IMPORTING
         returncode     = lv_answer
       TABLES
@@ -34205,61 +34293,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_popups~popup_select_tr_requests.
-    DATA ls_r_trkorr TYPE LINE OF zif_abapgit_definitions=>ty_trrngtrkor_tt.
-    DATA lr_request TYPE REF TO trwbo_request_header.
-    DATA lt_request TYPE trwbo_request_headers.
-
-    CALL FUNCTION 'TRINT_SELECT_REQUESTS'
-      EXPORTING
-        iv_username_pattern    = iv_username_pattern
-        is_selection           = is_selection
-        iv_complete_projects   = abap_false
-        iv_via_selscreen       = 'X'
-        iv_title               = iv_title
-      IMPORTING
-        et_requests            = lt_request
-      EXCEPTIONS
-        action_aborted_by_user = 1
-        OTHERS                 = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Selection Canceled' ).
-    ENDIF.
-
-    IF lt_request IS INITIAL.
-      zcx_abapgit_exception=>raise( 'No Request Found' ).
-    ENDIF.
-
-    LOOP AT lt_request REFERENCE INTO lr_request.
-      ls_r_trkorr-sign = 'I'.
-      ls_r_trkorr-option = 'EQ'.
-      ls_r_trkorr-low = lr_request->trkorr.
-      INSERT ls_r_trkorr INTO TABLE rt_r_trkorr.
-    ENDLOOP.
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_popups~popup_select_wb_tc_tr_and_tsk.
-    DATA ls_selection  TYPE trwbo_selection.
-    DATA lv_title TYPE trwbo_title.
-
-    ls_selection-trkorrpattern = space.
-    ls_selection-connect_req_task_conditions = 'X'.
-    ls_selection-reqfunctions = 'KTRXS'.
-    ls_selection-reqstatus = 'RNODL'.
-    ls_selection-taskstatus = 'RNODL'.
-    CONDENSE ls_selection-reqfunctions NO-GAPS.
-    ls_selection-taskfunctions = 'QRSX'.
-    CONCATENATE sy-sysid '*' INTO ls_selection-trkorrpattern.
-
-    lv_title = 'Select Transports / Tasks'.
-
-    rt_r_trkorr = zif_abapgit_popups~popup_select_tr_requests(
-      is_selection        = ls_selection
-      iv_title            = lv_title
-      iv_username_pattern = '*' ).
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_password_dialog IMPLEMENTATION.
@@ -34303,7 +34336,7 @@ CLASS zcl_abapgit_password_dialog IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
+CLASS zcl_abapgit_log_viewer IMPLEMENTATION.
   METHOD calculate_cell_type.
 
     FIELD-SYMBOLS: <ls_log> LIKE LINE OF gt_log.
@@ -34483,6 +34516,7 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
           lo_columns     TYPE REF TO cl_salv_columns_table,
           lo_column      TYPE REF TO cl_salv_column,
           lo_functions   TYPE REF TO cl_salv_functions_list,
+          ls_position    TYPE zcl_abapgit_popups=>ty_popup_position,
           lv_add_obj_col TYPE abap_bool,
           lo_event       TYPE REF TO cl_salv_events_table.
 
@@ -34578,10 +34612,14 @@ CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
           lo_column->set_technical( abap_true ).
         ENDIF.
 
-        lo_alv->set_screen_popup( start_column = 10
-                                  end_column   = 140
-                                  start_line   = 4
-                                  end_line     = 25 ).
+        ls_position = zcl_abapgit_popups=>center(
+          iv_width  = 125
+          iv_height = 20 ).
+
+        lo_alv->set_screen_popup( start_column = ls_position-start_column
+                                  end_column   = ls_position-end_column
+                                  start_line   = ls_position-start_row
+                                  end_line     = ls_position-end_row ).
 
         CREATE OBJECT lo_form_header
           EXPORTING
@@ -48583,7 +48621,7 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_FREE_SEL_DIALOG IMPLEMENTATION.
+CLASS zcl_abapgit_free_sel_dialog IMPLEMENTATION.
   METHOD constructor.
     mv_title = iv_title.
     mv_frame_text = iv_frame_text.
@@ -48654,12 +48692,21 @@ CLASS ZCL_ABAPGIT_FREE_SEL_DIALOG IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
   METHOD free_selections_dialog.
+
+    DATA ls_position TYPE zcl_abapgit_popups=>ty_popup_position.
+
+    ls_position = zcl_abapgit_popups=>center(
+      iv_width  = 60
+      iv_height = lines( ct_fields ) + 15 ).
+
     CALL FUNCTION 'FREE_SELECTIONS_DIALOG'
       EXPORTING
         selection_id    = iv_selection_id
         title           = mv_title
         frame_text      = mv_frame_text
         status          = 1
+        start_col       = ls_position-start_column
+        start_row       = ls_position-start_row
         as_window       = abap_true
         no_intervals    = abap_true
         tree_visible    = abap_false
@@ -48877,7 +48924,7 @@ CLASS ZCL_ABAPGIT_FREE_SEL_DIALOG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_EXCEPTION_VIEWER IMPLEMENTATION.
+CLASS zcl_abapgit_exception_viewer IMPLEMENTATION.
   METHOD add_row.
 
     DATA: lo_row TYPE REF TO cl_salv_form_layout_flow.
@@ -49064,6 +49111,7 @@ CLASS ZCL_ABAPGIT_EXCEPTION_VIEWER IMPLEMENTATION.
           lo_event   TYPE REF TO cl_salv_events_table,
           lo_columns TYPE REF TO cl_salv_columns_table,
           lo_alv     TYPE REF TO cl_salv_table.
+    DATA  ls_position TYPE zcl_abapgit_popups=>ty_popup_position.
 
     TRY.
         cl_salv_table=>factory(
@@ -49076,10 +49124,14 @@ CLASS ZCL_ABAPGIT_EXCEPTION_VIEWER IMPLEMENTATION.
 
         lo_alv->set_top_of_list( build_top_of_list( get_top_of_callstack( ) ) ).
 
-        lo_alv->set_screen_popup( start_column = 10
-                                  end_column   = 180
-                                  start_line   = 3
-                                  end_line     = 30 ).
+        ls_position = zcl_abapgit_popups=>center(
+          iv_width  = 150
+          iv_height = 25 ).
+
+        lo_alv->set_screen_popup( start_column = ls_position-start_column
+                                  end_column   = ls_position-end_column
+                                  start_line   = ls_position-start_row
+                                  end_line     = ls_position-end_row ).
 
         lo_event = lo_alv->get_event( ).
 
@@ -108535,6 +108587,69 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
     show_dependencies_popup( lt_met_status ).
 
   ENDMETHOD.
+  METHOD get_color_table.
+
+    DATA:
+      lo_functional_settings TYPE REF TO cl_salv_functional_settings,
+      lo_hyperlinks          TYPE REF TO cl_salv_hyperlinks,
+      lt_color_negative      TYPE lvc_t_scol,
+      lt_color_normal        TYPE lvc_t_scol,
+      lt_color_positive      TYPE lvc_t_scol,
+      ls_color               TYPE lvc_s_scol,
+      lv_handle              TYPE i,
+      ls_hyperlink           TYPE salv_s_int4_column,
+      lv_hyperlink           TYPE service_rl.
+
+    FIELD-SYMBOLS:
+      <ls_line>       TYPE ty_color_line,
+      <ls_dependency> LIKE LINE OF it_dependencies.
+
+    CLEAR: ls_color.
+    ls_color-color-col = col_negative.
+    APPEND ls_color TO lt_color_negative.
+
+    CLEAR: ls_color.
+    ls_color-color-col = col_normal.
+    APPEND ls_color TO lt_color_normal.
+
+    CLEAR: ls_color.
+    ls_color-color-col = col_positive.
+    APPEND ls_color TO lt_color_positive.
+
+    lo_functional_settings = io_alv->get_functional_settings( ).
+    lo_hyperlinks = lo_functional_settings->get_hyperlinks( ).
+
+    CLEAR: lv_handle, ls_color.
+    LOOP AT it_dependencies ASSIGNING <ls_dependency>.
+      lv_handle = lv_handle + 1.
+
+      APPEND INITIAL LINE TO ct_color_table ASSIGNING <ls_line>.
+      MOVE-CORRESPONDING <ls_dependency> TO <ls_line>.
+
+      CASE <ls_line>-met.
+        WHEN zif_abapgit_definitions=>c_yes.
+          <ls_line>-color     = lt_color_positive.
+          <ls_line>-exception = '3'.
+        WHEN zif_abapgit_definitions=>c_partial.
+          <ls_line>-color     = lt_color_normal.
+          <ls_line>-exception = '2'.
+        WHEN zif_abapgit_definitions=>c_no.
+          <ls_line>-color     = lt_color_negative.
+          <ls_line>-exception = '1'.
+      ENDCASE.
+
+      CLEAR: ls_hyperlink.
+      ls_hyperlink-columnname = 'GIT_URL'.
+      ls_hyperlink-value      = lv_handle.
+      APPEND ls_hyperlink TO <ls_line>-t_hyperlink.
+
+      lv_hyperlink = <ls_line>-git_url.
+      lo_hyperlinks->add_hyperlink( handle    = lv_handle
+                                    hyperlink = lv_hyperlink ).
+
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD get_dependencies_met_status.
 
     DATA: lt_installed_packages TYPE zif_abapgit_apack_definitions=>ty_descriptors,
@@ -108616,59 +108731,23 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
   ENDMETHOD.
   METHOD show_dependencies_popup.
 
-    TYPES:
-      BEGIN OF ty_color_line,
-        exception(1) TYPE c,
-        color        TYPE lvc_t_scol.
-        INCLUDE TYPE ty_dependency_status.
-    TYPES: t_hyperlink TYPE salv_t_int4_column,
-           END OF ty_color_line.
-
-    TYPES: ty_color_tab TYPE STANDARD TABLE OF ty_color_line WITH DEFAULT KEY.
-
-    DATA: lo_alv                 TYPE REF TO cl_salv_table,
-          lo_functional_settings TYPE REF TO cl_salv_functional_settings,
-          lo_hyperlinks          TYPE REF TO cl_salv_hyperlinks,
-          lo_column              TYPE REF TO cl_salv_column,
-          lo_column_table        TYPE REF TO cl_salv_column_table,
-          lo_columns             TYPE REF TO cl_salv_columns_table,
-          lt_columns             TYPE salv_t_column_ref,
-          ls_column              LIKE LINE OF lt_columns,
-          lt_color_table         TYPE ty_color_tab,
-          lt_color_negative      TYPE lvc_t_scol,
-          lt_color_normal        TYPE lvc_t_scol,
-          lt_color_positive      TYPE lvc_t_scol,
-          ls_color               TYPE lvc_s_scol,
-          lv_handle              TYPE i,
-          ls_hyperlink           TYPE salv_s_int4_column,
-          lv_hyperlink           TYPE service_rl,
-          lx_ex                  TYPE REF TO cx_root.
-
-    FIELD-SYMBOLS: <ls_line>       TYPE ty_color_line,
-                   <ls_dependency> LIKE LINE OF it_dependencies.
+    DATA: lo_alv          TYPE REF TO cl_salv_table,
+          lo_column       TYPE REF TO cl_salv_column,
+          lo_column_table TYPE REF TO cl_salv_column_table,
+          lo_columns      TYPE REF TO cl_salv_columns_table,
+          lt_columns      TYPE salv_t_column_ref,
+          ls_column       LIKE LINE OF lt_columns,
+          lt_color_table  TYPE ty_color_tab,
+          ls_position     TYPE zcl_abapgit_popups=>ty_popup_position,
+          lx_ex           TYPE REF TO cx_root.
 
     IF it_dependencies IS INITIAL.
       RETURN.
     ENDIF.
 
-    CLEAR: ls_color.
-    ls_color-color-col = col_negative.
-    APPEND ls_color TO lt_color_negative.
-
-    CLEAR: ls_color.
-    ls_color-color-col = col_normal.
-    APPEND ls_color TO lt_color_normal.
-
-    CLEAR: ls_color.
-    ls_color-color-col = col_positive.
-    APPEND ls_color TO lt_color_positive.
-
     TRY.
         cl_salv_table=>factory( IMPORTING r_salv_table  = lo_alv
                                 CHANGING  t_table       = lt_color_table ).
-
-        lo_functional_settings = lo_alv->get_functional_settings( ).
-        lo_hyperlinks = lo_functional_settings->get_hyperlinks( ).
 
         lo_columns = lo_alv->get_columns( ).
         lt_columns = lo_columns->get( ).
@@ -108698,50 +108777,29 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
 
         lo_column_table ?= lo_column.
         lo_column_table->set_cell_type( if_salv_c_cell_type=>link ).
+
         lo_column = lo_columns->get_column( 'VERSION' ).
         lo_column->set_short_text( 'Version' ).
 
         lo_column = lo_columns->get_column( 'TARGET_PACKAGE' ).
         lo_column->set_technical( ).
 
-        lo_hyperlinks = lo_functional_settings->get_hyperlinks( ).
+        get_color_table(
+          EXPORTING
+            io_alv          = lo_alv
+            it_dependencies = it_dependencies
+          CHANGING
+            ct_color_table  = lt_color_table ).
 
-        CLEAR: lv_handle, ls_color.
-        LOOP AT it_dependencies ASSIGNING <ls_dependency>.
-          lv_handle = lv_handle + 1.
+        ls_position = zcl_abapgit_popups=>center(
+          iv_width  = 90
+          iv_height = 10 ).
 
-          APPEND INITIAL LINE TO lt_color_table ASSIGNING <ls_line>.
-          MOVE-CORRESPONDING <ls_dependency> TO <ls_line>.
+        lo_alv->set_screen_popup( start_column = ls_position-start_column
+                                  end_column   = ls_position-end_column
+                                  start_line   = ls_position-start_row
+                                  end_line     = ls_position-end_row ).
 
-          CASE <ls_line>-met.
-            WHEN zif_abapgit_definitions=>c_yes.
-              <ls_line>-color     = lt_color_positive.
-              <ls_line>-exception = '3'.
-            WHEN zif_abapgit_definitions=>c_partial.
-              <ls_line>-color     = lt_color_normal.
-              <ls_line>-exception = '2'.
-            WHEN zif_abapgit_definitions=>c_no.
-              <ls_line>-color     = lt_color_negative.
-              <ls_line>-exception = '1'.
-          ENDCASE.
-
-          CLEAR: ls_hyperlink.
-          ls_hyperlink-columnname = 'GIT_URL'.
-          ls_hyperlink-value      = lv_handle.
-          APPEND ls_hyperlink TO <ls_line>-t_hyperlink.
-
-          lv_hyperlink = <ls_line>-git_url.
-          lo_hyperlinks->add_hyperlink( handle    = lv_handle
-                                        hyperlink = lv_hyperlink ).
-
-        ENDLOOP.
-
-        UNASSIGN <ls_line>.
-
-        lo_alv->set_screen_popup( start_column = 30
-                                  end_column   = 120
-                                  start_line   = 10
-                                  end_line     = 20 ).
         lo_alv->get_display_settings( )->set_list_header( 'APACK dependencies' ).
         lo_alv->display( ).
 
@@ -109175,6 +109233,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-25T09:17:14.456Z
+* abapmerge 0.14.3 - 2022-01-25T17:41:27.253Z
 ENDINTERFACE.
 ****************************************************
