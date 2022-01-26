@@ -18626,6 +18626,7 @@ CLASS zcl_abapgit_html_form DEFINITION
         !iv_name          TYPE csequence
         !iv_default_value TYPE csequence OPTIONAL
         !iv_hint          TYPE csequence OPTIONAL
+        !iv_condense      TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(ro_self)    TYPE REF TO zcl_abapgit_html_form .
     METHODS option
@@ -35388,6 +35389,9 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     ls_field-default_value = iv_default_value.
     ls_field-hint  = iv_hint.
 
+    " put options into one column instead of side-by-side
+    ls_field-condense = iv_condense.
+
     APPEND ls_field TO mt_fields.
 
     ro_self = me.
@@ -35685,9 +35689,15 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
       ENDIF.
 
       lv_opt_id = |{ is_field-name }{ sy-tabix }|.
+      IF is_field-condense = abap_true.
+        ii_html->add( '<div>' ).
+      ENDIF.
       ii_html->add( |<input type="radio" name="{ is_field-name }" id="{ lv_opt_id }"|
                  && | value="{ lv_opt_value }"{ lv_checked }{ is_attr-autofocus }>| ).
       ii_html->add( |<label for="{ lv_opt_id }">{ <ls_opt>-label }</label>| ).
+      IF is_field-condense = abap_true.
+        ii_html->add( '</div>' ).
+      ENDIF.
     ENDLOOP.
 
     ii_html->add( '</div>' ).
@@ -35768,6 +35778,7 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
       lv_type      TYPE string,
       lv_minlength TYPE string,
       lv_maxlength TYPE string.
+
     ii_html->add( |<label for="{ is_field-name }"{ is_attr-hint }>{ is_field-label }{ is_attr-required }</label>| ).
 
     IF is_attr-error IS NOT INITIAL.
@@ -35789,7 +35800,7 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     IF is_field-min > 0.
       lv_minlength = | minlength={ is_field-min }|.
     ENDIF.
-    IF is_field-max > 0.
+    IF is_field-max > 0 AND is_field-max < cl_abap_math=>max_int4.
       lv_maxlength = | maxlength={ is_field-max }|.
     ENDIF.
 
@@ -109233,6 +109244,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-25T17:41:27.253Z
+* abapmerge 0.14.3 - 2022-01-26T18:55:04.147Z
 ENDINTERFACE.
 ****************************************************
