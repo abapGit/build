@@ -34535,6 +34535,8 @@ CLASS zcl_abapgit_log_viewer IMPLEMENTATION.
         lo_functions = lo_alv->get_functions( ).
         lo_functions->set_all( ).
 
+        lo_alv->get_display_settings( )->set_list_header( |abapGit Log Viewer| ).
+
         lo_columns = lo_alv->get_columns( ).
 
         lo_columns->set_optimize( ).
@@ -109211,6 +109213,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-30T19:12:56.328Z
+* abapmerge 0.14.3 - 2022-01-30T19:20:08.851Z
 ENDINTERFACE.
 ****************************************************
