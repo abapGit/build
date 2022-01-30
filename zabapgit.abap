@@ -2302,7 +2302,6 @@ INTERFACE zif_abapgit_definitions .
       class        TYPE string,
       version      TYPE string,
       delete_tadir TYPE abap_bool,
-      ddic         TYPE abap_bool,
     END OF ty_metadata .
   TYPES:
     BEGIN OF ty_repo_file,
@@ -3206,7 +3205,6 @@ INTERFACE zif_abapgit_objects.
       step_id      TYPE zif_abapgit_definitions=>ty_deserialization_step,
       order        TYPE i,
       descr        TYPE string,
-      is_ddic      TYPE abap_bool,
       syntax_check TYPE abap_bool,
       objects      TYPE ty_deserialization_tt,
     END OF ty_step_data .
@@ -6825,6 +6823,11 @@ CLASS zcl_abapgit_objects_activation DEFINITION
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS clear .
+    CLASS-METHODS is_ddic_type
+      IMPORTING
+        !iv_obj_type     TYPE trobjtype
+      RETURNING
+        VALUE(rv_result) TYPE abap_bool .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -6861,11 +6864,6 @@ CLASS zcl_abapgit_objects_activation DEFINITION
         !iv_logname TYPE ddmass-logname
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS is_ddic_type
-      IMPORTING
-        !iv_obj_type     TYPE trobjtype
-      RETURNING
-        VALUE(rv_result) TYPE abap_bool .
 ENDCLASS.
 CLASS zcl_abapgit_objects_check DEFINITION
   CREATE PUBLIC .
@@ -11774,9 +11772,6 @@ CLASS zcl_abapgit_object_srvd DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         VALUE(ro_object_data_merged) TYPE REF TO if_wb_object_data_model
       RAISING
         zcx_abapgit_exception .
-    METHODS is_ddic
-      RETURNING
-        VALUE(rv_ddic) TYPE abap_bool .
     METHODS is_delete_tadir
       RETURNING
         VALUE(rv_delete_tadir) TYPE abap_bool .
@@ -44772,7 +44767,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
   METHOD build_toolbar.
 
     CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-debug'.
@@ -45008,7 +45003,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
 
     rv_html = rv_html && |<table border="1px"><thead><tr>|.
     rv_html = rv_html && |<td>Object</td><td>Description</td><td>Class</td><td>Version</td>|.
-    rv_html = rv_html && |<td class="center">DDIC</td>|.
     rv_html = rv_html && |<td class="center">Delete TADIR</td><td>Steps</td>|.
     rv_html = rv_html && |</tr></thead><tbody>|.
 
@@ -45052,7 +45046,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
       ls_metadata = li_object->get_metadata( ).
 
       rv_html = rv_html && |<td>{ ls_metadata-version }</td>|.
-      rv_html = rv_html && |<td class="center">{ ls_metadata-ddic }</td>|.
       rv_html = rv_html && |<td class="center">{ ls_metadata-delete_tadir }</td>|.
 
       lt_steps = li_object->get_deserialize_steps( ).
@@ -57744,7 +57737,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
           LOOP AT lt_steps_id ASSIGNING <lv_step_id>.
             READ TABLE lt_steps WITH KEY step_id = <lv_step_id> ASSIGNING <ls_step>.
             ASSERT sy-subrc = 0.
-            IF <ls_step>-is_ddic = abap_true AND li_obj->get_metadata( )-ddic = abap_false.
+            IF <lv_step_id> = zif_abapgit_object=>gc_step_id-ddic AND
+               zcl_abapgit_objects_activation=>is_ddic_type( ls_item-obj_type ) = abap_false.
               " DDIC only for DDIC objects
               zcx_abapgit_exception=>raise( |Step { <lv_step_id> } is only for DDIC objects| ).
             ENDIF.
@@ -57833,9 +57827,9 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     CASE is_step-step_id.
       WHEN zif_abapgit_object=>gc_step_id-ddic.
-        zcl_abapgit_objects_activation=>activate( is_step-is_ddic ).
+        zcl_abapgit_objects_activation=>activate( abap_true ).
       WHEN zif_abapgit_object=>gc_step_id-abap.
-        zcl_abapgit_objects_activation=>activate( is_step-is_ddic ).
+        zcl_abapgit_objects_activation=>activate( abap_false ).
       WHEN zif_abapgit_object=>gc_step_id-late.
         " late can have both DDIC (like TABL with REF TO) and non-DDIC objects
         zcl_abapgit_objects_activation=>activate( abap_true ).
@@ -57881,21 +57875,18 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
     <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-ddic.
     <ls_step>-descr        = 'Import DDIC objects'.
-    <ls_step>-is_ddic      = abap_true.
     <ls_step>-syntax_check = abap_false.
     <ls_step>-order        = 1.
 
     APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
     <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-abap.
     <ls_step>-descr        = 'Import objects main'.
-    <ls_step>-is_ddic      = abap_false.
     <ls_step>-syntax_check = abap_false.
     <ls_step>-order        = 2.
 
     APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
     <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-late.
     <ls_step>-descr        = 'Import late objects'.
-    <ls_step>-is_ddic      = abap_false.
     <ls_step>-syntax_check = abap_true.
     <ls_step>-order        = 3.
   ENDMETHOD.
@@ -61951,7 +61942,6 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-ddic = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -63764,7 +63754,6 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-ddic = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -65747,7 +65736,6 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-ddic = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -68082,9 +68070,6 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
     ro_object_operator = mo_object_operator.
 
   ENDMETHOD.
-  METHOD is_ddic.
-    rv_ddic = abap_false.
-  ENDMETHOD.
   METHOD is_delete_tadir.
     rv_delete_tadir = abap_true.
   ENDMETHOD.
@@ -68321,7 +68306,6 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata              = get_metadata( ).
-    rs_metadata-ddic         = is_ddic( ).
     rs_metadata-delete_tadir = is_delete_tadir( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
@@ -71328,7 +71312,6 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-ddic = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -72122,7 +72105,6 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-ddic = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -72738,7 +72720,6 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-ddic = abap_true.
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
@@ -72935,7 +72916,6 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-ddic = abap_true.
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
@@ -75705,8 +75685,6 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-* Data elements can refer to PARA objects
-    rs_metadata-ddic = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -83025,7 +83003,6 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-ddic = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -84438,7 +84415,6 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-ddic = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -84795,8 +84771,6 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-
-    rs_metadata-ddic         = abap_true.
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
@@ -85307,8 +85281,6 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-
-    rs_metadata-ddic         = abap_true.
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
@@ -85626,7 +85598,6 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-ddic = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -87412,8 +87383,6 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-
-    rs_metadata-ddic         = abap_true.
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
@@ -90098,7 +90067,6 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-ddic         = abap_false.
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
@@ -91213,8 +91181,6 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-
-    rs_metadata-ddic         = abap_true.
     rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
@@ -97925,6 +97891,7 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
       lc_ntab       TYPE c LENGTH 14 VALUE 'NTTT NTTB NTDT',
       lc_ddls       TYPE c LENGTH 14 VALUE 'DDLS DRUL DTDC',
       lc_switches   TYPE c LENGTH 24 VALUE 'SF01 SF02 SFSW SFBS SFBF',
+      lc_para       TYPE c LENGTH 4  VALUE 'PARA', " can be referenced by DTEL
       lc_enhd       TYPE c LENGTH 4  VALUE 'ENHD'.
 
     rv_result = abap_true.
@@ -97932,7 +97899,7 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
        lc_technset NS iv_obj_type AND lc_f4_objects NS iv_obj_type AND
        lc_enqueue  NS iv_obj_type AND lc_sqsc       NS iv_obj_type AND
        lc_stob     NS iv_obj_type AND lc_ntab       NS iv_obj_type AND
-       lc_ddls     NS iv_obj_type AND
+       lc_ddls     NS iv_obj_type AND lc_para       NS iv_obj_type AND
        lc_switches NS iv_obj_type AND iv_obj_type <> lc_enhd.
       rv_result = abap_false.
     ENDIF.
@@ -109244,6 +109211,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-01-30T15:35:15.733Z
+* abapmerge 0.14.3 - 2022-01-30T15:38:51.864Z
 ENDINTERFACE.
 ****************************************************
