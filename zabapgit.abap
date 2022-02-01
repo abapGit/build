@@ -85454,6 +85454,14 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
       WHERE domname = lv_name
       AND ddlanguage <> mv_language.                      "#EC CI_SUBRC
 
+    SELECT DISTINCT ddlanguage AS langu APPENDING TABLE lt_i18n_langs
+      FROM dd07v
+      WHERE domname = lv_name
+      AND ddlanguage <> mv_language.                      "#EC CI_SUBRC
+
+    SORT lt_i18n_langs.
+    DELETE ADJACENT DUPLICATES FROM lt_i18n_langs.
+
     LOOP AT lt_i18n_langs ASSIGNING <lv_lang>.
       lv_index = sy-tabix.
 
@@ -85468,9 +85476,13 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
         EXCEPTIONS
           illegal_input = 1
           OTHERS        = 2.
-      IF sy-subrc <> 0 OR ls_dd01v-ddlanguage IS INITIAL.
+      IF sy-subrc <> 0.
         DELETE lt_i18n_langs INDEX lv_index. " Don't save this lang
         CONTINUE.
+      ENDIF.
+
+      IF ls_dd01v-ddlanguage IS INITIAL.
+        ls_dd01v-ddlanguage = <lv_lang>.
       ENDIF.
 
       APPEND INITIAL LINE TO lt_dd01_texts ASSIGNING <ls_dd01_text>.
@@ -109217,6 +109229,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-01T12:39:56.778Z
+* abapmerge 0.14.3 - 2022-02-01T13:37:28.766Z
 ENDINTERFACE.
 ****************************************************
