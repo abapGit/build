@@ -6820,6 +6820,7 @@ CLASS zcl_abapgit_objects_activation DEFINITION
     CLASS-METHODS activate
       IMPORTING
         !iv_ddic TYPE abap_bool DEFAULT abap_false
+        !ii_log  TYPE REF TO zif_abapgit_log
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS clear .
@@ -6842,26 +6843,33 @@ CLASS zcl_abapgit_objects_activation DEFINITION
     CLASS-DATA:
       gt_objects TYPE TABLE OF dwinactiv .
 
-    CLASS-METHODS update_where_used .
+    CLASS-METHODS update_where_used
+      IMPORTING
+        !ii_log TYPE REF TO zif_abapgit_log.
     CLASS-METHODS use_new_activation_logic
       RETURNING
         VALUE(rv_use_new_activation_logic) TYPE abap_bool .
     CLASS-METHODS activate_new
       IMPORTING
         !iv_ddic TYPE abap_bool DEFAULT abap_false
+        !ii_log  TYPE REF TO zif_abapgit_log
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS activate_old
       IMPORTING
         !iv_ddic TYPE abap_bool DEFAULT abap_false
+        !ii_log  TYPE REF TO zif_abapgit_log
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS activate_ddic
+      IMPORTING
+        !ii_log TYPE REF TO zif_abapgit_log
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS show_activation_errors
+    CLASS-METHODS add_errors_to_log
       IMPORTING
         !iv_logname TYPE ddmass-logname
+        !ii_log     TYPE REF TO zif_abapgit_log
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -25845,7 +25853,7 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
+CLASS zcl_abapgit_log IMPLEMENTATION.
   METHOD constructor.
 
     zif_abapgit_log~set_title( iv_title ).
@@ -26034,6 +26042,7 @@ CLASS ZCL_ABAPGIT_LOG IMPLEMENTATION.
       ls_msg-exception = <ls_log>-exception.
       APPEND ls_msg TO rt_msg.
     ENDLOOP.
+    DELETE ADJACENT DUPLICATES FROM rt_msg.
   ENDMETHOD.
   METHOD zif_abapgit_log~get_status.
 
@@ -57830,13 +57839,21 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     CASE is_step-step_id.
       WHEN zif_abapgit_object=>gc_step_id-ddic.
-        zcl_abapgit_objects_activation=>activate( abap_true ).
+        zcl_abapgit_objects_activation=>activate(
+          iv_ddic = abap_true
+          ii_log  = ii_log ).
       WHEN zif_abapgit_object=>gc_step_id-abap.
-        zcl_abapgit_objects_activation=>activate( abap_false ).
+        zcl_abapgit_objects_activation=>activate(
+          iv_ddic = abap_false
+          ii_log  = ii_log ).
       WHEN zif_abapgit_object=>gc_step_id-late.
         " late can have both DDIC (like TABL with REF TO) and non-DDIC objects
-        zcl_abapgit_objects_activation=>activate( abap_true ).
-        zcl_abapgit_objects_activation=>activate( abap_false ).
+        zcl_abapgit_objects_activation=>activate(
+          iv_ddic = abap_true
+          ii_log  = ii_log ).
+        zcl_abapgit_objects_activation=>activate(
+          iv_ddic = abap_false
+          ii_log  = ii_log ).
     ENDCASE.
 
 *   Call postprocessing
@@ -97699,12 +97716,16 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
     COMMIT WORK AND WAIT.
 
     IF use_new_activation_logic( ) = abap_true.
-      activate_new( iv_ddic ).
+      activate_new(
+        iv_ddic = iv_ddic
+        ii_log  = ii_log ).
     ELSE.
-      activate_old( iv_ddic ).
+      activate_old(
+        iv_ddic = iv_ddic
+        ii_log  = ii_log ).
     ENDIF.
 
-    update_where_used( ).
+    update_where_used( ii_log ).
 
   ENDMETHOD.
   METHOD activate_ddic.
@@ -97771,7 +97792,10 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
       ENDIF.
 
       IF lv_rc > 0.
-        show_activation_errors( lv_logname ).
+        add_errors_to_log(
+          iv_logname = lv_logname
+          ii_log     = ii_log ).
+        zcx_abapgit_exception=>raise( 'Activation cancelled. Check the inactive objects.' ).
       ENDIF.
 
       " Remove objects from activation queue to avoid double activation in activate_old
@@ -97798,14 +97822,14 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
       li_progress->show( iv_current = 98
                          iv_text    = 'Activating DDIC' ).
 
-      activate_ddic( ).
+      activate_ddic( ii_log ).
 
     ELSE.
 
       li_progress->show( iv_current = 98
                          iv_text    = 'Activating non DDIC' ).
 
-      activate_old( ).
+      activate_old( ii_log ).
 
     ENDIF.
 
@@ -97886,6 +97910,39 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD add_errors_to_log.
+
+    DATA: lt_lines      TYPE STANDARD TABLE OF trlog,
+          lv_logname_db TYPE ddprh-protname.
+
+    FIELD-SYMBOLS: <ls_line> LIKE LINE OF lt_lines.
+    lv_logname_db = iv_logname.
+
+    CALL FUNCTION 'TR_READ_LOG'
+      EXPORTING
+        iv_log_type   = 'DB'
+        iv_logname_db = lv_logname_db
+      TABLES
+        et_lines      = lt_lines
+      EXCEPTIONS
+        invalid_input = 1
+        access_error  = 2
+        OTHERS        = 3.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    " Only error messsages
+    DELETE lt_lines WHERE severity <> 'E'.
+    " Remove "Return code..." message
+    DELETE lt_lines WHERE class = 'D0' AND number = '319'.
+
+    LOOP AT lt_lines ASSIGNING <ls_line>.
+      ii_log->add( <ls_line>-line ).
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD add_item.
     add( iv_type = is_item-obj_type
          iv_name = is_item-obj_name ).
@@ -97923,48 +97980,12 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD show_activation_errors.
-
-    DATA: lt_lines      TYPE STANDARD TABLE OF trlog,
-          lv_logname_db TYPE ddprh-protname,
-          li_log        TYPE REF TO zif_abapgit_log.
-
-    FIELD-SYMBOLS: <ls_line> LIKE LINE OF lt_lines.
-    lv_logname_db = iv_logname.
-
-    CALL FUNCTION 'TR_READ_LOG'
-      EXPORTING
-        iv_log_type   = 'DB'
-        iv_logname_db = lv_logname_db
-      TABLES
-        et_lines      = lt_lines
-      EXCEPTIONS
-        invalid_input = 1
-        access_error  = 2
-        OTHERS        = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-    DELETE lt_lines WHERE severity <> 'E'.
-
-    CREATE OBJECT li_log TYPE zcl_abapgit_log.
-    li_log->set_title( 'Activation Errors' ).
-
-    LOOP AT lt_lines ASSIGNING <ls_line>.
-      li_log->add( <ls_line>-line ).
-    ENDLOOP.
-
-    IF li_log->count( ) > 0.
-      zcl_abapgit_log_viewer=>show_log( li_log ).
-    ENDIF.
-
-  ENDMETHOD.
   METHOD update_where_used.
 
     DATA: ls_class    LIKE LINE OF gt_classes,
           lo_cross    TYPE REF TO cl_wb_crossreference,
+          ls_item     TYPE zif_abapgit_definitions=>ty_item,
+          lv_error    TYPE c LENGTH 1,
           lv_include  TYPE programm,
           li_progress TYPE REF TO zif_abapgit_progress.
     li_progress = zcl_abapgit_progress=>get_instance( lines( gt_classes ) ).
@@ -97988,7 +98009,15 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
           p_name    = lv_include
           p_include = lv_include.
 
-      lo_cross->index_actualize( ).
+      lo_cross->index_actualize( IMPORTING p_error = lv_error ).
+
+      IF lv_error = abap_true.
+        ls_item-obj_type = ls_class-object.
+        ls_item-obj_name = ls_class-clsname.
+        ii_log->add(
+          iv_msg  = 'Error updating where-used list'
+          is_item = ls_item ).
+      ENDIF.
     ENDLOOP.
 
   ENDMETHOD.
@@ -109229,6 +109258,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-01T13:37:28.766Z
+* abapmerge 0.14.3 - 2022-02-01T14:25:42.647Z
 ENDINTERFACE.
 ****************************************************
