@@ -53447,8 +53447,9 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
           is_checks = is_checks
           ii_log    = ii_log ).
       CATCH zcx_abapgit_exception INTO lx_error.
-* ensure to reset default transport request task
+        " Ensure to reset default transport request task
         zcl_abapgit_default_transport=>get_instance( )->reset( ).
+        refresh( iv_drop_log = abap_false ).
         RAISE EXCEPTION lx_error.
     ENDTRY.
 
@@ -109301,6 +109302,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-01T15:12:28.730Z
+* abapmerge 0.14.3 - 2022-02-01T15:43:52.861Z
 ENDINTERFACE.
 ****************************************************
