@@ -8594,6 +8594,11 @@ CLASS zcl_abapgit_objects_super DEFINITION
         !ii_xml TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
+    METHODS is_active_ddic
+      RETURNING
+        VALUE(rv_active) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_common_aff DEFINITION
@@ -55630,6 +55635,35 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
 
     rv_active = boolc( ms_item-inactive = abap_false ).
   ENDMETHOD.
+  METHOD is_active_ddic.
+
+    DATA:
+      lv_type  TYPE ddobjtyp,
+      lv_name  TYPE ddobjname,
+      lv_state TYPE ddgotstate.
+
+    ms_item-inactive = abap_false.
+
+    lv_type = ms_item-obj_type.
+    lv_name = ms_item-obj_name.
+
+    CALL FUNCTION 'DDIF_STATE_GET'
+      EXPORTING
+        type          = lv_type
+        name          = lv_name
+        state         = 'A'
+      IMPORTING
+        gotstate      = lv_state
+      EXCEPTIONS
+        illegal_input = 1
+        OTHERS        = 2.
+    IF sy-subrc <> 0 OR lv_state <> 'A'.
+      ms_item-inactive = abap_true.
+    ENDIF.
+
+    rv_active = boolc( ms_item-inactive = abap_false ).
+
+  ENDMETHOD.
   METHOD serialize_longtexts.
 
     zcl_abapgit_factory=>get_longtexts( )->serialize(
@@ -58042,6 +58076,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
   METHOD serialize.
 
     DATA: li_obj         TYPE REF TO zif_abapgit_object,
+          lx_error       TYPE REF TO zcx_abapgit_exception,
           li_xml         TYPE REF TO zif_abapgit_xml_output,
           lo_files       TYPE REF TO zcl_abapgit_objects_files,
           ls_i18n_params TYPE zif_abapgit_definitions=>ty_i18n_params.
@@ -58073,7 +58108,12 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     li_xml->i18n_params( ls_i18n_params ).
 
-    li_obj->serialize( li_xml ).
+    TRY.
+        li_obj->serialize( li_xml ).
+      CATCH zcx_abapgit_exception INTO lx_error.
+        rs_files_and_item-item-inactive = boolc( li_obj->is_active( ) = abap_false ).
+        RAISE EXCEPTION lx_error.
+    ENDTRY.
 
     IF lo_files->is_json_metadata( ) = abap_false.
       lo_files->add_xml( ii_xml      = li_xml
@@ -65761,7 +65801,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
-    rv_active = is_active( ).
+    rv_active = is_active_ddic( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
@@ -65775,6 +65815,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name   TYPE ddobjname,
+          lv_state  TYPE ddgotstate,
           ls_dd02v  TYPE dd02v,
           ls_dd09l  TYPE dd09l,
           lt_dd03p  TYPE ty_dd03p_tt,
@@ -65801,6 +65842,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
         name          = lv_name
         langu         = mv_language
       IMPORTING
+        gotstate      = lv_state
         dd02v_wa      = ls_dd02v
         dd09l_wa      = ls_dd09l
       TABLES
@@ -65818,8 +65860,9 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error from DDIF_TABL_GET' ).
     ENDIF.
 
-    IF ls_dd02v IS INITIAL.
-      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
+    " Check if any active version was returned
+    IF lv_state <> 'A'.
+      RETURN.
     ENDIF.
 
     CLEAR: ls_dd02v-as4user,
@@ -109258,6 +109301,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-01T14:25:42.647Z
+* abapmerge 0.14.3 - 2022-02-01T15:12:28.730Z
 ENDINTERFACE.
 ****************************************************
