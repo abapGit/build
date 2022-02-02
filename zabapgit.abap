@@ -6623,6 +6623,11 @@ CLASS zcl_abapgit_filename_logic DEFINITION
         extension TYPE c LENGTH 3 VALUE 'xml',
       END OF c_package_file.
 
+    CONSTANTS:
+      BEGIN OF c_json_file,
+        extension TYPE c LENGTH 4 VALUE 'json',
+      END OF c_json_file.
+
     CLASS-METHODS file_to_object
       IMPORTING
         !iv_filename TYPE string
@@ -6632,6 +6637,7 @@ CLASS zcl_abapgit_filename_logic DEFINITION
       EXPORTING
         !es_item     TYPE zif_abapgit_definitions=>ty_item
         !ev_is_xml   TYPE abap_bool
+        !ev_is_json  TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS object_to_file
@@ -57668,6 +57674,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
           lt_remote   TYPE zif_abapgit_definitions=>ty_files_tt,
           lv_package  TYPE devclass,
           lo_files    TYPE REF TO zcl_abapgit_objects_files,
+          ls_metadata TYPE zif_abapgit_definitions=>ty_metadata,
           lo_xml      TYPE REF TO zif_abapgit_xml_input,
           lt_results  TYPE zif_abapgit_definitions=>ty_results_tt,
           li_progress TYPE REF TO zif_abapgit_progress,
@@ -57740,9 +57747,10 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
             lv_path = <ls_result>-path.
           ENDIF.
 
+          ls_item-devclass = lv_package.
+
           IF <ls_result>-packmove = abap_true.
             " Move object to new package
-            ls_item-devclass = lv_package.
             change_package_assignments( is_item = ls_item
                                         ii_log  = ii_log ).
             " No other changes required
@@ -57754,14 +57762,21 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
             EXPORTING
               is_item = ls_item
               iv_path = lv_path.
+
           lo_files->set_files( lt_remote ).
 
-          "analyze XML in order to instantiate the proper serializer
-          lo_xml = lo_files->read_xml( ).
+          IF lo_files->is_json_metadata( ) = abap_false.
+            "analyze XML in order to instantiate the proper serializer
+            lo_xml = lo_files->read_xml( ).
+            ls_metadata = lo_xml->get_metadata( ).
+          ELSE.
+            " there's no XML and metadata for JSON format
+            CLEAR: lo_xml, ls_metadata.
+          ENDIF.
 
           li_obj = create_object( is_item     = ls_item
                                   iv_language = io_repo->get_dot_abapgit( )->get_main_language( )
-                                  is_metadata = lo_xml->get_metadata( ) ).
+                                  is_metadata = ls_metadata ).
 
           compare_remote_to_local(
             ii_object = li_obj
@@ -98547,6 +98562,7 @@ CLASS zcl_abapgit_filename_logic IMPLEMENTATION.
     es_item-obj_type = lv_type.
     es_item-obj_name = lv_name.
     ev_is_xml        = boolc( lv_ext = to_upper( c_package_file-extension ) AND strlen( lv_type ) = 4 ).
+    ev_is_json       = boolc( lv_ext = to_upper( c_json_file-extension ) AND strlen( lv_type ) = 4 ).
 
   ENDMETHOD.
   METHOD object_to_file.
@@ -98971,6 +98987,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
     DATA:
       ls_item         LIKE LINE OF ct_items,
       lv_is_xml       TYPE abap_bool,
+      lv_is_json      TYPE abap_bool,
       lv_sub_fetched  TYPE abap_bool,
       lt_sub_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt,
       lv_msg          TYPE string.
@@ -98987,9 +99004,10 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
           iv_devclass = iv_devclass
         IMPORTING
           es_item     = ls_item
-          ev_is_xml   = lv_is_xml ).
+          ev_is_xml   = lv_is_xml
+          ev_is_json  = lv_is_json ).
 
-      CHECK lv_is_xml = abap_true. " only object definitions
+      CHECK lv_is_xml = abap_true OR lv_is_json = abap_true. " only object definitions
 
       ls_item-devclass = get_object_package(
         iv_object   = ls_item-obj_type
@@ -109296,6 +109314,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-02T19:14:52.894Z
+* abapmerge 0.14.3 - 2022-02-02T19:25:37.487Z
 ENDINTERFACE.
 ****************************************************
