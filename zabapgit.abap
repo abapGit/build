@@ -5195,7 +5195,6 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
       RETURNING
         VALUE(rv_head_symref) TYPE string .
 ENDCLASS.
-"! <p class="shorttext synchronized" lang="en">Git Commit</p>
 CLASS zcl_abapgit_git_commit DEFINITION
   CREATE PUBLIC .
 
@@ -109296,6 +109295,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-02T06:35:54.597Z
+* abapmerge 0.14.3 - 2022-02-02T08:29:32.843Z
 ENDINTERFACE.
 ****************************************************
