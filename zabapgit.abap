@@ -20197,6 +20197,8 @@ CLASS zcl_abapgit_xml DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS display_version_mismatch
+      IMPORTING
+        !iv_vers TYPE string
       RAISING
         zcx_abapgit_exception .
     METHODS raise_exception_for
@@ -24875,21 +24877,19 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
   ENDMETHOD.
   METHOD display_version_mismatch.
 
-    DATA: lv_version TYPE string.
-    DATA: lv_file    TYPE string.
+    DATA lv_text TYPE string.
 
-    lv_version = |abapGit version: { zif_abapgit_version=>c_abap_version }|.
+    lv_text = |The XML versions do not match, expected: { zif_abapgit_version=>c_xml_version }, actual: { iv_vers }|.
+
     IF mv_filename IS NOT INITIAL.
-      lv_file = |File: { mv_filename }|.
+      lv_text = lv_text && |, file: { mv_filename }|.
     ENDIF.
 
-    CALL FUNCTION 'POPUP_TO_INFORM'
-      EXPORTING
-        titel = 'abapGit XML version mismatch'
-        txt1  = 'abapGit XML version mismatch'
-        txt2  = 'See https://docs.abapgit.org/other-xml-mismatch.html'
-        txt3  = lv_version
-        txt4  = lv_file.
+    lv_text = lv_text && | (see https://docs.abapgit.org/other-xml-mismatch.html)|.
+
+    zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
+      iv_titlebar      = 'abapGit XML Version Mismatch'
+      iv_text_question = lv_text ).
 
     IF mv_filename IS INITIAL.
       zcx_abapgit_exception=>raise( 'abapGit XML version mismatch' ).
@@ -24936,7 +24936,7 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
     li_version = li_element->if_ixml_node~get_attributes(
       )->get_named_item_ns( c_attr_version ).
     IF li_version->get_value( ) <> zif_abapgit_version=>c_xml_version.
-      display_version_mismatch( ).
+      display_version_mismatch( li_version->get_value( ) ).
     ENDIF.
 
 * buffer serializer metadata. Git node will be removed lateron
@@ -25485,11 +25485,10 @@ CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
 
     show_requirement_popup( lt_met_status ).
 
-    CALL FUNCTION 'POPUP_TO_CONFIRM'
-      EXPORTING
-        text_question = 'The project has unmet requirements. Do you want to continue?'
-      IMPORTING
-        answer        = lv_answer.
+    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
+      iv_titlebar      = 'Warning'
+      iv_text_question = 'The project has unmet requirements. Do you want to continue?' ).
+
     IF lv_answer <> '1'.
       zcx_abapgit_exception=>raise( 'Cancelling because of unmet requirements.' ).
     ENDIF.
@@ -57432,13 +57431,13 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 * before pull, this is useful eg. when overwriting a TABL object.
 * only the main XML file is used for comparison
 
-    DATA: ls_remote_file      TYPE zif_abapgit_definitions=>ty_file,
-          li_remote_version   TYPE REF TO zif_abapgit_xml_input,
-          lv_count            TYPE i,
-          ls_result           TYPE zif_abapgit_comparator=>ty_result,
-          lv_answer           TYPE string,
-          li_comparator       TYPE REF TO zif_abapgit_comparator,
-          ls_item             TYPE zif_abapgit_definitions=>ty_item.
+    DATA: ls_remote_file    TYPE zif_abapgit_definitions=>ty_file,
+          li_remote_version TYPE REF TO zif_abapgit_xml_input,
+          lv_count          TYPE i,
+          ls_result         TYPE zif_abapgit_comparator=>ty_result,
+          lv_answer         TYPE string,
+          li_comparator     TYPE REF TO zif_abapgit_comparator,
+          ls_item           TYPE zif_abapgit_definitions=>ty_item.
 
     FIND ALL OCCURRENCES OF '.' IN is_result-filename MATCH COUNT lv_count.
 
@@ -57478,22 +57477,17 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
       "continue or abort?
       IF zcl_abapgit_ui_factory=>get_frontend_services( )->gui_is_available( ) = abap_true.
-        CALL FUNCTION 'POPUP_TO_CONFIRM'
-          EXPORTING
-            titlebar              = 'Warning'
-            text_question         = ls_result-text
-            text_button_1         = 'Abort'
-            icon_button_1         = 'ICON_CANCEL'
-            text_button_2         = 'Pull anyway'
-            icon_button_2         = 'ICON_OKAY'
-            default_button        = '2'
-            display_cancel_button = abap_false
-          IMPORTING
-            answer                = lv_answer
-          EXCEPTIONS
-            text_not_found        = 1
-            OTHERS                = 2.
-        IF sy-subrc <> 0 OR lv_answer = 1.
+        lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
+          iv_titlebar              = 'Warning'
+          iv_text_question         = ls_result-text
+          iv_text_button_1         = 'Pull Anyway'
+          iv_icon_button_1         = 'ICON_OKAY'
+          iv_text_button_2         = 'Cancel'
+          iv_icon_button_2         = 'ICON_CANCEL'
+          iv_default_button        = '2'
+          iv_display_cancel_button = abap_false ).
+
+        IF lv_answer = '2'.
           zcx_abapgit_exception=>raise( |Deserialization for object { is_result-obj_name } | &
                                         |(type { is_result-obj_type }) aborted by user| ).
         ENDIF.
@@ -109302,6 +109296,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-02T06:32:53.236Z
+* abapmerge 0.14.3 - 2022-02-02T06:35:54.597Z
 ENDINTERFACE.
 ****************************************************
