@@ -99866,7 +99866,7 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
 
         CREATE OBJECT lo_settings TYPE ('CL_AFF_SETTINGS_DESERIALIZE')
           EXPORTING
-            version  = 'I'
+            version  = 'A'
             language = mv_language
             user     = sy-uname.
 
@@ -109295,6 +109295,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-02T08:29:32.843Z
+* abapmerge 0.14.3 - 2022-02-02T19:09:52.269Z
 ENDINTERFACE.
 ****************************************************
