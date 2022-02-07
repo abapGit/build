@@ -99815,6 +99815,17 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
              iv_msgv4    = <ls_msg>-msgv4  ).
         ENDLOOP.
 
+        CALL FUNCTION 'TR_TADIR_INTERFACE'
+          EXPORTING
+            wi_delete_tadir_entry          = abap_true
+            wi_tadir_pgmid                 = 'R3TR'
+            wi_tadir_object                = ms_item-obj_type
+            wi_tadir_obj_name              = ms_item-obj_name
+            wi_tadir_devclass              = ms_item-devclass
+            wi_test_modus                  = abap_false.
+        IF sy-subrc <> 0.
+        ENDIF.
+
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
@@ -99934,6 +99945,7 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
               iv_type = <ls_type>
               is_item = ms_item ).
         ENDLOOP.
+
         tadir_insert( ms_item-devclass ).
 
       CATCH cx_static_check INTO lx_exception.
@@ -109314,6 +109326,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-03T15:26:50.692Z
+* abapmerge 0.14.3 - 2022-02-07T09:13:43.372Z
 ENDINTERFACE.
 ****************************************************
