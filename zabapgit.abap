@@ -41742,11 +41742,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ls_hotkey_action-hotkey = |l|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description   = |abapGit Settings|.
-    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_settings.
-    ls_hotkey_action-hotkey = |x|.
-    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
-
   ENDMETHOD.
 ENDCLASS.
 
@@ -109326,6 +109321,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-07T17:07:02.056Z
+* abapmerge 0.14.3 - 2022-02-07T17:11:48.296Z
 ENDINTERFACE.
 ****************************************************
