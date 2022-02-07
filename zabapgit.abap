@@ -100136,7 +100136,7 @@ CLASS zcl_abapgit_object_chkv IMPLEMENTATION.
 
     DATA: lr_data        TYPE REF TO data,
           lo_chkv_db_api TYPE REF TO object,
-          lv_name        TYPE c LENGTH 120,
+          lv_name        TYPE c LENGTH 180,
           lx_error       TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <ls_chkv_header> TYPE any,
@@ -100155,16 +100155,16 @@ CLASS zcl_abapgit_object_chkv IMPLEMENTATION.
 
         CALL METHOD lo_chkv_db_api->('GET_HEADER')
           EXPORTING
-            name    = lv_name
-            version = 'I'
+            object_key = lv_name
+            version    = 'I'
           RECEIVING
             header  = <ls_chkv_header>.
 
         IF <ls_chkv_header> IS INITIAL.
           CALL METHOD lo_chkv_db_api->('GET_HEADER')
             EXPORTING
-              name    = lv_name
-              version = 'A'
+              object_key = lv_name
+              version    = 'A'
             RECEIVING
               header  = <ls_chkv_header>.
         ENDIF.
@@ -100207,7 +100207,7 @@ CLASS zcl_abapgit_object_chko IMPLEMENTATION.
 
     DATA: lr_data        TYPE REF TO data,
           lo_chko_db_api TYPE REF TO object,
-          lv_name        TYPE c LENGTH 120,
+          lv_name        TYPE c LENGTH 30,
           lx_error       TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <ls_chko_header> TYPE any,
@@ -100278,7 +100278,7 @@ CLASS zcl_abapgit_object_chkc IMPLEMENTATION.
 
     DATA: lr_data        TYPE REF TO data,
           lo_chkc_db_api TYPE REF TO object,
-          lv_name        TYPE c LENGTH 120,
+          lv_name        TYPE c LENGTH 30,
           lx_error       TYPE REF TO cx_root.
 
     FIELD-SYMBOLS: <ls_chkc_header> TYPE any,
@@ -109326,6 +109326,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-07T09:13:43.372Z
+* abapmerge 0.14.3 - 2022-02-07T17:07:02.056Z
 ENDINTERFACE.
 ****************************************************
