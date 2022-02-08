@@ -99819,6 +99819,7 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
             wi_tadir_devclass              = ms_item-devclass
             wi_test_modus                  = abap_false.
         IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise_t100( ).
         ENDIF.
 
       CATCH cx_root INTO lx_error.
@@ -109321,6 +109322,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-07T17:11:48.296Z
+* abapmerge 0.14.3 - 2022-02-08T08:35:01.138Z
 ENDINTERFACE.
 ****************************************************
