@@ -71057,6 +71057,7 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
     CLEAR ls_icfservice-icfnodguid.
     CLEAR ls_icfservice-icfparguid.
     CLEAR ls_icfservice-icfchildno.
+    CLEAR ls_icfservice-icfaliasno.
     CLEAR ls_icfservice-icf_user.
     CLEAR ls_icfservice-icf_cclnt.
     CLEAR ls_icfservice-icf_mclnt.
@@ -109356,6 +109357,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-09T07:49:18.711Z
+* abapmerge 0.14.3 - 2022-02-10T10:59:16.386Z
 ENDINTERFACE.
 ****************************************************
