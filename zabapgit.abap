@@ -3425,6 +3425,11 @@ INTERFACE zif_abapgit_persist_user .
       VALUE(rv_hide) TYPE abap_bool
     RAISING
       zcx_abapgit_exception .
+  METHODS get_show_folders
+    RETURNING
+      VALUE(rv_folders) TYPE abap_bool
+    RAISING
+      zcx_abapgit_exception .
   METHODS get_repo_git_user_email
     IMPORTING
       !iv_url         TYPE zif_abapgit_persistence=>ty_repo-url
@@ -3560,6 +3565,11 @@ INTERFACE zif_abapgit_persist_user .
       VALUE(rv_hide) TYPE abap_bool
     RAISING
       zcx_abapgit_exception .
+  METHODS toggle_show_folders
+    RETURNING
+      VALUE(rv_folders) TYPE abap_bool
+    RAISING
+      zcx_abapgit_exception.
   METHODS get_settings
     RETURNING
       VALUE(rs_user_settings) TYPE zif_abapgit_definitions=>ty_s_user_settings
@@ -13831,6 +13841,7 @@ CLASS zcl_abapgit_persistence_user DEFINITION
         favorites        TYPE ty_favorites,
         repo_config      TYPE ty_repo_configs,
         settings         TYPE zif_abapgit_definitions=>ty_s_user_settings,
+        show_folders     TYPE abap_bool,
       END OF ty_user .
 
     DATA mv_user TYPE sy-uname .
@@ -41052,6 +41063,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
         mv_order_by = lo_persistence_user->get_order_by( ).
         mv_order_descending = lo_persistence_user->get_order_descending( ).
         mv_diff_first = lo_persistence_user->get_diff_first( ).
+        mv_show_folders = lo_persistence_user->get_show_folders( ).
 
         ms_control-page_title = 'Repository'.
         ms_control-page_menu = build_main_menu( ).
@@ -41682,7 +41694,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN c_actions-toggle_folders.    " Toggle folder view
-        mv_show_folders = boolc( mv_show_folders <> abap_true ).
+        mv_show_folders = zcl_abapgit_persistence_user=>get_instance( )->toggle_show_folders( ).
         mv_cur_dir      = '/'. " Root
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
@@ -54465,6 +54477,12 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
     rv_hide = ms_user-hide_files.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_persist_user~get_show_folders.
+
+    rv_folders = ms_user-show_folders.
+
+  ENDMETHOD.
   METHOD zif_abapgit_persist_user~get_repo_git_user_email.
 
     rv_email = read_repo_config( iv_url )-git_user-email.
@@ -54620,6 +54638,13 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
 
     rv_hide = ms_user-hide_files.
 
+  ENDMETHOD.
+
+  METHOD zif_abapgit_persist_user~toggle_show_folders.
+    ms_user-show_folders = boolc( ms_user-show_folders = abap_false ).
+    update( ).
+
+    rv_folders = ms_user-show_folders.
   ENDMETHOD.
 
   METHOD zif_abapgit_persist_user~get_diff_first.
@@ -109357,6 +109382,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-10T10:59:16.386Z
+* abapmerge 0.14.3 - 2022-02-10T11:02:52.415Z
 ENDINTERFACE.
 ****************************************************
