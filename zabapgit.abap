@@ -57774,10 +57774,12 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     check_objects_locked( iv_language = io_repo->get_dot_abapgit( )->get_main_language( )
                           it_items    = lt_items ).
 
+    ii_log->add_success( |Prepare Deserialize| ).
+
     lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
     LOOP AT lt_results ASSIGNING <ls_result>.
       li_progress->show( iv_current = sy-tabix
-                         iv_text    = |Deserialize { <ls_result>-obj_name }| ).
+                         iv_text    = |Prepare Deserialize: { <ls_result>-obj_type } { <ls_result>-obj_name }| ).
 
       CLEAR ls_item.
       ls_item-obj_type = <ls_result>-obj_type.
@@ -57871,6 +57873,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     ENDLOOP.
 
+    li_progress->off( ).
+
     "run deserialize for all steps and it's objects
     SORT lt_steps BY order.
     LOOP AT lt_steps ASSIGNING <ls_step>.
@@ -57890,8 +57894,6 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     zcl_abapgit_default_transport=>get_instance( )->reset( ).
 
-    li_progress->off( ).
-
   ENDMETHOD.
   METHOD deserialize_checks.
 
@@ -57907,12 +57909,15 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_obj> LIKE LINE OF is_step-objects.
     zcl_abapgit_objects_activation=>clear( ).
 
+    ii_log->add_success( |Step { is_step-order } - { is_step-descr }| ).
+
     li_progress = zcl_abapgit_progress=>get_instance( lines( is_step-objects ) ).
 
     LOOP AT is_step-objects ASSIGNING <ls_obj>.
       li_progress->show(
         iv_current = sy-tabix
-        iv_text    = |Deserialize { is_step-descr } - { <ls_obj>-item-obj_name }| ).
+        iv_text    = |Step { is_step-order } - { is_step-descr }:| &&
+                     | { <ls_obj>-item-obj_type } { <ls_obj>-item-obj_name }| ).
 
       TRY.
           <ls_obj>-obj->deserialize( iv_package   = <ls_obj>-package
@@ -57934,6 +57939,9 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     ENDLOOP.
 
+    li_progress->show( iv_current = lines( is_step-objects )
+                       iv_text    = |Step { is_step-order } - Activating Objects| ).
+
     CASE is_step-step_id.
       WHEN zif_abapgit_object=>gc_step_id-ddic.
         zcl_abapgit_objects_activation=>activate(
@@ -57952,6 +57960,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
           iv_ddic = abap_false
           ii_log  = ii_log ).
     ENDCASE.
+
+    li_progress->off( ).
 
 *   Call postprocessing
     li_exit = zcl_abapgit_exit=>get_instance( ).
@@ -57991,19 +58001,19 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
     <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-ddic.
-    <ls_step>-descr        = 'Import DDIC objects'.
+    <ls_step>-descr        = 'Deserialize DDIC Objects'.
     <ls_step>-syntax_check = abap_false.
     <ls_step>-order        = 1.
 
     APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
     <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-abap.
-    <ls_step>-descr        = 'Import objects main'.
+    <ls_step>-descr        = 'Deserialize non-DDIC Objects'.
     <ls_step>-syntax_check = abap_false.
     <ls_step>-order        = 2.
 
     APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
     <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-late.
-    <ls_step>-descr        = 'Import late objects'.
+    <ls_step>-descr        = 'Post-process Objects'.
     <ls_step>-syntax_check = abap_true.
     <ls_step>-order        = 3.
   ENDMETHOD.
@@ -97917,25 +97927,15 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
   ENDMETHOD.
   METHOD activate_new.
 
-    DATA: li_progress TYPE REF TO zif_abapgit_progress.
-
     IF gt_objects IS INITIAL.
       RETURN.
     ENDIF.
 
-    li_progress = zcl_abapgit_progress=>get_instance( 100 ).
-
     IF iv_ddic = abap_true.
-
-      li_progress->show( iv_current = 98
-                         iv_text    = 'Activating DDIC' ).
 
       activate_ddic( ii_log ).
 
     ELSE.
-
-      li_progress->show( iv_current = 98
-                         iv_text    = 'Activating non DDIC' ).
 
       activate_old( ii_log ).
 
@@ -98094,17 +98094,9 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
           lo_cross    TYPE REF TO cl_wb_crossreference,
           ls_item     TYPE zif_abapgit_definitions=>ty_item,
           lv_error    TYPE c LENGTH 1,
-          lv_include  TYPE programm,
-          li_progress TYPE REF TO zif_abapgit_progress.
-    li_progress = zcl_abapgit_progress=>get_instance( lines( gt_classes ) ).
+          lv_include  TYPE programm.
 
     LOOP AT gt_classes INTO ls_class.
-      IF sy-tabix MOD 20 = 0.
-        li_progress->show(
-          iv_current = sy-tabix
-          iv_text    = 'Updating where-used lists' ).
-      ENDIF.
-
       CASE ls_class-object.
         WHEN 'CLAS'.
           lv_include = cl_oo_classname_service=>get_classpool_name( ls_class-clsname ).
@@ -109383,6 +109375,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-14T07:23:06.675Z
+* abapmerge 0.14.3 - 2022-02-14T07:26:27.497Z
 ENDINTERFACE.
 ****************************************************
