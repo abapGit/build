@@ -9532,6 +9532,11 @@ CLASS zcl_abapgit_object_dtel DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
     CONSTANTS c_longtext_id_dtel TYPE dokil-id VALUE 'DE' ##NO_TEXT.
 
+    METHODS is_abapclass_or_abapinterface
+      IMPORTING
+        !iv_reference_name                   TYPE clike
+      RETURNING
+        VALUE(rv_abapclass_or_abapinterface) TYPE abap_bool .
     METHODS serialize_texts
       IMPORTING
         !ii_xml TYPE REF TO zif_abapgit_xml_output
@@ -84407,6 +84412,25 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD is_abapclass_or_abapinterface.
+
+    DATA ls_cifkey TYPE seoclskey.
+
+    ls_cifkey-clsname = iv_reference_name.
+
+    CALL FUNCTION 'SEO_CLIF_GET'
+      EXPORTING
+        cifkey       = ls_cifkey
+      EXCEPTIONS
+        not_existing = 1
+        deleted      = 2
+        model_only   = 3
+        OTHERS       = 4.
+
+    IF sy-subrc = 0.
+      rv_abapclass_or_abapinterface = abap_true.
+    ENDIF.
+  ENDMETHOD.
   METHOD serialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -84493,7 +84517,9 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
                   CHANGING cg_data = ls_dd04v ).
 
     " DDIC Step: Replace REF TO class/interface with generic reference to avoid cyclic dependency
-    IF iv_step = zif_abapgit_object=>gc_step_id-ddic AND ls_dd04v-datatype = 'REF'.
+    IF iv_step = zif_abapgit_object=>gc_step_id-ddic AND ls_dd04v-datatype = 'REF'
+      AND is_abapclass_or_abapinterface( ls_dd04v-domname ) = abap_true.
+
       ls_dd04v-rollname = 'OBJECT'.
     ELSEIF iv_step = zif_abapgit_object=>gc_step_id-late AND ls_dd04v-datatype <> 'REF'.
       RETURN. " already active
@@ -109376,6 +109402,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-15T05:38:55.256Z
+* abapmerge 0.14.3 - 2022-02-15T06:40:23.218Z
 ENDINTERFACE.
 ****************************************************
