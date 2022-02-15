@@ -81150,6 +81150,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
       APPEND lv_maintviewname TO rt_includes.
     ENDIF.
 
+    SORT rt_includes.
     IF lines( rt_includes ) > 0.
       " check which includes have their own tadir entry
       " these includes might reside in a different package or might be shared between multiple function groups
@@ -109375,6 +109376,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-14T08:09:46.819Z
+* abapmerge 0.14.3 - 2022-02-15T05:38:55.256Z
 ENDINTERFACE.
 ****************************************************
