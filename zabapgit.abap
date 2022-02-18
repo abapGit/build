@@ -3169,6 +3169,8 @@ INTERFACE zif_abapgit_object .
     RAISING
       zcx_abapgit_exception .
   METHODS jump
+    RETURNING
+      VALUE(rv_exit) TYPE abap_bool
     RAISING
       zcx_abapgit_exception .
   METHODS get_metadata
@@ -57350,6 +57352,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
   METHOD zif_abapgit_object~jump.
 
     CALL METHOD mo_plugin->('ZIF_ABAPGITP_PLUGIN~JUMP').
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -58108,16 +58111,20 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Object { is_item-obj_type } { is_item-obj_name } doesn't exist| ).
     ENDIF.
 
-    " Open object in new window
-    lv_exit = zcl_abapgit_ui_factory=>get_gui_jumper( )->jump(
-      is_item         = is_item
-      iv_sub_obj_name = iv_sub_obj_name
-      iv_sub_obj_type = iv_sub_obj_type
-      iv_line_number  = iv_line_number ).
+    " First priority object-specific handler
+    lv_exit = li_obj->jump( ).
 
-    " If all fails, try object-specific handler
-    IF lv_exit IS INITIAL.
-      li_obj->jump( ).
+    IF lv_exit = abap_false.
+      " Open object in new window with generic jumper
+      lv_exit = zcl_abapgit_ui_factory=>get_gui_jumper( )->jump(
+        is_item         = is_item
+        iv_sub_obj_name = iv_sub_obj_name
+        iv_sub_obj_type = iv_sub_obj_type
+        iv_line_number  = iv_line_number ).
+    ENDIF.
+
+    IF lv_exit = abap_false.
+      zcx_abapgit_exception=>raise( |Jump to { is_item-obj_type } { is_item-obj_name } not possible| ).
     ENDIF.
 
   ENDMETHOD.
@@ -61799,6 +61806,8 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
       iv_tcode   = 'SMW0'
       it_bdcdata = lt_bdcdata ).
 
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -62374,6 +62383,8 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
       iv_tcode   = 'SE54'
       it_bdcdata = lt_bcdata ).
 
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -62857,6 +62868,8 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SD11'
       it_bdcdata = lt_bdcdata ).
+
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -63421,6 +63434,8 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
     zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SD11'
       it_bdcdata = lt_bdcdata ).
+
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -64619,6 +64634,8 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
       iv_tcode      = 'SE93'
       it_bdcdata    = lt_bdcdata ).
 
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -64875,9 +64892,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
         jump_not_possible = 1
         OTHERS            = 2.
 
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Jump not possible. Subrc={ sy-subrc } from TR_OBJECT_JUMP_TO_TOOL| ).
-    ENDIF.
+    rv_exit = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -66528,6 +66543,8 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
       EXPORTING
         object = mv_objectname.
 
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -67047,6 +67064,8 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
       EXPORTING
         objclass = lv_objclass.
 
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -67120,9 +67139,6 @@ CLASS zcl_abapgit_object_sucu IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
-
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -67248,6 +67264,8 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
     zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SE72'
       it_bdcdata = lt_bcdata ).
+
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -67399,9 +67417,6 @@ CLASS ZCL_ABAPGIT_OBJECT_STVI IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
-
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -67603,6 +67618,8 @@ CLASS zcl_abapgit_object_ssst IMPLEMENTATION.
     zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SMARTSTYLES'
       it_bdcdata = lt_bcdata ).
+
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -67985,6 +68002,8 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
     zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SMARTFORMS'
       it_bdcdata = lt_bdcdata ).
+
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -69643,9 +69662,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SPPF IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
-
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -69715,7 +69731,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SPLO IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    zcx_abapgit_exception=>raise( 'todo, jump, SPLO' ).
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -71079,6 +71094,8 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
       iv_tcode   = 'SICF'
       it_bdcdata = lt_bcdata ).
 
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -71337,6 +71354,8 @@ CLASS zcl_abapgit_object_shma IMPLEMENTATION.
     zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SHMA'
       it_bdcdata = lt_bcdata ).
+
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -71617,7 +71636,6 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI8 IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    zcx_abapgit_exception=>raise( |TODO: Jump SHI8| ).
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -71746,6 +71764,9 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
         originals_only       = abap_true
       TABLES
         show_only_extensions = lt_extension.
+
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -72015,10 +72036,10 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
     CASE ls_head-type.
       WHEN 'BMENU'.
         jump_se43( ).
+        rv_exit = abap_true.
       WHEN 'GHIER'.
         jump_sbach04( ).
-      WHEN OTHERS.
-        zcx_abapgit_exception=>raise( |Jump for type { ls_head-type } not implemented| ).
+        rv_exit = abap_true.
     ENDCASE.
 
   ENDMETHOD.
@@ -73251,9 +73272,6 @@ CLASS zcl_abapgit_object_scvi IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
-
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -73627,6 +73645,8 @@ CLASS zcl_abapgit_object_scp1 IMPLEMENTATION.
         TO MEMORY ID 'SCPR3_PARAMETER'.
 
     SUBMIT scpr3 AND RETURN.
+
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -75053,6 +75073,8 @@ CLASS zcl_abapgit_object_pers IMPLEMENTATION.
     zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'PERSREG'
       it_bdcdata = lt_bcdata ).
+
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -76971,9 +76993,9 @@ CLASS ZCL_ABAPGIT_OBJECT_NSPC IMPLEMENTATION.
         unknown_field_in_dba_sellist = 12
         view_not_found               = 13
         OTHERS                       = 14.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+
+    rv_exit = boolc( sy-subrc = 0 ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -77203,6 +77225,8 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
     zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SNRO'
       it_bdcdata = lt_bcdata ).
+
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -77758,6 +77782,8 @@ CLASS zcl_abapgit_object_jobd IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -77869,6 +77895,8 @@ CLASS zcl_abapgit_object_iwvb IMPLEMENTATION.
       WITH ip_avers = ms_item-obj_name+32(4)
       AND RETURN.
 
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -77952,6 +77980,8 @@ CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
       iv_tcode   = '/IWBEP/REG_SERVICE'
       it_bdcdata = lt_bdcdata ).
 
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -78010,9 +78040,6 @@ CLASS zcl_abapgit_object_iwsg IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
-
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -78076,6 +78103,8 @@ CLASS zcl_abapgit_object_iwpr IMPLEMENTATION.
       WITH i_prname = ms_item-obj_name
       AND RETURN.
 
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -78134,9 +78163,6 @@ CLASS zcl_abapgit_object_iwom IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
-
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -78219,6 +78245,8 @@ CLASS zcl_abapgit_object_iwmo IMPLEMENTATION.
     zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = '/IWBEP/REG_MODEL'
       it_bdcdata = lt_bdcdata ).
+
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -78525,7 +78553,6 @@ CLASS ZCL_ABAPGIT_OBJECT_IOBJ IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    zcx_abapgit_exception=>raise( |Jump to InfoObjects is not yet supported| ).
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -79047,6 +79074,8 @@ CLASS zcl_abapgit_object_iext IMPLEMENTATION.
       iv_tcode   = 'WE30'
       it_bdcdata = lt_bdcdata ).
 
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -79236,6 +79265,8 @@ CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
     zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'WE30'
       it_bdcdata = lt_bdcdata ).
+
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -80627,9 +80658,6 @@ CLASS zcl_abapgit_object_g4bs IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
-
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -80688,9 +80716,6 @@ CLASS zcl_abapgit_object_g4ba IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
-
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -82115,6 +82140,8 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
       iv_tcode   = 'SE71'
       it_bdcdata = lt_bdcdata ).
 
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -82857,6 +82884,8 @@ CLASS zcl_abapgit_object_fdt0 IMPLEMENTATION.
     ELSE.
       zcx_abapgit_exception=>raise( 'Could not open BRF+ Workbench' ).
     ENDIF.
+
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -85150,9 +85179,7 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
         object_not_found = 2
         OTHERS           = 3.
 
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    rv_exit = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -85954,9 +85981,6 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( 'todo, jump DOCV' ).
-
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -86078,6 +86102,8 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
     zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SE61'
       it_bdcdata = lt_bcdata ).
+
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -86222,9 +86248,7 @@ CLASS zcl_abapgit_object_dial IMPLEMENTATION.
         object_not_found = 1
         OTHERS           = 2.
 
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    rv_exit = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -87587,12 +87611,10 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
       IMPORTING
         typekind = lv_ddtypekind.
 
-    CASE lv_ddtypekind.
-      WHEN 'STOB'.
-        open_adt_stob( ms_item-obj_name ).
-      WHEN OTHERS.
-        zcx_abapgit_exception=>raise( 'DDLS Jump Error' ).
-    ENDCASE.
+    IF lv_ddtypekind = 'STOB'.
+      open_adt_stob( ms_item-obj_name ).
+      rv_exit = abap_true.
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -87977,9 +87999,6 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
-
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -88277,6 +88296,8 @@ CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
         i_display    = abap_true
       CHANGING
         img_activity = lv_img_activity.
+
+    rv_exit = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -88606,7 +88627,6 @@ CLASS ZCL_ABAPGIT_OBJECT_CMOD IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    zcx_abapgit_exception=>raise( |Jump to CMOD is not supported| ).
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -89510,6 +89530,8 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
     zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SCDO'
       it_bdcdata = lt_bdcdata ).
+
+    rv_exit = abap_true.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -90443,9 +90465,6 @@ CLASS ZCL_ABAPGIT_OBJECT_AVAS IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |Todo, AVAS jump| ).
-
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -90627,7 +90646,6 @@ CLASS ZCL_ABAPGIT_OBJECT_AVAR IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    zcx_abapgit_exception=>raise( |Jump to AVAR is not supported| ).
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -90775,6 +90793,7 @@ CLASS ZCL_ABAPGIT_OBJECT_AUTH IMPLEMENTATION.
         EXPORTING
           id_field    = mv_fieldname
           id_wbo_mode = abap_false.
+      rv_exit = abap_true.
     ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -90842,9 +90861,6 @@ CLASS zcl_abapgit_object_asfc IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-
-    zcx_abapgit_exception=>raise( |TODO: Jump| ).
-
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -91040,7 +91056,6 @@ CLASS zcl_abapgit_object_area IMPLEMENTATION.
     rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ERSDAREA' ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    zcx_abapgit_exception=>raise( |Jump to AREA is not yet supported| ).
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -91714,6 +91729,9 @@ CLASS ZCL_ABAPGIT_OBJECT_AIFC IMPLEMENTATION.
     APPEND ls_param TO lt_params.
 
     SUBMIT (lv_report) WITH SELECTION-TABLE lt_params AND RETURN.
+
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
     DATA: lx_root TYPE REF TO cx_root.
@@ -109402,6 +109420,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-15T06:40:23.218Z
+* abapmerge 0.14.3 - 2022-02-18T04:49:45.755Z
 ENDINTERFACE.
 ****************************************************
