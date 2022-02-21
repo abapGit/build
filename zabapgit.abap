@@ -28324,6 +28324,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border-radius: 3px;' ).
     lo_buf->add( '  font-size: smaller;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.dialog-commands input[type="button"],' ).
     lo_buf->add( '.dialog li.dialog-commands input[type="submit"] {' ).
     lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  padding: 6px 12px;' ).
@@ -28355,6 +28356,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.dialog input[type="checkbox"] + label {' ).
     lo_buf->add( '  display: inline-block;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '.dialog input[type="password"],' ).
     lo_buf->add( '.dialog input[type="text"] {' ).
     lo_buf->add( '  width: 100%;' ).
     lo_buf->add( '  box-sizing: border-box;' ).
@@ -28414,6 +28416,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.dialog li.with-command div.command-container {' ).
     lo_buf->add( '  display: table-cell;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.with-command input[type="button"],' ).
     lo_buf->add( '.dialog li.with-command input[type="submit"] {' ).
     lo_buf->add( '  height: 2.5em;' ).
     lo_buf->add( '}' ).
@@ -29029,6 +29032,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  background-color: #64a8ff;' ).
     lo_buf->add( '  color: #fff;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.with-command input[type="button"]:hover,' ).
     lo_buf->add( '.dialog li.with-command input[type="submit"]:hover {' ).
     lo_buf->add( '  background-color: #64a8ff;' ).
     lo_buf->add( '  color: #fff;' ).
@@ -29285,6 +29289,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  background-color: #64a8ff;' ).
     lo_buf->add( '  color: #fff;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.with-command input[type="button"]:hover,' ).
     lo_buf->add( '.dialog li.with-command input[type="submit"]:hover {' ).
     lo_buf->add( '  background-color: #64a8ff;' ).
     lo_buf->add( '  color: #fff;' ).
@@ -109457,6 +109462,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-20T10:39:55.974Z
+* abapmerge 0.14.3 - 2022-02-21T15:39:27.748Z
 ENDINTERFACE.
 ****************************************************
