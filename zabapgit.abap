@@ -17385,9 +17385,10 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS get_item_class
       IMPORTING
-        !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
+        !is_item         TYPE zif_abapgit_definitions=>ty_repo_item
+        iv_is_object_row TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(rv_html) TYPE string .
+        VALUE(rv_html)   TYPE string .
     METHODS get_item_icon
       IMPORTING
         !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
@@ -27440,7 +27441,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  border-radius: 3px;' ).
     lo_buf->add( '  width: 100%;' ).
-    lo_buf->add( '  line-height: 1.5;' ).
+    lo_buf->add( '  line-height: 1.2;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab th {' ).
     lo_buf->add( '  text-align: left;' ).
@@ -27449,7 +27450,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  font-weight: normal;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab td {' ).
-    lo_buf->add( '  border-top: 1px solid;' ).
     lo_buf->add( '  vertical-align: middle;' ).
     lo_buf->add( '  padding-top: 2px;' ).
     lo_buf->add( '  padding-bottom: 2px;' ).
@@ -27482,6 +27482,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.repo_tab td.files {' ).
     lo_buf->add( '  padding-left: 0.5em;' ).
     lo_buf->add( '  line-height: 1.5;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.repo_tab tr.object_row{' ).
+    lo_buf->add( '  border-top: 1px solid;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '.repo_tab td.cmd, .repo_tab th.cmd {' ).
@@ -28638,6 +28642,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab td {' ).
     lo_buf->add( '  color: #333;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.repo_tab tr.object_row{' ).
     lo_buf->add( '  border-top-color: var(--theme-table-border-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab .inactive      { color: orange; }' ).
@@ -40695,7 +40702,7 @@ CLASS zcl_abapgit_gui_page_run_bckg IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -41135,6 +41142,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
 
     DATA lt_class TYPE TABLE OF string.
 
+    IF iv_is_object_row = abap_true.
+      APPEND 'object_row' TO lt_class.
+    ELSE.
+      APPEND 'file_row' TO lt_class.
+    ENDIF.
+
     IF is_item-is_dir = abap_true.
       APPEND 'folder' TO lt_class.
     ELSEIF is_item-changes > 0.
@@ -41438,7 +41451,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ri_html->add( |<tr{ get_item_class( is_item ) }>| ).
+    ri_html->add( |<tr{ get_item_class( is_item = is_item
+                                        iv_is_object_row = abap_true ) }>| ).
 
     IF is_item-obj_name IS INITIAL AND is_item-is_dir = abap_false.
       ri_html->add( |<td colspan="2"></td>|
@@ -109451,6 +109465,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-21T16:21:25.896Z
+* abapmerge 0.14.3 - 2022-02-21T16:38:25.017Z
 ENDINTERFACE.
 ****************************************************
