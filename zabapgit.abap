@@ -63890,9 +63890,9 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
                   CHANGING cg_data = ls_dd40v ).
 
     " DDIC Step: Replace REF TO class/interface with generic reference to avoid cyclic dependency
-    IF iv_step = zif_abapgit_object=>gc_step_id-ddic AND ls_dd40v-datatype = 'REF'.
+    IF iv_step = zif_abapgit_object=>gc_step_id-ddic AND ls_dd40v-rowkind = 'R'.
       ls_dd40v-rowtype = 'OBJECT'.
-    ELSEIF iv_step = zif_abapgit_object=>gc_step_id-late AND ls_dd40v-datatype <> 'REF'.
+    ELSEIF iv_step = zif_abapgit_object=>gc_step_id-late AND ls_dd40v-rowkind <> 'R'.
       RETURN. " already active
     ENDIF.
 
@@ -65793,7 +65793,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
       ENDIF.
 
       " DDIC Step: Replace REF TO class/interface with generic reference to avoid cyclic dependency
-      LOOP AT lt_dd03p ASSIGNING <ls_dd03p> WHERE datatype = 'REF'.
+      LOOP AT lt_dd03p ASSIGNING <ls_dd03p> WHERE comptype = 'R' AND ( reftype = 'C' OR reftype = 'I' ).
         IF iv_step = zif_abapgit_object=>gc_step_id-ddic.
           <ls_dd03p>-rollname = 'OBJECT'.
         ELSE.
@@ -84598,7 +84598,6 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
 
     " DDIC Step: Replace REF TO class/interface with generic reference to avoid cyclic dependency
     IF iv_step = zif_abapgit_object=>gc_step_id-ddic AND is_ref_to_class_or_interface( ls_dd04v ) = abap_true.
-
       ls_dd04v-domname = 'OBJECT'.
     ELSEIF iv_step = zif_abapgit_object=>gc_step_id-late AND is_ref_to_class_or_interface( ls_dd04v ) = abap_false.
       RETURN. " already active
@@ -109474,6 +109473,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-25T09:42:09.779Z
+* abapmerge 0.14.3 - 2022-02-27T16:23:57.888Z
 ENDINTERFACE.
 ****************************************************
