@@ -12320,6 +12320,13 @@ CLASS zcl_abapgit_object_ttyp DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    METHODS is_ref_to_class_or_interface
+      IMPORTING
+        !is_dd40v        TYPE dd40v
+      RETURNING
+        VALUE(rv_result) TYPE abap_bool .
+
 ENDCLASS.
 CLASS zcl_abapgit_object_type DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -63859,6 +63866,15 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
+  METHOD is_ref_to_class_or_interface.
+
+    IF is_dd40v-rowkind = 'R'
+        AND ( is_dd40v-reftype = 'C'
+           OR is_dd40v-reftype = 'I' ).
+      rv_result = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd40l INTO rv_user
@@ -63890,9 +63906,9 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
                   CHANGING cg_data = ls_dd40v ).
 
     " DDIC Step: Replace REF TO class/interface with generic reference to avoid cyclic dependency
-    IF iv_step = zif_abapgit_object=>gc_step_id-ddic AND ls_dd40v-rowkind = 'R'.
+    IF iv_step = zif_abapgit_object=>gc_step_id-ddic AND is_ref_to_class_or_interface( ls_dd40v ) = abap_true.
       ls_dd40v-rowtype = 'OBJECT'.
-    ELSEIF iv_step = zif_abapgit_object=>gc_step_id-late AND ls_dd40v-rowkind <> 'R'.
+    ELSEIF iv_step = zif_abapgit_object=>gc_step_id-late AND is_ref_to_class_or_interface( ls_dd40v ) = abap_false.
       RETURN. " already active
     ENDIF.
 
@@ -109473,6 +109489,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-02-27T16:23:57.888Z
+* abapmerge 0.14.3 - 2022-02-27T16:46:13.996Z
 ENDINTERFACE.
 ****************************************************
