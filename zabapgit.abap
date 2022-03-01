@@ -3881,14 +3881,15 @@ INTERFACE zif_abapgit_popups .
     RAISING
       zcx_abapgit_exception .
   TYPES ty_char1 TYPE c LENGTH 1.
+  TYPES ty_icon TYPE c LENGTH 30.
   METHODS popup_to_confirm
     IMPORTING
       !iv_titlebar              TYPE clike
       !iv_text_question         TYPE clike
       !iv_text_button_1         TYPE clike DEFAULT 'Yes'
-      !iv_icon_button_1         TYPE clike DEFAULT space
+      !iv_icon_button_1         TYPE ty_icon DEFAULT space
       !iv_text_button_2         TYPE clike DEFAULT 'No'
-      !iv_icon_button_2         TYPE clike DEFAULT space
+      !iv_icon_button_2         TYPE ty_icon DEFAULT space
       !iv_default_button        TYPE ty_char1 DEFAULT '1'
       !iv_display_cancel_button TYPE ty_char1 DEFAULT abap_true
     RETURNING
@@ -109595,6 +109596,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-03-01T06:30:54.580Z
+* abapmerge 0.14.3 - 2022-03-01T07:03:16.375Z
 ENDINTERFACE.
 ****************************************************
