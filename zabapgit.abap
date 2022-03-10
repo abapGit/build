@@ -68179,11 +68179,10 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
 
     FIELD-SYMBOLS: <lv_value> TYPE data.
 
-    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_metadata
-           TO <lv_value>.
-    ASSERT sy-subrc = 0.
-
-    CLEAR: <lv_value>.
+    ASSIGN COMPONENT iv_fieldname OF STRUCTURE cs_metadata TO <lv_value>.
+    IF sy-subrc = 0.
+      CLEAR: <lv_value>.
+    ENDIF.
 
   ENDMETHOD.
   METHOD clear_fields.
@@ -68245,6 +68244,11 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
     clear_field(
       EXPORTING
         iv_fieldname = 'ABAP_LANGUAGE_VERSION'
+      CHANGING
+        cs_metadata  = cs_metadata ).
+    clear_field(
+      EXPORTING
+        iv_fieldname = 'ABAP_LANGU_VERSION'
       CHANGING
         cs_metadata  = cs_metadata ).
 
@@ -109618,6 +109622,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-03-02T13:38:09.105Z
+* abapmerge 0.14.3 - 2022-03-10T07:45:11.314Z
 ENDINTERFACE.
 ****************************************************
