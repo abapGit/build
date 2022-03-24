@@ -20279,7 +20279,7 @@ CLASS zcl_abapgit_xml DEFINITION
         !ii_parser TYPE REF TO if_ixml_parser
       RAISING
         zcx_abapgit_exception .
-    METHODS display_version_mismatch
+    METHODS raise_version_mismatch
       IMPORTING
         !iv_vers TYPE string
       RAISING
@@ -24958,29 +24958,6 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
     mi_xml_doc  = mi_ixml->create_document( ).
     mv_filename = iv_filename.
   ENDMETHOD.
-  METHOD display_version_mismatch.
-
-    DATA lv_text TYPE string.
-
-    lv_text = |The XML versions do not match, expected: { zif_abapgit_version=>c_xml_version }, actual: { iv_vers }|.
-
-    IF mv_filename IS NOT INITIAL.
-      lv_text = lv_text && |, file: { mv_filename }|.
-    ENDIF.
-
-    lv_text = lv_text && | (see https://docs.abapgit.org/other-xml-mismatch.html)|.
-
-    zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
-      iv_titlebar      = 'abapGit XML Version Mismatch'
-      iv_text_question = lv_text ).
-
-    IF mv_filename IS INITIAL.
-      zcx_abapgit_exception=>raise( 'abapGit XML version mismatch' ).
-    ELSE.
-      zcx_abapgit_exception=>raise( |abapGit XML version mismatch in file { mv_filename }| ).
-    ENDIF.
-
-  ENDMETHOD.
   METHOD error.
 
     IF ii_parser->num_errors( ) <> 0.
@@ -25019,7 +24996,7 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
     li_version = li_element->if_ixml_node~get_attributes(
       )->get_named_item_ns( c_attr_version ).
     IF li_version->get_value( ) <> zif_abapgit_version=>c_xml_version.
-      display_version_mismatch( li_version->get_value( ) ).
+      raise_version_mismatch( li_version->get_value( ) ).
     ENDIF.
 
 * buffer serializer metadata. Git node will be removed lateron
@@ -25039,6 +25016,21 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
     ENDIF.
 
     zcx_abapgit_exception=>raise( lv_message ).
+
+  ENDMETHOD.
+  METHOD raise_version_mismatch.
+
+    DATA lv_text TYPE string.
+
+    lv_text = |The XML versions do not match, expected: { zif_abapgit_version=>c_xml_version }, actual: { iv_vers }|.
+
+    IF mv_filename IS NOT INITIAL.
+      lv_text = lv_text && |, file: { mv_filename }|.
+    ENDIF.
+
+    lv_text = lv_text && | (see https://docs.abapgit.org/other-xml-mismatch.html)|.
+
+    zcx_abapgit_exception=>raise( lv_text ).
 
   ENDMETHOD.
   METHOD to_xml.
@@ -109642,6 +109634,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-03-23T08:00:51.869Z
+* abapmerge 0.14.3 - 2022-03-24T06:13:16.707Z
 ENDINTERFACE.
 ****************************************************
