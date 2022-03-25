@@ -26691,10 +26691,34 @@ CLASS zcl_abapgit_diff IMPLEMENTATION.
   ENDMETHOD.
   METHOD unpack.
 
-    DATA: lv_new TYPE string,
-          lv_old TYPE string.
+    DATA: lv_new      TYPE string,
+          lv_old      TYPE string,
+          lv_new_last TYPE c LENGTH 1,
+          lv_old_last TYPE c LENGTH 1.
+
     lv_new = zcl_abapgit_convert=>xstring_to_string_utf8( iv_new ).
     lv_old = zcl_abapgit_convert=>xstring_to_string_utf8( iv_old ).
+
+    " Check if one value contains a final newline but the other not
+    " If yes, add a special characters that's visible in diff render
+    IF lv_new IS NOT INITIAL.
+      lv_new_last = substring(
+        val = lv_new
+        off = strlen( lv_new ) - 1 ).
+    ENDIF.
+    IF lv_old IS NOT INITIAL.
+      lv_old_last = substring(
+        val = lv_old
+        off = strlen( lv_old ) - 1 ).
+    ENDIF.
+
+    IF lv_new_last = zif_abapgit_definitions=>c_newline AND lv_old_last <> zif_abapgit_definitions=>c_newline
+      AND lv_old IS NOT INITIAL.
+      lv_old = lv_old && cl_abap_char_utilities=>form_feed.
+    ELSEIF lv_new_last <> zif_abapgit_definitions=>c_newline AND lv_old_last = zif_abapgit_definitions=>c_newline
+      AND lv_new IS NOT INITIAL.
+      lv_new = lv_new && cl_abap_char_utilities=>form_feed.
+    ENDIF.
 
     SPLIT lv_new AT zif_abapgit_definitions=>c_newline INTO TABLE et_new.
     SPLIT lv_old AT zif_abapgit_definitions=>c_newline INTO TABLE et_old.
@@ -51569,6 +51593,8 @@ CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
       REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>horizontal_tab IN rv_line WITH '&nbsp;&rarr;&nbsp;'.
       REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>cr_lf(1)       IN rv_line WITH '&para;'.
       REPLACE ALL OCCURRENCES OF ` `                                    IN rv_line WITH '&middot;'.
+      REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>form_feed IN rv_line
+        WITH '<span class="red">&odash;</span>'.
 
       IF strlen( rv_line ) BETWEEN 1 AND 2.
         lv_bom = zcl_abapgit_convert=>string_to_xstring( rv_line ).
@@ -109634,6 +109660,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-03-24T06:13:16.707Z
+* abapmerge 0.14.3 - 2022-03-25T05:59:15.140Z
 ENDINTERFACE.
 ****************************************************
