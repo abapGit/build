@@ -102615,7 +102615,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
     " and rtti seems to cache type descriptions really well (https://github.com/sbcgua/benchmarks.git)
     " the structures will be repeated in real life
 
-    ls_next_prefix-path = is_prefix-path && is_prefix-name && '/'.
+    ls_next_prefix-path = is_prefix-path && ls_root-name && '/'.
 
     LOOP AT lt_comps ASSIGNING <c>.
 
@@ -109660,6 +109660,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-03-27T18:06:39.895Z
+* abapmerge 0.14.3 - 2022-03-28T07:15:01.608Z
 ENDINTERFACE.
 ****************************************************
