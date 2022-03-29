@@ -99832,6 +99832,9 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
         WHEN 'DDLS'.
           " DDLS after DCLS but before other DDIC
           <ls_tadir>-korrnum = '720000'.
+        WHEN 'DDLX'.
+          " DDLX before DDLS
+          <ls_tadir>-korrnum = '719000'.
         WHEN 'AUTH'.
           " AUTH after DCLS
           <ls_tadir>-korrnum = '715000'.
@@ -109660,6 +109663,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-03-28T07:15:01.608Z
+* abapmerge 0.14.3 - 2022-03-29T21:29:25.988Z
 ENDINTERFACE.
 ****************************************************
