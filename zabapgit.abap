@@ -58637,6 +58637,41 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
     ASSERT sy-subrc = 0.
 
   ENDMETHOD.
+  METHOD xinx_delete_docu.
+
+    DATA: lv_docuid  TYPE dokhl-id,
+          lv_doctype TYPE dokhl-typ,
+          lv_docname TYPE dokhl-object.
+
+    lv_docname    = iv_objname.
+    lv_docname+30 = iv_id.
+    CALL FUNCTION 'INTERN_DD_DOCU_ID_MATCH'
+      EXPORTING
+        p_trobjtype  = c_objtype_extension_index
+      IMPORTING
+        p_docu_id    = lv_docuid
+        p_doctype    = lv_doctype
+      EXCEPTIONS
+        illegal_type = 1
+        OTHERS       = 2.
+
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    CALL FUNCTION 'DOKU_DELETE_ALL'
+      EXPORTING
+        doku_id            = lv_docuid
+        doku_object        = lv_docname
+        doku_typ           = lv_doctype
+        suppress_authority = 'X'
+        suppress_enqueue   = 'X'
+        suppress_transport = 'X'
+      EXCEPTIONS
+        no_docu_found      = 1
+        OTHERS             = 2.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
     rv_user = c_user_unknown. " todo
   ENDMETHOD.
@@ -58781,6 +58816,8 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
 
     tadir_insert( iv_package ).
 
+    corr_insert( iv_package ).
+
     CALL FUNCTION 'DDIF_INDX_PUT'
       EXPORTING
         name              = mv_name
@@ -58884,43 +58921,6 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
                  ig_data = ls_extension_index ).
 
   ENDMETHOD.
-
-  METHOD xinx_delete_docu.
-
-    DATA: lv_docuid  TYPE dokhl-id,
-          lv_doctype TYPE dokhl-typ,
-          lv_docname TYPE dokhl-object.
-
-    lv_docname    = iv_objname.
-    lv_docname+30 = iv_id.
-    CALL FUNCTION 'INTERN_DD_DOCU_ID_MATCH'
-      EXPORTING
-        p_trobjtype  = c_objtype_extension_index
-      IMPORTING
-        p_docu_id    = lv_docuid
-        p_doctype    = lv_doctype
-      EXCEPTIONS
-        illegal_type = 1
-        OTHERS       = 2.
-
-    IF sy-subrc <> 0.
-      RETURN.
-    ENDIF.
-
-    CALL FUNCTION 'DOKU_DELETE_ALL'
-      EXPORTING
-        doku_id            = lv_docuid
-        doku_object        = lv_docname
-        doku_typ           = lv_doctype
-        suppress_authority = 'X'
-        suppress_enqueue   = 'X'
-        suppress_transport = 'X'
-      EXCEPTIONS
-        no_docu_found      = 1
-        OTHERS             = 2.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_webi IMPLEMENTATION.
@@ -60543,7 +60543,9 @@ CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
         x_config_type        = 'X'
         x_config_var         = 'X'.
 
-    tadir_insert( iv_package = iv_package ).
+    tadir_insert( iv_package ).
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -62378,6 +62380,8 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
     DELETE FROM vclstruct WHERE vclname = lv_vclname. "#EC CI_NOFIRST "#EC CI_SUBRC
     DELETE FROM vclstrudep WHERE vclname = lv_vclname.    "#EC CI_SUBRC
     DELETE FROM vclmf WHERE vclname = lv_vclname.         "#EC CI_SUBRC
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -66778,7 +66782,43 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_sush IMPLEMENTATION.
+  METHOD clear_metadata.
 
+    DATA:
+      BEGIN OF ls_empty_metadata,
+        modifier  TYPE c LENGTH 12, " usob_sm-modifier
+        moddate   TYPE d, " usob_sm-moddate,
+        modtime   TYPE t, " usob_sm-modtime,
+        srcsystem TYPE tadir-srcsystem,
+        author    TYPE tadir-author,
+        devclass  TYPE tadir-devclass,
+      END OF ls_empty_metadata.
+
+    FIELD-SYMBOLS:
+      <ls_usobx>     TYPE any,
+      <ls_usbot>     TYPE any,
+      <ls_usobt_ext> TYPE any,
+      <ls_usobx_ext> TYPE any.
+
+    MOVE-CORRESPONDING ls_empty_metadata TO cs_data_head.
+
+    LOOP AT ct_usobx ASSIGNING <ls_usobx>.
+      MOVE-CORRESPONDING ls_empty_metadata TO <ls_usobx>.
+    ENDLOOP.
+
+    LOOP AT ct_usobt ASSIGNING <ls_usbot>.
+      MOVE-CORRESPONDING ls_empty_metadata TO <ls_usbot>.
+    ENDLOOP.
+
+    LOOP AT ct_usobt_ext ASSIGNING <ls_usobt_ext>.
+      MOVE-CORRESPONDING ls_empty_metadata TO <ls_usobt_ext>.
+    ENDLOOP.
+
+    LOOP AT ct_usobx_ext ASSIGNING <ls_usobx_ext>.
+      MOVE-CORRESPONDING ls_empty_metadata TO <ls_usobx_ext>.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD constructor.
 
     DATA: lr_data_head TYPE REF TO data.
@@ -66826,6 +66866,8 @@ CLASS zcl_abapgit_object_sush IMPLEMENTATION.
       CATCH cx_static_check INTO lx_err.
         zcx_abapgit_exception=>raise_with_text( lx_err ).
     ENDTRY.
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -67035,44 +67077,6 @@ CLASS zcl_abapgit_object_sush IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD clear_metadata.
-
-    DATA:
-      BEGIN OF ls_empty_metadata,
-        modifier  TYPE c LENGTH 12, " usob_sm-modifier
-        moddate   TYPE d, " usob_sm-moddate,
-        modtime   TYPE t, " usob_sm-modtime,
-        srcsystem TYPE tadir-srcsystem,
-        author    TYPE tadir-author,
-        devclass  TYPE tadir-devclass,
-      END OF ls_empty_metadata.
-
-    FIELD-SYMBOLS:
-      <ls_usobx>     TYPE any,
-      <ls_usbot>     TYPE any,
-      <ls_usobt_ext> TYPE any,
-      <ls_usobx_ext> TYPE any.
-
-    MOVE-CORRESPONDING ls_empty_metadata TO cs_data_head.
-
-    LOOP AT ct_usobx ASSIGNING <ls_usobx>.
-      MOVE-CORRESPONDING ls_empty_metadata TO <ls_usobx>.
-    ENDLOOP.
-
-    LOOP AT ct_usobt ASSIGNING <ls_usbot>.
-      MOVE-CORRESPONDING ls_empty_metadata TO <ls_usbot>.
-    ENDLOOP.
-
-    LOOP AT ct_usobt_ext ASSIGNING <ls_usobt_ext>.
-      MOVE-CORRESPONDING ls_empty_metadata TO <ls_usobt_ext>.
-    ENDLOOP.
-
-    LOOP AT ct_usobx_ext ASSIGNING <ls_usobx_ext>.
-      MOVE-CORRESPONDING ls_empty_metadata TO <ls_usobx_ext>.
-    ENDLOOP.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_susc IMPLEMENTATION.
@@ -69227,6 +69231,8 @@ CLASS zcl_abapgit_object_srfc IMPLEMENTATION.
 
         tadir_insert( iv_package ).
 
+        corr_insert( iv_package ).
+
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
@@ -69851,7 +69857,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPPF IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SPLO IMPLEMENTATION.
+CLASS zcl_abapgit_object_splo IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE chgname1 FROM tsp1d INTO rv_user
@@ -69885,6 +69891,8 @@ CLASS ZCL_ABAPGIT_OBJECT_SPLO IMPLEMENTATION.
     MODIFY tsp0p FROM ls_tsp0p.                           "#EC CI_SUBRC
 
     tadir_insert( iv_package ).
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -70410,6 +70418,8 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -73787,6 +73797,8 @@ CLASS zcl_abapgit_object_scp1 IMPLEMENTATION.
     dequeue( ).
 
     tadir_insert( iv_package ).
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -85391,6 +85403,8 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
 
     tadir_insert( iv_package ).
 
+    corr_insert( iv_package ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
@@ -86295,6 +86309,8 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
       iv_main_language = mv_language ).
 
     tadir_insert( iv_package ).
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -91202,43 +91218,9 @@ CLASS zcl_abapgit_object_area IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error while creating AREA: { ms_item-obj_name }| ).
     ENDIF.
 
-    CALL FUNCTION 'TR_TADIR_INTERFACE'
-      EXPORTING
-        wi_test_modus                  = abap_false
-        wi_tadir_pgmid                 = 'R3TR'
-        wi_tadir_object                = ms_item-obj_type
-        wi_tadir_obj_name              = ms_item-obj_name
-        wi_tadir_devclass              = iv_package
-      EXCEPTIONS
-        tadir_entry_not_existing       = 1
-        tadir_entry_ill_type           = 2
-        no_systemname                  = 3
-        no_systemtype                  = 4
-        original_system_conflict       = 5
-        object_reserved_for_devclass   = 6
-        object_exists_global           = 7
-        object_exists_local            = 8
-        object_is_distributed          = 9
-        obj_specification_not_unique   = 10
-        no_authorization_to_delete     = 11
-        devclass_not_existing          = 12
-        simultanious_set_remove_repair = 13
-        order_missing                  = 14
-        no_modification_of_head_syst   = 15
-        pgmid_object_not_allowed       = 16
-        masterlanguage_not_specified   = 17
-        devclass_not_specified         = 18
-        specify_owner_unique           = 19
-        loc_priv_objs_no_repair        = 20
-        gtadir_not_reached             = 21
-        object_locked_for_order        = 22
-        change_of_class_not_allowed    = 23
-        no_change_from_sap_to_tmp      = 24
-        OTHERS                         = 25.
+    tadir_insert( iv_package ).
 
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error while changing package of AREA: { ms_item-obj_name }| ).
-    ENDIF.
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -109714,6 +109696,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-03-31T12:58:39.117Z
+* abapmerge 0.14.3 - 2022-03-31T13:21:09.090Z
 ENDINTERFACE.
 ****************************************************
