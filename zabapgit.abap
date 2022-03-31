@@ -62765,10 +62765,12 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
       ls_docu-header-tdfuser = sy-uname.
       ls_docu-header-tdfdate = sy-datum.
       ls_docu-header-tdftime = sy-uzeit.
+      ls_docu-header-tdfreles = sy-saprl.
 
       ls_docu-header-tdluser = sy-uname.
       ls_docu-header-tdldate = sy-datum.
       ls_docu-header-tdltime = sy-uzeit.
+      ls_docu-header-tdlreles = sy-saprl.
 
       lv_objname = ls_docu-header-tdname.
 
@@ -62892,10 +62894,12 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
       CLEAR ls_docu-header-tdfuser.
       CLEAR ls_docu-header-tdfdate.
       CLEAR ls_docu-header-tdftime.
+      CLEAR ls_docu-header-tdfreles.
 
       CLEAR ls_docu-header-tdluser.
       CLEAR ls_docu-header-tdldate.
       CLEAR ls_docu-header-tdltime.
+      CLEAR ls_docu-header-tdlreles.
 
       APPEND ls_docu TO rt_result.
 
@@ -109663,6 +109667,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-03-30T12:39:15.515Z
+* abapmerge 0.14.3 - 2022-03-31T04:49:38.983Z
 ENDINTERFACE.
 ****************************************************
