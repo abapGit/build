@@ -3257,6 +3257,7 @@ INTERFACE zif_abapgit_dot_abapgit.
     BEGIN OF c_folder_logic,
       prefix TYPE string VALUE 'PREFIX',
       full   TYPE string VALUE 'FULL',
+      mixed  TYPE string VALUE 'MIXED',
     END OF c_folder_logic .
 
 ENDINTERFACE.
@@ -38195,6 +38196,9 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
     )->option(
       iv_label       = 'Full'
       iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-full
+    )->option(
+      iv_label       = 'Mixed'
+      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-mixed
     )->text(
       iv_name        = c_id-starting_folder
       iv_label       = 'Starting Folder'
@@ -43771,6 +43775,20 @@ CLASS zcl_abapgit_gui_page_ex_pckage IMPLEMENTATION.
       iv_page_title      = 'Export Package to ZIP'
       ii_child_component = lo_component ).
   ENDMETHOD.
+  METHOD export_package.
+    DATA lv_package TYPE devclass.
+    DATA lv_folder_logic TYPE string.
+    DATA lv_main_lang_only TYPE abap_bool.
+
+    lv_package        = mo_form_data->get( c_id-package ).
+    lv_folder_logic   = mo_form_data->get( c_id-folder_logic ).
+    lv_main_lang_only = mo_form_data->get( c_id-main_lang_only ).
+
+    zcl_abapgit_zip=>export_package(
+        iv_package        = lv_package
+        iv_folder_logic   = lv_folder_logic
+        iv_main_lang_only = lv_main_lang_only ).
+  ENDMETHOD.
   METHOD get_form_schema.
     ro_form = zcl_abapgit_html_form=>create( iv_form_id = 'export-package-to-files' ).
 
@@ -43791,6 +43809,9 @@ CLASS zcl_abapgit_gui_page_ex_pckage IMPLEMENTATION.
     )->option(
       iv_label         = 'Full'
       iv_value         = zif_abapgit_dot_abapgit=>c_folder_logic-full
+    )->option(
+      iv_label         = 'Mixed'
+      iv_value         = zif_abapgit_dot_abapgit=>c_folder_logic-mixed
     )->checkbox(
       iv_name          = c_id-main_lang_only
       iv_label         = 'Serialize Main Language Only'
@@ -43802,15 +43823,6 @@ CLASS zcl_abapgit_gui_page_ex_pckage IMPLEMENTATION.
     )->command(
       iv_label         = 'Back'
       iv_action        = c_event-go_back ).
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_renderable~render.
-    gui_services( )->register_event_handler( me ).
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( mo_form->render(
-      io_values         = mo_form_data
-      io_validation_log = mo_validation_log ) ).
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
@@ -43844,19 +43856,14 @@ CLASS zcl_abapgit_gui_page_ex_pckage IMPLEMENTATION.
         ENDIF.
     ENDCASE.
   ENDMETHOD.
-  METHOD export_package.
-    DATA lv_package TYPE devclass.
-    DATA lv_folder_logic TYPE string.
-    DATA lv_main_lang_only TYPE abap_bool.
+  METHOD zif_abapgit_gui_renderable~render.
+    gui_services( )->register_event_handler( me ).
 
-    lv_package        = mo_form_data->get( c_id-package ).
-    lv_folder_logic   = mo_form_data->get( c_id-folder_logic ).
-    lv_main_lang_only = mo_form_data->get( c_id-main_lang_only ).
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    zcl_abapgit_zip=>export_package(
-        iv_package        = lv_package
-        iv_folder_logic   = lv_folder_logic
-        iv_main_lang_only = lv_main_lang_only ).
+    ri_html->add( mo_form->render(
+      io_values         = mo_form_data
+      io_validation_log = mo_validation_log ) ).
   ENDMETHOD.
 ENDCLASS.
 
@@ -46729,6 +46736,9 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
     )->option(
       iv_label       = 'Full'
       iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-full
+    )->option(
+      iv_label       = 'Mixed'
+      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-mixed
     )->text(
       iv_name        = c_id-display_name
       iv_label       = 'Display Name'
@@ -46782,12 +46792,11 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
     ENDIF.
 
     IF io_form_data->get( c_id-folder_logic ) <> zif_abapgit_dot_abapgit=>c_folder_logic-prefix
-        AND io_form_data->get( c_id-folder_logic ) <> zif_abapgit_dot_abapgit=>c_folder_logic-full.
+        AND io_form_data->get( c_id-folder_logic ) <> zif_abapgit_dot_abapgit=>c_folder_logic-full
+        AND io_form_data->get( c_id-folder_logic ) <> zif_abapgit_dot_abapgit=>c_folder_logic-mixed.
       ro_validation_log->set(
         iv_key = c_id-folder_logic
-        iv_val = |Invalid folder logic { io_form_data->get( c_id-folder_logic )
-        }. Must be { zif_abapgit_dot_abapgit=>c_folder_logic-prefix
-        } or { zif_abapgit_dot_abapgit=>c_folder_logic-full } | ).
+        iv_val = |Invalid folder logic { io_form_data->get( c_id-folder_logic ) }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -46933,6 +46942,9 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
     )->option(
       iv_label       = 'Full'
       iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-full
+    )->option(
+      iv_label       = 'Mixed'
+      iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-mixed
     )->checkbox(
       iv_name        = c_id-main_lang_only
       iv_label       = 'Serialize Main Language Only'
@@ -46966,12 +46978,11 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
     ENDIF.
 
     IF io_form_data->get( c_id-folder_logic ) <> zif_abapgit_dot_abapgit=>c_folder_logic-prefix
-        AND io_form_data->get( c_id-folder_logic ) <> zif_abapgit_dot_abapgit=>c_folder_logic-full.
+        AND io_form_data->get( c_id-folder_logic ) <> zif_abapgit_dot_abapgit=>c_folder_logic-full
+        AND io_form_data->get( c_id-folder_logic ) <> zif_abapgit_dot_abapgit=>c_folder_logic-mixed.
       ro_validation_log->set(
         iv_key = c_id-folder_logic
-        iv_val = |Invalid folder logic { io_form_data->get( c_id-folder_logic )
-        }. Must be { zif_abapgit_dot_abapgit=>c_folder_logic-prefix
-        } or { zif_abapgit_dot_abapgit=>c_folder_logic-full } | ).
+        iv_val = |Invalid folder logic { io_form_data->get( c_id-folder_logic ) }| ).
     ENDIF.
 
   ENDMETHOD.
@@ -98748,7 +98759,15 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
 * ZZZ_something. This will define the folder name in the zip file to be "something",
 * similarily with online projects. Alternatively change to FULL folder logic
               lv_message = 'PREFIX: Unexpected package naming (' && iv_package && ')'
-                           && 'you might switch to FULL folder logic'.
+                           && 'you might switch the folder logic'.
+              zcx_abapgit_exception=>raise( lv_message ).
+            ENDIF.
+          WHEN zif_abapgit_dot_abapgit=>c_folder_logic-mixed.
+            lv_len = strlen( iv_top ).
+
+            IF iv_package(lv_len) <> iv_top.
+              lv_message = 'MIXED: Unexpected package naming (' && iv_package && ')'
+                           && 'you might switch the folder logic'.
               zcx_abapgit_exception=>raise( lv_message ).
             ENDIF.
           WHEN OTHERS.
@@ -98790,6 +98809,7 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
           lv_new                  TYPE string,
           lv_path                 TYPE string,
           lv_absolute_name        TYPE string,
+          lv_folder_logic         TYPE string,
           lt_unique_package_names TYPE HASHED TABLE OF devclass WITH UNIQUE KEY table_line.
 
     lv_length  = strlen( io_dot->get_starting_folder( ) ).
@@ -98819,7 +98839,8 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
     WHILE lv_path CA '/'.
       SPLIT lv_path AT '/' INTO lv_new lv_path.
 
-      CASE io_dot->get_folder_logic( ).
+      lv_folder_logic = io_dot->get_folder_logic( ).
+      CASE lv_folder_logic.
         WHEN zif_abapgit_dot_abapgit=>c_folder_logic-full.
           lv_absolute_name = lv_new.
           TRANSLATE lv_absolute_name USING '#/'.
@@ -98828,14 +98849,16 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
           ENDIF.
         WHEN zif_abapgit_dot_abapgit=>c_folder_logic-prefix.
           CONCATENATE rv_package '_' lv_new INTO lv_absolute_name.
+        WHEN zif_abapgit_dot_abapgit=>c_folder_logic-mixed.
+          CONCATENATE iv_top '_' lv_new INTO lv_absolute_name.
         WHEN OTHERS.
-          ASSERT 0 = 1.
+          zcx_abapgit_exception=>raise( |Invalid folder logic: { lv_folder_logic }| ).
       ENDCASE.
 
       TRANSLATE lv_absolute_name TO UPPER CASE.
 
       IF strlen( lv_absolute_name ) > 30.
-        zcx_abapgit_exception=>raise( |Package { lv_absolute_name } exceeds ABAP 30-characters-name limit| ).
+        zcx_abapgit_exception=>raise( |Package { lv_absolute_name } exceeds ABAP 30-characters name limit| ).
       ENDIF.
 
       rv_package = lv_absolute_name.
@@ -109667,6 +109690,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-03-31T04:49:38.983Z
+* abapmerge 0.14.3 - 2022-03-31T11:36:13.615Z
 ENDINTERFACE.
 ****************************************************
