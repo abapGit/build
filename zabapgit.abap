@@ -64719,6 +64719,8 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
 
         clear_functiongroup_globals( ).
 
+        corr_insert( iv_package ).
+
         CALL FUNCTION 'RPY_TRANSACTION_INSERT'
           EXPORTING
             transaction             = ls_tstc-tcode
@@ -64735,6 +64737,7 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
             html_enabled            = ls_tstcc-s_webgui
             java_enabled            = ls_tstcc-s_platin
             wingui_enabled          = ls_tstcc-s_win32
+            suppress_corr_insert    = abap_true
           TABLES
             param_values            = lt_param_values
           EXCEPTIONS
@@ -69673,6 +69676,8 @@ CLASS zcl_abapgit_object_sprx IMPLEMENTATION.
       lv_return_code TYPE i,
       lt_log         TYPE sprx_log_t.
 
+    corr_insert( iv_package ).
+
     get_object_and_name(
       IMPORTING
         ev_object   = lv_object
@@ -69682,6 +69687,7 @@ CLASS zcl_abapgit_object_sprx IMPLEMENTATION.
        EXPORTING
          object           = lv_object
          obj_name         = lv_obj_name
+         suppress_dialogs = abap_true
        CHANGING
          c_return_code    = lv_return_code
          ct_log           = lt_log ).
@@ -83219,8 +83225,9 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
 
     TRY.
         li_spot_ref = cl_enh_factory=>get_enhancement_spot_comp(
-          lock = abap_true
-          name = lv_spot_name ).
+          lock     = abap_true
+          run_dark = abap_true
+          name     = lv_spot_name ).
 
         IF li_spot_ref IS BOUND.
           li_spot_ref->if_enh_object~delete(
@@ -83307,8 +83314,9 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
 
     TRY.
         cl_enh_factory=>get_enhancement_spot_comp(
-          lock = ''
-          name = lv_spot_name ).
+          lock     = ''
+          run_dark = abap_true
+          name     = lv_spot_name ).
         rv_bool = abap_true.
       CATCH cx_enh_root.
         rv_bool = abap_false.
@@ -83349,8 +83357,9 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
 
     TRY.
         li_spot_ref = cl_enh_factory=>get_enhancement_spot_comp(
-          lock = ''
-          name = lv_spot_name ).
+          lock     = ''
+          run_dark = abap_true
+          name     = lv_spot_name ).
 
         lo_spot_ref ?= li_spot_ref.
 
@@ -83570,7 +83579,8 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
     lv_spot_name = ms_item-obj_name.
 
     TRY.
-        li_spot_ref = cl_enh_factory=>get_enhancement_spot( lv_spot_name ).
+        li_spot_ref = cl_enh_factory=>get_enhancement_spot( spot_name = lv_spot_name
+                                                            run_dark  = abap_true ).
         li_spot_ref->get_attributes( IMPORTING changedby = rv_user ).
 
       CATCH cx_enh_root.
@@ -83588,6 +83598,7 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
 
     TRY.
         li_enh_object ?= cl_enh_factory=>get_enhancement_spot( spot_name = lv_spot_name
+                                                               run_dark  = abap_true
                                                                lock      = abap_true ).
 
         li_enh_object->delete( nevertheless_delete = abap_true
@@ -83656,7 +83667,8 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
     lv_spot_name = ms_item-obj_name.
 
     TRY.
-        li_spot_ref = cl_enh_factory=>get_enhancement_spot( lv_spot_name ).
+        li_spot_ref = cl_enh_factory=>get_enhancement_spot( spot_name = lv_spot_name
+                                                            run_dark  = abap_true ).
 
         rv_bool = abap_true.
 
@@ -83695,7 +83707,8 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
     lv_spot_name = ms_item-obj_name.
 
     TRY.
-        li_spot_ref = cl_enh_factory=>get_enhancement_spot( lv_spot_name ).
+        li_spot_ref = cl_enh_factory=>get_enhancement_spot( spot_name = lv_spot_name
+                                                            run_dark  = abap_true ).
 
       CATCH cx_enh_root INTO lx_enh_root.
         zcx_abapgit_exception=>raise_with_text( lx_enh_root ).
@@ -83770,6 +83783,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
     TRY.
         li_enh_tool = cl_enh_factory=>get_enhancement(
           enhancement_id   = lv_enh_id
+          run_dark         = abap_true
           bypassing_buffer = abap_true ).
       CATCH cx_enh_root.
         rv_user = c_user_unknown.
@@ -83809,6 +83823,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
     TRY.
         li_enh_object = cl_enh_factory=>get_enhancement(
           enhancement_id = lv_enh_id
+          run_dark       = abap_true
           lock           = abap_true ).
         li_enh_object->delete(
           EXPORTING
@@ -83854,6 +83869,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
     TRY.
         cl_enh_factory=>get_enhancement(
           enhancement_id   = lv_enh_id
+          run_dark         = abap_true
           bypassing_buffer = abap_true ).
         rv_bool = abap_true.
       CATCH cx_enh_root.
@@ -83903,6 +83919,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
     TRY.
         li_enh_tool = cl_enh_factory=>get_enhancement(
           enhancement_id   = lv_enh_id
+          run_dark         = abap_true
           bypassing_buffer = abap_true ).
       CATCH cx_enh_root INTO lx_enh_root.
         zcx_abapgit_exception=>raise_with_text( lx_enh_root ).
@@ -109696,6 +109713,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-01T08:14:12.181Z
+* abapmerge 0.14.3 - 2022-04-01T15:41:13.430Z
 ENDINTERFACE.
 ****************************************************
