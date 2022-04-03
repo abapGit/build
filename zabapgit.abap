@@ -87829,10 +87829,14 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
 
       CATCH cx_root INTO lx_error.
         IF lo_ddl IS NOT INITIAL.
-          CALL METHOD lo_ddl->('IF_DD_DDL_HANDLER~DELETE')
-            EXPORTING
-              name = ms_item-obj_name
-              prid = 0.
+          " Attempt clean-up but catch error if it doesn't work
+          TRY.
+              CALL METHOD lo_ddl->('IF_DD_DDL_HANDLER~DELETE')
+                EXPORTING
+                  name = ms_item-obj_name
+                  prid = 0.
+            CATCH cx_root ##NO_HANDLER.
+          ENDTRY.
         ENDIF.
 
         zcx_abapgit_exception=>raise_with_text( lx_error ).
@@ -109706,6 +109710,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-01T15:52:23.034Z
+* abapmerge 0.14.3 - 2022-04-03T08:11:45.780Z
 ENDINTERFACE.
 ****************************************************
