@@ -12593,7 +12593,7 @@ CLASS zcl_abapgit_object_vcls DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     CONSTANTS c_cluster_type TYPE c VALUE 'C' ##NO_TEXT.
     CONSTANTS c_mode_insert TYPE obj_para-maint_mode VALUE 'I' ##NO_TEXT.
 
-    METHODS check_lock
+    METHODS is_locked
       IMPORTING
         !iv_tabname         TYPE tabname
         !iv_argument        TYPE seqg3-garg
@@ -13484,7 +13484,7 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
         !ii_xml       TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
-    METHODS belongs_incl_to_other_fugr
+    METHODS is_part_of_other_fugr
       IMPORTING
         !iv_include                     TYPE sobj_name
       RETURNING
@@ -20005,7 +20005,7 @@ CLASS zcl_abapgit_requirement_helper DEFINITION
         VALUE(rt_status) TYPE ty_requirement_status_tt
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS version_greater_or_equal
+    CLASS-METHODS is_version_greater_or_equal
       IMPORTING
         !is_status     TYPE ty_requirement_status
       RETURNING
@@ -25559,7 +25559,7 @@ CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
         <ls_status>-installed_release = <ls_installed_comp>-release.
         <ls_status>-installed_patch = <ls_installed_comp>-extrelease.
         <ls_status>-description = <ls_installed_comp>-desc_text.
-        <ls_status>-met = version_greater_or_equal( <ls_status> ).
+        <ls_status>-met = is_version_greater_or_equal( <ls_status> ).
       ELSE.
         " Component is not installed at all
         <ls_status>-met = abap_false.
@@ -25580,6 +25580,37 @@ CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
       rv_status = zif_abapgit_definitions=>c_no.
     ELSE.
       rv_status = zif_abapgit_definitions=>c_yes.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD is_version_greater_or_equal.
+
+    DATA:
+      lv_installed_release TYPE n LENGTH 4,
+      lv_installed_patch   TYPE n LENGTH 4,
+      lv_required_release  TYPE n LENGTH 4,
+      lv_required_patch    TYPE n LENGTH 4.
+
+    TRY.
+        MOVE EXACT: is_status-installed_release TO lv_installed_release,
+                    is_status-installed_patch   TO lv_installed_patch,
+                    is_status-required_release  TO lv_required_release,
+                    is_status-required_patch    TO lv_required_patch.
+      CATCH cx_sy_conversion_error.
+        " Cannot compare by number, assume requirement not fullfilled (user can force install
+        " anyways if this was an error)
+        rv_true = abap_false.
+        RETURN.
+    ENDTRY.
+
+    " Versions are comparable by number, compare release and if necessary patch level
+    IF lv_installed_release > lv_required_release
+        OR ( lv_installed_release = lv_required_release
+         AND ( lv_required_patch = 0
+            OR lv_installed_patch >= lv_required_patch ) ).
+
+      rv_true = abap_true.
+
     ENDIF.
 
   ENDMETHOD.
@@ -25673,37 +25704,6 @@ CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
       CATCH cx_salv_msg cx_salv_not_found cx_salv_data_error INTO lx_ex.
         zcx_abapgit_exception=>raise( lx_ex->get_text( ) ).
     ENDTRY.
-
-  ENDMETHOD.
-  METHOD version_greater_or_equal.
-
-    DATA:
-      lv_installed_release TYPE n LENGTH 4,
-      lv_installed_patch   TYPE n LENGTH 4,
-      lv_required_release  TYPE n LENGTH 4,
-      lv_required_patch    TYPE n LENGTH 4.
-
-    TRY.
-        MOVE EXACT: is_status-installed_release TO lv_installed_release,
-                    is_status-installed_patch   TO lv_installed_patch,
-                    is_status-required_release  TO lv_required_release,
-                    is_status-required_patch    TO lv_required_patch.
-      CATCH cx_sy_conversion_error.
-        " Cannot compare by number, assume requirement not fullfilled (user can force install
-        " anyways if this was an error)
-        rv_true = abap_false.
-        RETURN.
-    ENDTRY.
-
-    " Versions are comparable by number, compare release and if necessary patch level
-    IF lv_installed_release > lv_required_release
-        OR ( lv_installed_release = lv_required_release
-         AND ( lv_required_patch = 0
-            OR lv_installed_patch >= lv_required_patch ) ).
-
-      rv_true = abap_true.
-
-    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -62340,8 +62340,8 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
-  METHOD check_lock.
+CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
+  METHOD is_locked.
 
     DATA:
       ls_rstable_key TYPE rstable, " Lock argument for table RSTABLE
@@ -62484,16 +62484,16 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
     lv_argument_langu = |@{ ms_item-obj_name }|.
 
     "Check all relevant maintein tabeles for view clusters
-    IF check_lock( iv_tabname = 'VCLDIR'
-                   iv_argument = lv_argument ) = abap_true
-        OR check_lock( iv_tabname = 'VCLDIRT'
-                       iv_argument = lv_argument_langu ) = abap_true
-        OR check_lock( iv_tabname = 'VCLSTRUC'
-                       iv_argument = lv_argument )       = abap_true
-        OR check_lock( iv_tabname = 'VCLSTRUCT'
-                       iv_argument = lv_argument_langu ) = abap_true
-        OR check_lock( iv_tabname = 'VCLMF'
-                       iv_argument = lv_argument )       = abap_true.
+    IF is_locked( iv_tabname = 'VCLDIR'
+                  iv_argument = lv_argument ) = abap_true
+        OR is_locked( iv_tabname = 'VCLDIRT'
+                      iv_argument = lv_argument_langu ) = abap_true
+        OR is_locked( iv_tabname = 'VCLSTRUC'
+                      iv_argument = lv_argument )       = abap_true
+        OR is_locked( iv_tabname = 'VCLSTRUCT'
+                      iv_argument = lv_argument_langu ) = abap_true
+        OR is_locked( iv_tabname = 'VCLMF'
+                      iv_argument = lv_argument )       = abap_true.
 
       rv_is_locked = abap_true.
     ENDIF.
@@ -81005,38 +81005,6 @@ CLASS zcl_abapgit_object_g4ba IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
-  METHOD belongs_incl_to_other_fugr.
-    " make sure that the include belongs to the function group
-    " like in LSEAPFAP Form TADIR_MAINTENANCE
-    DATA ls_tadir TYPE tadir.
-    DATA lv_namespace TYPE rs38l-namespace.
-    DATA lv_area TYPE rs38l-area.
-    DATA lv_include TYPE rs38l-include.
-
-    rv_belongs_to_other_fugr = abap_false.
-    IF iv_include(1) = 'L' OR iv_include+1 CS '/L'.
-      lv_include = iv_include.
-      ls_tadir-object = 'FUGR'.
-
-      CALL FUNCTION 'FUNCTION_INCLUDE_SPLIT'
-        IMPORTING
-          namespace = lv_namespace
-          group     = lv_area
-        CHANGING
-          include   = lv_include
-        EXCEPTIONS
-          OTHERS    = 1.
-      IF lv_area(1) = 'X'.    " "EXIT"-function-module
-        ls_tadir-object = 'FUGS'.
-      ENDIF.
-      IF sy-subrc = 0.
-        CONCATENATE lv_namespace lv_area INTO ls_tadir-obj_name.
-        IF ls_tadir-obj_name <> ms_item-obj_name.
-          rv_belongs_to_other_fugr = abap_true.
-        ENDIF.
-      ENDIF.
-    ENDIF.
-  ENDMETHOD.
   METHOD check_rfc_parameters.
 
 * function module RS_FUNCTIONMODULE_INSERT does the same deep down, but the right error
@@ -81514,7 +81482,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
       ENDIF.
 
       "Make sure that the include does not belong to another function group
-      IF belongs_incl_to_other_fugr( iv_include = <lv_include> ) = abap_true.
+      IF is_part_of_other_fugr( <lv_include> ) = abap_true.
         DELETE rt_includes.
       ENDIF.
     ENDLOOP.
@@ -81580,6 +81548,38 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
     rv_is_functions_group_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
                                                             iv_argument    = lv_object ).
 
+  ENDMETHOD.
+  METHOD is_part_of_other_fugr.
+    " make sure that the include belongs to the function group
+    " like in LSEAPFAP Form TADIR_MAINTENANCE
+    DATA ls_tadir TYPE tadir.
+    DATA lv_namespace TYPE rs38l-namespace.
+    DATA lv_area TYPE rs38l-area.
+    DATA lv_include TYPE rs38l-include.
+
+    rv_belongs_to_other_fugr = abap_false.
+    IF iv_include(1) = 'L' OR iv_include+1 CS '/L'.
+      lv_include = iv_include.
+      ls_tadir-object = 'FUGR'.
+
+      CALL FUNCTION 'FUNCTION_INCLUDE_SPLIT'
+        IMPORTING
+          namespace = lv_namespace
+          group     = lv_area
+        CHANGING
+          include   = lv_include
+        EXCEPTIONS
+          OTHERS    = 1.
+      IF lv_area(1) = 'X'.    " "EXIT"-function-module
+        ls_tadir-object = 'FUGS'.
+      ENDIF.
+      IF sy-subrc = 0.
+        CONCATENATE lv_namespace lv_area INTO ls_tadir-obj_name.
+        IF ls_tadir-obj_name <> ms_item-obj_name.
+          rv_belongs_to_other_fugr = abap_true.
+        ENDIF.
+      ENDIF.
+    ENDIF.
   ENDMETHOD.
   METHOD main_name.
 
@@ -109710,6 +109710,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-03T08:11:45.780Z
+* abapmerge 0.14.3 - 2022-04-03T08:40:52.401Z
 ENDINTERFACE.
 ****************************************************
