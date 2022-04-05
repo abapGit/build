@@ -8495,6 +8495,8 @@ CLASS zcl_abapgit_objects_generic DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS delete
+      IMPORTING
+        !iv_package TYPE devclass
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize
@@ -56954,12 +56956,14 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
+    corr_insert( iv_package ).
+
   ENDMETHOD.
   METHOD deserialize.
 
     validate( io_xml ).
 
-    delete( ).
+    delete( iv_package ).
 
     deserialize_data( io_xml ).
 
@@ -62971,7 +62975,7 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     delete_docu_usp( ).
 
     " the deletion of the tables of the entity
-    get_generic( )->delete( ).
+    get_generic( )->delete( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -67292,7 +67296,7 @@ CLASS zcl_abapgit_object_sucu IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    get_generic( )->delete( ).
+    get_generic( )->delete( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -69826,7 +69830,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SPPF IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    get_generic( )->delete( ).
+    get_generic( )->delete( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -78068,7 +78072,7 @@ CLASS zcl_abapgit_object_iwvb IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    get_generic( )->delete( ).
+    get_generic( )->delete( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -78134,7 +78138,7 @@ CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    get_generic( )->delete( ).
+    get_generic( )->delete( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -78219,7 +78223,7 @@ CLASS zcl_abapgit_object_iwsg IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    get_generic( )->delete( ).
+    get_generic( )->delete( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -78277,7 +78281,7 @@ CLASS zcl_abapgit_object_iwpr IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    get_generic( )->delete( ).
+    get_generic( )->delete( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -78342,7 +78346,7 @@ CLASS zcl_abapgit_object_iwom IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    get_generic( )->delete( ).
+    get_generic( )->delete( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -78400,7 +78404,7 @@ CLASS zcl_abapgit_object_iwmo IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    get_generic( )->delete( ).
+    get_generic( )->delete( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -80916,7 +80920,7 @@ CLASS zcl_abapgit_object_g4bs IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    get_generic( )->delete( ).
+    get_generic( )->delete( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -80974,7 +80978,7 @@ CLASS zcl_abapgit_object_g4ba IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    get_generic( )->delete( ).
+    get_generic( )->delete( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -91159,7 +91163,7 @@ CLASS zcl_abapgit_object_asfc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    get_generic( )->delete( ).
+    get_generic( )->delete( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -109744,6 +109748,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-05T14:26:50.086Z
+* abapmerge 0.14.3 - 2022-04-05T14:41:49.760Z
 ENDINTERFACE.
 ****************************************************
