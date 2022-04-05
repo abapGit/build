@@ -60386,6 +60386,8 @@ CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'Object type WDCC not supported for this release' ).
     ENDTRY.
 
+    corr_insert( iv_package ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -69190,6 +69192,8 @@ CLASS zcl_abapgit_object_srfc IMPLEMENTATION.
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -85405,6 +85409,8 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
       iv_object_name = mv_doc_object
       iv_longtext_id = c_id ).
 
+    corr_insert( iv_package ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -86325,6 +86331,8 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
     mi_longtexts->delete(
         iv_object_name = ms_item-obj_name
         iv_longtext_id = c_id ).
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -87777,6 +87785,8 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
+    corr_insert( iv_package ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -88064,6 +88074,8 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -91216,6 +91228,8 @@ CLASS zcl_abapgit_object_area IMPLEMENTATION.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Error while deleting AREA: { ms_item-obj_name }| ).
     ENDIF.
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -109730,6 +109744,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-05T14:15:56.009Z
+* abapmerge 0.14.3 - 2022-04-05T14:26:50.086Z
 ENDINTERFACE.
 ****************************************************
