@@ -88442,6 +88442,8 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
       iv_tcode   = 'S_CUS_ACTIVITY'
       it_bdcdata = lt_bdc_data ).
 
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -109710,6 +109712,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-03T08:40:52.401Z
+* abapmerge 0.14.3 - 2022-04-05T08:31:52.755Z
 ENDINTERFACE.
 ****************************************************
