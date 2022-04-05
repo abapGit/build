@@ -27472,6 +27472,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  padding: 2px 4px;' ).
     lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  border-radius: 4px;' ).
+    lo_buf->add( '  display: inline-block;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* MISC AND REFACTOR */' ).
@@ -27552,6 +27553,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '.repo_tab td.filename{' ).
     lo_buf->add( '  padding-left: 1em;' ).
+    lo_buf->add( '  word-break: break-all;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '.repo_tab td.object {' ).
@@ -27612,6 +27614,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '.stage_tab td.highlight {' ).
     lo_buf->add( '  font-weight: bold;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.stage_tab td.name {' ).
+    lo_buf->add( '  word-break: break-all;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '.stage_tab tr:first-child td { border-top: 0px; }' ).
@@ -109748,6 +109753,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-05T14:41:49.760Z
+* abapmerge 0.14.3 - 2022-04-05T15:18:46.186Z
 ENDINTERFACE.
 ****************************************************
