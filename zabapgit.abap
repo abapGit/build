@@ -81856,6 +81856,12 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
     DATA: lv_area     TYPE rs38l-area,
           lt_includes TYPE ty_sobj_name_tt.
 
+    " FUGR related to change documents will be deleted by CHDO
+    SELECT SINGLE fgrp FROM tcdrps INTO lv_area WHERE fgrp = ms_item-obj_name.
+    IF sy-subrc = 0.
+      RETURN.
+    ENDIF.
+
     lt_includes = includes( ).
 
     lv_area = ms_item-obj_name.
@@ -89780,6 +89786,8 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
     INSERT tcdobs  FROM TABLE ls_change_object-objects.
     INSERT tcdobts FROM TABLE ls_change_object-objects_text.
     INSERT tcdrps  FROM TABLE ls_change_object-reports_generated.
+
+    tadir_insert( iv_package ).
 
     after_import( ).
 
@@ -109712,6 +109720,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-05T08:31:52.755Z
+* abapmerge 0.14.3 - 2022-04-05T14:05:03.129Z
 ENDINTERFACE.
 ****************************************************
