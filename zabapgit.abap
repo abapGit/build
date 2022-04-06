@@ -3943,6 +3943,7 @@ INTERFACE zif_abapgit_popups .
   METHODS popup_transport_request
     IMPORTING
       !is_transport_type  TYPE zif_abapgit_definitions=>ty_transport_type
+      !iv_use_default     TYPE abap_bool DEFAULT abap_false
     RETURNING
       VALUE(rv_transport) TYPE trkorr
     RAISING
@@ -34394,7 +34395,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     " If default transport is set and its type matches, then use it as default for the popup
     ls_e070use = zcl_abapgit_default_transport=>get_instance( )->get( ).
 
-    IF ls_e070use-trfunction = is_transport_type-request.
+    IF ls_e070use-trfunction = is_transport_type-request AND iv_use_default = abap_true.
       lv_order = ls_e070use-ordernum.
     ENDIF.
 
@@ -109795,6 +109796,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-06T08:49:43.084Z
+* abapmerge 0.14.3 - 2022-04-06T13:56:26.778Z
 ENDINTERFACE.
 ****************************************************
