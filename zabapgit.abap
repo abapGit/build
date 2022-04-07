@@ -35715,8 +35715,12 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
       lv_item_class TYPE string.
 
     " Get value and validation error
-    ls_attr-value = escape( val    = io_values->get( is_field-name )
-                            format = cl_abap_format=>e_html_attr ).
+    ls_attr-value = io_values->get( is_field-name ).
+
+    IF is_field-type <> zif_abapgit_html_form=>c_field_type-textarea.
+      ls_attr-value = escape( val    = ls_attr-value
+                              format = cl_abap_format=>e_html_attr ).
+    ENDIF.
 
     IF io_validation_log IS BOUND.
       ls_attr-error = io_validation_log->get( is_field-name ).
@@ -109796,6 +109800,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-07T09:27:45.180Z
+* abapmerge 0.14.3 - 2022-04-07T14:09:21.606Z
 ENDINTERFACE.
 ****************************************************
