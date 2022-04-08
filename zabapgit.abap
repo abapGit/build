@@ -53580,7 +53580,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -53792,11 +53792,10 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    get_files_remote( ).
-
     CREATE OBJECT ri_config TYPE zcl_abapgit_data_config.
     mi_data_config = ri_config.
 
+    " Assume remote data has been loaded already
     READ TABLE mt_remote ASSIGNING <ls_remote>
       WITH KEY file_path
       COMPONENTS path = zif_abapgit_data_config=>c_default_path.
@@ -109859,6 +109858,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-08T13:44:37.029Z
+* abapmerge 0.14.3 - 2022-04-08T15:01:50.113Z
 ENDINTERFACE.
 ****************************************************
