@@ -5122,7 +5122,7 @@ CLASS zcl_abapgit_data_serializer DEFINITION
         zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_data_utils DEFINITION
-  CREATE PUBLIC .
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
 
@@ -5132,12 +5132,19 @@ CLASS zcl_abapgit_data_utils DEFINITION
       RETURNING
         VALUE(rr_data) TYPE REF TO data
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     CLASS-METHODS build_filename
       IMPORTING
         !is_config         TYPE zif_abapgit_data_config=>ty_config
       RETURNING
-        VALUE(rv_filename) TYPE string .
+        VALUE(rv_filename) TYPE string.
+    CLASS-METHODS jump
+      IMPORTING
+        !is_item       TYPE zif_abapgit_definitions=>ty_item
+      RETURNING
+        VALUE(rv_exit) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception.
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -36371,7 +36378,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD abapgit_services_actions.
     DATA li_main_page TYPE REF TO zcl_abapgit_gui_page_main.
 
@@ -36883,7 +36890,11 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         TRY.
             " Hide HTML Viewer in dummy screen0 for direct CALL SCREEN to work
             li_html_viewer->set_visiblity( abap_false ).
-            zcl_abapgit_objects=>jump( ls_item ).
+            IF ls_item-obj_type = zif_abapgit_data_config=>c_data_type-tabu.
+              zcl_abapgit_data_utils=>jump( ls_item ).
+            ELSE.
+              zcl_abapgit_objects=>jump( ls_item ).
+            ENDIF.
             li_html_viewer->set_visiblity( abap_true ).
           CATCH zcx_abapgit_exception INTO lx_ex.
             li_html_viewer->set_visiblity( abap_true ).
@@ -106904,6 +106915,25 @@ CLASS zcl_abapgit_data_utils IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD jump.
+
+    " Run SE16 with authorization check
+    CALL FUNCTION 'RS_TABLE_LIST_CREATE'
+      EXPORTING
+        table_name         = is_item-obj_name
+      EXCEPTIONS
+        table_is_structure = 1
+        table_not_exists   = 2
+        db_not_exists      = 3
+        no_permission      = 4
+        no_change_allowed  = 5
+        table_is_gtt       = 6
+        OTHERS             = 7.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Table { is_item-obj_name } cannot be displayed| ).
+    ENDIF.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_data_serializer IMPLEMENTATION.
@@ -109829,6 +109859,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-08T09:33:59.562Z
+* abapmerge 0.14.3 - 2022-04-08T13:39:45.863Z
 ENDINTERFACE.
 ****************************************************
