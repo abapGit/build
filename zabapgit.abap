@@ -163,6 +163,7 @@ CLASS zcl_abapgit_gui_page_run_bckg DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_repo_view DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_repo_over DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_patch DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_merge_sel DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge_res DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_main DEFINITION DEFERRED.
@@ -175,7 +176,6 @@ CLASS zcl_abapgit_gui_page_data DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_commit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_codi_base DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_code_insp DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_boverview DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_addonline DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_addofflin DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
@@ -2618,6 +2618,7 @@ INTERFACE zif_abapgit_definitions .
       git_branch_create             TYPE string VALUE 'git_branch_create',
       git_branch_switch             TYPE string VALUE 'git_branch_switch',
       git_branch_delete             TYPE string VALUE 'git_branch_delete',
+      git_branch_merge              TYPE string VALUE 'git_branch_merge',
       git_tag_create                TYPE string VALUE 'git_tag_create',
       git_tag_delete                TYPE string VALUE 'git_tag_delete',
       git_tag_switch                TYPE string VALUE 'git_tag_switch',
@@ -2636,7 +2637,6 @@ INTERFACE zif_abapgit_definitions .
       go_stage                      TYPE string VALUE 'go_stage',
       go_stage_transport            TYPE string VALUE 'go_stage_transport',
       go_commit                     TYPE string VALUE 'go_commit',
-      go_branch_overview            TYPE string VALUE 'go_branch_overview',
       go_tag_overview               TYPE string VALUE 'go_tag_overview',
       go_debuginfo                  TYPE string VALUE 'go_debuginfo',
       go_settings                   TYPE string VALUE 'go_settings',
@@ -16088,78 +16088,6 @@ CLASS zcl_abapgit_gui_page_addonline DEFINITION
       RETURNING
         VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_boverview DEFINITION
-  FINAL
-  CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
-
-  PUBLIC SECTION.
-
-    METHODS:
-      constructor
-        IMPORTING io_repo TYPE REF TO zcl_abapgit_repo_online
-        RAISING   zcx_abapgit_exception,
-      zif_abapgit_gui_event_handler~on_event REDEFINITION.
-
-  PROTECTED SECTION.
-    METHODS render_content REDEFINITION.
-
-  PRIVATE SECTION.
-
-    TYPES:
-      BEGIN OF ty_merge,
-        source TYPE string,
-        target TYPE string,
-      END OF ty_merge .
-
-    DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
-    DATA mv_compress TYPE abap_bool VALUE abap_false ##NO_TEXT.
-    DATA mt_commits TYPE zif_abapgit_definitions=>ty_commit_tt .
-    DATA mi_branch_overview TYPE REF TO zif_abapgit_branch_overview .
-    CONSTANTS:
-      BEGIN OF c_actions,
-        uncompress TYPE string VALUE 'uncompress' ##NO_TEXT,
-        compress   TYPE string VALUE 'compress' ##NO_TEXT,
-        refresh    TYPE string VALUE 'refresh' ##NO_TEXT,
-        merge      TYPE string VALUE 'merge' ##NO_TEXT,
-      END OF c_actions .
-
-    METHODS refresh
-      RAISING
-        zcx_abapgit_exception .
-    METHODS body
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-    METHODS form_select
-      IMPORTING
-        !iv_name       TYPE string
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS render_merge
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-    METHODS build_menu
-      RETURNING
-        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
-    METHODS escape_branch
-      IMPORTING
-        !iv_string       TYPE string
-      RETURNING
-        VALUE(rv_string) TYPE string .
-    METHODS escape_message
-      IMPORTING
-        !iv_string       TYPE string
-      RETURNING
-        VALUE(rv_string) TYPE string .
-    METHODS render_commit_popups
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-ENDCLASS.
 CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_abapgit_gui_page.
   PUBLIC SECTION.
     METHODS:
@@ -17081,6 +17009,61 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS toggle_merge_mode .
+ENDCLASS.
+CLASS zcl_abapgit_gui_page_merge_sel DEFINITION
+  INHERITING FROM zcl_abapgit_gui_component
+  FINAL
+  CREATE PRIVATE.
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
+
+    CLASS-METHODS create
+      IMPORTING
+        !ii_repo       TYPE REF TO zif_abapgit_repo
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS constructor
+      IMPORTING
+        !ii_repo TYPE REF TO zif_abapgit_repo
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CONSTANTS:
+      BEGIN OF c_id,
+        branches TYPE string VALUE 'branches',
+        source   TYPE string VALUE 'source',
+        target   TYPE string VALUE 'target',
+      END OF c_id.
+
+    CONSTANTS:
+      BEGIN OF c_event,
+        merge TYPE string VALUE 'merge',
+      END OF c_event.
+
+    DATA mo_form TYPE REF TO zcl_abapgit_html_form.
+    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_form_util TYPE REF TO zcl_abapgit_html_form_utils.
+    DATA mo_repo TYPE REF TO zcl_abapgit_repo_online.
+    DATA mt_branches TYPE zif_abapgit_definitions=>ty_git_branch_list_tt.
+
+    METHODS read_branches
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS get_form_schema
+      RETURNING
+        VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form
+      RAISING
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_patch DEFINITION
   INHERITING FROM zcl_abapgit_gui_page_diff
@@ -18518,13 +18501,6 @@ CLASS zcl_abapgit_gui_router DEFINITION
     METHODS get_page_diff
       IMPORTING
         !ii_event      TYPE REF TO zif_abapgit_gui_event
-      RETURNING
-        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
-      RAISING
-        zcx_abapgit_exception .
-    METHODS get_page_branch_overview
-      IMPORTING
-        !iv_key        TYPE zif_abapgit_persistence=>ty_repo-key
       RETURNING
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
@@ -36502,9 +36478,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         rs_handled-page = get_page_stage( ii_event      = ii_event
                                           ii_obj_filter = lo_obj_filter_trans ).
         rs_handled-state = get_state_diff( ii_event ).
-      WHEN zif_abapgit_definitions=>c_action-go_branch_overview.              " Go repo branch overview
-        rs_handled-page  = get_page_branch_overview( lv_key ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_tutorial.                     " Go to tutorial
         rs_handled-page  = zcl_abapgit_gui_page_tutorial=>create( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
@@ -36519,19 +36492,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
     ENDCASE.
-
-  ENDMETHOD.
-  METHOD get_page_branch_overview.
-
-    DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
-          lo_page TYPE REF TO zcl_abapgit_gui_page_boverview.
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    CREATE OBJECT lo_page
-      EXPORTING
-        io_repo = lo_repo.
-
-    ri_page = lo_page.
 
   ENDMETHOD.
   METHOD get_page_diff.
@@ -36686,6 +36646,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD git_services.
 
     DATA lv_key TYPE zif_abapgit_persistence=>ty_repo-key.
+    DATA li_repo TYPE REF TO zif_abapgit_repo.
 
     lv_key = ii_event->query( )->get( 'KEY' ).
 
@@ -36705,6 +36666,10 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-git_branch_switch.             " GIT Switch branch
         zcl_abapgit_services_git=>switch_branch( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-git_branch_merge.              " GIT Merge branch
+        li_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
+        rs_handled-page  = zcl_abapgit_gui_page_merge_sel=>create( li_repo ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_tag_overview.               " GIT Tag overview
         zcl_abapgit_services_git=>tag_overview( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
@@ -40984,14 +40949,14 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    ro_branch_dropdown->add( iv_txt = 'Overview'
-                             iv_act = |{ zif_abapgit_definitions=>c_action-go_branch_overview }?key={ mv_key }| ).
     ro_branch_dropdown->add( iv_txt = 'Switch'
                              iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_switch }?key={ mv_key }| ).
     ro_branch_dropdown->add( iv_txt = 'Create'
                              iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_create }?key={ mv_key }| ).
     ro_branch_dropdown->add( iv_txt = 'Delete'
                              iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_delete }?key={ mv_key }| ).
+    ro_branch_dropdown->add( iv_txt = 'Merge'
+                             iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_merge }?key={ mv_key }| ).
 
   ENDMETHOD.
   METHOD build_dir_jump_link.
@@ -41546,6 +41511,27 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     register_deferred_script( render_scripts( ) ).
 
   ENDMETHOD.
+  METHOD render_file_command.
+
+    DATA: lv_difflink TYPE string.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( '<div>' ).
+    IF is_file-is_changed = abap_true.
+      lv_difflink = zcl_abapgit_html_action_utils=>file_encode(
+        iv_key  = mo_repo->get_key( )
+        ig_file = is_file ).
+      ri_html->add_a( iv_txt = 'diff'
+                      iv_act = |{ zif_abapgit_definitions=>c_action-go_file_diff }?{ lv_difflink }| ).
+      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv_lstate = is_file-lstate
+                                                                  iv_rstate = is_file-rstate ) ).
+    ELSE.
+      ri_html->add( '&nbsp;' ).
+    ENDIF.
+    ri_html->add( '</div>' ).
+
+  ENDMETHOD.
   METHOD render_head_line.
 
     DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
@@ -41658,28 +41644,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       ENDIF.
 
     ENDIF.
-
-  ENDMETHOD.
-
-  METHOD render_file_command.
-
-    DATA: lv_difflink TYPE string.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( '<div>' ).
-    IF is_file-is_changed = abap_true.
-      lv_difflink = zcl_abapgit_html_action_utils=>file_encode(
-        iv_key  = mo_repo->get_key( )
-        ig_file = is_file ).
-      ri_html->add_a( iv_txt = 'diff'
-                      iv_act = |{ zif_abapgit_definitions=>c_action-go_file_diff }?{ lv_difflink }| ).
-      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_item_state( iv_lstate = is_file-lstate
-                                                                  iv_rstate = is_file-rstate ) ).
-    ELSE.
-      ri_html->add( '&nbsp;' ).
-    ENDIF.
-    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_item_files.
@@ -43040,6 +43004,137 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
     ls_hotkey_action-action      = |refreshAll|.
     ls_hotkey_action-hotkey      = |a|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_gui_page_merge_sel IMPLEMENTATION.
+  METHOD constructor.
+
+    super->constructor( ).
+    CREATE OBJECT mo_form_data.
+    mo_repo ?= ii_repo.
+
+    read_branches( ).
+
+    mo_form = get_form_schema( ).
+    mo_form_util = zcl_abapgit_html_form_utils=>create( mo_form ).
+
+  ENDMETHOD.
+  METHOD create.
+
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_merge_sel.
+
+    CREATE OBJECT lo_component
+      EXPORTING
+        ii_repo = ii_repo.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title      = 'Merge Branches'
+      ii_child_component = lo_component ).
+
+  ENDMETHOD.
+  METHOD get_form_schema.
+
+    DATA lv_name TYPE string.
+
+    FIELD-SYMBOLS <ls_branch> LIKE LINE OF mt_branches.
+
+    ro_form = zcl_abapgit_html_form=>create(
+                iv_form_id   = 'merge-branches-form'
+                iv_help_page = 'https://docs.abapgit.org/' ). " todo, add docs
+
+    ro_form->start_group(
+      iv_name  = c_id-branches
+      iv_label = 'Branch Selection'
+      iv_hint  = 'Select the branches that should be merged'
+    )->radio(
+      iv_name          = c_id-source
+      iv_label         = 'Source Branch'
+      iv_default_value = substring(
+                           val = mo_repo->get_selected_branch( )
+                           off = 11 )
+      iv_condense      = abap_true ).
+
+    LOOP AT mt_branches ASSIGNING <ls_branch>.
+      ro_form->option(
+        iv_label = <ls_branch>-display_name
+        iv_value = <ls_branch>-display_name ).
+    ENDLOOP.
+
+    ro_form->radio(
+      iv_name     = c_id-target
+      iv_label    = 'Target Branch'
+      iv_condense = abap_true ).
+
+    LOOP AT mt_branches ASSIGNING <ls_branch>.
+      ro_form->option(
+        iv_label = <ls_branch>-display_name
+        iv_value = <ls_branch>-display_name ).
+    ENDLOOP.
+
+    ro_form->command(
+      iv_label    = 'Preview Merge'
+      iv_cmd_type = zif_abapgit_html_form=>c_cmd_type-input_main
+      iv_action   = c_event-merge
+    )->command(
+      iv_label    = 'Back'
+      iv_action   = zif_abapgit_definitions=>c_action-go_back ).
+
+  ENDMETHOD.
+  METHOD read_branches.
+
+    DATA lo_branches TYPE REF TO zcl_abapgit_git_branch_list.
+
+    lo_branches = zcl_abapgit_git_transport=>branches( mo_repo->get_url( ) ).
+    mt_branches = lo_branches->get_branches_only( ).
+
+    DELETE mt_branches WHERE name = zif_abapgit_definitions=>c_head_name.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+
+    DATA lo_merge TYPE REF TO zcl_abapgit_gui_page_merge.
+
+    mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
+
+    CASE ii_event->mv_action.
+      WHEN zif_abapgit_definitions=>c_action-go_back.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+
+      WHEN c_event-merge.
+        IF mo_form_data->get( c_id-source ) = mo_form_data->get( c_id-target ).
+          zcx_abapgit_exception=>raise( 'Select different branches' ).
+        ENDIF.
+
+        CREATE OBJECT lo_merge
+          EXPORTING
+            io_repo   = mo_repo
+            iv_source = mo_form_data->get( c_id-source )
+            iv_target = mo_form_data->get( c_id-target ).
+
+        rs_handled-page = lo_merge.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
+
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    gui_services( )->register_event_handler( me ).
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( `<div class="repo">` ).
+
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
+                    io_repo               = mo_repo
+                    iv_show_commit        = abap_false
+                    iv_interactive_branch = abap_false ) ).
+
+    ri_html->add( mo_form->render( io_values = mo_form_data ) ).
+
+    ri_html->add( `</div>` ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -46443,312 +46538,6 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
 
     ms_control-page_menu = build_menu( ).
     ri_html = super->zif_abapgit_gui_renderable~render( ).
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_GUI_PAGE_BOVERVIEW IMPLEMENTATION.
-  METHOD body.
-
-    DATA: lv_tag                 TYPE string,
-          lv_branch_display_name TYPE string.
-
-    FIELD-SYMBOLS: <ls_commit> LIKE LINE OF mt_commits,
-                   <ls_create> LIKE LINE OF <ls_commit>-create.
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
-      io_repo         = mo_repo
-      iv_show_package = abap_false
-      iv_show_branch  = abap_false ) ).
-    ri_html->add( '<br>' ).
-    ri_html->add( '<br>' ).
-
-    ri_html->add( render_merge( ) ).
-
-    ri_html->add( '<br>' ).
-    ri_html->add( build_menu( )->render( ) ).
-    "CSS gitGraph-scrollWrapper, gitGraph-HTopScroller and gitGraph-Wrapper
-    " - Used to manage the Horizonal Scroll bar on top of gitGraph Element
-    ri_html->add( '<div class="gitGraph-scrollWrapper" onscroll="GitGraphScroller()">' ).
-    "see http://stackoverflow.com/questions/6081483/maximum-size-of-a-canvas-element
-    ri_html->add( '<div class="gitGraph-HTopScroller"></div>' ).
-    ri_html->add( '</div>' ).
-
-    ri_html->add( '<div class="gitGraph-Wrapper">' ).
-    ri_html->add( '<canvas id="gitGraph"></canvas>' ).
-    ri_html->add( '</div>' ).
-
-    ri_html->add( '<script type="text/javascript" src="https://cdnjs.' &&
-      'cloudflare.com/ajax/libs/gitgraph.js/1.14.0/gitgraph.min.js">' &&
-      '</script>' ).
-
-    ri_html->add( '<script type="text/javascript">' ).
-    ri_html->add( 'var myTemplateConfig = {' ).
-    ri_html->add( 'colors: [ "#979797", "#008fb5", "#f1c109", "'
-      && '#095256", "#087F8C", "#5AAA95", "#86A873", "#BB9F06" ],' ).
-    ri_html->add( 'branch: {' ).
-    ri_html->add( '  lineWidth: 8,' ).
-    ri_html->add( '  spacingX: 50' ).
-    ri_html->add( '},' ).
-    ri_html->add( 'commit: {' ).
-    ri_html->add( '  spacingY: -40,' ).
-    ri_html->add( '  dot: { size: 12 },' ).
-    ri_html->add( '  message: { font: "normal 14pt Arial" }' ).
-    ri_html->add( '}' ).
-    ri_html->add( '};' ).
-    ri_html->add( 'var gitgraph = new GitGraph({' ).
-    ri_html->add( '  template: myTemplateConfig,' ).
-    ri_html->add( '  orientation: "vertical-reverse"' ).
-    ri_html->add( '});' ).
-    ri_html->add( 'var gBranchOveriew = new BranchOverview();' ).
-
-    LOOP AT mt_commits ASSIGNING <ls_commit>.
-
-      IF sy-tabix = 1.
-        " assumption: all branches are created from master, todo
-        ri_html->add( |var {
-          escape_branch( <ls_commit>-branch ) } = gitgraph.branch("{
-          <ls_commit>-branch }");| ).
-      ENDIF.
-
-      IF <ls_commit>-branch IS INITIAL.
-        CONTINUE. " we skip orphaned commits
-      ENDIF.
-
-      IF <ls_commit>-compressed = abap_true.
-        ri_html->add( |{ escape_branch( <ls_commit>-branch ) }.commit(\{message: "{
-          escape_message( <ls_commit>-message )
-          }", dotColor: "black", dotSize: 15, messageHashDisplay: false, messageAuthorDisplay: false\});| ).
-      ELSEIF <ls_commit>-merge IS INITIAL.
-
-        " gitgraph doesn't support multiple tags per commit yet.
-        " Therefore we concatenate them.
-        " https://github.com/nicoespeon/gitgraph.js/issues/143
-
-        lv_tag = concat_lines_of( table = <ls_commit>-tags
-                                  sep   = ` | ` ).
-
-        ri_html->add( |{ escape_branch( <ls_commit>-branch ) }.commit(\{message: "{
-          escape_message( <ls_commit>-message ) }", long: "{ escape_message( concat_lines_of( table = <ls_commit>-body
-                                                                                              sep   = ` ` ) )
-          }", author: "{
-          <ls_commit>-author }", sha1: "{
-          <ls_commit>-sha1(7) }", tag: "{ lv_tag
-          }", onClick:gBranchOveriew.onCommitClick.bind(gBranchOveriew)\});| ).
-      ELSE.
-        ri_html->add( |{ escape_branch( <ls_commit>-merge ) }.merge({
-          escape_branch( <ls_commit>-branch ) }, \{message: "{
-          escape_message( <ls_commit>-message ) }", long: "{ escape_message( concat_lines_of( table = <ls_commit>-body
-                                                                                              sep   = ` ` ) )
-          }", author: "{ <ls_commit>-author }", sha1: "{
-          <ls_commit>-sha1(7) }", onClick:gBranchOveriew.onCommitClick.bind(gBranchOveriew)\});| ).
-      ENDIF.
-
-      LOOP AT <ls_commit>-create ASSIGNING <ls_create>.
-        IF <ls_create>-name CS zcl_abapgit_branch_overview=>c_deleted_branch_name_prefix.
-          lv_branch_display_name = ''.
-        ELSE.
-          lv_branch_display_name = <ls_create>-name.
-        ENDIF.
-
-        ri_html->add( |var { escape_branch( <ls_create>-name ) } = {
-                      escape_branch( <ls_create>-parent ) }.branch("{
-                      lv_branch_display_name }");| ).
-      ENDLOOP.
-
-    ENDLOOP.
-
-    ri_html->add(
-       |gitGraph.addEventListener( "commit:mouseover", gBranchOveriew.showCommit.bind(gBranchOveriew) );| ).
-    ri_html->add(
-       |gitGraph.addEventListener( "commit:mouseout",  gBranchOveriew.hideCommit.bind(gBranchOveriew) );| ).
-
-    ri_html->add( '</script>' ).
-
-    ri_html->add( '<script>' ).
-    ri_html->add( 'setGitGraphScroller();' ).
-    ri_html->add( '</script>' ).
-
-    ri_html->add( render_commit_popups( ) ).
-
-  ENDMETHOD.
-  METHOD build_menu.
-
-    CREATE OBJECT ro_menu.
-
-    IF mv_compress = abap_true.
-      ro_menu->add(
-        iv_txt = 'Uncompress Graph'
-        iv_act = c_actions-uncompress ).
-    ELSE.
-      ro_menu->add(
-        iv_txt = 'Compress Graph'
-        iv_act = c_actions-compress ).
-    ENDIF.
-
-    ro_menu->add( iv_txt = 'Refresh'
-                  iv_act = c_actions-refresh ).
-
-  ENDMETHOD.
-  METHOD constructor.
-    super->constructor( ).
-    ms_control-page_title = 'Branch Overview'.
-    mo_repo = io_repo.
-    refresh( ).
-  ENDMETHOD.
-  METHOD escape_branch.
-
-    rv_string = iv_string.
-
-    TRANSLATE rv_string USING '-_._#_'.
-
-    rv_string = |branch_{ rv_string }|.
-
-  ENDMETHOD.
-  METHOD escape_message.
-
-    rv_string = iv_string.
-
-    REPLACE ALL OCCURRENCES OF '\' IN rv_string WITH '\\'.
-    REPLACE ALL OCCURRENCES OF '"' IN rv_string WITH '\"'.
-
-  ENDMETHOD.
-  METHOD form_select.
-
-    DATA: lv_name     TYPE string,
-          lt_branches TYPE zif_abapgit_definitions=>ty_git_branch_list_tt.
-
-    FIELD-SYMBOLS: <ls_branch> LIKE LINE OF lt_branches.
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    lt_branches = mi_branch_overview->get_branches( ).
-
-    ri_html->add( |<select name="{ iv_name }">| ).
-    LOOP AT lt_branches ASSIGNING <ls_branch>.
-      lv_name = <ls_branch>-name+11.
-      ri_html->add( |<option value="{ lv_name }">{ lv_name }</option>| ).
-    ENDLOOP.
-    ri_html->add( '</select>' ).
-
-  ENDMETHOD.
-  METHOD refresh.
-
-    mi_branch_overview = zcl_abapgit_factory=>get_branch_overview( mo_repo ).
-
-    mt_commits = mi_branch_overview->get_commits( ).
-    IF mv_compress = abap_true.
-      mt_commits = mi_branch_overview->compress( mt_commits ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD render_commit_popups.
-
-    DATA: lv_time    TYPE c LENGTH 10,
-          lv_date    TYPE sy-datum,
-          lv_content TYPE string.
-
-    FIELD-SYMBOLS: <ls_commit> LIKE LINE OF mt_commits.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    LOOP AT mt_commits ASSIGNING <ls_commit>.
-
-      CLEAR: lv_time, lv_date.
-
-      PERFORM p6_to_date_time_tz IN PROGRAM rstr0400
-                                 USING <ls_commit>-time
-                                       lv_time
-                                       lv_date.
-
-      lv_content = |<table class="commit">|
-                && |  <tr>|
-                && |    <td class="title">Author</td>|
-                && |    <td>{ <ls_commit>-author }</td>|
-                && |  </tr>|
-                && |  <tr>|
-                && |    <td class="title">SHA1</td>|
-                && |    <td>{ <ls_commit>-sha1 }</td>|
-                && |  </tr>|
-                && |  <tr>|
-                && |    <td class="title">Date/Time</td>|
-                && |    <td>{ lv_date DATE = USER }</td>|
-                && |  </tr>|
-                && |  <tr>|
-                && |    <td class="title">Message</td>|
-                && |    <td>{ <ls_commit>-message }</td>|
-                && |  </tr>|
-                && |  <tr>|.
-
-      IF <ls_commit>-body IS NOT INITIAL.
-        lv_content = lv_content
-                  && |<td class="title">Body</td>|
-                  && |<td>{ concat_lines_of( table = <ls_commit>-body
-                                             sep   = |<br/>| ) }</td>|.
-      ENDIF.
-
-      lv_content = lv_content
-                && |  </tr>|
-                && |</table>|.
-
-      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_commit_popup(
-        iv_id      = <ls_commit>-sha1(7)
-        iv_content = lv_content ) ).
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD render_content.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( '<div id="toc">' ).
-    ri_html->add( body( ) ).
-    ri_html->add( '</div>' ).
-
-  ENDMETHOD.
-  METHOD render_merge.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( '<form id="commit_form" method="post" action="sapevent:merge">' ).
-    ri_html->add( 'Merge' ).
-    ri_html->add( form_select( 'source' ) ).
-    ri_html->add( 'into' ).
-    ri_html->add( form_select( 'target' ) ).
-    ri_html->add( '<input type="submit" value="Submit">' ).
-    ri_html->add( '</form>' ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_event_handler~on_event.
-
-    DATA: ls_merge TYPE ty_merge,
-          lo_merge TYPE REF TO zcl_abapgit_gui_page_merge.
-    CASE ii_event->mv_action.
-      WHEN c_actions-refresh.
-        refresh( ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN c_actions-uncompress.
-        mv_compress = abap_false.
-        refresh( ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN c_actions-compress.
-        mv_compress = abap_true.
-        refresh( ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN c_actions-merge.
-        ls_merge-source = ii_event->form_data( )->get( 'source' ).
-        ls_merge-target = ii_event->form_data( )->get( 'target' ).
-        CREATE OBJECT lo_merge
-          EXPORTING
-            io_repo   = mo_repo
-            iv_source = ls_merge-source
-            iv_target = ls_merge-target.
-        rs_handled-page = lo_merge.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-      WHEN OTHERS.
-        rs_handled = super->zif_abapgit_gui_event_handler~on_event( ii_event ).
-    ENDCASE.
 
   ENDMETHOD.
 ENDCLASS.
@@ -109862,6 +109651,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-11T11:37:24.757Z
+* abapmerge 0.14.3 - 2022-04-11T14:35:10.954Z
 ENDINTERFACE.
 ****************************************************
