@@ -61,12 +61,14 @@ INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
 INTERFACE zif_abapgit_repo_srv DEFERRED.
 INTERFACE zif_abapgit_repo_online DEFERRED.
 INTERFACE zif_abapgit_repo_listener DEFERRED.
+INTERFACE zif_abapgit_repo_checksums DEFERRED.
 INTERFACE zif_abapgit_repo DEFERRED.
 INTERFACE zif_abapgit_object_filter DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
 INTERFACE zif_abapgit_persistence DEFERRED.
 INTERFACE zif_abapgit_persist_user DEFERRED.
 INTERFACE zif_abapgit_persist_settings DEFERRED.
+INTERFACE zif_abapgit_persist_repo_cs DEFERRED.
 INTERFACE zif_abapgit_persist_repo DEFERRED.
 INTERFACE zif_abapgit_objects DEFERRED.
 INTERFACE zif_abapgit_object DEFERRED.
@@ -209,7 +211,9 @@ CLASS zcl_abapgit_repo_srv DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_online DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_offline DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_filter DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_cs_migration DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_content_list DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_checksums DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_filter_tran DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
@@ -2233,10 +2237,15 @@ INTERFACE zif_abapgit_definitions .
       comment   TYPE string,
     END OF ty_comment .
   TYPES:
-    BEGIN OF ty_item,
+    BEGIN OF ty_item_signature,
       obj_type TYPE tadir-object,
       obj_name TYPE tadir-obj_name,
       devclass TYPE devclass,
+    END OF ty_item_signature .
+  TYPES:
+    BEGIN OF ty_item.
+      INCLUDE TYPE ty_item_signature.
+  TYPES:
       inactive TYPE abap_bool,
     END OF ty_item .
   TYPES:
@@ -2250,6 +2259,8 @@ INTERFACE zif_abapgit_definitions .
     END OF ty_file_item .
   TYPES:
     ty_files_item_tt TYPE STANDARD TABLE OF ty_file_item WITH DEFAULT KEY .
+  TYPES:
+    ty_files_item_by_file_tt TYPE SORTED TABLE OF ty_file_item WITH UNIQUE KEY file-path file-filename.
   TYPES:
     ty_yes_no         TYPE c LENGTH 1,
     ty_yes_no_partial TYPE c LENGTH 1.
@@ -3278,7 +3289,7 @@ INTERFACE zif_abapgit_persistence.
     ty_contents TYPE SORTED TABLE OF ty_content WITH UNIQUE KEY type value .
 
   TYPES: BEGIN OF ty_local_checksum,
-           item  TYPE zif_abapgit_definitions=>ty_item,
+           item  TYPE zif_abapgit_definitions=>ty_item_signature,
            files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
          END OF ty_local_checksum.
 
@@ -3294,6 +3305,8 @@ INTERFACE zif_abapgit_persistence.
     END OF ty_local_settings.
 
   TYPES: ty_local_checksum_tt TYPE STANDARD TABLE OF ty_local_checksum WITH DEFAULT KEY.
+  TYPES: ty_local_checksum_by_item_tt TYPE SORTED TABLE OF ty_local_checksum
+    WITH NON-UNIQUE KEY item-obj_type item-obj_name.
 
   TYPES: BEGIN OF ty_repo_xml,
            url             TYPE string,
@@ -3306,7 +3319,6 @@ INTERFACE zif_abapgit_persistence.
            deserialized_at TYPE timestampl,
            offline         TYPE abap_bool,
            switched_origin TYPE string,
-           local_checksums TYPE ty_local_checksum_tt,
            dot_abapgit     TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
            head_branch     TYPE string,   " HEAD symref of the repo, master branch
            local_settings  TYPE ty_local_settings,
@@ -3324,7 +3336,6 @@ INTERFACE zif_abapgit_persistence.
       deserialized_at TYPE abap_bool,
       offline         TYPE abap_bool,
       switched_origin TYPE abap_bool,
-      local_checksums TYPE abap_bool,
       dot_abapgit     TYPE abap_bool,
       head_branch     TYPE abap_bool,
       local_settings  TYPE abap_bool,
@@ -3396,6 +3407,29 @@ INTERFACE zif_abapgit_persist_repo .
       !is_change_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask
     RAISING
       zcx_abapgit_exception .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_persist_repo_cs .
+
+  METHODS update
+    IMPORTING
+      !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      !iv_cs_blob TYPE zif_abapgit_persistence=>ty_content-data_str
+    RAISING
+      zcx_abapgit_exception .
+  METHODS delete
+    IMPORTING
+      !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+    RAISING
+      zcx_abapgit_exception .
+  METHODS read
+    IMPORTING
+      !iv_key        TYPE zif_abapgit_persistence=>ty_repo-key
+    RETURNING
+      VALUE(rv_cs_blob) TYPE zif_abapgit_persistence=>ty_content-data_str
+    RAISING
+      zcx_abapgit_exception
+      zcx_abapgit_not_found .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_persist_user .
@@ -3662,6 +3696,36 @@ INTERFACE zif_abapgit_repo .
       VALUE(rs_checks) TYPE zif_abapgit_definitions=>ty_deserialize_checks
     RAISING
       zcx_abapgit_exception .
+
+  METHODS checksums
+    RETURNING
+      VALUE(ri_checksums) TYPE REF TO zif_abapgit_repo_checksums
+    RAISING
+      zcx_abapgit_exception .
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_repo_checksums.
+
+  METHODS get
+    RETURNING
+      VALUE(rt_checksums) TYPE zif_abapgit_persistence=>ty_local_checksum_tt.
+
+  METHODS get_checksums_per_file
+    RETURNING
+      VALUE(rt_checksums) TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
+
+  METHODS rebuild
+    IMPORTING
+      iv_branches_equal TYPE abap_bool DEFAULT abap_false
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS update
+    IMPORTING
+      !it_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+    RAISING
+      zcx_abapgit_exception.
 
 ENDINTERFACE.
 
@@ -13687,6 +13751,9 @@ CLASS zcl_abapgit_persist_factory DEFINITION
     CLASS-METHODS get_repo
       RETURNING
         VALUE(ri_repo) TYPE REF TO zif_abapgit_persist_repo .
+    CLASS-METHODS get_repo_cs
+      RETURNING
+        VALUE(ri_repo_cs) TYPE REF TO zif_abapgit_persist_repo_cs .
     CLASS-METHODS get_settings
       RETURNING
         VALUE(ri_settings) TYPE REF TO zif_abapgit_persist_settings .
@@ -13694,6 +13761,7 @@ CLASS zcl_abapgit_persist_factory DEFINITION
   PRIVATE SECTION.
 
     CLASS-DATA gi_repo TYPE REF TO zif_abapgit_persist_repo .
+    CLASS-DATA gi_repo_cs TYPE REF TO zif_abapgit_persist_repo_cs .
     CLASS-DATA gi_settings TYPE REF TO zif_abapgit_persist_settings .
 ENDCLASS.
 CLASS zcl_abapgit_persist_migrate DEFINITION CREATE PUBLIC.
@@ -13793,6 +13861,7 @@ CLASS zcl_abapgit_persistence_db DEFINITION
     CONSTANTS:
       c_type_settings   TYPE zif_abapgit_persistence=>ty_type VALUE 'SETTINGS' ##NO_TEXT,
       c_type_repo       TYPE zif_abapgit_persistence=>ty_type VALUE 'REPO' ##NO_TEXT,
+      c_type_repo_csum  TYPE zif_abapgit_persistence=>ty_type VALUE 'REPO_CS' ##NO_TEXT,
       c_type_background TYPE zif_abapgit_persistence=>ty_type VALUE 'BACKGROUND' ##NO_TEXT,
       c_type_packages   TYPE zif_abapgit_persistence=>ty_type VALUE 'PACKAGES' ##NO_TEXT,
       c_type_user       TYPE zif_abapgit_persistence=>ty_type VALUE 'USER' ##NO_TEXT.
@@ -13878,8 +13947,15 @@ CLASS zcl_abapgit_persistence_repo DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_persist_repo .
+    INTERFACES zif_abapgit_persist_repo_cs .
 
     METHODS constructor .
+    METHODS rewrite_repo_meta
+      IMPORTING
+        !iv_repo_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_not_found.
   PROTECTED SECTION.
 
   PRIVATE SECTION.
@@ -14184,23 +14260,12 @@ CLASS zcl_abapgit_repo DEFINITION
         VALUE(rs_checks) TYPE zif_abapgit_definitions=>ty_delete_checks
       RAISING
         zcx_abapgit_exception .
-    METHODS get_local_checksums_per_file
-      RETURNING
-        VALUE(rt_checksums) TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
     METHODS get_dot_apack
       RETURNING
         VALUE(ro_dot_apack) TYPE REF TO zcl_abapgit_apack_reader .
     METHODS get_data_config
       RETURNING
         VALUE(ri_config) TYPE REF TO zif_abapgit_data_config
-      RAISING
-        zcx_abapgit_exception .
-    METHODS update_local_checksums
-      IMPORTING
-        !it_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
-      RAISING
-        zcx_abapgit_exception .
-    METHODS rebuild_local_checksums
       RAISING
         zcx_abapgit_exception .
     METHODS find_remote_dot_abapgit
@@ -14279,7 +14344,6 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
     METHODS set
       IMPORTING
-        !it_checksums       TYPE zif_abapgit_persistence=>ty_local_checksum_tt OPTIONAL
         !iv_url             TYPE zif_abapgit_persistence=>ty_repo-url OPTIONAL
         !iv_branch_name     TYPE zif_abapgit_persistence=>ty_repo-branch_name OPTIONAL
         !iv_selected_commit TYPE zif_abapgit_persistence=>ty_repo-selected_commit OPTIONAL
@@ -14295,9 +14359,6 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS reset_remote .
   PRIVATE SECTION.
 
-    METHODS get_local_checksums
-      RETURNING
-        VALUE(rt_checksums) TYPE zif_abapgit_persistence=>ty_local_checksum_tt .
     METHODS notify_listener
       IMPORTING
         !is_change_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask
@@ -14313,15 +14374,65 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS check_language
       RAISING
         zcx_abapgit_exception .
+ENDCLASS.
+CLASS zcl_abapgit_repo_checksums DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_repo_checksums.
+
+    METHODS constructor
+      IMPORTING
+        !iv_repo_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS force_write
+      IMPORTING
+        it_checksums TYPE zif_abapgit_persistence=>ty_local_checksum_tt
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      ty_local_files_by_item_tt TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_file_item WITH NON-UNIQUE KEY item.
+
+    DATA mv_repo_key TYPE zif_abapgit_persistence=>ty_repo-key.
+    DATA mi_repo TYPE REF TO zif_abapgit_repo.
+
     METHODS remove_non_code_related_files
       CHANGING
-        !ct_local_files TYPE zif_abapgit_definitions=>ty_files_item_tt .
-    METHODS compare_with_remote_checksum
+        !ct_local_files TYPE ty_local_files_by_item_tt.
+
+    METHODS build_checksums_from_files
       IMPORTING
-        !it_remote_files TYPE zif_abapgit_definitions=>ty_files_tt
-        !is_local_file   TYPE zif_abapgit_definitions=>ty_file_item-file
+        it_remote    TYPE zif_abapgit_definitions=>ty_files_tt
+        it_local     TYPE ty_local_files_by_item_tt
+        iv_branches_equal TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(rt_checksums) TYPE zif_abapgit_persistence=>ty_local_checksum_tt.
+
+    METHODS save_checksums
+      IMPORTING
+        it_checksums TYPE zif_abapgit_persistence=>ty_local_checksum_tt
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS add_meta
       CHANGING
-        !cs_checksum     TYPE zif_abapgit_persistence=>ty_local_checksum .
+        cv_cs_blob TYPE string
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS extract_meta
+      CHANGING
+*        co_string_map - return string map with meta when it is needed
+        cv_cs_blob TYPE string.
+
 ENDCLASS.
 CLASS zcl_abapgit_repo_content_list DEFINITION
   FINAL
@@ -14373,6 +14484,37 @@ CLASS zcl_abapgit_repo_content_list DEFINITION
     METHODS check_repo_size
       RAISING
         zcx_abapgit_exception .
+ENDCLASS.
+CLASS zcl_abapgit_repo_cs_migration DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    CLASS-METHODS run
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_not_found.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    TYPES:
+      ty_repo_ids TYPE SORTED TABLE OF zif_abapgit_persistence=>ty_repo-key WITH UNIQUE KEY table_line.
+
+    CLASS-METHODS get_unconverted_repo_ids
+      RETURNING
+        VALUE(rt_repo_ids) TYPE ty_repo_ids.
+    CLASS-METHODS clear_repo_metadata
+      IMPORTING
+        iv_repo_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_not_found.
+    CLASS-METHODS convert_checksums
+      IMPORTING
+        iv_repo_key TYPE zif_abapgit_persistence=>ty_repo-key
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_not_found.
+
 ENDCLASS.
 CLASS zcl_abapgit_repo_filter DEFINITION
   FINAL
@@ -14510,6 +14652,10 @@ CLASS zcl_abapgit_repo_srv DEFINITION
     CLASS-METHODS get_instance
       RETURNING
         VALUE(ri_srv) TYPE REF TO zif_abapgit_repo_srv .
+    CLASS-METHODS inject_instance
+      IMPORTING
+        ii_srv TYPE REF TO zif_abapgit_repo_srv.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -15617,7 +15763,6 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
     CLASS-METHODS render_repo_palette
       IMPORTING
         iv_action         TYPE string
-        iv_only_favorites TYPE abap_bool
       RETURNING
         VALUE(ri_html)    TYPE REF TO zif_abapgit_html
       RAISING
@@ -20705,7 +20850,9 @@ CLASS zcl_abapgit_migrations DEFINITION FINAL
 
   PUBLIC SECTION.
     CLASS-METHODS run
-      RAISING zcx_abapgit_exception.
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_not_found.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -23180,7 +23327,7 @@ CLASS zcl_abapgit_news IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_migrations IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
   METHOD run.
 
     " Migrate STDTEXT to TABLE
@@ -23189,8 +23336,10 @@ CLASS zcl_abapgit_migrations IMPLEMENTATION.
     " Create ZIF_APACK_MANIFEST interface
     zcl_abapgit_apack_migration=>run( ).
 
-  ENDMETHOD.
+    " Migrate checksums from repo metadata to separate DB object
+    zcl_abapgit_repo_cs_migration=>run( ).
 
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
@@ -32641,7 +32790,8 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       iv_main_lang_only = is_repo_params-main_lang_only ).
 
     " Make sure there're no leftovers from previous repos
-    ro_repo->rebuild_local_checksums( ).
+    ro_repo->zif_abapgit_repo~checksums( )->rebuild( ).
+    ro_repo->reset_status( ). " TODO refactor later
 
     toggle_favorite( ro_repo->get_key( ) ).
 
@@ -32664,7 +32814,8 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       iv_main_lang_only = is_repo_params-main_lang_only ).
 
     " Make sure there're no leftovers from previous repos
-    ro_repo->rebuild_local_checksums( ).
+    ro_repo->zif_abapgit_repo~checksums( )->rebuild( ).
+    ro_repo->reset_status( ). " TODO refactor later
 
     toggle_favorite( ro_repo->get_key( ) ).
 
@@ -32931,7 +33082,8 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    lo_repo->rebuild_local_checksums( ).
+    lo_repo->zif_abapgit_repo~checksums( )->rebuild( ).
+    lo_repo->reset_status( ). " TODO refactor later
 
     COMMIT WORK AND WAIT.
 
@@ -40791,7 +40943,7 @@ CLASS zcl_abapgit_gui_page_run_bckg IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -41798,8 +41950,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_palette(
-      iv_action = zif_abapgit_definitions=>c_action-go_repo
-      iv_only_favorites = abap_true ) ).
+      iv_action = zif_abapgit_definitions=>c_action-go_repo ) ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -43731,7 +43882,7 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
   METHOD build_main_menu.
 
     CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
@@ -43773,9 +43924,7 @@ CLASS zcl_abapgit_gui_page_main IMPLEMENTATION.
 
     ri_html->add( mo_repo_overview->zif_abapgit_gui_renderable~render( ) ).
 
-    register_deferred_script( zcl_abapgit_gui_chunk_lib=>render_repo_palette(
-      iv_action = c_actions-select
-      iv_only_favorites = mv_only_favorites ) ).
+    register_deferred_script( zcl_abapgit_gui_chunk_lib=>render_repo_palette( c_actions-select ) ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -47334,7 +47483,7 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD advanced_submenu.
 
     DATA lv_supports_ie_devtools TYPE abap_bool.
@@ -47896,11 +48045,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       <ls_repo>     LIKE LINE OF lt_repo_list,
       <lr_repo_obj> LIKE LINE OF lt_repo_obj_list.
 
-    IF iv_only_favorites = abap_true.
-      lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list_favorites( ).
-    ELSE.
-      lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
-    ENDIF.
+    lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
 
     LOOP AT lt_repo_obj_list ASSIGNING <lr_repo_obj>.
       ls_repo_data = <lr_repo_obj>->ms_data.
@@ -49451,6 +49596,9 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
     DATA: ls_result TYPE match_result,
           ls_match  TYPE submatch_result,
           lv_cnt    TYPE i.
+
+    DATA lt_lines TYPE string_table.
+
     CASE is_data-type.
       WHEN zcl_abapgit_persistence_db=>c_type_repo.
         FIND FIRST OCCURRENCE OF REGEX '<url>(.*)</url>'
@@ -49486,6 +49634,20 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
         rv_text = 'Global Settings'.
       WHEN zcl_abapgit_persistence_db=>c_type_packages.
         rv_text = 'Local Package Details'.
+      WHEN zcl_abapgit_persistence_db=>c_type_repo_csum.
+        IF strlen( is_data-data_str ) > 0.
+          SPLIT is_data-data_str AT cl_abap_char_utilities=>newline INTO TABLE lt_lines.
+          READ TABLE lt_lines INDEX 1 INTO rv_text.
+          rv_text = |{ rv_text } ({ lines( lt_lines ) } lines)|.
+
+          IF strlen( rv_text ) >= 250.
+            rv_text = rv_text(250).
+          ENDIF.
+          rv_text = escape(
+            val    = rv_text
+            format = cl_abap_format=>e_html_attr ).
+        ENDIF.
+
       WHEN OTHERS.
         IF strlen( is_data-data_str ) >= 250.
           rv_text = is_data-data_str(250).
@@ -52204,6 +52366,11 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     ENDIF.
     ri_srv = gi_ref.
   ENDMETHOD.
+
+  METHOD inject_instance.
+    gi_ref = ii_srv.
+  ENDMETHOD.
+
   METHOD instantiate_and_add.
 
     IF is_repo_meta-offline = abap_false.
@@ -52357,6 +52524,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
   METHOD zif_abapgit_repo_srv~delete.
 
     zcl_abapgit_persist_factory=>get_repo( )->delete( ii_repo->get_key( ) ).
+    zcl_abapgit_persist_factory=>get_repo_cs( )->delete( ii_repo->get_key( ) ).
 
     " If favorite, remove it
     IF zcl_abapgit_persistence_user=>get_instance( )->is_favorite_repo( ii_repo->get_key( ) ) = abap_true.
@@ -52707,7 +52875,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo_online IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   METHOD check_and_create_package.
 
     DATA ls_item TYPE zif_abapgit_definitions=>ty_item.
@@ -52911,7 +53079,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
 
     mv_current_commit = ls_push-branch.
 
-    update_local_checksums( ls_push-updated_files ).
+    zif_abapgit_repo~checksums( )->update( ls_push-updated_files ).
 
     reset_status( ).
 
@@ -53137,6 +53305,81 @@ CLASS zcl_abapgit_repo_filter IMPLEMENTATION.
 
   ENDMETHOD.
 
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_REPO_CS_MIGRATION IMPLEMENTATION.
+  METHOD clear_repo_metadata.
+
+    DATA lo_repo_persistence TYPE REF TO zcl_abapgit_persistence_repo.
+
+    lo_repo_persistence ?= zcl_abapgit_persist_factory=>get_repo( ).
+    lo_repo_persistence->rewrite_repo_meta( iv_repo_key ).
+
+  ENDMETHOD.
+  METHOD convert_checksums.
+
+    DATA lo_cs TYPE REF TO zcl_abapgit_repo_checksums.
+    DATA lv_xml TYPE zif_abapgit_persistence=>ty_content-data_str.
+    DATA:
+      BEGIN OF ls_repo_extract,
+        local_checksums TYPE zif_abapgit_persistence=>ty_local_checksum_tt,
+      END OF ls_repo_extract.
+
+    lv_xml = zcl_abapgit_persistence_db=>get_instance( )->read(
+      iv_type  = zcl_abapgit_persistence_db=>c_type_repo
+      iv_value = iv_repo_key ).
+
+    REPLACE ALL OCCURRENCES OF '<_--28C_TYPE_REPO_--29>' IN lv_xml WITH '<REPO>'.
+    REPLACE ALL OCCURRENCES OF '</_--28C_TYPE_REPO_--29>' IN lv_xml WITH '</REPO>'.
+
+    CALL TRANSFORMATION id
+      OPTIONS value_handling = 'accept_data_loss'
+      SOURCE XML lv_xml
+      RESULT repo = ls_repo_extract.
+
+    IF lines( ls_repo_extract-local_checksums ) = 0.
+      RETURN.
+    ENDIF.
+
+    CREATE OBJECT lo_cs EXPORTING iv_repo_key = iv_repo_key.
+    lo_cs->force_write( ls_repo_extract-local_checksums ).
+
+  ENDMETHOD.
+  METHOD get_unconverted_repo_ids.
+
+    DATA lt_cs_ids TYPE ty_repo_ids.
+    DATA lv_repo_id LIKE LINE OF rt_repo_ids.
+    DATA lv_index TYPE i.
+
+    SELECT value FROM (zcl_abapgit_persistence_db=>c_tabname)
+      INTO TABLE rt_repo_ids
+      WHERE type = zcl_abapgit_persistence_db=>c_type_repo.
+    SELECT value FROM (zcl_abapgit_persistence_db=>c_tabname)
+      INTO TABLE lt_cs_ids
+      WHERE type = zcl_abapgit_persistence_db=>c_type_repo_csum.
+
+    LOOP AT rt_repo_ids INTO lv_repo_id.
+      lv_index = sy-tabix.
+      READ TABLE lt_cs_ids TRANSPORTING NO FIELDS WITH KEY table_line = lv_repo_id.
+      IF sy-subrc = 0. " Already converted
+        DELETE rt_repo_ids INDEX lv_index.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD run.
+
+    DATA lt_repo_ids TYPE ty_repo_ids.
+    DATA lv_repo_id LIKE LINE OF lt_repo_ids.
+
+    lt_repo_ids = get_unconverted_repo_ids( ).
+
+    LOOP AT lt_repo_ids INTO lv_repo_id.
+      convert_checksums( lv_repo_id ).
+      clear_repo_metadata( lv_repo_id ).
+    ENDLOOP.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
@@ -53373,7 +53616,429 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo IMPLEMENTATION.
+CLASS kHGwlIAZUQfihQNtbCZJXaTWQDiHod DEFINITION DEFERRED.
+CLASS kHGwlIAZUQfihQNtbCZJprVxXPzzzh DEFINITION DEFERRED.
+* renamed: zcl_abapgit_repo_checksums :: lcl_checksum_serializer
+CLASS kHGwlIAZUQfihQNtbCZJprVxXPzzzh DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CONSTANTS c_splitter TYPE string VALUE `|`.
+    CONSTANTS c_root TYPE string VALUE `@`.
+
+    CLASS-METHODS serialize
+      IMPORTING
+        it_checksums     TYPE zif_abapgit_persistence=>ty_local_checksum_tt
+      RETURNING
+        VALUE(rv_string) TYPE string.
+
+    CLASS-METHODS deserialize
+      IMPORTING
+        iv_string           TYPE string
+      RETURNING
+        VALUE(rt_checksums) TYPE zif_abapgit_persistence=>ty_local_checksum_tt.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+
+CLASS kHGwlIAZUQfihQNtbCZJprVxXPzzzh IMPLEMENTATION.
+  METHOD deserialize.
+
+    DATA lt_buf_tab TYPE string_table.
+    DATA lv_buf TYPE string.
+    DATA lt_checksums LIKE rt_checksums.
+
+    FIELD-SYMBOLS <ls_cs> LIKE LINE OF lt_checksums.
+    FIELD-SYMBOLS <ls_file> LIKE LINE OF <ls_cs>-files.
+
+    SPLIT iv_string AT |\n| INTO TABLE lt_buf_tab.
+
+    LOOP AT lt_buf_tab INTO lv_buf.
+      CHECK lv_buf IS NOT INITIAL. " In fact this is a bug ... it cannot be empty, maybe raise
+
+      IF lv_buf+0(1) = '/'.
+        IF <ls_cs> IS NOT ASSIGNED.
+          " Incorrect checksums structure, maybe raise, though it is not critical for execution
+          RETURN.
+        ENDIF.
+
+        APPEND INITIAL LINE TO <ls_cs>-files ASSIGNING <ls_file>.
+        SPLIT lv_buf AT c_splitter INTO <ls_file>-path <ls_file>-filename <ls_file>-sha1.
+
+        IF <ls_file>-path IS INITIAL OR <ls_file>-filename IS INITIAL OR <ls_file>-sha1 IS INITIAL.
+          " Incorrect checksums struture, maybe raise, though it is not critical for execution
+          RETURN.
+        ENDIF.
+      ELSEIF lv_buf = c_root. " Root
+        APPEND INITIAL LINE TO lt_checksums ASSIGNING <ls_cs>. " Empty item
+      ELSE.
+        APPEND INITIAL LINE TO lt_checksums ASSIGNING <ls_cs>.
+        SPLIT lv_buf AT c_splitter INTO <ls_cs>-item-obj_type <ls_cs>-item-obj_name <ls_cs>-item-devclass.
+
+        IF <ls_cs>-item-obj_type IS INITIAL OR <ls_cs>-item-obj_name IS INITIAL OR <ls_cs>-item-devclass IS INITIAL.
+          " Incorrect checksums structure, maybe raise, though it is not critical for execution
+          RETURN.
+        ENDIF.
+
+      ENDIF.
+    ENDLOOP.
+
+    rt_checksums = lt_checksums.
+
+  ENDMETHOD.
+  METHOD serialize.
+
+    DATA lt_buf_tab TYPE string_table.
+    DATA lv_buf TYPE string.
+    DATA lt_checksums_sorted TYPE zif_abapgit_persistence=>ty_local_checksum_by_item_tt.
+
+    FIELD-SYMBOLS <ls_cs> LIKE LINE OF it_checksums.
+    FIELD-SYMBOLS <ls_file> LIKE LINE OF <ls_cs>-files.
+
+    lt_checksums_sorted = it_checksums.
+
+    LOOP AT lt_checksums_sorted ASSIGNING <ls_cs>.
+
+      IF lines( <ls_cs>-files ) = 0.
+        CONTINUE.
+      ENDIF.
+
+      IF <ls_cs>-item-obj_type IS NOT INITIAL.
+        CONCATENATE <ls_cs>-item-obj_type <ls_cs>-item-obj_name <ls_cs>-item-devclass
+          INTO lv_buf
+          SEPARATED BY c_splitter.
+      ELSE.
+        lv_buf = c_root.
+      ENDIF.
+      APPEND lv_buf TO lt_buf_tab.
+
+      LOOP AT <ls_cs>-files ASSIGNING <ls_file>.
+
+        CONCATENATE <ls_file>-path <ls_file>-filename <ls_file>-sha1
+          INTO lv_buf
+          SEPARATED BY c_splitter.
+        APPEND lv_buf TO lt_buf_tab.
+
+      ENDLOOP.
+
+    ENDLOOP.
+
+    rv_string = concat_lines_of(
+      table = lt_buf_tab
+      sep   = |\n| ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+**********************************************************************
+* UPDATE CALCULATOR
+**********************************************************************
+
+* renamed: zcl_abapgit_repo_checksums :: lcl_update_calculator
+CLASS kHGwlIAZUQfihQNtbCZJXaTWQDiHod DEFINITION
+  FINAL
+  CREATE PUBLIC.
+  PUBLIC SECTION.
+
+    CLASS-METHODS calculate_updated
+      IMPORTING
+        it_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+        it_current_checksums TYPE zif_abapgit_persistence=>ty_local_checksum_tt
+        it_local_files TYPE zif_abapgit_definitions=>ty_files_item_tt
+      RETURNING
+        VALUE(rt_checksums) TYPE zif_abapgit_persistence=>ty_local_checksum_tt.
+
+  PRIVATE SECTION.
+
+    CLASS-METHODS process_updated_files
+      CHANGING
+        ct_update_index TYPE zif_abapgit_definitions=>ty_file_signatures_ts
+        ct_checksums    TYPE zif_abapgit_persistence=>ty_local_checksum_by_item_tt.
+
+    CLASS-METHODS add_new_files
+      IMPORTING
+        it_local        TYPE zif_abapgit_definitions=>ty_files_item_tt
+        it_update_index TYPE zif_abapgit_definitions=>ty_file_signatures_ts
+      CHANGING
+        ct_checksums    TYPE zif_abapgit_persistence=>ty_local_checksum_by_item_tt.
+
+ENDCLASS.
+
+CLASS kHGwlIAZUQfihQNtbCZJXaTWQDiHod IMPLEMENTATION.
+
+  METHOD calculate_updated.
+
+    DATA lt_update_index TYPE zif_abapgit_definitions=>ty_file_signatures_ts.
+    DATA lt_checksums_sorted TYPE zif_abapgit_persistence=>ty_local_checksum_by_item_tt.
+
+    lt_checksums_sorted = it_current_checksums.
+    lt_update_index     = it_updated_files.
+
+    process_updated_files(
+      CHANGING
+        ct_update_index = lt_update_index
+        ct_checksums    = lt_checksums_sorted ).
+
+    add_new_files(
+      EXPORTING
+        it_update_index = lt_update_index
+        it_local        = it_local_files
+      CHANGING
+        ct_checksums    = lt_checksums_sorted ).
+
+    rt_checksums = lt_checksums_sorted.
+
+  ENDMETHOD.
+
+  METHOD process_updated_files.
+
+    DATA lv_cs_row  TYPE i.
+    DATA lv_file_row  TYPE i.
+
+    FIELD-SYMBOLS <ls_checksum>  LIKE LINE OF ct_checksums.
+    FIELD-SYMBOLS <ls_file>      LIKE LINE OF <ls_checksum>-files.
+    FIELD-SYMBOLS <ls_new_state> LIKE LINE OF ct_update_index.
+
+    " Loop through current checksum state, update sha1 for common files
+
+    LOOP AT ct_checksums ASSIGNING <ls_checksum>.
+      lv_cs_row = sy-tabix.
+
+      LOOP AT <ls_checksum>-files ASSIGNING <ls_file>.
+        lv_file_row = sy-tabix.
+
+        READ TABLE ct_update_index ASSIGNING <ls_new_state>
+          WITH KEY
+            path     = <ls_file>-path
+            filename = <ls_file>-filename.
+        IF sy-subrc <> 0.
+          CONTINUE. " Missing in updated files -> nothing to update, skip
+        ENDIF.
+
+        IF <ls_new_state>-sha1 IS INITIAL. " Empty input sha1 is a deletion marker
+          DELETE <ls_checksum>-files INDEX lv_file_row.
+        ELSE.
+          <ls_file>-sha1 = <ls_new_state>-sha1.  " Update sha1
+          CLEAR <ls_new_state>-sha1.             " Mark as processed
+        ENDIF.
+      ENDLOOP.
+
+      IF lines( <ls_checksum>-files ) = 0. " Remove empty objects
+        DELETE ct_checksums INDEX lv_cs_row.
+      ENDIF.
+    ENDLOOP.
+
+    DELETE ct_update_index WHERE sha1 IS INITIAL. " Remove processed
+
+  ENDMETHOD.
+
+  METHOD add_new_files.
+
+    DATA lt_local_sorted TYPE zif_abapgit_definitions=>ty_files_item_by_file_tt.
+    DATA ls_checksum LIKE LINE OF ct_checksums.
+    FIELD-SYMBOLS <ls_checksum> LIKE LINE OF ct_checksums.
+    FIELD-SYMBOLS <ls_new_file> LIKE LINE OF it_update_index.
+    FIELD-SYMBOLS <ls_local>    LIKE LINE OF lt_local_sorted.
+
+    lt_local_sorted = it_local.
+
+    " Add new files - not deleted and not marked as processed
+    LOOP AT it_update_index ASSIGNING <ls_new_file>.
+
+      READ TABLE lt_local_sorted ASSIGNING <ls_local>
+        WITH KEY
+          file-path     = <ls_new_file>-path
+          file-filename = <ls_new_file>-filename.
+      IF sy-subrc <> 0.
+        " The file should be in locals, however:
+        " if the deserialization fails, the local file might not be there
+        " in this case now new CS added, and the file will appear to be remote+new
+        CONTINUE.
+      ENDIF.
+
+      READ TABLE ct_checksums ASSIGNING <ls_checksum>
+        WITH KEY
+          item-obj_type = <ls_local>-item-obj_type
+          item-obj_name = <ls_local>-item-obj_name.
+      IF sy-subrc <> 0.
+        MOVE-CORRESPONDING <ls_local>-item TO ls_checksum-item.
+        INSERT ls_checksum INTO TABLE ct_checksums ASSIGNING <ls_checksum>.
+      ENDIF.
+
+      APPEND <ls_new_file> TO <ls_checksum>-files.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_REPO_CHECKSUMS IMPLEMENTATION.
+  METHOD add_meta.
+
+    DATA lv_meta_str TYPE string.
+
+    lv_meta_str = |#repo_name#{ mi_repo->get_name( ) }|.
+
+    cv_cs_blob = lv_meta_str && |\n| && cv_cs_blob.
+
+  ENDMETHOD.
+  METHOD build_checksums_from_files.
+
+    DATA ls_last_item TYPE zif_abapgit_definitions=>ty_item.
+
+    FIELD-SYMBOLS:
+      <ls_checksum> LIKE LINE OF rt_checksums,
+      <ls_local>    LIKE LINE OF it_local.
+
+    FIELD-SYMBOLS:
+      <ls_remote_file> LIKE LINE OF it_remote,
+      <ls_cs_file_sig> LIKE LINE OF <ls_checksum>-files.
+
+    LOOP AT it_local ASSIGNING <ls_local>.
+      IF ls_last_item <> <ls_local>-item OR sy-tabix = 1. " First or New item reached ?
+        APPEND INITIAL LINE TO rt_checksums ASSIGNING <ls_checksum>.
+        MOVE-CORRESPONDING <ls_local>-item TO <ls_checksum>-item.
+        ls_last_item       = <ls_local>-item.
+      ENDIF.
+
+      READ TABLE it_remote ASSIGNING <ls_remote_file>
+        WITH TABLE KEY file_path
+        COMPONENTS
+          path     = <ls_local>-file-path
+          filename = <ls_local>-file-filename.
+      IF sy-subrc <> 0.  " Ignore new local ones
+        CONTINUE.
+      ENDIF.
+
+      APPEND INITIAL LINE TO <ls_checksum>-files ASSIGNING <ls_cs_file_sig>.
+      MOVE-CORRESPONDING <ls_local>-file TO <ls_cs_file_sig>.
+
+      " If hashes are equal -> local sha1 is OK already (no change)
+      " Else
+      "   if branches equal -> assume changes were local, state - remote sha1
+      "   if remote branch is ahead (not equal) -> assume changes were remote, state - local sha1 (no change)
+      IF <ls_local>-file-sha1 <> <ls_remote_file>-sha1 AND iv_branches_equal = abap_true.
+        <ls_cs_file_sig>-sha1 = <ls_remote_file>-sha1.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD constructor.
+    ASSERT iv_repo_key IS NOT INITIAL.
+    mv_repo_key = iv_repo_key.
+    mi_repo = zcl_abapgit_repo_srv=>get_instance( )->get( mv_repo_key ).
+    " Should be safe as repo_srv is supposed to be single source of repo instances
+  ENDMETHOD.
+  METHOD extract_meta.
+
+    DATA lv_meta_str TYPE string.
+
+    IF cv_cs_blob+0(1) <> '#'.
+      RETURN. " No meta ? just ignore it
+    ENDIF.
+
+    SPLIT cv_cs_blob AT |\n| INTO lv_meta_str cv_cs_blob.
+    " Just remove the header meta string - this is OK for now.
+    " There is just repo name for the moment - needed to for DB util and potential debug
+
+  ENDMETHOD.
+  METHOD force_write.
+
+    " for migration only for the moment
+
+    save_checksums( it_checksums ).
+
+  ENDMETHOD.
+  METHOD remove_non_code_related_files.
+
+    DELETE ct_local_files
+      WHERE item IS INITIAL
+      AND NOT ( file-path = zif_abapgit_definitions=>c_root_dir
+      AND file-filename = zif_abapgit_definitions=>c_dot_abapgit ).
+
+  ENDMETHOD.
+  METHOD save_checksums.
+
+    DATA lv_cs_blob TYPE string.
+
+    lv_cs_blob = kHGwlIAZUQfihQNtbCZJprVxXPzzzh=>serialize( it_checksums ).
+    add_meta( CHANGING cv_cs_blob = lv_cs_blob ).
+    zcl_abapgit_persist_factory=>get_repo_cs( )->update(
+      iv_key     = mv_repo_key
+      iv_cs_blob = lv_cs_blob ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_checksums~get.
+
+    DATA lv_cs_blob TYPE string.
+
+    TRY.
+        lv_cs_blob = zcl_abapgit_persist_factory=>get_repo_cs( )->read( iv_key = mv_repo_key ).
+      CATCH zcx_abapgit_exception zcx_abapgit_not_found.
+        " Ignore currently, it's not critical for execution, just return empty
+        RETURN.
+    ENDTRY.
+
+    IF lv_cs_blob IS NOT INITIAL.
+      extract_meta( CHANGING cv_cs_blob = lv_cs_blob ).
+      rt_checksums = kHGwlIAZUQfihQNtbCZJprVxXPzzzh=>deserialize( lv_cs_blob ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_checksums~get_checksums_per_file.
+
+    DATA lt_checksums   TYPE zif_abapgit_persistence=>ty_local_checksum_tt.
+    FIELD-SYMBOLS <ls_object> LIKE LINE OF lt_checksums.
+
+    lt_checksums = zif_abapgit_repo_checksums~get( ).
+
+    LOOP AT lt_checksums ASSIGNING <ls_object>.
+      APPEND LINES OF <ls_object>-files TO rt_checksums.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_checksums~rebuild.
+
+    DATA lt_remote    TYPE zif_abapgit_definitions=>ty_files_tt.
+    DATA lt_local     TYPE ty_local_files_by_item_tt.
+    DATA lt_checksums TYPE zif_abapgit_persistence=>ty_local_checksum_tt.
+
+    lt_local  = mi_repo->get_files_local( ).
+    lt_remote = mi_repo->get_files_remote( ).
+
+    remove_non_code_related_files( CHANGING ct_local_files = lt_local ).
+
+    lt_checksums = build_checksums_from_files(
+      it_remote         = lt_remote
+      it_local          = lt_local
+      iv_branches_equal = iv_branches_equal ).
+
+    save_checksums( lt_checksums ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_checksums~update.
+
+    DATA lt_checksums   TYPE zif_abapgit_persistence=>ty_local_checksum_tt.
+    DATA lt_local_files TYPE zif_abapgit_definitions=>ty_files_item_tt.
+
+    lt_checksums   = zif_abapgit_repo_checksums~get( ).
+    lt_local_files = mi_repo->get_files_local( ).
+
+    lt_checksums = kHGwlIAZUQfihQNtbCZJXaTWQDiHod=>calculate_updated(
+      it_current_checksums = lt_checksums
+      it_local_files       = lt_local_files
+      it_updated_files     = it_updated_files ).
+
+    save_checksums( lt_checksums ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -53418,27 +54083,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
     IF get_local_settings( )-write_protected = abap_true.
       zcx_abapgit_exception=>raise( 'Cannot deserialize. Local code is write-protected by repo config' ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD compare_with_remote_checksum.
-    FIELD-SYMBOLS: <ls_remote_file> LIKE LINE OF it_remote_files,
-                   <ls_file_sig>    LIKE LINE OF cs_checksum-files.
-    READ TABLE it_remote_files ASSIGNING <ls_remote_file>
-        WITH KEY path = is_local_file-path filename = is_local_file-filename
-        BINARY SEARCH.
-    IF sy-subrc <> 0.  " Ignore new local ones
-      RETURN.
-    ENDIF.
-
-    APPEND INITIAL LINE TO cs_checksum-files ASSIGNING <ls_file_sig>.
-    MOVE-CORRESPONDING is_local_file TO <ls_file_sig>.
-
-    " If hashes are equal -> local sha1 is OK
-    " Else if R-branch is ahead  -> assume changes were remote, state - local sha1
-    "      Else (branches equal) -> assume changes were local, state - remote sha1
-    IF is_local_file-sha1 <> <ls_remote_file>-sha1.
-      <ls_file_sig>-sha1 = <ls_remote_file>-sha1.
     ENDIF.
 
   ENDMETHOD.
@@ -53505,7 +54149,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
     APPEND get_dot_abapgit( )->get_signature( ) TO lt_updated_files.
 
-    update_local_checksums( lt_updated_files ).
+    zif_abapgit_repo~checksums( )->update( lt_updated_files ).
 
     " Deserialize data (no save to database, just test for now)
     lt_result = zcl_abapgit_data_factory=>get_deserializer( )->deserialize(
@@ -53661,18 +54305,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD get_key.
     rv_key = ms_data-key.
   ENDMETHOD.
-  METHOD get_local_checksums.
-    rt_checksums = ms_data-local_checksums.
-  ENDMETHOD.
-  METHOD get_local_checksums_per_file.
-
-    FIELD-SYMBOLS <ls_object> LIKE LINE OF ms_data-local_checksums.
-
-    LOOP AT ms_data-local_checksums ASSIGNING <ls_object>.
-      APPEND LINES OF <ls_object>-files TO rt_checksums.
-    ENDLOOP.
-
-  ENDMETHOD.
   METHOD get_local_settings.
 
     rs_settings = ms_data-local_settings.
@@ -53730,41 +54362,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD rebuild_local_checksums.
-
-    DATA:
-      lt_remote    TYPE zif_abapgit_definitions=>ty_files_tt,
-      lt_local     TYPE zif_abapgit_definitions=>ty_files_item_tt,
-      ls_last_item TYPE zif_abapgit_definitions=>ty_item,
-      lt_checksums TYPE zif_abapgit_persistence=>ty_local_checksum_tt.
-
-    FIELD-SYMBOLS:
-      <ls_checksum> LIKE LINE OF lt_checksums,
-      <ls_local>    LIKE LINE OF lt_local.
-
-    lt_local  = get_files_local( ).
-
-    remove_non_code_related_files( CHANGING ct_local_files = lt_local ).
-
-    lt_remote = get_files_remote( ).
-    SORT lt_remote BY path filename.
-
-    LOOP AT lt_local ASSIGNING <ls_local>.
-      IF ls_last_item <> <ls_local>-item OR sy-tabix = 1. " First or New item reached ?
-        APPEND INITIAL LINE TO lt_checksums ASSIGNING <ls_checksum>.
-        <ls_checksum>-item = <ls_local>-item.
-        ls_last_item       = <ls_local>-item.
-      ENDIF.
-
-      compare_with_remote_checksum( EXPORTING it_remote_files = lt_remote
-                                              is_local_file   = <ls_local>-file
-                                    CHANGING  cs_checksum     = <ls_checksum> ).
-
-    ENDLOOP.
-    set( it_checksums = lt_checksums ).
-    reset_status( ).
-
-  ENDMETHOD.
   METHOD refresh.
 
     mv_request_local_refresh = abap_true.
@@ -53819,15 +54416,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     get_files_local( ).
 
   ENDMETHOD.
-  METHOD remove_non_code_related_files.
-
-    DELETE ct_local_files
-          WHERE item IS INITIAL
-          AND NOT ( file-path = zif_abapgit_definitions=>c_root_dir
-          AND file-filename = zif_abapgit_definitions=>c_dot_abapgit ).
-    SORT ct_local_files BY item.
-
-  ENDMETHOD.
   METHOD reset_remote.
     CLEAR mt_remote.
     mv_request_remote_refresh = abap_true.
@@ -53841,8 +54429,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 * TODO: refactor, maybe use zcl_abapgit_string_map ?
 
     DATA: ls_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask.
-    ASSERT it_checksums IS SUPPLIED
-      OR iv_url IS SUPPLIED
+    ASSERT iv_url IS SUPPLIED
       OR iv_branch_name IS SUPPLIED
       OR iv_selected_commit IS SUPPLIED
       OR iv_head_branch IS SUPPLIED
@@ -53852,11 +54439,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       OR iv_deserialized_by IS SUPPLIED
       OR iv_deserialized_at IS SUPPLIED
       OR iv_switched_origin IS SUPPLIED.
-    IF it_checksums IS SUPPLIED.
-      ms_data-local_checksums = it_checksums.
-      ls_mask-local_checksums = abap_true.
-    ENDIF.
-
     IF iv_url IS SUPPLIED.
       ms_data-url = iv_url.
       ls_mask-url = abap_true.
@@ -53965,81 +54547,11 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
          iv_deserialized_by = lv_deserialized_by ).
 
   ENDMETHOD.
-  METHOD update_local_checksums.
+  METHOD zif_abapgit_repo~checksums.
 
-    " ASSUMTION: SHA1 in param is actual and correct.
-    " Push fills it from local files before pushing, deserialize from remote
-    " If this is not true that there is an error somewhere but not here
-
-    DATA: lt_checksums TYPE zif_abapgit_persistence=>ty_local_checksum_tt,
-          lt_files_idx TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
-          lt_local     TYPE zif_abapgit_definitions=>ty_files_item_tt,
-          lv_chks_row  TYPE i,
-          lv_file_row  TYPE i.
-
-    FIELD-SYMBOLS: <ls_checksum>  LIKE LINE OF lt_checksums,
-                   <ls_file>      LIKE LINE OF <ls_checksum>-files,
-                   <ls_local>     LIKE LINE OF lt_local,
-                   <ls_new_state> LIKE LINE OF it_files.
-
-    lt_checksums = get_local_checksums( ).
-    lt_files_idx = it_files.
-    SORT lt_files_idx BY path filename. " Sort for binary search
-
-    " Loop through current chacksum state, update sha1 for common files
-    LOOP AT lt_checksums ASSIGNING <ls_checksum>.
-      lv_chks_row = sy-tabix.
-
-      LOOP AT <ls_checksum>-files ASSIGNING <ls_file>.
-        lv_file_row = sy-tabix.
-
-        READ TABLE lt_files_idx ASSIGNING <ls_new_state>
-          WITH KEY path = <ls_file>-path filename = <ls_file>-filename
-          BINARY SEARCH.
-        CHECK sy-subrc = 0. " Missing in param table, skip
-
-        IF <ls_new_state>-sha1 IS INITIAL. " Empty input sha1 is a deletion marker
-          DELETE <ls_checksum>-files INDEX lv_file_row.
-        ELSE.
-          <ls_file>-sha1 = <ls_new_state>-sha1.  " Update sha1
-          CLEAR <ls_new_state>-sha1.             " Mark as processed
-        ENDIF.
-      ENDLOOP.
-
-      IF lines( <ls_checksum>-files ) = 0. " Remove empty objects
-        DELETE lt_checksums INDEX lv_chks_row.
-      ENDIF.
-    ENDLOOP.
-
-    DELETE lt_files_idx WHERE sha1 IS INITIAL. " Remove processed
-    IF lines( lt_files_idx ) > 0.
-      lt_local = get_files_local( ).
-      SORT lt_local BY file-path file-filename. " Sort for binary search
-    ENDIF.
-
-    " Add new files - not deleted and not marked as processed above
-    LOOP AT lt_files_idx ASSIGNING <ls_new_state>.
-
-      READ TABLE lt_local ASSIGNING <ls_local>
-        WITH KEY file-path = <ls_new_state>-path file-filename = <ls_new_state>-filename
-        BINARY SEARCH.
-      IF sy-subrc <> 0.
-* if the deserialization fails, the local file might not be there
-        CONTINUE.
-      ENDIF.
-
-      READ TABLE lt_checksums ASSIGNING <ls_checksum> " TODO Optimize
-        WITH KEY item = <ls_local>-item.
-      IF sy-subrc > 0.
-        APPEND INITIAL LINE TO lt_checksums ASSIGNING <ls_checksum>.
-        <ls_checksum>-item = <ls_local>-item.
-      ENDIF.
-
-      APPEND <ls_new_state> TO <ls_checksum>-files.
-    ENDLOOP.
-
-    SORT lt_checksums BY item.
-    set( it_checksums = lt_checksums ).
+    CREATE OBJECT ri_checksums TYPE zcl_abapgit_repo_checksums
+      EXPORTING
+        iv_repo_key = ms_data-key.
 
   ENDMETHOD.
 ENDCLASS.
@@ -54769,6 +55281,25 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
     ENDIF.
     rs_result-key = is_content-value.
   ENDMETHOD.
+  METHOD rewrite_repo_meta.
+
+    DATA lv_old_blob TYPE string.
+    DATA lv_new_blob TYPE string.
+    DATA ls_repo_meta TYPE zif_abapgit_persistence=>ty_repo.
+
+    lv_old_blob = mo_db->read(
+      iv_type  = zcl_abapgit_persistence_db=>c_type_repo
+      iv_value = iv_repo_key ).
+
+    MOVE-CORRESPONDING from_xml( lv_old_blob ) TO ls_repo_meta.
+    lv_new_blob = to_xml( ls_repo_meta ).
+
+    mo_db->update(
+      iv_type  = zcl_abapgit_persistence_db=>c_type_repo
+      iv_value = iv_repo_key
+      iv_data  = lv_new_blob ).
+
+  ENDMETHOD.
   METHOD to_xml.
 
     DATA: ls_xml TYPE zif_abapgit_persistence=>ty_repo_xml.
@@ -54777,6 +55308,28 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
     CALL TRANSFORMATION id
       SOURCE repo = ls_xml
       RESULT XML rv_repo_xml_string.
+  ENDMETHOD.
+  METHOD zif_abapgit_persist_repo_cs~delete.
+
+    mo_db->delete(
+      iv_type  = zcl_abapgit_persistence_db=>c_type_repo_csum
+      iv_value = iv_key ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_persist_repo_cs~read.
+
+    rv_cs_blob = mo_db->read(
+      iv_type  = zcl_abapgit_persistence_db=>c_type_repo_csum
+      iv_value = iv_key ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_persist_repo_cs~update.
+
+    mo_db->modify(
+      iv_type  = zcl_abapgit_persistence_db=>c_type_repo_csum
+      iv_value = iv_key
+      iv_data  = iv_cs_blob ).
+
   ENDMETHOD.
   METHOD zif_abapgit_persist_repo~add.
 
@@ -54918,7 +55471,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
   METHOD add.
 
     DATA ls_table TYPE zif_abapgit_persistence=>ty_content.
@@ -54972,12 +55525,6 @@ CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
     SELECT * FROM (c_tabname)
       INTO TABLE rt_content.                              "#EC CI_SUBRC
   ENDMETHOD.
-  METHOD list_by_type.
-    SELECT * FROM (c_tabname)
-      INTO TABLE rt_content
-      WHERE type = iv_type
-      ORDER BY PRIMARY KEY.                               "#EC CI_SUBRC
-  ENDMETHOD.
   METHOD list_by_keys.
     FIELD-SYMBOLS: <ls_key> LIKE LINE OF it_keys.
     LOOP AT it_keys ASSIGNING <ls_key>.
@@ -54986,6 +55533,12 @@ CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
       WHERE value = <ls_key> AND
             type  = iv_type.
     ENDLOOP.
+  ENDMETHOD.
+  METHOD list_by_type.
+    SELECT * FROM (c_tabname)
+      INTO TABLE rt_content
+      WHERE type = iv_type
+      ORDER BY PRIMARY KEY.                               "#EC CI_SUBRC
   ENDMETHOD.
   METHOD lock.
     DATA: lv_dummy_update_function TYPE funcname.
@@ -55426,6 +55979,17 @@ CLASS ZCL_ABAPGIT_PERSIST_FACTORY IMPLEMENTATION.
     ri_repo = gi_repo.
 
   ENDMETHOD.
+
+  METHOD get_repo_cs.
+
+    IF gi_repo_cs IS INITIAL.
+      CREATE OBJECT gi_repo_cs TYPE zcl_abapgit_persistence_repo.
+    ENDIF.
+
+    ri_repo_cs = gi_repo_cs.
+
+  ENDMETHOD.
+
   METHOD get_settings.
 
     IF gi_settings IS INITIAL.
@@ -98903,7 +99467,7 @@ CLASS zcl_abapgit_filename_logic IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_file_status IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
   METHOD build_existing.
 
     DATA: ls_file_sig LIKE LINE OF it_state.
@@ -99518,7 +100082,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
       io_dot       = io_repo->get_dot_abapgit( )
       it_local     = lt_local
       it_remote    = lt_remote
-      it_cur_state = io_repo->get_local_checksums_per_file( ) ).
+      it_cur_state = io_repo->zif_abapgit_repo~checksums( )->get_checksums_per_file( ) ).
 
     run_checks(
       ii_log     = ii_log
@@ -109451,13 +110015,16 @@ INCLUDE zabapgit_gui_pages_userexit IF FOUND.
 
 FORM run.
 
-  DATA: lx_exception TYPE REF TO zcx_abapgit_exception.
+  DATA lx_exception TYPE REF TO zcx_abapgit_exception.
+  DATA lx_not_found TYPE REF TO zcx_abapgit_not_found.
 
   TRY.
       zcl_abapgit_migrations=>run( ).
       PERFORM open_gui.
     CATCH zcx_abapgit_exception INTO lx_exception.
       MESSAGE lx_exception TYPE 'E'.
+    CATCH zcx_abapgit_not_found INTO lx_not_found.
+      MESSAGE lx_not_found TYPE 'E'.
   ENDTRY.
 
 ENDFORM.                    "run
@@ -109651,6 +110218,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-11T14:35:10.954Z
+* abapmerge 0.14.3 - 2022-04-13T09:30:13.565Z
 ENDINTERFACE.
 ****************************************************
