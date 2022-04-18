@@ -1176,7 +1176,7 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_ajson.
 
-  CONSTANTS version TYPE string VALUE 'v1.1.2'. "#EC NOTEXT
+  CONSTANTS version TYPE string VALUE 'v1.1.3'. "#EC NOTEXT
   CONSTANTS origin TYPE string VALUE 'https://github.com/sbcgua/ajson'. "#EC NOTEXT
   CONSTANTS license TYPE string VALUE 'MIT'. "#EC NOTEXT
 
@@ -1221,6 +1221,9 @@ INTERFACE zif_abapgit_ajson.
 
   METHODS freeze.
   METHODS keep_item_order
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson.
+  METHODS format_datetime
     RETURNING
       VALUE(ri_json) TYPE REF TO zif_abapgit_ajson.
 
@@ -6277,6 +6280,7 @@ CLASS zcl_abapgit_ajson DEFINITION
     ALIASES:
       mt_json_tree FOR zif_abapgit_ajson~mt_json_tree,
       keep_item_order FOR zif_abapgit_ajson~keep_item_order,
+      format_datetime FOR zif_abapgit_ajson~format_datetime,
       freeze FOR zif_abapgit_ajson~freeze.
 
     CLASS-METHODS parse
@@ -6315,6 +6319,7 @@ CLASS zcl_abapgit_ajson DEFINITION
     DATA mv_read_only TYPE abap_bool.
     DATA mi_custom_mapping TYPE REF TO zif_abapgit_ajson_mapping.
     DATA mv_keep_item_order TYPE abap_bool.
+    DATA mv_format_datetime TYPE abap_bool.
 
     METHODS get_item
       IMPORTING
@@ -101947,6 +101952,9 @@ CLASS kHGwlMWhQrsNKkKXALnpfipvepHQnc IMPLEMENTATION.
     DATA lx_sxml TYPE REF TO cx_sxml_error.
     DATA lv_location TYPE string.
     TRY.
+      " TODO sane JSON check:
+      " JSON can be true,false,null,(-)digits
+      " or start from " or from {
         rt_json_tree = _parse( iv_json ).
       CATCH cx_sxml_parse_error INTO lx_sxml_parse.
         lv_location = _get_location(
@@ -102045,6 +102053,9 @@ CLASS kHGwlMWhQrsNKkKXALnpfipvepHQnc IMPLEMENTATION.
                   <item>-name = lo_attr->get_value( ).
                 ENDIF.
               ENDLOOP.
+            ENDIF.
+            IF <item>-name IS INITIAL.
+              raise( 'Node without name (maybe not JSON)' ).
             ENDIF.
           ENDIF.
 
@@ -102795,6 +102806,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz DEFINITION FINAL.
         iv_array_index     TYPE i DEFAULT 0
         ii_custom_mapping  TYPE REF TO zif_abapgit_ajson_mapping OPTIONAL
         iv_keep_item_order TYPE abap_bool DEFAULT abap_false
+        iv_format_datetime TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(rt_nodes)   TYPE zif_abapgit_ajson=>ty_nodes_tt
       RAISING
@@ -102808,10 +102820,27 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz DEFINITION FINAL.
         iv_array_index     TYPE i DEFAULT 0
         ii_custom_mapping  TYPE REF TO zif_abapgit_ajson_mapping OPTIONAL
         iv_keep_item_order TYPE abap_bool DEFAULT abap_false
+        iv_format_datetime TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(rt_nodes)   TYPE zif_abapgit_ajson=>ty_nodes_tt
       RAISING
         zcx_abapgit_ajson_error.
+
+    CLASS-METHODS format_date
+      IMPORTING
+        iv_date TYPE d
+      RETURNING
+        VALUE(rv_str) TYPE string.
+    CLASS-METHODS format_time
+      IMPORTING
+        iv_time TYPE t
+      RETURNING
+        VALUE(rv_str) TYPE string.
+    CLASS-METHODS format_timestamp
+      IMPORTING
+        iv_ts TYPE timestamp
+      RETURNING
+        VALUE(rv_str) TYPE string.
 
     CLASS-METHODS class_constructor.
 
@@ -102820,6 +102849,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz DEFINITION FINAL.
     CLASS-DATA gv_ajson_absolute_type_name TYPE string.
     DATA mi_custom_mapping TYPE REF TO zif_abapgit_ajson_mapping.
     DATA mv_keep_item_order TYPE abap_bool.
+    DATA mv_format_datetime TYPE abap_bool.
 
     METHODS convert_any
       IMPORTING
@@ -102927,6 +102957,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
     CREATE OBJECT lo_converter.
     lo_converter->mi_custom_mapping  = ii_custom_mapping.
     lo_converter->mv_keep_item_order = iv_keep_item_order.
+    lo_converter->mv_format_datetime = iv_format_datetime.
 
     lo_converter->convert_any(
       EXPORTING
@@ -103028,6 +103059,43 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD format_date.
+    IF iv_date IS NOT INITIAL.
+      rv_str = iv_date+0(4) && '-' && iv_date+4(2) && '-' && iv_date+6(2).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD format_time.
+    IF iv_time IS NOT INITIAL.
+      rv_str = iv_time+0(2) && ':' && iv_time+2(2) && ':' && iv_time+4(2).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD format_timestamp.
+
+    CONSTANTS lc_utc TYPE c LENGTH 6 VALUE 'UTC'.
+
+    DATA lv_date TYPE d.
+    DATA lv_time TYPE t.
+
+    IF iv_ts IS INITIAL.
+      " The zero value is January 1, year 1, 00:00:00.000000000 UTC.
+      lv_date = '00010101'.
+    ELSE.
+
+      CONVERT TIME STAMP iv_ts TIME ZONE lc_utc
+        INTO DATE lv_date TIME lv_time.
+
+    ENDIF.
+
+    rv_str =
+      lv_date+0(4) && '-' && lv_date+4(2) && '-' && lv_date+6(2) &&
+      'T' &&
+      lv_time+0(2) && '-' && lv_time+2(2) && '-' && lv_time+4(2) &&
+      'Z'.
+
+  ENDMETHOD.
+
   METHOD convert_value.
 
     DATA ls_node LIKE LINE OF ct_nodes.
@@ -103058,10 +103126,32 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
       ELSE.
         ls_node-value = 'false'.
       ENDIF.
-    ELSEIF io_type->type_kind CO 'CNgXyDT'. " Char like, date/time, xstring
+    ELSEIF io_type->absolute_name = '\TYPE=TIMESTAMP'.
+      IF mv_format_datetime = abap_true.
+        ls_node-type  = zif_abapgit_ajson=>node_type-string.
+        ls_node-value = format_timestamp( iv_data ).
+      ELSE.
+        ls_node-type  = zif_abapgit_ajson=>node_type-number.
+        ls_node-value = |{ iv_data }|.
+      ENDIF.
+    ELSEIF io_type->type_kind CO 'CNgXy'. " Char like, xstring
       ls_node-type = zif_abapgit_ajson=>node_type-string.
       ls_node-value = |{ iv_data }|.
-    ELSEIF io_type->type_kind CO 'bsI8PaeF'. " Numeric
+    ELSEIF io_type->type_kind = 'D'. " Date
+      ls_node-type = zif_abapgit_ajson=>node_type-string.
+      IF mv_format_datetime = abap_true.
+        ls_node-value = format_date( iv_data ).
+      ELSE.
+        ls_node-value = |{ iv_data }|.
+      ENDIF.
+    ELSEIF io_type->type_kind = 'T'. " Time
+      ls_node-type = zif_abapgit_ajson=>node_type-string.
+      IF mv_format_datetime = abap_true.
+        ls_node-value = format_time( iv_data ).
+      ELSE.
+        ls_node-value = |{ iv_data }|.
+      ENDIF.
+    ELSEIF io_type->type_kind CO 'bsI8aeFP'. " Numeric
       ls_node-type = zif_abapgit_ajson=>node_type-number.
       ls_node-value = |{ iv_data }|.
     ELSE.
@@ -103261,6 +103351,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
     CREATE OBJECT lo_converter.
     lo_converter->mi_custom_mapping  = ii_custom_mapping.
     lo_converter->mv_keep_item_order = iv_keep_item_order.
+    lo_converter->mv_format_datetime = iv_format_datetime.
 
     lo_converter->insert_value_with_type(
       EXPORTING
@@ -103634,6 +103725,11 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_ajson~format_datetime.
+    mv_format_datetime = abap_true.
+    ri_json = me.
+  ENDMETHOD.
   METHOD zif_abapgit_ajson~freeze.
     mv_read_only = abap_true.
   ENDMETHOD.
@@ -103816,6 +103912,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     IF ls_split_path IS INITIAL. " Assign root, exceptional processing
       IF iv_node_type IS NOT INITIAL.
         mt_json_tree = kHGwlMWhQrsNKkKXALnpeJqampzabz=>insert_with_type(
+          iv_format_datetime = mv_format_datetime
           iv_keep_item_order = mv_keep_item_order
           iv_data            = iv_val
           iv_type            = iv_node_type
@@ -103823,6 +103920,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
           ii_custom_mapping  = mi_custom_mapping ).
       ELSE.
         mt_json_tree = kHGwlMWhQrsNKkKXALnpeJqampzabz=>convert(
+          iv_format_datetime = mv_format_datetime
           iv_keep_item_order = mv_keep_item_order
           iv_data            = iv_val
           is_prefix          = ls_split_path
@@ -103853,6 +103951,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
 
     IF iv_node_type IS NOT INITIAL.
       lt_new_nodes = kHGwlMWhQrsNKkKXALnpeJqampzabz=>insert_with_type(
+        iv_format_datetime = mv_format_datetime
         iv_keep_item_order = mv_keep_item_order
         iv_data            = iv_val
         iv_type            = iv_node_type
@@ -103861,6 +103960,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
         ii_custom_mapping  = mi_custom_mapping ).
     ELSE.
       lt_new_nodes = kHGwlMWhQrsNKkKXALnpeJqampzabz=>convert(
+        iv_format_datetime = mv_format_datetime
         iv_keep_item_order = mv_keep_item_order
         iv_data            = iv_val
         iv_array_index     = lv_array_index
@@ -103892,9 +103992,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ri_json = me.
 
     DATA lv_val TYPE string.
-    IF iv_val IS NOT INITIAL.
-      lv_val = iv_val+0(4) && '-' && iv_val+4(2) && '-' && iv_val+6(2).
-    ENDIF.
+    lv_val = kHGwlMWhQrsNKkKXALnpeJqampzabz=>format_date( iv_val ).
 
     zif_abapgit_ajson~set(
       iv_ignore_empty = abap_false
@@ -103937,30 +104035,10 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_ajson~set_timestamp.
 
-    CONSTANTS lc_utc TYPE c LENGTH 6 VALUE 'UTC'.
-
-    DATA:
-      lv_date          TYPE d,
-      lv_time          TYPE t,
-      lv_timestamp_iso TYPE string.
-
     ri_json = me.
 
-    IF iv_val IS INITIAL.
-      " The zero value is January 1, year 1, 00:00:00.000000000 UTC.
-      lv_date = '00010101'.
-    ELSE.
-
-      CONVERT TIME STAMP iv_val TIME ZONE lc_utc
-        INTO DATE lv_date TIME lv_time.
-
-    ENDIF.
-
-    lv_timestamp_iso =
-        lv_date+0(4) && '-' && lv_date+4(2) && '-' && lv_date+6(2) &&
-        'T' &&
-        lv_time+0(2) && '-' && lv_time+2(2) && '-' && lv_time+4(2) &&
-        'Z'.
+    DATA lv_timestamp_iso TYPE string.
+    lv_timestamp_iso = kHGwlMWhQrsNKkKXALnpeJqampzabz=>format_timestamp( iv_val ).
 
     zif_abapgit_ajson~set(
       iv_ignore_empty = abap_false
@@ -110218,6 +110296,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-18T06:42:49.639Z
+* abapmerge 0.14.3 - 2022-04-18T06:58:42.567Z
 ENDINTERFACE.
 ****************************************************
