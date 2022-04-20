@@ -88434,12 +88434,13 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
-    APPEND 'AS4USER' TO lt_clr_comps.
-    APPEND 'AS4DATE' TO lt_clr_comps.
-    APPEND 'AS4TIME' TO lt_clr_comps.
-    APPEND 'ACTFLAG' TO lt_clr_comps.
-    APPEND 'CHGFLAG' TO lt_clr_comps.
+    APPEND 'AS4USER'               TO lt_clr_comps.
+    APPEND 'AS4DATE'               TO lt_clr_comps.
+    APPEND 'AS4TIME'               TO lt_clr_comps.
+    APPEND 'ACTFLAG'               TO lt_clr_comps.
+    APPEND 'CHGFLAG'               TO lt_clr_comps.
     APPEND 'ABAP_LANGUAGE_VERSION' TO lt_clr_comps.
+    APPEND 'ABAP_LANGU_VERSION'    TO lt_clr_comps.
 
     LOOP AT lt_clr_comps ASSIGNING <lv_comp>.
       ASSIGN COMPONENT <lv_comp> OF STRUCTURE <lg_data> TO <lg_field>.
@@ -110296,6 +110297,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-18T06:58:42.567Z
+* abapmerge 0.14.3 - 2022-04-20T05:40:12.254Z
 ENDINTERFACE.
 ****************************************************
