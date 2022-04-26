@@ -70056,14 +70056,24 @@ CLASS zcl_abapgit_object_sprx IMPLEMENTATION.
         ev_object   = lv_object
         ev_obj_name = lv_obj_name ).
 
-    cl_proxy_data=>delete_single_proxy(
-       EXPORTING
-         object           = lv_object
-         obj_name         = lv_obj_name
-         suppress_dialogs = abap_true
-       CHANGING
-         c_return_code    = lv_return_code
-         ct_log           = lt_log ).
+    TRY.
+        CALL METHOD ('CL_PROXY_DATA')=>('DELETE_SINGLE_PROXY')
+          EXPORTING
+            object           = lv_object
+            obj_name         = lv_obj_name
+            suppress_dialogs = abap_true
+          CHANGING
+            c_return_code    = lv_return_code
+            ct_log           = lt_log.
+      CATCH cx_root.
+        cl_proxy_data=>delete_single_proxy(
+           EXPORTING
+             object           = lv_object
+             obj_name         = lv_obj_name
+           CHANGING
+             c_return_code    = lv_return_code
+             ct_log           = lt_log ).
+    ENDTRY.
     IF lv_return_code <> 0.
       zcx_abapgit_exception=>raise( 'SPRX: Error from DELETE_SINGLE_PROXY' ).
     ENDIF.
@@ -110402,6 +110412,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-26T14:53:07.294Z
+* abapmerge 0.14.3 - 2022-04-26T15:25:16.810Z
 ENDINTERFACE.
 ****************************************************
