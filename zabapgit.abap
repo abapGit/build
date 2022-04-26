@@ -109104,6 +109104,10 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
             io_repo     = lo_repo
             ii_log      = li_log
             it_settings = <ls_list>-settings ).
+
+          " Clear auth buffer to allow different user/password per repository in background mode
+          zcl_abapgit_login_manager=>clear( ).
+
         CATCH zcx_abapgit_exception INTO lx_error.
           li_log->add_exception( lx_error ).
       ENDTRY.
@@ -110202,6 +110206,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-26T14:08:04.747Z
+* abapmerge 0.14.3 - 2022-04-26T14:12:28.343Z
 ENDINTERFACE.
 ****************************************************
