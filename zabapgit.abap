@@ -71,6 +71,7 @@ INTERFACE zif_abapgit_persist_repo_cs DEFERRED.
 INTERFACE zif_abapgit_persist_repo DEFERRED.
 INTERFACE zif_abapgit_objects DEFERRED.
 INTERFACE zif_abapgit_object DEFERRED.
+INTERFACE zif_abapgit_field_rules DEFERRED.
 INTERFACE zif_abapgit_comparator DEFERRED.
 INTERFACE zif_abapgit_lxe_texts DEFERRED.
 INTERFACE zif_abapgit_longtexts DEFERRED.
@@ -361,6 +362,7 @@ CLASS zcl_abapgit_object_area DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_amsd DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_aifc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_acid DEFINITION DEFERRED.
+CLASS zcl_abapgit_field_rules DEFINITION DEFERRED.
 CLASS zcl_abapgit_sotr_handler DEFINITION DEFERRED.
 CLASS zcl_abapgit_lxe_texts DEFINITION DEFERRED.
 CLASS zcl_abapgit_longtexts DEFINITION DEFERRED.
@@ -1591,6 +1593,36 @@ INTERFACE zif_abapgit_comparator .
       VALUE(rs_result) TYPE ty_result
     RAISING
       zcx_abapgit_exception .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_field_rules .
+  TYPES ty_fill_rule TYPE c LENGTH 2.
+  CONSTANTS:
+    BEGIN OF c_fill_rule,
+      date      TYPE ty_fill_rule VALUE 'DT',
+      time      TYPE ty_fill_rule VALUE 'TM',
+      timestamp TYPE ty_fill_rule VALUE 'TS',
+      user      TYPE ty_fill_rule VALUE 'UR',
+      client    TYPE ty_fill_rule VALUE 'CT',
+    END OF c_fill_rule.
+
+  METHODS add
+    IMPORTING
+      iv_table       TYPE tabname
+      iv_field       TYPE fieldname
+      iv_fill_rule   TYPE ty_fill_rule
+    RETURNING
+      VALUE(ro_self) TYPE REF TO zif_abapgit_field_rules.
+  METHODS apply_clear_logic
+    IMPORTING
+      iv_table TYPE tabname
+    CHANGING
+      ct_data  TYPE STANDARD TABLE.
+  METHODS apply_fill_logic
+    IMPORTING
+      iv_table TYPE tabname
+    CHANGING
+      ct_data  TYPE STANDARD TABLE.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_persist_settings.
@@ -8327,6 +8359,34 @@ CLASS zcl_abapgit_sotr_handler DEFINITION
         VALUE(rs_sotr) TYPE zif_abapgit_definitions=>ty_sotr .
   PRIVATE SECTION.
 ENDCLASS.
+CLASS zcl_abapgit_field_rules DEFINITION
+  FINAL
+  CREATE PRIVATE .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_field_rules.
+    CLASS-METHODS create
+      RETURNING
+        VALUE(ro_result) TYPE REF TO zif_abapgit_field_rules.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    TYPES:
+      BEGIN OF ty_item,
+        tabname   TYPE tabname,
+        fieldname TYPE fieldname,
+        fill_rule TYPE zif_abapgit_field_rules=>ty_fill_rule,
+      END OF ty_item,
+      ty_items TYPE SORTED TABLE OF ty_item WITH UNIQUE KEY tabname fieldname.
+
+    DATA mt_item TYPE ty_items.
+
+    METHODS fill_value
+      IMPORTING
+        iv_rule  TYPE zif_abapgit_field_rules=>ty_fill_rule
+      CHANGING
+        cv_value TYPE any.
+ENDCLASS.
 CLASS zcl_abapgit_object_tabl_compar DEFINITION
   CREATE PUBLIC .
 
@@ -8570,8 +8630,9 @@ CLASS zcl_abapgit_objects_generic DEFINITION
 
     METHODS constructor
       IMPORTING
-        !is_item     TYPE zif_abapgit_definitions=>ty_item
-        !iv_language TYPE spras DEFAULT sy-langu
+        !is_item       TYPE zif_abapgit_definitions=>ty_item
+        !iv_language   TYPE spras DEFAULT sy-langu
+        io_field_rules TYPE REF TO zif_abapgit_field_rules OPTIONAL
       RAISING
         zcx_abapgit_exception .
     METHODS delete
@@ -8669,6 +8730,18 @@ CLASS zcl_abapgit_objects_generic DEFINITION
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
+    DATA mo_field_rules TYPE REF TO zif_abapgit_field_rules.
+
+    METHODS apply_clear_logic
+      IMPORTING
+        iv_table TYPE objsl-tobj_name
+      CHANGING
+        ct_data  TYPE STANDARD TABLE.
+    METHODS apply_fill_logic
+      IMPORTING
+        iv_table TYPE objsl-tobj_name
+      CHANGING
+        ct_data  TYPE STANDARD TABLE.
 ENDCLASS.
 CLASS zcl_abapgit_objects_super DEFINITION
   ABSTRACT
@@ -10593,6 +10666,9 @@ CLASS zcl_abapgit_object_iwsg DEFINITION
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
+    METHODS get_field_rules
+      RETURNING
+        VALUE(ro_result) TYPE REF TO zif_abapgit_field_rules.
 ENDCLASS.
 CLASS zcl_abapgit_object_iwsv DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
@@ -57175,6 +57251,7 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
 
     ms_item = is_item.
     mv_language = iv_language.
+    mo_field_rules = io_field_rules.
 
   ENDMETHOD.
   METHOD corr_insert.
@@ -57245,6 +57322,8 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
       CREATE DATA lr_ref TYPE STANDARD TABLE OF (<ls_table>-tobj_name).
       ASSIGN lr_ref->* TO <lt_data>.
 
+      apply_fill_logic( EXPORTING iv_table = <ls_table>-tobj_name
+                        CHANGING  ct_data  = <lt_data> ).
       io_xml->read(
         EXPORTING
           iv_name = <ls_table>-tobj_name
@@ -57533,6 +57612,9 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
         WHERE (lv_where)
         ORDER BY PRIMARY KEY.
 
+      apply_clear_logic( EXPORTING iv_table = <ls_object_table>-tobj_name
+                         CHANGING  ct_data  = <lt_data> ).
+
       io_xml->add(
         iv_name = <ls_object_table>-tobj_name
         ig_data = <lt_data> ).
@@ -57607,6 +57689,20 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+
+  METHOD apply_clear_logic.
+    IF mo_field_rules IS BOUND.
+      mo_field_rules->apply_clear_logic( EXPORTING iv_table = |{ iv_table }|
+                                         CHANGING  ct_data  = ct_data ).
+    ENDIF.
+  ENDMETHOD.
+  METHOD apply_fill_logic.
+    IF mo_field_rules IS BOUND.
+      mo_field_rules->apply_fill_logic( EXPORTING iv_table = |{ iv_table }|
+                                        CHANGING  ct_data  = ct_data ).
+    ENDIF.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
@@ -78455,8 +78551,9 @@ CLASS zcl_abapgit_object_iwsg IMPLEMENTATION.
 
     CREATE OBJECT ro_generic
       EXPORTING
-        is_item     = ms_item
-        iv_language = mv_language.
+        io_field_rules = get_field_rules( )
+        is_item        = ms_item
+        iv_language    = mv_language.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -78506,6 +78603,29 @@ CLASS zcl_abapgit_object_iwsg IMPLEMENTATION.
     get_generic( )->serialize( io_xml ).
 
   ENDMETHOD.
+
+  METHOD get_field_rules.
+
+    ro_result = zcl_abapgit_field_rules=>create( ).
+    ro_result->add(
+      iv_table     = '/IWFND/I_MED_SRH'
+      iv_field     = 'CREATED_BY'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWFND/I_MED_SRH'
+      iv_field     = 'CREATED_TIMESTMP'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp
+    )->add(
+      iv_table     = '/IWFND/I_MED_SRH'
+      iv_field     = 'CHANGED_BY'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWFND/I_MED_SRH'
+      iv_field     = 'CHANGED_TIMESTMP'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_object_iwpr IMPLEMENTATION.
@@ -92671,6 +92791,79 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
                  ig_data = lv_description ).
 
   ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_field_rules IMPLEMENTATION.
+
+  METHOD create.
+    CREATE OBJECT ro_result TYPE zcl_abapgit_field_rules.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_field_rules~add.
+    DATA ls_item TYPE ty_item.
+
+    ls_item-tabname   = iv_table.
+    ls_item-fieldname = iv_field.
+    ls_item-fill_rule = iv_fill_rule.
+    INSERT ls_item INTO TABLE mt_item.
+
+    ro_self = me.
+  ENDMETHOD.
+  METHOD zif_abapgit_field_rules~apply_clear_logic.
+    DATA ls_item TYPE ty_item.
+
+    FIELD-SYMBOLS <ls_data> TYPE any.
+    FIELD-SYMBOLS <lv_value> TYPE any.
+
+    IF mt_item IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    LOOP AT ct_data ASSIGNING <ls_data>.
+      LOOP AT mt_item INTO ls_item WHERE tabname = iv_table.
+        ASSIGN COMPONENT ls_item-fieldname OF STRUCTURE <ls_data> TO <lv_value>.
+        IF sy-subrc = 0.
+          CLEAR <lv_value>.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_field_rules~apply_fill_logic.
+    DATA ls_item TYPE ty_item.
+
+    FIELD-SYMBOLS <ls_data> TYPE any.
+    FIELD-SYMBOLS <lv_value> TYPE any.
+
+    IF mt_item IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    LOOP AT ct_data ASSIGNING <ls_data>.
+      LOOP AT mt_item INTO ls_item WHERE tabname = iv_table.
+        ASSIGN COMPONENT ls_item-fieldname OF STRUCTURE <ls_data> TO <lv_value>.
+        IF sy-subrc = 0.
+          fill_value( EXPORTING iv_rule  = ls_item-fill_rule
+                      CHANGING  cv_value = <lv_value> ).
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+  ENDMETHOD.
+  METHOD fill_value.
+    CASE iv_rule.
+      WHEN zif_abapgit_field_rules=>c_fill_rule-date.
+        cv_value = sy-datum.
+      WHEN zif_abapgit_field_rules=>c_fill_rule-time.
+        cv_value = sy-uzeit.
+      WHEN zif_abapgit_field_rules=>c_fill_rule-timestamp.
+        GET TIME STAMP FIELD cv_value.
+      WHEN zif_abapgit_field_rules=>c_fill_rule-user.
+        cv_value = sy-uname.
+      WHEN zif_abapgit_field_rules=>c_fill_rule-client.
+        cv_value = sy-mandt.
+    ENDCASE.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
@@ -110206,6 +110399,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-26T14:12:28.343Z
+* abapmerge 0.14.3 - 2022-04-26T14:34:23.014Z
 ENDINTERFACE.
 ****************************************************
