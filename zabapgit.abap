@@ -3135,9 +3135,10 @@ INTERFACE zif_abapgit_object .
 
   CONSTANTS:
     BEGIN OF gc_step_id,
-      abap TYPE zif_abapgit_definitions=>ty_deserialization_step VALUE `ABAP`,
-      ddic TYPE zif_abapgit_definitions=>ty_deserialization_step VALUE `DDIC`,
-      late TYPE zif_abapgit_definitions=>ty_deserialization_step VALUE `LATE`,
+      early TYPE zif_abapgit_definitions=>ty_deserialization_step VALUE `EARLY`,
+      abap  TYPE zif_abapgit_definitions=>ty_deserialization_step VALUE `ABAP`,
+      ddic  TYPE zif_abapgit_definitions=>ty_deserialization_step VALUE `DDIC`,
+      late  TYPE zif_abapgit_definitions=>ty_deserialization_step VALUE `LATE`,
     END OF gc_step_id.
 
   CONSTANTS c_abap_version_sap_cp TYPE progdir-uccheck VALUE '5' ##NO_TEXT.
@@ -9678,11 +9679,6 @@ CLASS zcl_abapgit_object_dtel DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
     CONSTANTS c_longtext_id_dtel TYPE dokil-id VALUE 'DE' ##NO_TEXT.
 
-    METHODS is_ref_to_class_or_interface
-      IMPORTING
-        !is_dd04v        TYPE dd04v
-      RETURNING
-        VALUE(rv_result) TYPE abap_bool .
     METHODS serialize_texts
       IMPORTING
         !ii_xml TYPE REF TO zif_abapgit_xml_output
@@ -12411,13 +12407,6 @@ CLASS zcl_abapgit_object_ttyp DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
-
-    METHODS is_ref_to_class_or_interface
-      IMPORTING
-        !is_dd40v        TYPE dd40v
-      RETURNING
-        VALUE(rv_result) TYPE abap_bool .
-
 ENDCLASS.
 CLASS zcl_abapgit_object_type DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -13422,6 +13411,12 @@ CLASS zcl_abapgit_object_clas DEFINITION
           zcx_abapgit_exception.
 
   PRIVATE SECTION.
+    METHODS deserialize_pre_ddic
+      IMPORTING
+        ii_xml     TYPE REF TO zif_abapgit_xml_input
+        iv_package TYPE devclass
+      RAISING
+        zcx_abapgit_exception.
     METHODS:
       is_class_locked
         RETURNING VALUE(rv_is_class_locked) TYPE abap_bool
@@ -13619,6 +13614,12 @@ CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objec
 
     DATA mi_object_oriented_object_fct TYPE REF TO zif_abapgit_oo_object_fnc .
 
+    METHODS deserialize_pre_ddic
+      IMPORTING
+        ii_xml     TYPE REF TO zif_abapgit_xml_input
+        iv_package TYPE devclass
+      RAISING
+        zcx_abapgit_exception.
     METHODS serialize_xml
       IMPORTING
         !io_xml TYPE REF TO zif_abapgit_xml_output
@@ -58418,25 +58419,31 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD get_deserialize_steps.
-    FIELD-SYMBOLS: <ls_step>    TYPE LINE OF zif_abapgit_objects=>ty_step_data_tt.
+    FIELD-SYMBOLS: <ls_step> TYPE LINE OF zif_abapgit_objects=>ty_step_data_tt.
+
+    APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
+    <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-early.
+    <ls_step>-descr        = 'Pre-process Objects'.
+    <ls_step>-syntax_check = abap_false.
+    <ls_step>-order        = 1.
 
     APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
     <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-ddic.
     <ls_step>-descr        = 'Deserialize DDIC Objects'.
     <ls_step>-syntax_check = abap_false.
-    <ls_step>-order        = 1.
+    <ls_step>-order        = 2.
 
     APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
     <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-abap.
     <ls_step>-descr        = 'Deserialize non-DDIC Objects'.
     <ls_step>-syntax_check = abap_false.
-    <ls_step>-order        = 2.
+    <ls_step>-order        = 3.
 
     APPEND INITIAL LINE TO rt_steps ASSIGNING <ls_step>.
     <ls_step>-step_id      = zif_abapgit_object=>gc_step_id-late.
     <ls_step>-descr        = 'Post-process Objects'.
     <ls_step>-syntax_check = abap_true.
-    <ls_step>-order        = 3.
+    <ls_step>-order        = 4.
   ENDMETHOD.
   METHOD is_active.
 
@@ -64249,15 +64256,6 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
-  METHOD is_ref_to_class_or_interface.
-
-    IF is_dd40v-rowkind = 'R'
-        AND ( is_dd40v-reftype = 'C'
-           OR is_dd40v-reftype = 'I' ).
-      rv_result = abap_true.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE as4user FROM dd40l INTO rv_user
@@ -64287,13 +64285,6 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
 
     io_xml->read( EXPORTING iv_name = 'DD40V'
                   CHANGING cg_data = ls_dd40v ).
-
-    " DDIC Step: Replace REF TO class/interface with generic reference to avoid cyclic dependency
-    IF iv_step = zif_abapgit_object=>gc_step_id-ddic AND is_ref_to_class_or_interface( ls_dd40v ) = abap_true.
-      ls_dd40v-rowtype = 'OBJECT'.
-    ELSEIF iv_step = zif_abapgit_object=>gc_step_id-late AND is_ref_to_class_or_interface( ls_dd40v ) = abap_false.
-      RETURN. " already active
-    ENDIF.
 
     io_xml->read( EXPORTING iv_name = 'DD42V'
                   CHANGING cg_data = lt_dd42v ).
@@ -64357,7 +64348,6 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
-    APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -66168,7 +66158,6 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
           lt_dd08v  TYPE TABLE OF dd08v,
           lt_dd35v  TYPE TABLE OF dd35v,
           lt_dd36m  TYPE dd36mttyp,
-          lv_refs   TYPE abap_bool,
           ls_extras TYPE ty_tabl_extras.
 
     FIELD-SYMBOLS: <ls_dd03p>      TYPE dd03p,
@@ -66193,15 +66182,6 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
       IF sy-subrc = 0 AND <lg_roworcolst> IS INITIAL.
         <lg_roworcolst> = 'C'. "Reverse fix from serialize
       ENDIF.
-
-      " DDIC Step: Replace REF TO class/interface with generic reference to avoid cyclic dependency
-      LOOP AT lt_dd03p ASSIGNING <ls_dd03p> WHERE comptype = 'R' AND ( reftype = 'C' OR reftype = 'I' ).
-        IF iv_step = zif_abapgit_object=>gc_step_id-ddic.
-          <ls_dd03p>-rollname = 'OBJECT'.
-        ELSE.
-          lv_refs = abap_true.
-        ENDIF.
-      ENDLOOP.
 
       " Number fields sequentially and fill table name
       LOOP AT lt_dd03p ASSIGNING <ls_dd03p>.
@@ -66238,7 +66218,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
         CLEAR: lt_dd08v, lt_dd35v, lt_dd36m.
       ENDIF.
 
-      IF iv_step = zif_abapgit_object=>gc_step_id-late AND lv_refs = abap_false
+      IF iv_step = zif_abapgit_object=>gc_step_id-late
         AND lines( lt_dd35v ) = 0 AND lines( lt_dd08v ) = 0.
         RETURN. " already active
       ENDIF.
@@ -79224,6 +79204,23 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD deserialize_pre_ddic.
+
+    DATA: ls_vseointerf   TYPE vseointerf,
+          ls_clskey       TYPE seoclskey.
+
+    ls_clskey-clsname = ms_item-obj_name.
+
+    ii_xml->read( EXPORTING iv_name = 'VSEOINTERF'
+                  CHANGING cg_data = ls_vseointerf ).
+
+    mi_object_oriented_object_fct->create(
+      EXPORTING
+        iv_package    = iv_package
+      CHANGING
+        cg_properties = ls_vseointerf ).
+
+  ENDMETHOD.
   METHOD deserialize_proxy.
 
     DATA: lv_transport    TYPE trkorr,
@@ -79421,16 +79418,31 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'VSEOINTERF'
                   CHANGING cg_data = ls_vseointerf ).
 
-    IF ls_vseointerf-clsproxy = abap_true.
-      " Proxy interfaces are managed via SPRX
-      deserialize_proxy( iv_transport ).
-      RETURN.
+    IF iv_step = zif_abapgit_object=>gc_step_id-abap.
+
+      IF ls_vseointerf-clsproxy = abap_true.
+        " Proxy interfaces are managed via SPRX
+        deserialize_proxy( iv_transport ).
+        RETURN.
+      ENDIF.
+
+      deserialize_abap( ii_xml     = io_xml
+                        iv_package = iv_package ).
+
+      deserialize_docu( io_xml ).
+
+    ELSEIF iv_step = zif_abapgit_object=>gc_step_id-early.
+
+      " If interface does not exist, create it
+      " so DDIC that depends on it does not fail activation
+      IF zif_abapgit_object~exists( ) = abap_false.
+        deserialize_pre_ddic(
+          ii_xml     = io_xml
+          iv_package = iv_package ).
+      ENDIF.
+
     ENDIF.
 
-    deserialize_abap( ii_xml     = io_xml
-                      iv_package = iv_package ).
-
-    deserialize_docu( io_xml ).
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
@@ -79456,6 +79468,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
     RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
+    APPEND zif_abapgit_object=>gc_step_id-early TO rt_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
@@ -85018,15 +85031,6 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD is_ref_to_class_or_interface.
-
-    IF is_dd04v-refkind = 'R'
-        AND ( is_dd04v-reftype = 'C'
-           OR is_dd04v-reftype = 'I' ).
-      rv_result = abap_true.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD serialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -85112,13 +85116,6 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'DD04V'
                   CHANGING cg_data = ls_dd04v ).
 
-    " DDIC Step: Replace REF TO class/interface with generic reference to avoid cyclic dependency
-    IF iv_step = zif_abapgit_object=>gc_step_id-ddic AND is_ref_to_class_or_interface( ls_dd04v ) = abap_true.
-      ls_dd04v-domname = 'OBJECT'.
-    ELSEIF iv_step = zif_abapgit_object=>gc_step_id-late AND is_ref_to_class_or_interface( ls_dd04v ) = abap_false.
-      RETURN. " already active
-    ENDIF.
-
     corr_insert( iv_package = iv_package
                  ig_object_class = 'DICT' ).
 
@@ -85173,7 +85170,6 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
-    APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -89425,6 +89421,21 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD deserialize_pre_ddic.
+    DATA: ls_vseoclass  TYPE vseoclass,
+          lt_attributes TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
+
+    ii_xml->read( EXPORTING iv_name = 'VSEOCLASS'
+                  CHANGING  cg_data = ls_vseoclass ).
+
+    mi_object_oriented_object_fct->create(
+      EXPORTING
+        iv_package    = iv_package
+        it_attributes = lt_attributes
+      CHANGING
+        cg_properties = ls_vseoclass ).
+
+  ENDMETHOD.
   METHOD deserialize_sotr.
     "OTR stands for Online Text Repository
     mi_object_oriented_object_fct->create_sotr(
@@ -89805,15 +89816,29 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    deserialize_abap( ii_xml     = io_xml
-                      iv_package = iv_package ).
+    IF iv_step = zif_abapgit_object=>gc_step_id-abap.
 
-    deserialize_tpool( io_xml ).
+      deserialize_abap( ii_xml     = io_xml
+                        iv_package = iv_package ).
 
-    deserialize_sotr( ii_ml     = io_xml
-                      iv_package = iv_package ).
+      deserialize_tpool( io_xml ).
 
-    deserialize_docu( io_xml ).
+      deserialize_sotr( ii_ml     = io_xml
+                        iv_package = iv_package ).
+
+      deserialize_docu( io_xml ).
+
+    ELSEIF iv_step = zif_abapgit_object=>gc_step_id-early.
+
+      " If class does not exist, create it
+      " so DDIC that depends on it does not fail activation
+      IF zif_abapgit_object~exists( ) = abap_false.
+        deserialize_pre_ddic(
+          ii_xml     = io_xml
+          iv_package = iv_package ).
+      ENDIF.
+
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -89826,6 +89851,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
     RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
+    APPEND zif_abapgit_object=>gc_step_id-early TO rt_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
@@ -110176,6 +110202,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-26T14:03:04.760Z
+* abapmerge 0.14.3 - 2022-04-26T14:08:04.747Z
 ENDINTERFACE.
 ****************************************************
