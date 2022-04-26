@@ -3698,16 +3698,18 @@ INTERFACE zif_abapgit_repo .
       zcx_abapgit_exception .
   METHODS get_files_remote
     IMPORTING
-      ii_obj_filter   TYPE REF TO zif_abapgit_object_filter OPTIONAL
+      !ii_obj_filter   TYPE REF TO zif_abapgit_object_filter OPTIONAL
+      !iv_ignore_files TYPE abap_bool DEFAULT abap_false
+        PREFERRED PARAMETER ii_obj_filter
     RETURNING
-      VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
+      VALUE(rt_files)  TYPE zif_abapgit_definitions=>ty_files_tt
     RAISING
       zcx_abapgit_exception .
   METHODS refresh
     IMPORTING
       !iv_drop_cache TYPE abap_bool DEFAULT abap_false
       !iv_drop_log   TYPE abap_bool DEFAULT abap_true
-    PREFERRED PARAMETER iv_drop_cache
+        PREFERRED PARAMETER iv_drop_cache
     RAISING
       zcx_abapgit_exception .
   METHODS get_dot_abapgit
@@ -6676,14 +6678,6 @@ CLASS zcl_abapgit_file_status DEFINITION
         !it_cur_state     TYPE zif_abapgit_definitions=>ty_file_signatures_tt
       RETURNING
         VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS prepare_remote
-      IMPORTING
-        !io_dot          TYPE REF TO zcl_abapgit_dot_abapgit
-        !it_remote       TYPE zif_abapgit_definitions=>ty_files_tt
-      RETURNING
-        VALUE(rt_remote) TYPE zif_abapgit_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS process_local
@@ -14352,7 +14346,7 @@ CLASS zcl_abapgit_repo DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS has_remote_source
-      ABSTRACT
+          ABSTRACT
       RETURNING
         VALUE(rv_yes) TYPE abap_bool .
     METHODS status
@@ -14388,6 +14382,11 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS get_unsupported_objects_local
       RETURNING
         VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_items_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS remove_ignored_files
+      CHANGING
+        ct_files TYPE zif_abapgit_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -52845,7 +52844,9 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_files_remote.
     fetch_remote( ).
-    rt_files = super->get_files_remote( ii_obj_filter ).
+    rt_files = super->get_files_remote(
+      ii_obj_filter   = ii_obj_filter
+      iv_ignore_files = iv_ignore_files ).
   ENDMETHOD.
   METHOD get_name.
     rv_name = super->get_name( ).
@@ -54218,6 +54219,11 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
           ct_files    = rt_files ).
 
     ENDIF.
+
+    IF iv_ignore_files = abap_true.
+      remove_ignored_files( CHANGING ct_files = rt_files ).
+    ENDIF.
+
   ENDMETHOD.
   METHOD get_key.
     rv_key = ms_data-key.
@@ -54331,6 +54337,25 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     mv_request_local_refresh = abap_true.
     get_files_local( ).
+
+  ENDMETHOD.
+  METHOD remove_ignored_files.
+
+    DATA lo_dot TYPE REF TO zcl_abapgit_dot_abapgit.
+    DATA lv_index TYPE sy-index.
+
+    FIELD-SYMBOLS <ls_files> LIKE LINE OF ct_files.
+
+    lo_dot = get_dot_abapgit( ).
+
+    " Skip ignored files
+    LOOP AT ct_files ASSIGNING <ls_files>.
+      lv_index = sy-tabix.
+      IF lo_dot->is_ignored( iv_path     = <ls_files>-path
+                             iv_filename = <ls_files>-filename ) = abap_true.
+        DELETE ct_files INDEX lv_index.
+      ENDIF.
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD reset_remote.
@@ -58272,7 +58297,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     zcl_abapgit_objects_activation=>clear( ).
 
-    lt_remote = io_repo->get_files_remote( ).
+    lt_remote = io_repo->get_files_remote( iv_ignore_files = abap_true ).
 
     lt_results = zcl_abapgit_file_deserialize=>get_results(
       io_repo = io_repo
@@ -99703,10 +99728,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
 
     lt_state_idx = it_cur_state. " Force sort it
 
-    " Prepare remote files
-    lt_remote = prepare_remote(
-      io_dot    = io_dot
-      it_remote = it_remote ).
+    lt_remote = it_remote.
 
     " Process local files and new local files
     process_local(
@@ -99926,25 +99948,6 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
         rv_devclass = lv_name.
       ENDIF.
     ENDIF.
-  ENDMETHOD.
-  METHOD prepare_remote.
-
-    DATA lv_index TYPE sy-index.
-
-    FIELD-SYMBOLS <ls_remote> LIKE LINE OF it_remote.
-
-    rt_remote = it_remote.
-    SORT rt_remote BY path filename.
-
-    " Skip ignored files
-    LOOP AT rt_remote ASSIGNING <ls_remote>.
-      lv_index = sy-tabix.
-      IF io_dot->is_ignored( iv_path     = <ls_remote>-path
-                             iv_filename = <ls_remote>-filename ) = abap_true.
-        DELETE rt_remote INDEX lv_index.
-      ENDIF.
-    ENDLOOP.
-
   ENDMETHOD.
   METHOD process_items.
 
@@ -100171,7 +100174,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
       io_repo->find_remote_dot_abapgit( ).
     ENDIF.
 
-    lt_remote = io_repo->get_files_remote( ).
+    lt_remote = io_repo->get_files_remote( iv_ignore_files = abap_true ).
 
     li_exit = zcl_abapgit_exit=>get_instance( ).
     li_exit->pre_calculate_repo_status(
@@ -110399,6 +110402,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-26T14:34:23.014Z
+* abapmerge 0.14.3 - 2022-04-26T14:53:07.294Z
 ENDINTERFACE.
 ****************************************************
