@@ -81762,6 +81762,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
     ENDLOOP.
 
     APPEND lv_program TO rt_includes.
+    SORT rt_includes.
 
     mt_includes_cache = rt_includes.
 
@@ -110132,6 +110133,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-26T05:54:42.527Z
+* abapmerge 0.14.3 - 2022-04-26T12:41:07.774Z
 ENDINTERFACE.
 ****************************************************
