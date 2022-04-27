@@ -59069,7 +59069,11 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
+    SELECT SINGLE as4user FROM dd12l INTO rv_user
+      WHERE sqltab = mv_name AND indexname = mv_id.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -62745,7 +62749,7 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
+CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
   METHOD is_locked.
 
     DATA:
@@ -62765,7 +62769,11 @@ CLASS ZCL_ABAPGIT_OBJECT_VCLS IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
+    SELECT SINGLE author FROM vcldir INTO rv_user
+      WHERE vclname = ms_item-obj_name.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 * Do the same as in VIEWCLUSTER_SAVE_DEFINITION
@@ -64293,7 +64301,15 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
+    DATA lv_prog TYPE progname.
+
+    CONCATENATE '%_C' ms_item-obj_name INTO lv_prog.
+
+    SELECT SINGLE unam FROM reposrc INTO rv_user
+      WHERE progname = lv_prog AND r3state = 'A'.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -65009,7 +65025,8 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
+* looks like "changed by user" is not stored in the database
+    rv_user = c_user_unknown.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -83660,7 +83677,26 @@ ENDCLASS.
 
 CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
+
+    DATA: lv_spot_name TYPE enhspotcompositename,
+          li_spot_ref  TYPE REF TO if_enh_spot_composite,
+          lo_spot_ref  TYPE REF TO cl_enh_spot_composite.
+
+    lv_spot_name = ms_item-obj_name.
+
+    TRY.
+        li_spot_ref = cl_enh_factory=>get_enhancement_spot_comp(
+          lock     = ''
+          run_dark = abap_true
+          name     = lv_spot_name ).
+
+        lo_spot_ref ?= li_spot_ref.
+
+        lo_spot_ref->if_enh_spot_composite~get_change_attributes( IMPORTING changedby = rv_user ).
+      CATCH cx_root.
+        rv_user = c_user_unknown.
+    ENDTRY.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
     DATA: lv_spot_name TYPE enhspotcompositename,
@@ -110412,6 +110448,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-26T15:25:16.810Z
+* abapmerge 0.14.3 - 2022-04-27T05:29:15.616Z
 ENDINTERFACE.
 ****************************************************
