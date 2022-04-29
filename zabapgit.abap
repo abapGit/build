@@ -6908,6 +6908,13 @@ CLASS zcl_abapgit_gui_jumper DEFINITION
       RETURNING
         VALUE(rv_exit)   TYPE abap_bool.
 
+    METHODS jump_bw
+      IMPORTING
+        !is_item       TYPE zif_abapgit_definitions=>ty_item
+        !iv_new_window TYPE abap_bool
+      RETURNING
+        VALUE(rv_exit) TYPE abap_bool.
+
 ENDCLASS.
 CLASS zcl_abapgit_item_graph DEFINITION
   CREATE PUBLIC .
@@ -76805,6 +76812,18 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_odso IMPLEMENTATION.
+  METHOD clear_field.
+
+    FIELD-SYMBOLS: <lg_field> TYPE data.
+
+    ASSIGN COMPONENT iv_fieldname
+           OF STRUCTURE cg_metadata
+           TO <lg_field>.
+    ASSERT sy-subrc = 0.
+
+    CLEAR: <lg_field>.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: lv_dsonam  TYPE c LENGTH 30,
@@ -77022,7 +77041,7 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    zcx_abapgit_exception=>raise( |Jump to ODSO is not yet supported| ).
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -77101,19 +77120,6 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
 
     io_xml->add( iv_name = 'INDEX_IOBJ'
                  ig_data = <lt_index_iobj> ).
-
-  ENDMETHOD.
-
-  METHOD clear_field.
-
-    FIELD-SYMBOLS: <lg_field> TYPE data.
-
-    ASSIGN COMPONENT iv_fieldname
-           OF STRUCTURE cg_metadata
-           TO <lg_field>.
-    ASSERT sy-subrc = 0.
-
-    CLEAR: <lg_field>.
 
   ENDMETHOD.
 ENDCLASS.
@@ -78888,7 +78894,7 @@ CLASS zcl_abapgit_object_iwmo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_IOBJ IMPLEMENTATION.
+CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
   METHOD clear_field.
 
     FIELD-SYMBOLS: <lg_field> TYPE data.
@@ -79185,6 +79191,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IOBJ IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -99221,6 +99228,34 @@ CLASS ZCL_ABAPGIT_ITEM_GRAPH IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_jumper IMPLEMENTATION.
+  METHOD jump_bw.
+
+    DATA:
+      lv_exit  TYPE abap_bool,
+      lv_tlogo TYPE rstlogo,
+      lv_objnm TYPE rsawbnobjnm.
+    lv_tlogo = is_item-obj_type.
+    lv_objnm = is_item-obj_name.
+
+    lv_exit = cl_rsawbn_awb=>is_supported_navigation(
+      i_tlogo = lv_tlogo
+      i_fcode = 'DISPLAY' ).
+
+    IF lv_exit = abap_false.
+      RETURN.
+    ENDIF.
+
+    cl_rsawbn_awb=>navigate_from_application(
+      EXPORTING
+        i_tlogo                = lv_tlogo
+        i_objnm                = lv_objnm
+        i_new_mode             = iv_new_window
+      IMPORTING
+        e_exit_own_application = lv_exit ).
+
+    rv_exit = lv_exit.
+
+  ENDMETHOD.
   METHOD jump_tr.
 
     DATA:
@@ -99328,6 +99363,15 @@ CLASS zcl_abapgit_gui_jumper IMPLEMENTATION.
     " 4) Transport Tool Jump
     rv_exit = jump_tr( is_item ).
 
+    IF rv_exit = abap_true.
+      RETURN.
+    ENDIF.
+
+    " 5) BW Jump
+    rv_exit = jump_bw(
+      is_item       = is_item
+      iv_new_window = iv_new_window ).
+
   ENDMETHOD.
   METHOD zif_abapgit_gui_jumper~jump_adt.
 
@@ -99372,12 +99416,12 @@ CLASS zcl_abapgit_gui_jumper IMPLEMENTATION.
     ELSE.
       CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
         EXPORTING
-          tcode                 = iv_tcode
-          mode_val              = 'E'
+          tcode     = iv_tcode
+          mode_val  = 'E'
         TABLES
-          using_tab             = it_bdcdata
+          using_tab = it_bdcdata
         EXCEPTIONS
-          OTHERS                = 4.
+          OTHERS    = 4.
     ENDIF.
 
     CASE sy-subrc.
@@ -110448,6 +110492,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-28T13:37:41.539Z
+* abapmerge 0.14.3 - 2022-04-29T06:38:53.879Z
 ENDINTERFACE.
 ****************************************************
