@@ -99915,6 +99915,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     lt_state_idx = it_cur_state. " Force sort it
 
     lt_remote = it_remote.
+    SORT lt_remote BY path filename.
 
     " Process local files and new local files
     process_local(
@@ -110588,6 +110589,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-04-29T09:18:26.032Z
+* abapmerge 0.14.3 - 2022-04-29T09:59:40.918Z
 ENDINTERFACE.
 ****************************************************
