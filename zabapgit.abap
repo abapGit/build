@@ -87402,6 +87402,9 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
 
     lv_package = ms_item-obj_name.
 
+    " Remove remaining OTR entries
+    zcl_abapgit_sotr_handler=>delete_sotr_package( iv_package ).
+
     remove_obsolete_tadir( lv_package ).
 
     IF is_empty( lv_package ) = abap_true.
@@ -110588,6 +110591,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-01T08:20:20.543Z
+* abapmerge 0.14.3 - 2022-05-01T10:18:57.975Z
 ENDINTERFACE.
 ****************************************************
