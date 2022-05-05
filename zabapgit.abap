@@ -55231,7 +55231,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
+CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
   METHOD add.
 
     DATA ls_table TYPE zif_abapgit_persistence=>ty_content.
@@ -55246,6 +55246,8 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
   ENDMETHOD.
   METHOD delete.
 
+    DATA lv_data TYPE string.
+
     lock( iv_type  = iv_type
           iv_value = iv_value ).
 
@@ -55253,7 +55255,13 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
       WHERE type = iv_type
       AND value = iv_value.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'DB Delete failed' ).
+      " If entry is still there? That's an error, otherwise ignore
+      SELECT SINGLE data_str FROM (c_tabname) INTO lv_data
+        WHERE type = iv_type
+        AND value = iv_value.
+      IF sy-subrc = 0.
+        zcx_abapgit_exception=>raise( 'DB Delete failed' ).
+      ENDIF.
     ENDIF.
 
   ENDMETHOD.
@@ -110627,6 +110635,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-04T12:05:59.476Z
+* abapmerge 0.14.3 - 2022-05-05T13:26:55.925Z
 ENDINTERFACE.
 ****************************************************
