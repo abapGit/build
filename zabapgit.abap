@@ -70017,8 +70017,6 @@ CLASS zcl_abapgit_object_sprx IMPLEMENTATION.
       lv_return_code TYPE i,
       lt_log         TYPE sprx_log_t.
 
-    corr_insert( iv_package ).
-
     IF iv_package(1) <> '$'.
       lv_transp_flag = abap_true.
     ENDIF.
@@ -70051,6 +70049,8 @@ CLASS zcl_abapgit_object_sprx IMPLEMENTATION.
     IF lv_return_code <> 0.
       zcx_abapgit_exception=>raise( 'SPRX: Error from DELETE_SINGLE_PROXY' ).
     ENDIF.
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -87984,6 +87984,8 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
+    corr_insert( iv_package ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -90393,6 +90395,8 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
       delete_tadir_tabl( ls_tcdrs ).
     ENDLOOP.
 
+    corr_insert( iv_package ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -91271,7 +91275,7 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_AVAS IMPLEMENTATION.
+CLASS zcl_abapgit_object_avas IMPLEMENTATION.
   METHOD insert_assignments.
 
     DATA: lt_assignment TYPE STANDARD TABLE OF cls_assignment,
@@ -91354,6 +91358,8 @@ CLASS ZCL_ABAPGIT_OBJECT_AVAS IMPLEMENTATION.
 
     lo_avas->if_pak_wb_object_internal~unlock( ).
 
+    corr_insert( iv_package ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -91367,10 +91373,10 @@ CLASS ZCL_ABAPGIT_OBJECT_AVAS IMPLEMENTATION.
 
     tadir_insert( iv_package ).
 
+    corr_insert( iv_package ).
+
     insert_assignments( ls_avas ).
 * todo, how does links work?
-
-* corr_insert?
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -110627,6 +110633,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-06T10:11:26.201Z
+* abapmerge 0.14.3 - 2022-05-06T10:40:34.447Z
 ENDINTERFACE.
 ****************************************************
