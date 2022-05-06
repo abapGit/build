@@ -63533,10 +63533,9 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
 
       CALL FUNCTION 'SDU_DMO_ENT_PUT'
         EXPORTING
-          object   = ls_udmo_entity
+          object = ls_udmo_entity
         EXCEPTIONS
-          ret_code = 0
-          OTHERS   = 0.
+          OTHERS = 0.
 
     ENDLOOP.
 
@@ -110628,6 +110627,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-05T15:12:14.661Z
+* abapmerge 0.14.3 - 2022-05-06T07:10:44.733Z
 ENDINTERFACE.
 ****************************************************
