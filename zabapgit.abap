@@ -92279,7 +92279,7 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
     RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
-    APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -110627,6 +110627,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-06T07:10:44.733Z
+* abapmerge 0.14.3 - 2022-05-06T10:11:26.201Z
 ENDINTERFACE.
 ****************************************************
