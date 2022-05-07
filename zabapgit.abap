@@ -63517,7 +63517,7 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
         object_class        = c_transport_object_class
         devclass            = iv_package
         master_language     = mv_language
-        mode                = 'INSERT'
+        mode                = 'I'
         global_lock         = abap_true
         suppress_dialog     = abap_true
       EXCEPTIONS
@@ -110689,6 +110689,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-07T07:30:01.313Z
+* abapmerge 0.14.3 - 2022-05-07T07:49:56.788Z
 ENDINTERFACE.
 ****************************************************
