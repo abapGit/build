@@ -56218,7 +56218,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
     ls_adm = is_cua-adm.
     auto_correct_cua_adm( EXPORTING is_cua = is_cua CHANGING cs_adm = ls_adm ).
 
-    sy-tcode = 'SE41' ##write_ok. " evil hack, workaround to handle fixes in note 2159455
+    sy-tcode = 'SE41' ##WRITE_OK. " evil hack, workaround to handle fixes in note 2159455
     CALL FUNCTION 'RS_CUA_INTERNAL_WRITE'
       EXPORTING
         program   = iv_program_name
@@ -59454,7 +59454,7 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
       CATCH cx_ws_md_exception INTO lx_root.
         TRY.
             mi_vi->if_ws_md_lockable_object~unlock( ).
-          CATCH cx_ws_md_exception ##no_handler.
+          CATCH cx_ws_md_exception ##NO_HANDLER.
         ENDTRY.
         zcx_abapgit_exception=>raise_with_text( lx_root ).
     ENDTRY.
@@ -68216,7 +68216,7 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
         TRY.
             ei_code_item_element ?= ii_node.
             RETURN.
-          CATCH cx_sy_move_cast_error ##no_handler.
+          CATCH cx_sy_move_cast_error ##NO_HANDLER.
         ENDTRY.
 
       ELSEIF iv_name NOT IN get_range_node_codes( ) AND
@@ -68339,7 +68339,7 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
           SHIFT lv_coding_line RIGHT BY lv_leading_spaces PLACES.
           li_element->set_value( lv_coding_line ).
         ENDIF.
-      CATCH zcx_abapgit_exception ##no_handler.
+      CATCH zcx_abapgit_exception ##NO_HANDLER.
     ENDTRY.
 
   ENDMETHOD.
@@ -78146,7 +78146,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'MSAG: Table T100 modify failed' ).
       ENDIF.
       CLEAR ls_t100u.
-      MOVE-CORRESPONDING <ls_t100> TO ls_t100u ##enh_ok.
+      MOVE-CORRESPONDING <ls_t100> TO ls_t100u ##ENH_OK.
       ls_t100u-name    = sy-uname.
       ls_t100u-datum   = sy-datum.
       ls_t100u-selfdef = '3'.
@@ -79618,7 +79618,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
       SELECT SINGLE category FROM seoclassdf INTO lv_category
         WHERE clsname = ls_class_key-clsname
         AND ( version = '1'
-        OR version = '0' ) ##warn_ok.                   "#EC CI_GENBUFF
+        OR version = '0' ) ##WARN_OK.                   "#EC CI_GENBUFF
       IF sy-subrc = 0 AND lv_category = seoc_category_webdynpro_class.
         rv_bool = abap_false.
       ENDIF.
@@ -82789,7 +82789,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
       TABLES
         selections    = rt_text_header
       EXCEPTIONS
-        OTHERS        = 1 ##fm_subrc_ok.  "#EC CI_SUBRC
+        OTHERS        = 1 ##FM_SUBRC_OK.  "#EC CI_SUBRC
 
   ENDMETHOD.
   METHOD get_last_changes.
@@ -83071,8 +83071,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
         object    = cs_form_data-text_header-tdobject
         olanguage = cs_form_data-orig_language
       EXCEPTIONS
-        OTHERS    = 1
-        ##fm_subrc_ok.                                                   "#EC CI_SUBRC
+        OTHERS    = 1 ##FM_SUBRC_OK.                                                   "#EC CI_SUBRC
 
   ENDMETHOD.
   METHOD _sort_tdlines_by_windows.
@@ -110633,6 +110632,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-06T10:40:34.447Z
+* abapmerge 0.14.3 - 2022-05-07T07:09:19.862Z
 ENDINTERFACE.
 ****************************************************
