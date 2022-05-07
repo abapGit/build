@@ -84601,10 +84601,6 @@ CLASS zcl_abapgit_object_enhc IMPLEMENTATION.
         li_enh_composite->if_enh_object~activate( ).
         li_enh_composite->if_enh_object~unlock( ).
 
-        zcl_abapgit_sotr_handler=>create_sotr(
-          iv_package = iv_package
-          io_xml     = io_xml ).
-
       CATCH cx_enh_root INTO lx_enh_root.
         zcx_abapgit_exception=>raise_with_text( lx_enh_root ).
     ENDTRY.
@@ -84677,12 +84673,6 @@ CLASS zcl_abapgit_object_enhc IMPLEMENTATION.
                      ig_data = lt_enh_childs ).
         io_xml->add( iv_name = 'LONGTEXT_ID'
                      ig_data = lv_longtext_id ).
-
-        zcl_abapgit_sotr_handler=>read_sotr(
-          iv_pgmid    = 'R3TR'
-          iv_object   = ms_item-obj_type
-          iv_obj_name = ms_item-obj_name
-          io_xml      = io_xml ).
 
       CATCH cx_enh_root INTO lx_enh_root.
         zcx_abapgit_exception=>raise_with_text( lx_enh_root ).
@@ -110689,6 +110679,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-07T07:49:56.788Z
+* abapmerge 0.14.3 - 2022-05-07T08:04:57.624Z
 ENDINTERFACE.
 ****************************************************
