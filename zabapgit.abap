@@ -8791,6 +8791,9 @@ CLASS zcl_abapgit_objects_super DEFINITION
     METHODS set_default_package
       IMPORTING
         !iv_package TYPE devclass .
+    METHODS set_default_transport
+      IMPORTING
+        !iv_transport TYPE trkorr.
     METHODS serialize_longtexts
       IMPORTING
         !ii_xml           TYPE REF TO zif_abapgit_xml_output
@@ -56118,7 +56121,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_default_package.
 
-    " In certain cases we need to set the package package via ABAP memory
+    " In certain cases we need to set the package via ABAP memory
     " because we can't supply it via the APIs.
     "
     " Set default package, see function module RS_CORR_INSERT FORM get_current_devclass.
@@ -56129,6 +56132,16 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
     " We don't need to reset the memory as it is done in above mentioned form routine.
 
     EXPORT current_devclass FROM iv_package TO MEMORY ID 'EUK'.
+
+  ENDMETHOD.
+  METHOD set_default_transport.
+
+    " In certain cases we need to set the transport via ABAP memory
+    " because we can't supply it via the APIs.
+    "
+    " See function module RS_CORR_INSERT
+
+    EXPORT tasknr FROM iv_transport TO MEMORY ID 'EUT'.
 
   ENDMETHOD.
   METHOD tadir_insert.
@@ -70193,7 +70206,7 @@ CLASS zcl_abapgit_object_sprx IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SPPF IMPLEMENTATION.
+CLASS zcl_abapgit_object_sppf IMPLEMENTATION.
   METHOD get_generic.
 
     CREATE OBJECT ro_generic
@@ -70207,10 +70220,14 @@ CLASS ZCL_ABAPGIT_OBJECT_SPPF IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
+    set_default_transport( iv_transport ).
+
     get_generic( )->delete( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
+
+    set_default_transport( iv_transport ).
 
     get_generic( )->deserialize(
       iv_package = iv_package
@@ -70267,6 +70284,10 @@ CLASS zcl_abapgit_object_splo IMPLEMENTATION.
     DELETE FROM tsp1d WHERE papart = ms_item-obj_name.    "#EC CI_SUBRC
     DELETE FROM tsp0p WHERE pdpaper = ms_item-obj_name.   "#EC CI_SUBRC
 
+    set_default_transport( iv_transport ).
+
+    corr_insert( iv_package ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -70283,6 +70304,8 @@ CLASS zcl_abapgit_object_splo IMPLEMENTATION.
     MODIFY tsp1t FROM ls_tsp1t.                           "#EC CI_SUBRC
     MODIFY tsp1d FROM ls_tsp1d.                           "#EC CI_SUBRC
     MODIFY tsp0p FROM ls_tsp0p.                           "#EC CI_SUBRC
+
+    set_default_transport( iv_transport ).
 
     tadir_insert( iv_package ).
 
@@ -91795,10 +91818,14 @@ CLASS zcl_abapgit_object_asfc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
+    set_default_transport( iv_transport ).
+
     get_generic( )->delete( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
+
+    set_default_transport( iv_transport ).
 
     get_generic( )->deserialize(
       iv_package = iv_package
@@ -110706,6 +110733,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-09T06:09:21.056Z
+* abapmerge 0.14.3 - 2022-05-09T06:12:37.337Z
 ENDINTERFACE.
 ****************************************************
