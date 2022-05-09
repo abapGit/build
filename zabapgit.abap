@@ -8832,12 +8832,12 @@ CLASS zcl_abapgit_objects_super DEFINITION
         !ii_xml TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
+  PRIVATE SECTION.
     METHODS is_active_ddic
       RETURNING
         VALUE(rv_active) TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
-  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_common_aff DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
@@ -12802,6 +12802,7 @@ CLASS zcl_abapgit_object_view DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     METHODS:
       read_view
         EXPORTING
+          ev_state TYPE ddgotstate
           es_dd25v TYPE dd25v
           es_dd09l TYPE dd09l
           et_dd26v TYPE ty_dd26v
@@ -12810,7 +12811,6 @@ CLASS zcl_abapgit_object_view DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           et_dd28v TYPE ty_dd28v
         RAISING
           zcx_abapgit_exception.
-
 ENDCLASS.
 CLASS zcl_abapgit_object_w3xx_super DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
@@ -56025,9 +56025,19 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   ENDMETHOD.
   METHOD is_active.
 
+    " DDIC types (see LSINTF01, FORM det_dtabname)
+    CONSTANTS lc_ddic_type TYPE string
+      VALUE 'DDLS,DOMA,DTEL,ENQU,INDX,MCID,MCOB,SHLP,SQLT,SQSC,STOB,TABL,TTYP,VIEW,XINX'.
+
     DATA: lt_messages    TYPE STANDARD TABLE OF sprot_u WITH DEFAULT KEY,
           lt_e071_tadirs TYPE STANDARD TABLE OF e071 WITH DEFAULT KEY,
           ls_e071_tadir  LIKE LINE OF lt_e071_tadirs.
+
+    " For DDIC types, use more accurate method
+    IF lc_ddic_type CS ms_item-obj_type.
+      rv_active = is_active_ddic( ).
+      RETURN.
+    ENDIF.
 
     ms_item-inactive = abap_false.
 
@@ -56049,6 +56059,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
     ENDIF.
 
     rv_active = boolc( ms_item-inactive = abap_false ).
+
   ENDMETHOD.
   METHOD is_active_ddic.
 
@@ -56062,11 +56073,15 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
     lv_type = ms_item-obj_type.
     lv_name = ms_item-obj_name.
 
+    " Check if an inactive version of the DDIC object exists
+    " state = 'A' checks if an active version exists but does not detect new or modified objects
+    " state = 'M' checks for all possible versions so we can find out if an inactive one exists
+    " See documentation of the function module
     CALL FUNCTION 'DDIF_STATE_GET'
       EXPORTING
         type          = lv_type
         name          = lv_name
-        state         = 'A'
+        state         = 'M'
       IMPORTING
         gotstate      = lv_state
       EXCEPTIONS
@@ -56077,7 +56092,6 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
     ENDIF.
 
     rv_active = boolc( ms_item-inactive = abap_false ).
-
   ENDMETHOD.
   METHOD serialize_longtexts.
 
@@ -62410,6 +62424,7 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
         state         = 'A'
         langu         = mv_language
       IMPORTING
+        gotstate      = ev_state
         dd25v_wa      = es_dd25v
         dd09l_wa      = es_dd09l
       TABLES
@@ -62565,6 +62580,7 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_dd25v TYPE dd25v,
+          lv_state TYPE ddgotstate,
           ls_dd09l TYPE dd09l,
           lt_dd26v TYPE ty_dd26v,
           lt_dd27p TYPE ty_dd27p,
@@ -62575,6 +62591,7 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
 
     read_view(
       IMPORTING
+        ev_state = lv_state
         es_dd25v = ls_dd25v
         es_dd09l = ls_dd09l
         et_dd26v = lt_dd26v
@@ -62582,8 +62599,8 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
         et_dd28j = lt_dd28j
         et_dd28v = lt_dd28v ).
 
-    IF ls_dd25v IS INITIAL.
-      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
+    IF ls_dd25v IS INITIAL OR lv_state <> 'A'.
+      RETURN.
     ENDIF.
 
     CLEAR: ls_dd25v-as4user,
@@ -64241,7 +64258,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
 
     lv_typdname = ms_item-obj_name.
 
-    " Active version
+    " Get active version, ignore errors if not found
     CALL FUNCTION 'TYPD_GET_OBJECT'
       EXPORTING
         typdname          = lv_typdname
@@ -64253,10 +64270,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
       EXCEPTIONS
         version_not_found = 1
         reps_not_exist    = 2
-        OTHERS            = 3.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
-    ENDIF.
+        OTHERS            = 3 ##FM_SUBRC_OK.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -64342,6 +64356,10 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
           lt_source TYPE abaptxt255_tab.
     read( IMPORTING ev_ddtext = lv_ddtext
                     et_source = lt_source ).
+
+    IF lt_source IS INITIAL.
+      RETURN.
+    ENDIF.
 
     io_xml->add( iv_name = 'DDTEXT'
                  ig_data = lv_ddtext ).
@@ -64463,6 +64481,7 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name  TYPE ddobjname,
+          lv_state TYPE ddgotstate,
           lt_dd42v TYPE dd42v_tab,
           lt_dd43v TYPE dd43v_tab,
           ls_dd40v TYPE dd40v.
@@ -64474,6 +64493,7 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
         state         = 'A'
         langu         = mv_language
       IMPORTING
+        gotstate      = lv_state
         dd40v_wa      = ls_dd40v
       TABLES
         dd42v_tab     = lt_dd42v
@@ -64486,8 +64506,8 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    IF ls_dd40v IS INITIAL.
-      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
+    IF ls_dd40v IS INITIAL OR lv_state <> 'A'.
+      RETURN.
     ENDIF.
 
     CLEAR: ls_dd40v-as4user,
@@ -66425,7 +66445,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
     rs_metadata = get_metadata( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
-    rv_active = is_active_ddic( ).
+    rv_active = is_active( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
 
@@ -72064,6 +72084,7 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name  TYPE ddobjname,
+          lv_state TYPE ddgotstate,
           ls_dd30v TYPE dd30v,
           lt_dd31v TYPE TABLE OF dd31v,
           lt_dd32p TYPE TABLE OF dd32p,
@@ -72078,6 +72099,7 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
         state         = 'A'
         langu         = mv_language
       IMPORTING
+        gotstate      = lv_state
         dd30v_wa      = ls_dd30v
       TABLES
         dd31v_tab     = lt_dd31v
@@ -72090,8 +72112,8 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    IF ls_dd30v IS INITIAL.
-      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
+    IF ls_dd30v IS INITIAL OR lv_state <> 'A'.
+      RETURN.
     ENDIF.
 
     CLEAR: ls_dd30v-as4user,
@@ -84040,6 +84062,7 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name  TYPE ddobjname,
+          lv_state TYPE ddgotstate,
           ls_dd25v TYPE dd25v,
           lt_dd26e TYPE TABLE OF dd26e,
           lt_dd27p TYPE ty_dd27p.
@@ -84052,6 +84075,7 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
         state         = 'A'
         langu         = mv_language
       IMPORTING
+        gotstate      = lv_state
         dd25v_wa      = ls_dd25v
       TABLES
         dd26e_tab     = lt_dd26e
@@ -84063,8 +84087,8 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    IF ls_dd25v IS INITIAL.
-      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
+    IF ls_dd25v IS INITIAL OR lv_state <> 'A'.
+      RETURN.
     ENDIF.
 
     CLEAR: ls_dd25v-as4user,
@@ -85453,7 +85477,7 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
       AND as4local = 'A'
       AND as4vers = '0000'.
     IF sy-subrc <> 0 OR ls_dd04v IS INITIAL.
-      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
+      RETURN.
     ENDIF.
 
     SELECT SINGLE * FROM dd04t
@@ -86676,6 +86700,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_name    TYPE ddobjname,
+          lv_state   TYPE ddgotstate,
           ls_dd01v   TYPE dd01v,
           lv_masklen TYPE c LENGTH 4,
           lt_dd07v   TYPE TABLE OF dd07v.
@@ -86687,8 +86712,10 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
     CALL FUNCTION 'DDIF_DOMA_GET'
       EXPORTING
         name          = lv_name
+        state         = 'A'
         langu         = mv_language
       IMPORTING
+        gotstate      = lv_state
         dd01v_wa      = ls_dd01v
       TABLES
         dd07v_tab     = lt_dd07v
@@ -86699,8 +86726,8 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    IF ls_dd01v IS INITIAL.
-      zcx_abapgit_exception=>raise( |No active version found for { ms_item-obj_type } { ms_item-obj_name }| ).
+    IF ls_dd01v IS INITIAL OR lv_state <> 'A'.
+      RETURN.
     ENDIF.
 
     CLEAR: ls_dd01v-as4user,
@@ -110679,6 +110706,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-07T08:04:57.624Z
+* abapmerge 0.14.3 - 2022-05-09T06:09:21.056Z
 ENDINTERFACE.
 ****************************************************
