@@ -76951,6 +76951,7 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
 
     FIELD-SYMBOLS:
       <lg_details>     TYPE any,
+      <lg_odsobject>   TYPE any,
       <lt_infoobjects> TYPE STANDARD TABLE,
       <lt_navigation>  TYPE STANDARD TABLE,
       <lt_indexes>     TYPE STANDARD TABLE,
@@ -76987,17 +76988,34 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'INDEX_IOBJ'
                   CHANGING  cg_data =  <lt_index_iobj> ).
     TRY.
-        CALL FUNCTION 'BAPI_ODSO_CREATE'
-          EXPORTING
-            details              = <lg_details>
-          IMPORTING
-            odsobject            = lv_dsonam
-          TABLES
-            infoobjects          = <lt_infoobjects>
-            navigationattributes = <lt_navigation>
-            indexes              = <lt_indexes>
-            indexesinfoobjects   = <lt_index_iobj>
-            return               = lt_return.
+
+        ASSIGN COMPONENT 'ODSOBJECT' OF STRUCTURE <lg_details> TO <lg_odsobject>.
+        ASSERT sy-subrc = 0.
+
+        IF zif_abapgit_object~exists( ) = abap_false.
+          CALL FUNCTION 'BAPI_ODSO_CREATE'
+            EXPORTING
+              details              = <lg_details>
+            IMPORTING
+              odsobject            = lv_dsonam
+            TABLES
+              infoobjects          = <lt_infoobjects>
+              navigationattributes = <lt_navigation>
+              indexes              = <lt_indexes>
+              indexesinfoobjects   = <lt_index_iobj>
+              return               = lt_return.
+        ELSE.
+          CALL FUNCTION 'BAPI_ODSO_CHANGE'
+            EXPORTING
+              odsobject            = <lg_odsobject>
+              details              = <lg_details>
+            TABLES
+              infoobjects          = <lt_infoobjects>
+              navigationattributes = <lt_navigation>
+              indexes              = <lt_indexes>
+              indexesinfoobjects   = <lt_index_iobj>
+              return               = lt_return.
+        ENDIF.
 
       CATCH  cx_sy_dyn_call_illegal_func.
         zcx_abapgit_exception=>raise( |Necessary BW function modules not found or object not supported| ).
@@ -77010,7 +77028,7 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
 
     CALL FUNCTION 'BAPI_ODSO_ACTIVATE'
       EXPORTING
-        odsobject = lv_dsonam
+        odsobject = <lg_odsobject>
       TABLES
         return    = lt_return.
 
@@ -78966,14 +78984,20 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
 
     CALL FUNCTION 'RSD_IOBJ_GET'
       EXPORTING
-        i_iobjnm  = lv_objna
-        i_objvers = 'A'
+        i_iobjnm         = lv_objna
+        i_objvers        = 'A'
       IMPORTING
-        e_s_viobj = <lg_viobj>.
-
-    ASSIGN COMPONENT 'TSTPNM' OF STRUCTURE <lg_viobj> TO <lg_tstpnm>.
-
-    rv_user = <lg_tstpnm>.
+        e_s_viobj        = <lg_viobj>
+      EXCEPTIONS
+        iobj_not_found   = 1
+        illegal_input    = 2
+        bct_comp_invalid = 3
+        not_authorized   = 4
+        OTHERS           = 5.
+    IF sy-subrc = 0.
+      ASSIGN COMPONENT 'TSTPNM' OF STRUCTURE <lg_viobj> TO <lg_tstpnm>.
+      rv_user = <lg_tstpnm>.
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
@@ -79115,30 +79139,48 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
 
     TRY.
 
-        CALL FUNCTION 'BAPI_IOBJ_CREATE'
-          EXPORTING
-            details                  = <lg_details>
-          IMPORTING
-            return                   = ls_return
-          TABLES
-            compounds                = <lt_compounds>
-            attributes               = <lt_attributes>
-            navigationattributes     = <lt_navigationattributes>
-            atrnavinfoprovider       = <lt_atrnavinfoprovider>
-            hierarchycharacteristics = <lt_hierarchycharacteristics>
-            elimination              = <lt_elimination>
-            hanafieldsmapping        = <lt_hanafieldsmapping>
-            xxlattributes            = <lt_xxlattributes>.
-
-        IF ls_return-type = 'E'.
-          zcx_abapgit_exception=>raise( |Error when creating iobj: { ls_return-message }| ).
-        ENDIF.
-
         ASSIGN
           COMPONENT 'INFOOBJECT'
           OF STRUCTURE <lg_details>
           TO <lg_infoobject>.
         ASSERT sy-subrc = 0.
+
+        IF zif_abapgit_object~exists( ) = abap_false.
+          CALL FUNCTION 'BAPI_IOBJ_CREATE'
+            EXPORTING
+              details                  = <lg_details>
+            IMPORTING
+              return                   = ls_return
+            TABLES
+              compounds                = <lt_compounds>
+              attributes               = <lt_attributes>
+              navigationattributes     = <lt_navigationattributes>
+              atrnavinfoprovider       = <lt_atrnavinfoprovider>
+              hierarchycharacteristics = <lt_hierarchycharacteristics>
+              elimination              = <lt_elimination>
+              hanafieldsmapping        = <lt_hanafieldsmapping>
+              xxlattributes            = <lt_xxlattributes>.
+        ELSE.
+          CALL FUNCTION 'BAPI_IOBJ_CHANGE'
+            EXPORTING
+              infoobject               = <lg_infoobject>
+              details                  = <lg_details>
+            IMPORTING
+              return                   = ls_return
+            TABLES
+              compounds                = <lt_compounds>
+              attributes               = <lt_attributes>
+              navigationattributes     = <lt_navigationattributes>
+              atrnavinfoprovider       = <lt_atrnavinfoprovider>
+              hierarchycharacteristics = <lt_hierarchycharacteristics>
+              elimination              = <lt_elimination>
+              hanafieldsmapping        = <lt_hanafieldsmapping>
+              xxlattributes            = <lt_xxlattributes>.
+        ENDIF.
+
+        IF ls_return-type = 'E'.
+          zcx_abapgit_exception=>raise( |Error when creating iobj: { ls_return-message }| ).
+        ENDIF.
 
         APPEND <lg_infoobject> TO <lt_infoobjects>.
 
@@ -110748,6 +110790,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-11T07:46:40.201Z
+* abapmerge 0.14.3 - 2022-05-11T10:39:06.990Z
 ENDINTERFACE.
 ****************************************************
