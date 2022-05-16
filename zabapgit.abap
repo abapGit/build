@@ -90350,6 +90350,7 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
           wi_tadir_pgmid           = 'R3TR'
           wi_tadir_object          = 'PROG'
           wi_tadir_obj_name        = lv_obj_name
+          wi_test_modus            = abap_false
         EXCEPTIONS
           tadir_entry_not_existing = 1
           OTHERS                   = 2.
@@ -90366,6 +90367,7 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
           wi_tadir_pgmid           = 'R3TR'
           wi_tadir_object          = 'PROG'
           wi_tadir_obj_name        = lv_obj_name
+          wi_test_modus            = abap_false
         EXCEPTIONS
           tadir_entry_not_existing = 1
           OTHERS                   = 2.
@@ -90382,6 +90384,7 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
           wi_tadir_pgmid           = 'R3TR'
           wi_tadir_object          = 'PROG'
           wi_tadir_obj_name        = lv_obj_name
+          wi_test_modus            = abap_false
         EXCEPTIONS
           tadir_entry_not_existing = 1
           OTHERS                   = 2.
@@ -90398,6 +90401,7 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
           wi_tadir_pgmid           = 'R3TR'
           wi_tadir_object          = 'PROG'
           wi_tadir_obj_name        = lv_obj_name
+          wi_test_modus            = abap_false
         EXCEPTIONS
           tadir_entry_not_existing = 1
           OTHERS                   = 2.
@@ -90414,6 +90418,7 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
           wi_tadir_pgmid           = 'R3TR'
           wi_tadir_object          = 'FUGR'
           wi_tadir_obj_name        = lv_obj_name
+          wi_test_modus            = abap_false
         EXCEPTIONS
           tadir_entry_not_existing = 1
           OTHERS                   = 2.
@@ -90433,8 +90438,9 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
         EXPORTING
           wi_delete_tadir_entry    = abap_true
           wi_tadir_pgmid           = 'R3TR'
-          wi_tadir_object          = 'FUGR'
+          wi_tadir_object          = 'TABL'
           wi_tadir_obj_name        = lv_obj_name
+          wi_test_modus            = abap_false
         EXCEPTIONS
           tadir_entry_not_existing = 1
           OTHERS                   = 2.
@@ -110790,6 +110796,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-11T10:39:06.990Z
+* abapmerge 0.14.3 - 2022-05-16T06:28:41.913Z
 ENDINTERFACE.
 ****************************************************
