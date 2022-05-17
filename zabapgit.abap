@@ -17777,9 +17777,7 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
     METHODS is_repo_lang_logon_lang
       RETURNING
         VALUE(rv_repo_lang_is_logon_lang) TYPE abap_bool .
-    METHODS get_abapgit_tcode
-      RETURNING
-        VALUE(rv_tcode) TYPE tcode .
+
     METHODS render_item_changed_by
       IMPORTING
         !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
@@ -19503,6 +19501,9 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
     CLASS-METHODS prepare_gui_startup
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS get_abapgit_tcode
+      RETURNING
+        VALUE(rv_tcode) TYPE tcode .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -33006,6 +33007,20 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD get_abapgit_tcode.
+    CONSTANTS: lc_report_tcode_hex TYPE x VALUE '80'.
+    DATA: lt_tcodes TYPE STANDARD TABLE OF tcode.
+
+    SELECT tcode
+      FROM tstc
+      INTO TABLE lt_tcodes
+      WHERE pgmna = sy-cprog
+        AND cinfo = lc_report_tcode_hex.
+
+    IF lines( lt_tcodes ) > 0.
+      READ TABLE lt_tcodes INDEX 1 INTO rv_tcode.
+    ENDIF.
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_popups IMPLEMENTATION.
@@ -40724,7 +40739,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
                                iv_act = |{ c_actions-go_data }?key={ mv_key }|
                                iv_opt = lv_crossout ).
 
-    IF is_repo_lang_logon_lang( ) = abap_false AND get_abapgit_tcode( ) IS NOT INITIAL.
+    IF is_repo_lang_logon_lang( ) = abap_false AND zcl_abapgit_services_abapgit=>get_abapgit_tcode( ) IS NOT INITIAL.
       ro_advanced_dropdown->add(
         iv_txt = 'Open in Main Language'
         iv_act = |{ zif_abapgit_definitions=>c_action-repo_open_in_master_lang }?key={ mv_key }| ).
@@ -41017,20 +41032,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD get_abapgit_tcode.
-    CONSTANTS: lc_report_tcode_hex TYPE x VALUE '80'.
-    DATA: lt_tcodes TYPE STANDARD TABLE OF tcode.
-
-    SELECT tcode
-      FROM tstc
-      INTO TABLE lt_tcodes
-      WHERE pgmna = sy-cprog
-        AND cinfo = lc_report_tcode_hex.
-
-    IF lines( lt_tcodes ) > 0.
-      READ TABLE lt_tcodes INDEX 1 INTO rv_tcode.
-    ENDIF.
-  ENDMETHOD.
   METHOD get_item_class.
 
     DATA lt_class TYPE TABLE OF string.
@@ -41096,7 +41097,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
     " https://blogs.sap.com/2017/01/13/logon-language-sy-langu-and-rfc/
 
     lv_main_language = mo_repo->get_dot_abapgit( )->get_main_language( ).
-    lv_tcode = get_abapgit_tcode( ).
+    lv_tcode = zcl_abapgit_services_abapgit=>get_abapgit_tcode( ).
     ASSERT lv_tcode IS NOT INITIAL.
 
     IF lv_main_language = sy-langu.
@@ -53814,17 +53815,28 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD check_language.
 
-    DATA lv_main_language TYPE spras.
+    DATA:
+      lv_main_language TYPE spras,
+      lv_error_message TYPE string.
 
     " assumes find_remote_dot_abapgit has been called before
     lv_main_language = get_dot_abapgit( )->get_main_language( ).
-
     IF lv_main_language <> sy-langu.
-      zcx_abapgit_exception=>raise( |Current login language |
-                                 && |'{ zcl_abapgit_convert=>conversion_exit_isola_output( sy-langu ) }'|
-                                 && | does not match main language |
-                                 && |'{ zcl_abapgit_convert=>conversion_exit_isola_output( lv_main_language ) }'.|
-                                 && | Select 'Advanced' > 'Open in Main Language'| ).
+
+      lv_error_message = |Current login language |
+                      && |'{ zcl_abapgit_convert=>conversion_exit_isola_output( sy-langu ) }'|
+                      && | does not match main language |
+                      && |'{ zcl_abapgit_convert=>conversion_exit_isola_output( lv_main_language ) }'.|.
+
+      " Feature open in main language only exists if abapGit tcode is present
+      IF zcl_abapgit_services_abapgit=>get_abapgit_tcode( ) IS INITIAL.
+        lv_error_message = lv_error_message && | Please logon in main language and retry.|.
+      ELSE.
+        lv_error_message = lv_error_message && | Select 'Advanced' > 'Open in Main Language'|.
+      ENDIF.
+
+      zcx_abapgit_exception=>raise( lv_error_message ).
+
     ENDIF.
 
   ENDMETHOD.
@@ -110796,6 +110808,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-16T06:28:41.913Z
+* abapmerge 0.14.3 - 2022-05-17T11:32:14.450Z
 ENDINTERFACE.
 ****************************************************
