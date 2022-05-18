@@ -2509,6 +2509,7 @@ INTERFACE zif_abapgit_definitions .
       rstate     TYPE ty_item_state,
       files      TYPE ty_repo_file_tt,
       changed_by TYPE syuname,
+      transport  TYPE trkorr,
       packmove   TYPE abap_bool,
     END OF ty_repo_item .
   TYPES:
@@ -14543,8 +14544,9 @@ CLASS zcl_abapgit_repo_content_list DEFINITION
 
     METHODS list
       IMPORTING iv_path              TYPE string
-                iv_by_folders        TYPE abap_bool
-                iv_changes_only      TYPE abap_bool
+                iv_by_folders        TYPE abap_bool OPTIONAL
+                iv_changes_only      TYPE abap_bool OPTIONAL
+                iv_transports        TYPE abap_bool OPTIONAL
       RETURNING VALUE(rt_repo_items) TYPE zif_abapgit_definitions=>ty_repo_item_tt
       RAISING   zcx_abapgit_exception.
 
@@ -14576,6 +14578,9 @@ CLASS zcl_abapgit_repo_content_list DEFINITION
       IMPORTING iv_cur_dir    TYPE string
       CHANGING  ct_repo_items TYPE zif_abapgit_definitions=>ty_repo_item_tt
       RAISING   zcx_abapgit_exception.
+
+    METHODS determine_transports
+      CHANGING ct_repo_items TYPE zif_abapgit_definitions=>ty_repo_item_tt.
 
     METHODS filter_changes
       CHANGING ct_repo_items TYPE zif_abapgit_definitions=>ty_repo_item_tt.
@@ -40681,7 +40686,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
       INSERT ls_sort INTO TABLE lt_sort.
     ENDIF.
 
-    IF mv_order_by = 'TRANSPORT'.
+    " Use object name as secondary sort criteria
+    IF mv_order_by <> 'OBJ_NAME'.
       ls_sort-name = 'OBJ_NAME'.
       INSERT ls_sort INTO TABLE lt_sort.
     ENDIF.
@@ -40693,11 +40699,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
     INSERT LINES OF lt_diff_items INTO TABLE ct_repo_items.
     INSERT LINES OF lt_code_items INTO TABLE ct_repo_items.
 
-    IF mv_order_by = 'TRANSPORT'.
-      LOOP AT ct_repo_items ASSIGNING <ls_repo_item>.
-        order_files( CHANGING ct_files = <ls_repo_item>-files ).
-      ENDLOOP.
-    ENDIF.
+    " Files are listed under the object names so we always sort them by name
+    LOOP AT ct_repo_items ASSIGNING <ls_repo_item>.
+      order_files( CHANGING ct_files = <ls_repo_item>-files ).
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD build_advanced_dropdown.
@@ -41172,7 +41177,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
 
     ls_sort-descending = mv_order_descending.
     ls_sort-astext     = abap_true.
-    ls_sort-name       = 'TRANSPORT'.
+    ls_sort-name       = 'PATH'.
     INSERT ls_sort INTO TABLE lt_sort.
 
     ls_sort-descending = mv_order_descending.
@@ -41230,7 +41235,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
 
         lt_repo_items = lo_browser->list( iv_path         = mv_cur_dir
                                           iv_by_folders   = mv_show_folders
-                                          iv_changes_only = mv_changes_only ).
+                                          iv_changes_only = mv_changes_only
+                                          iv_transports   = mv_are_changes_recorded_in_tr ).
 
         apply_order_by( CHANGING ct_repo_items = lt_repo_items ).
 
@@ -41520,25 +41526,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_item_transport.
 
-    DATA:
-      ls_item      TYPE zif_abapgit_definitions=>ty_item,
-      lv_transport TYPE trkorr.
-
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( '<td class="transport">' ).
 
-    ls_item-obj_type = is_item-obj_type.
-    ls_item-obj_name = is_item-obj_name.
-
-    TRY.
-        lv_transport = zcl_abapgit_factory=>get_cts_api( )->get_transport_for_object( ls_item ).
-        IF lv_transport IS NOT INITIAL.
-          ri_html->add( zcl_abapgit_gui_chunk_lib=>render_transport( iv_transport = lv_transport ) ).
-        ENDIF.
-      CATCH zcx_abapgit_exception ##NO_HANDLER.
-        " Ignore errors related to object check when trying to get transport
-    ENDTRY.
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_transport( is_item-transport ) ).
 
     ri_html->add( '</td>' ).
 
@@ -53306,6 +53298,23 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
     mo_repo = io_repo.
     CREATE OBJECT mi_log TYPE zcl_abapgit_log.
   ENDMETHOD.
+  METHOD determine_transports.
+
+    DATA ls_item TYPE zif_abapgit_definitions=>ty_item.
+
+    FIELD-SYMBOLS <ls_item> LIKE LINE OF ct_repo_items.
+
+    LOOP AT ct_repo_items ASSIGNING <ls_item>.
+      ls_item-obj_type = <ls_item>-obj_type.
+      ls_item-obj_name = <ls_item>-obj_name.
+      TRY.
+          <ls_item>-transport = zcl_abapgit_factory=>get_cts_api( )->get_transport_for_object( ls_item ).
+        CATCH zcx_abapgit_exception ##NO_HANDLER.
+          " Ignore errors related to object check when trying to get transport
+      ENDTRY.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD filter_changes.
 
     FIELD-SYMBOLS: <ls_item> TYPE zif_abapgit_definitions=>ty_repo_item.
@@ -53358,6 +53367,10 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
     IF iv_changes_only = abap_true.
       " There are never changes for offline repositories
       filter_changes( CHANGING ct_repo_items = rt_repo_items ).
+    ENDIF.
+
+    IF iv_transports = abap_true.
+      determine_transports( CHANGING ct_repo_items = rt_repo_items ).
     ENDIF.
 
     SORT rt_repo_items BY
@@ -110834,6 +110847,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-18T16:05:29.029Z
+* abapmerge 0.14.3 - 2022-05-18T19:26:34.849Z
 ENDINTERFACE.
 ****************************************************
