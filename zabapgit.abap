@@ -90891,6 +90891,9 @@ CLASS zcl_abapgit_object_char IMPLEMENTATION.
       WHERE name = ms_item-obj_name
       AND activation_state = lc_active
       ORDER BY PRIMARY KEY.
+    IF io_xml->i18n_params( )-main_language_only = abap_true.
+      DELETE ls_char-cls_attributet WHERE langu <> mv_language.
+    ENDIF.
 
     SELECT * FROM cls_attr_value INTO TABLE ls_char-cls_attr_value
       WHERE name = ms_item-obj_name
@@ -90901,6 +90904,9 @@ CLASS zcl_abapgit_object_char IMPLEMENTATION.
       WHERE name = ms_item-obj_name
       AND activation_state = lc_active
       ORDER BY PRIMARY KEY.
+    IF io_xml->i18n_params( )-main_language_only = abap_true.
+      DELETE ls_char-cls_attr_valuet WHERE langu <> mv_language.
+    ENDIF.
 
     io_xml->add( iv_name = 'CHAR'
                  ig_data = ls_char ).
@@ -110828,6 +110834,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-18T15:54:58.356Z
+* abapmerge 0.14.3 - 2022-05-18T16:05:29.029Z
 ENDINTERFACE.
 ****************************************************
