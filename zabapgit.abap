@@ -32738,7 +32738,8 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
   METHOD switch_tag.
 
     DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
-          ls_tag  TYPE zif_abapgit_definitions=>ty_git_tag.
+          ls_tag  TYPE zif_abapgit_definitions=>ty_git_tag,
+          lv_text TYPE string.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
@@ -32747,9 +32748,15 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
+    REPLACE '^{}' IN ls_tag-name WITH ''.
+
     lo_repo->select_branch( ls_tag-name ).
 
     COMMIT WORK AND WAIT.
+
+    lv_text = |Tag switched to { zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag-name ) } |.
+
+    MESSAGE lv_text TYPE 'S'.
 
   ENDMETHOD.
 ENDCLASS.
@@ -33990,7 +33997,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
           lv_answer    TYPE c LENGTH 1,
           lv_default   TYPE i,
           lv_tag       TYPE string,
-          lv_text      TYPE string,
           lt_selection TYPE TABLE OF spopli.
 
     FIELD-SYMBOLS: <ls_sel> LIKE LINE OF lt_selection,
@@ -34050,9 +34056,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
     ls_branch = lo_branches->find_by_name( <ls_tag>-name ).
     MOVE-CORRESPONDING ls_branch TO rs_tag.
-
-    lv_text = |Tag switched to { zcl_abapgit_git_tag=>remove_tag_prefix( rs_tag-name ) } |.
-    MESSAGE lv_text TYPE 'S'.
 
   ENDMETHOD.
   METHOD _popup_3_get_values.
@@ -110825,6 +110828,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-18T15:43:28.146Z
+* abapmerge 0.14.3 - 2022-05-18T15:54:58.356Z
 ENDINTERFACE.
 ****************************************************
