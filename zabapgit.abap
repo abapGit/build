@@ -68511,6 +68511,7 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
   METHOD zif_abapgit_object~is_active.
 
     DATA: lv_ssfo_formname TYPE tdsfname.
+    DATA lv_inactive TYPE abap_bool.
 
     lv_ssfo_formname = ms_item-obj_name.
 
@@ -68518,9 +68519,9 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
       EXPORTING
         i_formname = lv_ssfo_formname
       IMPORTING
-        o_inactive = ms_item-inactive.
+        o_inactive = lv_inactive.
 
-    rv_active = boolc( ms_item-inactive = abap_false ).
+    rv_active = boolc( lv_inactive = abap_false ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
@@ -110808,6 +110809,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-17T11:32:14.450Z
+* abapmerge 0.14.3 - 2022-05-18T12:38:37.995Z
 ENDINTERFACE.
 ****************************************************
