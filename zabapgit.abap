@@ -2268,9 +2268,10 @@ INTERFACE zif_abapgit_definitions .
     END OF ty_comment .
   TYPES:
     BEGIN OF ty_item_signature,
-      obj_type TYPE tadir-object,
-      obj_name TYPE tadir-obj_name,
-      devclass TYPE devclass,
+      obj_type  TYPE tadir-object,
+      obj_name  TYPE tadir-obj_name,
+      devclass  TYPE devclass,
+      srcsystem TYPE tadir-srcsystem,
     END OF ty_item_signature .
   TYPES:
     BEGIN OF ty_item.
@@ -2371,29 +2372,31 @@ INTERFACE zif_abapgit_definitions .
       WITH NON-UNIQUE SORTED KEY type COMPONENTS type sha1 .
   TYPES:
     BEGIN OF ty_tadir,
-      pgmid    TYPE tadir-pgmid,
-      object   TYPE tadir-object,
-      obj_name TYPE tadir-obj_name,
-      devclass TYPE tadir-devclass,
-      korrnum  TYPE tadir-korrnum, " todo, I think this field can be removed after #2464 -Hvam
-      delflag  TYPE tadir-delflag,
-      genflag  TYPE tadir-genflag,
-      path     TYPE string,
+      pgmid     TYPE tadir-pgmid,
+      object    TYPE tadir-object,
+      obj_name  TYPE tadir-obj_name,
+      devclass  TYPE tadir-devclass,
+      korrnum   TYPE tadir-korrnum, " used by ZCL_ABAPGIT_DEPENDENCIES->RESOLVE
+      delflag   TYPE tadir-delflag,
+      genflag   TYPE tadir-genflag,
+      path      TYPE string,
+      srcsystem TYPE tadir-srcsystem,
     END OF ty_tadir .
   TYPES:
     ty_tadir_tt TYPE STANDARD TABLE OF ty_tadir WITH DEFAULT KEY .
   TYPES:
     BEGIN OF ty_result,
-      obj_type TYPE tadir-object,
-      obj_name TYPE tadir-obj_name,
-      inactive TYPE abap_bool,
-      path     TYPE string,
-      filename TYPE string,
-      package  TYPE devclass,
-      match    TYPE abap_bool,
-      lstate   TYPE ty_item_state,
-      rstate   TYPE ty_item_state,
-      packmove TYPE abap_bool,
+      obj_type  TYPE tadir-object,
+      obj_name  TYPE tadir-obj_name,
+      inactive  TYPE abap_bool,
+      path      TYPE string,
+      filename  TYPE string,
+      package   TYPE devclass,
+      match     TYPE abap_bool,
+      lstate    TYPE ty_item_state,
+      rstate    TYPE ty_item_state,
+      packmove  TYPE abap_bool,
+      srcsystem TYPE tadir-srcsystem,
     END OF ty_result .
   TYPES:
     ty_results_tt TYPE STANDARD TABLE OF ty_result WITH DEFAULT KEY .
@@ -2511,6 +2514,7 @@ INTERFACE zif_abapgit_definitions .
       changed_by TYPE syuname,
       transport  TYPE trkorr,
       packmove   TYPE abap_bool,
+      srcsystem  TYPE tadir-srcsystem,
     END OF ty_repo_item .
   TYPES:
     ty_repo_item_tt TYPE STANDARD TABLE OF ty_repo_item WITH DEFAULT KEY .
@@ -17729,6 +17733,11 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
         !is_item                     TYPE zif_abapgit_definitions=>ty_repo_item
       RETURNING
         VALUE(rv_inactive_html_code) TYPE string .
+    METHODS build_srcsystem_code
+      IMPORTING
+        !is_item                     TYPE zif_abapgit_definitions=>ty_repo_item
+      RETURNING
+        VALUE(rv_srcsystem_html_code) TYPE string .
     METHODS open_in_main_language
       RAISING
         zcx_abapgit_exception .
@@ -40635,7 +40644,7 @@ CLASS zcl_abapgit_gui_page_run_bckg IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -40973,6 +40982,16 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
     rv_html = li_html->a(
       iv_txt = |{ is_item-obj_name }|
       iv_act = |{ zif_abapgit_definitions=>c_action-jump }?{ lv_encode }| ).
+
+  ENDMETHOD.
+  METHOD build_srcsystem_code.
+
+    IF is_item-srcsystem IS NOT INITIAL AND is_item-srcsystem <> sy-sysid.
+      rv_srcsystem_html_code = zcl_abapgit_html=>icon(
+        iv_name  = 'server-solid/grey'
+        iv_hint  = |Original system: { is_item-srcsystem }|
+        iv_class = 'cursor-pointer' ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD build_tag_dropdown.
@@ -41407,7 +41426,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
       ELSE.
         lv_link = build_obj_jump_link( is_item ).
         ri_html->add( |<td class="type">{ is_item-obj_type }</td>| ).
-        ri_html->add( |<td class="object">{ lv_link } { build_inactive_object_code( is_item ) }</td>| ).
+        ri_html->add( |<td class="object">{ lv_link } { build_inactive_object_code( is_item )
+                      } { build_srcsystem_code( is_item ) }</td>| ).
       ENDIF.
     ENDIF.
 
@@ -53127,7 +53147,7 @@ CLASS ZCL_ABAPGIT_REPO_CS_MIGRATION IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
+CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
   METHOD build_folders.
 
     DATA: lv_index    TYPE i,
@@ -53189,15 +53209,16 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
 
     LOOP AT lt_tadir ASSIGNING <ls_tadir>.
       APPEND INITIAL LINE TO rt_repo_items ASSIGNING <ls_repo_item>.
-      <ls_repo_item>-obj_type = <ls_tadir>-object.
-      <ls_repo_item>-obj_name = <ls_tadir>-obj_name.
-      <ls_repo_item>-path     = <ls_tadir>-path.
+      <ls_repo_item>-obj_type  = <ls_tadir>-object.
+      <ls_repo_item>-obj_name  = <ls_tadir>-obj_name.
+      <ls_repo_item>-path      = <ls_tadir>-path.
+      <ls_repo_item>-srcsystem = <ls_tadir>-srcsystem.
       MOVE-CORRESPONDING <ls_repo_item> TO ls_item.
       <ls_repo_item>-inactive = boolc( zcl_abapgit_objects=>is_active( ls_item ) = abap_false ).
       IF <ls_repo_item>-inactive = abap_true.
         <ls_repo_item>-sortkey = c_sortkey-inactive.
       ELSE.
-        <ls_repo_item>-sortkey  = c_sortkey-default.      " Default sort key
+        <ls_repo_item>-sortkey = c_sortkey-default.      " Default sort key
       ENDIF.
 
       IF <ls_repo_item>-obj_type IS NOT INITIAL.
@@ -53213,7 +53234,7 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
   METHOD build_repo_items_with_remote.
 
     DATA:
-      lo_state  TYPE REF TO zcl_abapgit_item_state,
+      lo_state      TYPE REF TO zcl_abapgit_item_state,
       ls_file       TYPE zif_abapgit_definitions=>ty_repo_file,
       lt_status     TYPE zif_abapgit_definitions=>ty_results_tt,
       ls_item       TYPE zif_abapgit_definitions=>ty_item,
@@ -53227,12 +53248,13 @@ CLASS ZCL_ABAPGIT_REPO_CONTENT_LIST IMPLEMENTATION.
     LOOP AT lt_status ASSIGNING <ls_status>.
       AT NEW obj_name. "obj_type + obj_name
         APPEND INITIAL LINE TO rt_repo_items ASSIGNING <ls_repo_item>.
-        <ls_repo_item>-obj_type = <ls_status>-obj_type.
-        <ls_repo_item>-obj_name = <ls_status>-obj_name.
-        <ls_repo_item>-inactive = <ls_status>-inactive.
-        <ls_repo_item>-sortkey  = c_sortkey-default. " Default sort key
-        <ls_repo_item>-changes  = 0.
-        <ls_repo_item>-path     = <ls_status>-path.
+        <ls_repo_item>-obj_type  = <ls_status>-obj_type.
+        <ls_repo_item>-obj_name  = <ls_status>-obj_name.
+        <ls_repo_item>-inactive  = <ls_status>-inactive.
+        <ls_repo_item>-sortkey   = c_sortkey-default. " Default sort key
+        <ls_repo_item>-changes   = 0.
+        <ls_repo_item>-path      = <ls_status>-path.
+        <ls_repo_item>-srcsystem = <ls_status>-srcsystem.
         CREATE OBJECT lo_state.
       ENDAT.
 
@@ -98573,9 +98595,10 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
 
     DATA: lx_error     TYPE REF TO zcx_abapgit_exception,
           ls_file_item TYPE zif_abapgit_objects=>ty_serialization.
-    ls_file_item-item-obj_type = is_tadir-object.
-    ls_file_item-item-obj_name = is_tadir-obj_name.
-    ls_file_item-item-devclass = is_tadir-devclass.
+    ls_file_item-item-obj_type  = is_tadir-object.
+    ls_file_item-item-obj_name  = is_tadir-obj_name.
+    ls_file_item-item-devclass  = is_tadir-devclass.
+    ls_file_item-item-srcsystem = is_tadir-srcsystem.
 
     TRY.
         ls_file_item = zcl_abapgit_objects=>serialize(
@@ -100072,15 +100095,16 @@ CLASS zcl_abapgit_filename_logic IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
+CLASS zcl_abapgit_file_status IMPLEMENTATION.
   METHOD build_existing.
 
     DATA: ls_file_sig LIKE LINE OF it_state.
 
     " Item
-    rs_result-obj_type = is_local-item-obj_type.
-    rs_result-obj_name = is_local-item-obj_name.
-    rs_result-package  = is_local-item-devclass.
+    rs_result-obj_type  = is_local-item-obj_type.
+    rs_result-obj_name  = is_local-item-obj_name.
+    rs_result-package   = is_local-item-devclass.
+    rs_result-srcsystem = is_local-item-srcsystem.
 
     " File
     rs_result-path     = is_local-file-path.
@@ -100122,9 +100146,10 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
   METHOD build_new_local.
 
     " Item
-    rs_result-obj_type = is_local-item-obj_type.
-    rs_result-obj_name = is_local-item-obj_name.
-    rs_result-package  = is_local-item-devclass.
+    rs_result-obj_type  = is_local-item-obj_type.
+    rs_result-obj_name  = is_local-item-obj_name.
+    rs_result-package   = is_local-item-devclass.
+    rs_result-srcsystem = is_local-item-srcsystem.
 
     " File
     rs_result-path     = is_local-file-path.
@@ -100163,9 +100188,10 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     IF sy-subrc = 0.
 
       " Completely new (xml, abap) and new file in an existing object
-      rs_result-obj_type = ls_item-obj_type.
-      rs_result-obj_name = ls_item-obj_name.
-      rs_result-package  = ls_item-devclass.
+      rs_result-obj_type  = ls_item-obj_type.
+      rs_result-obj_name  = ls_item-obj_name.
+      rs_result-package   = ls_item-devclass.
+      rs_result-srcsystem = sy-sysid.
 
       READ TABLE it_state INTO ls_file_sig
         WITH KEY path = is_remote-path filename = is_remote-filename
@@ -110883,6 +110909,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-19T17:35:55.336Z
+* abapmerge 0.14.3 - 2022-05-21T06:14:22.200Z
 ENDINTERFACE.
 ****************************************************
