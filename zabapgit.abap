@@ -97887,7 +97887,7 @@ CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
+CLASS zcl_abapgit_tadir IMPLEMENTATION.
   METHOD add_local_packages.
 
     FIELD-SYMBOLS:
@@ -97903,6 +97903,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
         <ls_tadir>-object   = 'DEVC'.
         <ls_tadir>-obj_name = <lv_package>.
         <ls_tadir>-devclass = <lv_package>.
+        <ls_tadir>-srcsystem = sy-sysid.
       ENDIF.
 
     ENDLOOP.
@@ -97944,6 +97945,7 @@ CLASS ZCL_ABAPGIT_TADIR IMPLEMENTATION.
           <ls_nspc>-object   = 'NSPC'.
           <ls_nspc>-obj_name = lv_namespace.
           <ls_nspc>-devclass = iv_package.
+          <ls_nspc>-srcsystem = sy-sysid.
 
           INSERT <ls_nspc> INTO TABLE lt_tadir_nspc.
         ENDIF.
@@ -110944,6 +110946,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-23T11:51:27.309Z
+* abapmerge 0.14.3 - 2022-05-23T13:31:03.428Z
 ENDINTERFACE.
 ****************************************************
