@@ -100784,6 +100784,9 @@ CLASS ZCL_ABAPGIT_FILE_DESERIALIZE IMPLEMENTATION.
       ENDLOOP.
     ENDIF.
 
+    "ignore table content
+    DELETE rt_results WHERE path = zif_abapgit_data_config=>c_default_path.
+
     SORT rt_results
       BY obj_type ASCENDING
          obj_name ASCENDING
@@ -110914,6 +110917,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-23T07:39:26.241Z
+* abapmerge 0.14.3 - 2022-05-23T08:36:03.833Z
 ENDINTERFACE.
 ****************************************************
