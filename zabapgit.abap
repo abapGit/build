@@ -89759,7 +89759,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CMOD IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
+CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
@@ -90265,6 +90265,8 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
   METHOD zif_abapgit_object~delete.
     DATA: ls_clskey TYPE seoclskey.
     ls_clskey-clsname = ms_item-obj_name.
+
+    corr_insert( iv_package ).
 
     mi_object_oriented_object_fct->delete( ls_clskey ).
   ENDMETHOD.
@@ -110946,6 +110948,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-23T13:31:03.428Z
+* abapmerge 0.14.3 - 2022-05-23T16:17:08.751Z
 ENDINTERFACE.
 ****************************************************
