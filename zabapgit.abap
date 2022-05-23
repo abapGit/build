@@ -1174,7 +1174,7 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_ajson.
 
-  CONSTANTS version TYPE string VALUE 'v1.1.3'. "#EC NOTEXT
+  CONSTANTS version TYPE string VALUE 'v1.1.4'. "#EC NOTEXT
   CONSTANTS origin TYPE string VALUE 'https://github.com/sbcgua/ajson'. "#EC NOTEXT
   CONSTANTS license TYPE string VALUE 'MIT'. "#EC NOTEXT
 
@@ -1222,6 +1222,8 @@ INTERFACE zif_abapgit_ajson.
     RETURNING
       VALUE(ri_json) TYPE REF TO zif_abapgit_ajson.
   METHODS format_datetime
+    IMPORTING
+      iv_use_iso TYPE abap_bool DEFAULT abap_true
     RETURNING
       VALUE(ri_json) TYPE REF TO zif_abapgit_ajson.
 
@@ -6311,6 +6313,8 @@ CLASS zcl_abapgit_ajson DEFINITION
         VALUE(ro_instance) TYPE REF TO zcl_abapgit_ajson
       RAISING
         zcx_abapgit_ajson_error .
+
+    METHODS constructor.
 
   PROTECTED SECTION.
 
@@ -103478,7 +103482,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz DEFINITION FINAL.
 
     METHODS convert_ajson
       IMPORTING
-        io_json TYPE REF TO zcl_abapgit_ajson
+        io_json TYPE REF TO zif_abapgit_ajson
         is_prefix TYPE zif_abapgit_ajson=>ty_path_name
         iv_index TYPE i DEFAULT 0
       CHANGING
@@ -103621,7 +103625,9 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
 
       WHEN OTHERS.
 
-        IF io_type->type_kind = cl_abap_typedescr=>typekind_dref.
+        IF io_type->type_kind = cl_abap_typedescr=>typekind_dref OR iv_data IS INITIAL.
+          " Convert data references and initial references to other types (like ref to class or interface)
+          " Initial references will result in "null"
           convert_ref(
             EXPORTING
               iv_data   = iv_data
@@ -103854,7 +103860,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
     " and rtti seems to cache type descriptions really well (https://github.com/sbcgua/benchmarks.git)
     " the structures will be repeated in real life
 
-    ls_next_prefix-path = is_prefix-path && ls_root-name && '/'.
+    ls_next_prefix-path = is_prefix-path && <root>-name && '/'.
 
     LOOP AT lt_comps ASSIGNING <c>.
 
@@ -103932,7 +103938,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
     lo_table ?= io_type.
     lo_ltype  = lo_table->get_table_line_type( ).
 
-    ls_next_prefix-path = is_prefix-path && is_prefix-name && '/'.
+    ls_next_prefix-path = is_prefix-path && <root>-name && '/'.
     ASSIGN iv_data TO <tab>.
 
     lv_tabix = 1.
@@ -104128,6 +104134,9 @@ CLASS kHGwlMWhQrsNKkKXALnplwblMIpVBS IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_ajson IMPLEMENTATION.
+  METHOD constructor.
+    format_datetime( abap_true ).
+  ENDMETHOD.
   METHOD create_empty.
     CREATE OBJECT ro_instance.
     ro_instance->mi_custom_mapping = ii_custom_mapping.
@@ -104338,9 +104347,8 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
   METHOD zif_abapgit_ajson~format_datetime.
-    mv_format_datetime = abap_true.
+    mv_format_datetime = iv_use_iso.
     ri_json = me.
   ENDMETHOD.
   METHOD zif_abapgit_ajson~freeze.
@@ -110906,6 +110914,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-23T07:14:48.117Z
+* abapmerge 0.14.3 - 2022-05-23T07:39:26.241Z
 ENDINTERFACE.
 ****************************************************
