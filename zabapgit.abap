@@ -4279,7 +4279,8 @@ INTERFACE zif_abapgit_environment.
     BEGIN OF ty_release_sp,
       release TYPE c LENGTH 10,
       sp      TYPE c LENGTH 10,
-    END OF ty_release_sp.
+    END OF ty_release_sp,
+    ty_system_language_filter TYPE RANGE OF spras.
 
   METHODS is_sap_cloud_platform
     RETURNING
@@ -4302,6 +4303,9 @@ INTERFACE zif_abapgit_environment.
   METHODS get_basis_release
     RETURNING
       VALUE(rs_result) TYPE ty_release_sp.
+  METHODS get_system_language_filter
+    RETURNING
+      VALUE(rt_system_language_filter) TYPE ty_system_language_filter.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_exit .
@@ -24330,6 +24334,52 @@ CLASS zcl_abapgit_environment IMPLEMENTATION.
     rv_allowed = zcl_abapgit_exit=>get_instance( )->allow_sap_objects( ).
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_environment~get_system_language_filter.
+    DATA lv_translation_detective_lang TYPE spras.
+    DATA lv_pseudo_translation_language TYPE spras.
+    FIELD-SYMBOLS <ls_system_language_filter> LIKE LINE OF rt_system_language_filter.
+
+    " Translation Object Detective
+    " https://help.sap.com/docs/ABAP_PLATFORM_NEW/ceb25152cb0d4adba664cebea2bf4670/88a3d3cbccf64601975acabaccdfde45.html
+    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_INPUT'
+      EXPORTING
+        input            = '1Q'
+      IMPORTING
+        output           = lv_translation_detective_lang
+      EXCEPTIONS
+        unknown_language = 1
+        OTHERS           = 2.
+    IF sy-subrc = 1.
+      " The language for Translation Object Detective was not setup
+    ENDIF.
+    IF NOT lv_translation_detective_lang IS INITIAL.
+      APPEND INITIAL LINE TO rt_system_language_filter ASSIGNING <ls_system_language_filter>.
+      <ls_system_language_filter>-sign = 'E'.
+      <ls_system_language_filter>-option = 'EQ'.
+      <ls_system_language_filter>-low = lv_translation_detective_lang.
+    ENDIF.
+    " 1943470 - Using technical language key 2Q to create pseudo-translations of ABAP developments
+    " https://launchpad.support.sap.com/#/notes/1943470
+    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_INPUT'
+      EXPORTING
+        input            = '2Q'
+      IMPORTING
+        output           = lv_pseudo_translation_language
+      EXCEPTIONS
+        unknown_language = 1
+        OTHERS           = 2.
+    IF sy-subrc = 1.
+      " The language for Pseudo Translation was not setup
+    ENDIF.
+    IF NOT lv_pseudo_translation_language IS INITIAL.
+      APPEND INITIAL LINE TO rt_system_language_filter ASSIGNING <ls_system_language_filter>.
+      <ls_system_language_filter>-sign = 'E'.
+      <ls_system_language_filter>-option = 'EQ'.
+      <ls_system_language_filter>-low = lv_pseudo_translation_language.
+    ENDIF.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
@@ -78098,11 +78148,12 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_longtexts_msag.
 
-    DATA: lv_doku_object_name           TYPE dokhl-object,
-          lt_doku_object_names          TYPE STANDARD TABLE OF dokhl-object
+    DATA: lv_doku_object_name  TYPE dokhl-object,
+          lt_doku_object_names TYPE STANDARD TABLE OF dokhl-object
                           WITH NON-UNIQUE DEFAULT KEY,
-          lt_dokil            TYPE zif_abapgit_definitions=>ty_dokil_tt,
-          ls_dokil            LIKE LINE OF lt_dokil.
+          lt_dokil             TYPE zif_abapgit_definitions=>ty_dokil_tt,
+          ls_dokil             LIKE LINE OF lt_dokil,
+          lt_language_filter   TYPE zif_abapgit_environment=>ty_system_language_filter.
 
     FIELD-SYMBOLS: <ls_t100>  TYPE t100.
 
@@ -78126,11 +78177,13 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
         AND masterlang = abap_true
         ORDER BY PRIMARY KEY.
     ELSE.
+      lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
       SELECT * FROM dokil
         INTO TABLE lt_dokil
         FOR ALL ENTRIES IN lt_doku_object_names
         WHERE id = 'NA'
         AND object = lt_doku_object_names-table_line
+        AND langu IN lt_language_filter
         ORDER BY PRIMARY KEY.
     ENDIF.
 
@@ -78145,10 +78198,11 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_texts.
 
-    DATA: lv_msg_id     TYPE rglif-message_id,
-          lt_t100_texts TYPE ty_t100_texts,
-          lt_t100t      TYPE TABLE OF t100t,
-          lt_i18n_langs TYPE TABLE OF langu.
+    DATA: lv_msg_id          TYPE rglif-message_id,
+          lt_t100_texts      TYPE ty_t100_texts,
+          lt_t100t           TYPE TABLE OF t100t,
+          lt_i18n_langs      TYPE TABLE OF langu,
+          lt_language_filter TYPE zif_abapgit_environment=>ty_system_language_filter.
 
     lv_msg_id = ms_item-obj_name.
 
@@ -78157,10 +78211,12 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
     ENDIF.
 
     " Collect additional languages
-    " Skip main lang - it has been already serialized
+    " Skip main lang - it has been already serialized and also technical languages
+    lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
     SELECT DISTINCT sprsl AS langu INTO TABLE lt_i18n_langs
       FROM t100t
       WHERE arbgb = lv_msg_id
+      AND sprsl IN lt_language_filter
       AND sprsl <> mv_language.          "#EC CI_BYPASS "#EC CI_GENBUFF
 
     SORT lt_i18n_langs ASCENDING.
@@ -110948,6 +111004,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-24T14:44:35.166Z
+* abapmerge 0.14.3 - 2022-05-28T10:00:57.772Z
 ENDINTERFACE.
 ****************************************************
