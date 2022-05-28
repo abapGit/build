@@ -32202,6 +32202,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       ls_tadir-pgmid    = 'R3TR'.
       ls_tadir-object   = <ls_overwrite>-obj_type.
       ls_tadir-obj_name = <ls_overwrite>-obj_name.
+      ls_tadir-devclass = <ls_overwrite>-devclass.
       INSERT ls_tadir INTO TABLE lt_tadir.
 
     ENDLOOP.
@@ -99073,6 +99074,7 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
 
       APPEND INITIAL LINE TO lt_changes ASSIGNING <ls_changes>.
       MOVE-CORRESPONDING <ls_result> TO <ls_changes>.
+      <ls_changes>-devclass = <ls_result>-package.
 
       IF <ls_result>-packmove = abap_true.
         <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-packmove.
@@ -111004,6 +111006,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-28T10:00:57.772Z
+* abapmerge 0.14.3 - 2022-05-28T14:53:21.873Z
 ENDINTERFACE.
 ****************************************************
