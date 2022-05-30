@@ -66225,11 +66225,12 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_texts.
 
-    DATA: lv_name       TYPE ddobjname,
-          lv_index      TYPE i,
-          ls_dd02v      TYPE dd02v,
-          lt_dd02_texts TYPE ty_dd02_texts,
-          lt_i18n_langs TYPE TABLE OF langu.
+    DATA: lv_name            TYPE ddobjname,
+          lv_index           TYPE i,
+          ls_dd02v           TYPE dd02v,
+          lt_dd02_texts      TYPE ty_dd02_texts,
+          lt_i18n_langs      TYPE TABLE OF langu,
+          lt_language_filter TYPE zif_abapgit_environment=>ty_system_language_filter.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
                    <ls_dd02_text> LIKE LINE OF lt_dd02_texts.
@@ -66241,9 +66242,11 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
     lv_name = ms_item-obj_name.
 
     " Collect additional languages, skip main lang - it was serialized already
+    lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
     SELECT DISTINCT ddlanguage AS langu INTO TABLE lt_i18n_langs
       FROM dd02v
       WHERE tabname = lv_name
+      AND ddlanguage IN lt_language_filter
       AND ddlanguage <> mv_language.                      "#EC CI_SUBRC
 
     LOOP AT lt_i18n_langs ASSIGNING <lv_lang>.
@@ -74827,8 +74830,9 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_texts.
 
-    DATA: lt_tpool_i18n TYPE ty_tpools_i18n,
-          lt_tpool      TYPE textpool_table.
+    DATA: lt_tpool_i18n      TYPE ty_tpools_i18n,
+          lt_tpool           TYPE textpool_table,
+          lt_language_filter TYPE zif_abapgit_environment=>ty_system_language_filter.
 
     FIELD-SYMBOLS <ls_tpool> LIKE LINE OF lt_tpool_i18n.
 
@@ -74839,12 +74843,14 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
     " Table d010tinf stores info. on languages in which program is maintained
     " Select all active translations of program texts
     " Skip main language - it was already serialized
+    lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
     SELECT DISTINCT language
       INTO CORRESPONDING FIELDS OF TABLE lt_tpool_i18n
       FROM d010tinf
       WHERE r3state = 'A'
       AND prog = ms_item-obj_name
-      AND language <> mv_language ##TOO_MANY_ITAB_FIELDS.
+      AND language <> mv_language
+      AND language IN lt_language_filter ##TOO_MANY_ITAB_FIELDS.
 
     SORT lt_tpool_i18n BY language ASCENDING.
     LOOP AT lt_tpool_i18n ASSIGNING <ls_tpool>.
@@ -74871,8 +74877,8 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
   METHOD zif_abapgit_object~delete.
 
     DATA:
-      lv_program    LIKE sy-repid,
-      lv_obj_name   TYPE e071-obj_name.
+      lv_program  LIKE sy-repid,
+      lv_obj_name TYPE e071-obj_name.
 
     lv_program = ms_item-obj_name.
 
@@ -79514,7 +79520,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
+CLASS zcl_abapgit_object_intf IMPLEMENTATION.
   METHOD constructor.
     super->constructor(
       is_item     = is_item
@@ -79591,8 +79597,8 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_pre_ddic.
 
-    DATA: ls_vseointerf   TYPE vseointerf,
-          ls_clskey       TYPE seoclskey.
+    DATA: ls_vseointerf TYPE vseointerf,
+          ls_clskey     TYPE seoclskey.
 
     ls_clskey-clsname = ms_item-obj_name.
 
@@ -79641,8 +79647,9 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_descr.
 
-    DATA: lt_descriptions TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt,
-          lv_language     TYPE spras.
+    DATA: lt_descriptions    TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt,
+          lv_language        TYPE spras,
+          lt_language_filter TYPE zif_abapgit_environment=>ty_system_language_filter.
 
     IF ii_xml->i18n_params( )-main_language_only = abap_true.
       lv_language = mv_language.
@@ -79651,6 +79658,10 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
     lt_descriptions = mi_object_oriented_object_fct->read_descriptions(
       iv_object_name = iv_clsname
       iv_language    = lv_language ).
+
+    " Remove technical languages
+    lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
+    DELETE lt_descriptions WHERE NOT langu IN lt_language_filter.
 
     IF lines( lt_descriptions ) = 0.
       RETURN.
@@ -79708,9 +79719,9 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
   METHOD serialize_xml.
 
     DATA:
-      ls_vseointerf         TYPE vseointerf,
-      ls_clskey             TYPE seoclskey,
-      lt_langu_additional   TYPE zif_abapgit_lang_definitions=>ty_langus.
+      ls_vseointerf       TYPE vseointerf,
+      ls_clskey           TYPE seoclskey,
+      lt_langu_additional TYPE zif_abapgit_lang_definitions=>ty_langus.
 
     ls_clskey-clsname = ms_item-obj_name.
 
@@ -85534,11 +85545,12 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_texts.
 
-    DATA: lv_name       TYPE ddobjname,
-          lv_index      TYPE i,
-          ls_dd04v      TYPE dd04v,
-          lt_dd04_texts TYPE ty_dd04_texts,
-          lt_i18n_langs TYPE TABLE OF langu.
+    DATA: lv_name            TYPE ddobjname,
+          lv_index           TYPE i,
+          ls_dd04v           TYPE dd04v,
+          lt_dd04_texts      TYPE ty_dd04_texts,
+          lt_i18n_langs      TYPE TABLE OF langu,
+          lt_language_filter TYPE zif_abapgit_environment=>ty_system_language_filter.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
                    <ls_dd04_text> LIKE LINE OF lt_dd04_texts.
@@ -85550,9 +85562,11 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
     lv_name = ms_item-obj_name.
 
     " Collect additional languages, skip main lang - it was serialized already
+    lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
     SELECT DISTINCT ddlanguage AS langu INTO TABLE lt_i18n_langs
       FROM dd04v
       WHERE rollname = lv_name
+      AND ddlanguage IN lt_language_filter
       AND ddlanguage <> mv_language.                      "#EC CI_SUBRC
 
     LOOP AT lt_i18n_langs ASSIGNING <lv_lang>.
@@ -86721,13 +86735,14 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_texts.
 
-    DATA: lv_name       TYPE ddobjname,
-          lv_index      TYPE i,
-          ls_dd01v      TYPE dd01v,
-          lt_dd07v      TYPE TABLE OF dd07v,
-          lt_i18n_langs TYPE TABLE OF langu,
-          lt_dd01_texts TYPE ty_dd01_texts,
-          lt_dd07_texts TYPE ty_dd07_texts.
+    DATA: lv_name            TYPE ddobjname,
+          lv_index           TYPE i,
+          ls_dd01v           TYPE dd01v,
+          lt_dd07v           TYPE TABLE OF dd07v,
+          lt_i18n_langs      TYPE TABLE OF langu,
+          lt_dd01_texts      TYPE ty_dd01_texts,
+          lt_dd07_texts      TYPE ty_dd07_texts,
+          lt_language_filter TYPE zif_abapgit_environment=>ty_system_language_filter.
 
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
                    <ls_dd07v>     LIKE LINE OF lt_dd07v,
@@ -86742,14 +86757,17 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
     lv_name = ms_item-obj_name.
 
     " Collect additional languages, skip main lang - it was serialized already
+    lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
     SELECT DISTINCT ddlanguage AS langu INTO TABLE lt_i18n_langs
       FROM dd01v
       WHERE domname = lv_name
+      AND ddlanguage IN lt_language_filter
       AND ddlanguage <> mv_language.                      "#EC CI_SUBRC
 
     SELECT DISTINCT ddlanguage AS langu APPENDING TABLE lt_i18n_langs
       FROM dd07v
       WHERE domname = lv_name
+      AND ddlanguage IN lt_language_filter
       AND ddlanguage <> mv_language.                      "#EC CI_SUBRC
 
     SORT lt_i18n_langs.
@@ -90058,8 +90076,9 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_descr.
 
-    DATA: lt_descriptions TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt,
-          lv_language     TYPE spras.
+    DATA: lt_descriptions    TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt,
+          lv_language        TYPE spras,
+          lt_language_filter TYPE zif_abapgit_environment=>ty_system_language_filter.
 
     IF ii_xml->i18n_params( )-main_language_only = abap_true.
       lv_language = mv_language.
@@ -90072,6 +90091,9 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     IF lines( lt_descriptions ) = 0.
       RETURN.
     ENDIF.
+    " Remove technical languages
+    lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
+    DELETE lt_descriptions WHERE NOT langu IN lt_language_filter.
 
     ii_xml->add( iv_name = 'DESCRIPTIONS'
                  ig_data = lt_descriptions ).
@@ -90185,7 +90207,8 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     DATA: ls_vseoclass        TYPE vseoclass,
           ls_clskey           TYPE seoclskey,
-          lt_langu_additional TYPE zif_abapgit_lang_definitions=>ty_langus.
+          lt_langu_additional TYPE zif_abapgit_lang_definitions=>ty_langus,
+          lt_language_filter  TYPE zif_abapgit_environment=>ty_system_language_filter.
 
     ls_clskey-clsname = ms_item-obj_name.
 
@@ -90224,11 +90247,13 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     " Table d010tinf stores info. on languages in which program is maintained
     " Select all active translations of program texts
     " Skip main language - it was already serialized
+    lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
     SELECT DISTINCT language
       INTO TABLE lt_langu_additional
       FROM d010tinf
       WHERE r3state  = 'A'
         AND prog     = mv_classpool_name
+        AND language IN lt_language_filter
         AND language <> mv_language.
 
     ii_xml->add( iv_name = 'VSEOCLASS'
@@ -90247,7 +90272,8 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
       FROM dokhl
       WHERE id     = 'CL'
         AND object = ls_clskey-clsname
-        AND langu  <> mv_language.
+        AND langu IN lt_language_filter
+        AND langu <> mv_language.
 
     serialize_docu( ii_xml              = ii_xml
                     iv_clsname          = ls_clskey-clsname
@@ -93491,7 +93517,8 @@ CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_sotr_use> LIKE LINE OF et_sotr_use.
 
-    DATA lv_sotr TYPE zif_abapgit_definitions=>ty_sotr.
+    DATA: lv_sotr            TYPE zif_abapgit_definitions=>ty_sotr,
+          lt_language_filter TYPE zif_abapgit_environment=>ty_system_language_filter.
 
     " SOTR usage (see LSOTR_SYSTEM_SETTINGSF01, FORM GET_OBJECT_TABLE)
     " LIMU: CPUB, WAPP, WDYC, WDYD, WDYV
@@ -93510,6 +93537,9 @@ CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
         DELETE lv_sotr-entries WHERE langu <> iv_language.
         CHECK lv_sotr-entries IS NOT INITIAL.
       ENDIF.
+      lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
+      DELETE lv_sotr-entries WHERE NOT langu IN lt_language_filter.
+      CHECK lv_sotr-entries IS NOT INITIAL.
 
       INSERT lv_sotr INTO TABLE et_sotr.
     ENDLOOP.
@@ -111151,6 +111181,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-30T08:13:11.145Z
+* abapmerge 0.14.3 - 2022-05-30T10:19:18.704Z
 ENDINTERFACE.
 ****************************************************
