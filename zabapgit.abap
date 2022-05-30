@@ -8360,6 +8360,31 @@ CLASS zcl_abapgit_lxe_texts DEFINITION
           iv_object_name     TYPE sobj_name
         RETURNING
           VALUE(rt_obj_list) TYPE lxe_tt_colob .
+    METHODS
+      read_lxe_object_text_pair
+        IMPORTING
+          iv_s_lang                TYPE lxeisolang
+          iv_t_lang                TYPE lxeisolang
+          iv_custmnr               TYPE lxecustmnr
+          iv_objtype               TYPE trobjtype
+          iv_objname               TYPE lxeobjname
+          iv_read_only             TYPE abap_bool DEFAULT abap_true
+        RETURNING
+          VALUE(rt_text_pairs_tmp) TYPE zif_abapgit_lxe_texts=>ty_lxe_i18n-text_pairs
+        RAISING
+          zcx_abapgit_exception.
+    METHODS
+      write_lxe_object_text_pair
+        IMPORTING
+          iv_s_lang  TYPE lxeisolang
+          iv_t_lang  TYPE lxeisolang
+          iv_custmnr TYPE lxecustmnr
+          iv_objtype TYPE trobjtype
+          iv_objname TYPE lxeobjname
+          it_pcx_s1  TYPE zif_abapgit_lxe_texts=>ty_lxe_i18n-text_pairs
+        RAISING
+          zcx_abapgit_exception.
+
     CLASS-METHODS
       langu_to_laiso_safe
         IMPORTING
@@ -93715,7 +93740,6 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
     DATA:
       lt_lxe_texts      TYPE zif_abapgit_lxe_texts=>ty_tlxe_i18n,
       ls_lxe_item       TYPE zif_abapgit_lxe_texts=>ty_lxe_i18n,
-      lv_error          TYPE lxestring,
       lt_text_pairs_tmp LIKE ls_lxe_item-text_pairs.
 
     ii_xml->read( EXPORTING iv_name = iv_lxe_text_name
@@ -93723,38 +93747,24 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
 
     LOOP AT lt_lxe_texts INTO ls_lxe_item.
       " Call Read first for buffer prefill
-      CLEAR: lt_text_pairs_tmp.
-      CALL FUNCTION 'LXE_OBJ_TEXT_PAIR_READ'
-        EXPORTING
-          s_lang    = ls_lxe_item-source_lang
-          t_lang    = ls_lxe_item-target_lang
-          custmnr   = ls_lxe_item-custmnr
-          objtype   = ls_lxe_item-objtype
-          objname   = ls_lxe_item-objname
-          read_only = abap_false
-        IMPORTING
-          err_msg   = lv_error
-        TABLES
-          lt_pcx_s1 = lt_text_pairs_tmp.
-      IF lv_error IS NOT INITIAL.
-        zcx_abapgit_exception=>raise( lv_error ).
-      ENDIF.
+
+      lt_text_pairs_tmp = read_lxe_object_text_pair(
+                             iv_s_lang    = ls_lxe_item-source_lang
+                             iv_t_lang    = ls_lxe_item-target_lang
+                             iv_custmnr   = ls_lxe_item-custmnr
+                             iv_objtype   = ls_lxe_item-objtype
+                             iv_objname   = ls_lxe_item-objname
+                             iv_read_only = abap_false ).
 
       "Call actual Write FM
-      CALL FUNCTION 'LXE_OBJ_TEXT_PAIR_WRITE'
-        EXPORTING
-          s_lang    = ls_lxe_item-source_lang
-          t_lang    = ls_lxe_item-target_lang
-          custmnr   = ls_lxe_item-custmnr
-          objtype   = ls_lxe_item-objtype
-          objname   = ls_lxe_item-objname
-        IMPORTING
-          err_msg   = lv_error
-        TABLES
-          lt_pcx_s1 = ls_lxe_item-text_pairs.
-      IF lv_error IS NOT INITIAL.
-        zcx_abapgit_exception=>raise( lv_error ).
-      ENDIF.
+      write_lxe_object_text_pair(
+          iv_s_lang  = ls_lxe_item-source_lang
+          iv_t_lang  = ls_lxe_item-target_lang
+          iv_custmnr = ls_lxe_item-custmnr
+          iv_objtype = ls_lxe_item-objtype
+          iv_objname = ls_lxe_item-objname
+          it_pcx_s1  = ls_lxe_item-text_pairs ).
+
     ENDLOOP.
 
   ENDMETHOD.
@@ -93763,7 +93773,6 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
     DATA:
       lt_obj_list      TYPE lxe_tt_colob,
       lv_main_lang     TYPE lxeisolang,
-      lv_error         TYPE lxestring,
       lt_languages     TYPE zif_abapgit_definitions=>ty_languages,
       lt_lxe_texts     TYPE zif_abapgit_lxe_texts=>ty_tlxe_i18n,
       ls_lxe_text_item TYPE zif_abapgit_lxe_texts=>ty_lxe_i18n.
@@ -93797,21 +93806,12 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
           CONTINUE. " if source = target -> skip
         ENDIF.
 
-        CLEAR ls_lxe_text_item-text_pairs.
-        CALL FUNCTION 'LXE_OBJ_TEXT_PAIR_READ'
-          EXPORTING
-            s_lang    = ls_lxe_text_item-source_lang
-            t_lang    = ls_lxe_text_item-target_lang
-            custmnr   = ls_lxe_text_item-custmnr
-            objtype   = ls_lxe_text_item-objtype
-            objname   = ls_lxe_text_item-objname
-          IMPORTING
-            err_msg   = lv_error
-          TABLES
-            lt_pcx_s1 = ls_lxe_text_item-text_pairs.
-        IF lv_error IS NOT INITIAL.
-          zcx_abapgit_exception=>raise( lv_error ).
-        ENDIF.
+        ls_lxe_text_item-text_pairs = read_lxe_object_text_pair(
+                                          iv_s_lang    = ls_lxe_text_item-source_lang
+                                          iv_t_lang    = ls_lxe_text_item-target_lang
+                                          iv_custmnr   = ls_lxe_text_item-custmnr
+                                          iv_objtype   = ls_lxe_text_item-objtype
+                                          iv_objname   = ls_lxe_text_item-objname ).
 
         IF ls_lxe_text_item-text_pairs IS NOT INITIAL.
           APPEND ls_lxe_text_item TO lt_lxe_texts.
@@ -93823,6 +93823,81 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
                  ig_data = lt_lxe_texts ).
 
   ENDMETHOD.
+  METHOD read_lxe_object_text_pair.
+
+    DATA:
+      lv_error TYPE lxestring.
+
+    TRY.
+        CALL FUNCTION 'LXE_OBJ_TEXT_PAIR_READ'
+          EXPORTING
+            s_lang    = iv_s_lang
+            t_lang    = iv_t_lang
+            custmnr   = iv_custmnr
+            objtype   = iv_objtype
+            objname   = iv_objname
+            read_only = iv_read_only
+          IMPORTING
+            err_msg   = lv_error  " doesn't exist in NW <= 750
+          TABLES
+            lt_pcx_s1 = rt_text_pairs_tmp.
+        IF lv_error IS NOT INITIAL.
+          zcx_abapgit_exception=>raise( lv_error ).
+        ENDIF.
+
+      CATCH cx_sy_dyn_call_param_not_found.
+
+        CALL FUNCTION 'LXE_OBJ_TEXT_PAIR_READ'
+          EXPORTING
+            s_lang    = iv_s_lang
+            t_lang    = iv_t_lang
+            custmnr   = iv_custmnr
+            objtype   = iv_objtype
+            objname   = iv_objname
+            read_only = iv_read_only
+          TABLES
+            lt_pcx_s1 = rt_text_pairs_tmp.
+
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD write_lxe_object_text_pair.
+
+    DATA:
+      lv_error TYPE lxestring.
+
+    TRY.
+        CALL FUNCTION 'LXE_OBJ_TEXT_PAIR_WRITE'
+          EXPORTING
+            s_lang    = iv_s_lang
+            t_lang    = iv_t_lang
+            custmnr   = iv_custmnr
+            objtype   = iv_objtype
+            objname   = iv_objname
+          IMPORTING
+            err_msg   = lv_error  " doesn't exist in NW <= 750
+          TABLES
+            lt_pcx_s1 = it_pcx_s1.
+        IF lv_error IS NOT INITIAL.
+          zcx_abapgit_exception=>raise( lv_error ).
+        ENDIF.
+
+      CATCH cx_sy_dyn_call_param_not_found.
+
+        CALL FUNCTION 'LXE_OBJ_TEXT_PAIR_WRITE'
+          EXPORTING
+            s_lang    = iv_s_lang
+            t_lang    = iv_t_lang
+            custmnr   = iv_custmnr
+            objtype   = iv_objtype
+            objname   = iv_objname
+          TABLES
+            lt_pcx_s1 = it_pcx_s1.
+
+    ENDTRY.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_longtexts IMPLEMENTATION.
@@ -111076,6 +111151,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-29T12:51:09.943Z
+* abapmerge 0.14.3 - 2022-05-30T08:13:11.145Z
 ENDINTERFACE.
 ****************************************************
