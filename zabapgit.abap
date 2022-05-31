@@ -2431,6 +2431,7 @@ INTERFACE zif_abapgit_definitions .
       cmpname   TYPE seocmpname,
       attkeyfld TYPE seokeyfld,
       attbusobj TYPE seobusobj,
+      exposure  TYPE seoexpose,
     END OF ty_obj_attribute .
   TYPES:
     ty_obj_attribute_tt TYPE STANDARD TABLE OF ty_obj_attribute WITH DEFAULT KEY
@@ -95212,6 +95213,8 @@ CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
       INSERT INITIAL LINE INTO TABLE rt_vseoattrib ASSIGNING <ls_vseoattrib>.
       MOVE-CORRESPONDING <ls_attribute> TO <ls_vseoattrib>.
       <ls_vseoattrib>-clsname = iv_clsname.
+      <ls_vseoattrib>-state = seoc_state_implemented.
+      <ls_vseoattrib>-exposure = <ls_attribute>-exposure.
       UNASSIGN <ls_vseoattrib>.
     ENDLOOP.
     UNASSIGN <ls_attribute>.
@@ -95284,7 +95287,7 @@ CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
     ASSERT 0 = 1. "Subclass responsibility
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~read_attributes.
-    SELECT cmpname attbusobj attkeyfld
+    SELECT cmpname attbusobj attkeyfld exposure
       FROM seocompodf
       INTO CORRESPONDING FIELDS OF TABLE rt_attributes
       WHERE clsname = iv_object_name
@@ -111246,6 +111249,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-31T16:03:02.483Z
+* abapmerge 0.14.3 - 2022-05-31T18:34:03.146Z
 ENDINTERFACE.
 ****************************************************
