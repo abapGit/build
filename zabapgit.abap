@@ -148,7 +148,7 @@ CLASS zcl_abapgit_html_form DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_action_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_router DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_tutorial DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_tag DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_tags DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_syntax DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_stage DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_sett_repo DEFINITION DEFERRED.
@@ -18712,74 +18712,102 @@ CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
         RAISING
           zcx_abapgit_exception.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_tag DEFINITION FINAL
-    CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
+CLASS zcl_abapgit_gui_page_tags DEFINITION
+  INHERITING FROM zcl_abapgit_gui_component
+  FINAL
+  CREATE PRIVATE.
 
   PUBLIC SECTION.
 
-    CONSTANTS: BEGIN OF c_action,
-                 commit_post     TYPE string VALUE 'commit_post',
-                 commit_cancel   TYPE string VALUE 'commit_cancel',
-                 change_tag_type TYPE string VALUE 'change_tag_type',
-               END OF c_action.
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
 
-    METHODS:
-      constructor
-        IMPORTING ii_repo TYPE REF TO zif_abapgit_repo
-        RAISING   zcx_abapgit_exception,
+    CLASS-METHODS create
+      IMPORTING
+        !ii_repo       TYPE REF TO zif_abapgit_repo
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
 
-      zif_abapgit_gui_event_handler~on_event REDEFINITION.
+    METHODS constructor
+      IMPORTING
+        !ii_repo TYPE REF TO zif_abapgit_repo
+      RAISING
+        zcx_abapgit_exception.
 
   PROTECTED SECTION.
-    METHODS:
-      render_content REDEFINITION.
-
   PRIVATE SECTION.
 
     CONSTANTS:
-      BEGIN OF c_tag_type,
-        lightweight TYPE string VALUE 'lightweight',
-        annotated   TYPE string VALUE 'annotated',
-      END OF c_tag_type .
-    DATA mo_repo_online TYPE REF TO zcl_abapgit_repo_online .
-    DATA mv_selected_type TYPE string .
+      BEGIN OF c_id,
+        tag_group    TYPE string VALUE 'tag_group',
+        tag_type     TYPE string VALUE 'tag_type',
+        tags         TYPE string VALUE 'tags',
+        type         TYPE string VALUE 'type',
+        name         TYPE string VALUE 'name',
+        sha1         TYPE string VALUE 'sha1',
+        anno_group   TYPE string VALUE 'anno_group',
+        tagger       TYPE string VALUE 'tagger',
+        tagger_name  TYPE string VALUE 'tagger_name',
+        tagger_email TYPE string VALUE 'tagger_email',
+        message      TYPE string VALUE 'message',
+        body         TYPE string VALUE 'body',
+      END OF c_id.
 
-    METHODS render_menu
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS render_form
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-    METHODS render_text_input
+    CONSTANTS:
+      BEGIN OF c_event,
+        create        TYPE string VALUE 'create',
+        choose_commit TYPE string VALUE 'choose_commit',
+        change_type   TYPE string VALUE 'change_type',
+      END OF c_event.
+
+    DATA mo_form TYPE REF TO zcl_abapgit_html_form.
+    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_form_util TYPE REF TO zcl_abapgit_html_form_utils.
+    DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_repo TYPE REF TO zcl_abapgit_repo_online.
+    DATA mo_settings TYPE REF TO zcl_abapgit_settings.
+    DATA ms_tag TYPE zif_abapgit_definitions=>ty_git_tag.
+
+    METHODS get_form_schema
       IMPORTING
-        !iv_name       TYPE string
-        !iv_label      TYPE string
-        !iv_value      TYPE string OPTIONAL
-        !iv_max_length TYPE string OPTIONAL
+        io_form_data   TYPE REF TO zcl_abapgit_string_map OPTIONAL
       RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS create_tag
-      IMPORTING
-        !ii_event TYPE REF TO zif_abapgit_gui_event
+        VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form
       RAISING
-        zcx_abapgit_exception .
-    METHODS parse_tag_request
-      IMPORTING
-        !ii_event TYPE REF TO zif_abapgit_gui_event
+        zcx_abapgit_exception.
+
+    METHODS initialize_form_data
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS get_tagger_name
       RETURNING
-        VALUE(rs_git_tag) TYPE zif_abapgit_definitions=>ty_git_tag
+        VALUE(rv_user) TYPE string
       RAISING
-        zcx_abapgit_exception .
-    METHODS parse_change_tag_type_request
-      IMPORTING
-        !it_postdata TYPE zif_abapgit_html_viewer=>ty_post_data .
-    METHODS render_scripts
+        zcx_abapgit_exception.
+
+    METHODS get_tagger_email
       RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+        VALUE(rv_email) TYPE string
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
+
+    METHODS validate_form
+      IMPORTING
+        !io_form_data            TYPE REF TO zcl_abapgit_string_map
+      RETURNING
+        VALUE(ro_validation_log) TYPE REF TO zcl_abapgit_string_map
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS choose_commit
+      RETURNING
+        VALUE(rv_commit) TYPE zif_abapgit_definitions=>ty_commit-sha1
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_tutorial DEFINITION
   FINAL
@@ -36547,6 +36575,10 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
     lv_key = ii_event->query( )->get( 'KEY' ).
 
+    IF lv_key IS NOT INITIAL.
+      li_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
+    ENDIF.
+
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-git_pull.                      " GIT Pull
         zcl_abapgit_services_git=>pull( lv_key ).
@@ -36564,15 +36596,12 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         zcl_abapgit_services_git=>switch_branch( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-git_branch_merge.              " GIT Merge branch
-        li_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
         rs_handled-page  = zcl_abapgit_gui_page_merge_sel=>create( li_repo ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-git_tag_create.                " GIT Tag create
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_tag
-          EXPORTING
-            ii_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
+        rs_handled-page  = zcl_abapgit_gui_page_tags=>create( li_repo ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-      WHEN zif_abapgit_definitions=>c_action-git_tag_delete.                " GIT Tag create
+      WHEN zif_abapgit_definitions=>c_action-git_tag_delete.                " GIT Tag delete
         zcl_abapgit_services_git=>delete_tag( lv_key ).
         zcl_abapgit_services_repo=>refresh( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
@@ -37022,277 +37051,298 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TUTORIAL IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_TAG IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_tags IMPLEMENTATION.
+  METHOD choose_commit.
+
+    DATA li_popups TYPE REF TO zif_abapgit_popups.
+
+    li_popups = zcl_abapgit_ui_factory=>get_popups( ).
+
+    rv_commit = li_popups->commit_list_popup(
+      iv_repo_url    = mo_repo->get_url( )
+      iv_branch_name = mo_repo->get_selected_branch( ) )-sha1.
+
+  ENDMETHOD.
   METHOD constructor.
+
     super->constructor( ).
+    CREATE OBJECT mo_form_data.
+    CREATE OBJECT mo_validation_log.
+    mo_repo ?= ii_repo.
 
-    mo_repo_online ?= ii_repo.
+    " Get settings from DB
+    mo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
 
-    ms_control-page_title = 'Tag'.
-    mv_selected_type = c_tag_type-lightweight.
+    mo_form = get_form_schema( ).
+    mo_form_util = zcl_abapgit_html_form_utils=>create( mo_form ).
+
+    initialize_form_data( ).
 
   ENDMETHOD.
-  METHOD create_tag.
+  METHOD create.
 
-    DATA:
-      ls_tag   TYPE zif_abapgit_definitions=>ty_git_tag,
-      lx_error TYPE REF TO zcx_abapgit_exception,
-      lv_text  TYPE string.
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_tags.
 
-    ls_tag = parse_tag_request( ii_event ).
+    CREATE OBJECT lo_component
+      EXPORTING
+        ii_repo = ii_repo.
 
-    IF ls_tag-name IS INITIAL.
-      zcx_abapgit_exception=>raise( |Please supply a tag name| ).
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title      = 'Create Tag'
+      ii_child_component = lo_component ).
+
+  ENDMETHOD.
+  METHOD get_form_schema.
+
+    DATA lv_commitmsg_comment_length TYPE i.
+
+    IF io_form_data IS BOUND AND io_form_data->is_empty( ) = abap_false.
+      ms_tag-type = io_form_data->get( c_id-tag_type ).
     ENDIF.
 
-    ls_tag-name = zcl_abapgit_git_tag=>add_tag_prefix( ls_tag-name ).
-    ASSERT ls_tag-name CP zif_abapgit_definitions=>c_git_branch-tags.
+    lv_commitmsg_comment_length =  mo_settings->get_commitmsg_comment_length( ).
 
-    CASE mv_selected_type.
-      WHEN c_tag_type-lightweight.
+    ro_form = zcl_abapgit_html_form=>create(
+                iv_form_id   = 'create-tag-form'
+                iv_help_page = 'https://docs.abapgit.org/' ). " todo, add docs
 
-        ls_tag-type = zif_abapgit_definitions=>c_git_branch_type-lightweight_tag.
+    ro_form->start_group(
+      iv_name  = c_id-tag_group
+      iv_label = 'New Tag'
+    )->radio(
+      iv_label  = 'Type'
+      iv_name   = c_id-tag_type
+      iv_action = c_event-change_type
+    )->option(
+      iv_label = 'Lightweight'
+      iv_value = zif_abapgit_definitions=>c_git_branch_type-lightweight_tag
+    )->option(
+      iv_label = 'Annotated'
+      iv_value = zif_abapgit_definitions=>c_git_branch_type-annotated_tag
+    )->text(
+      iv_name        = c_id-name
+      iv_label       = 'Tag Name'
+      iv_required    = abap_true
+    )->text(
+      iv_name        = c_id-sha1
+      iv_label       = 'Commit'
+      iv_min         = 40
+      iv_max         = 40
+      iv_condense    = abap_true
+      iv_required    = abap_true
+      iv_side_action = c_event-choose_commit ).
 
-      WHEN c_tag_type-annotated.
-
-        ls_tag-type = zif_abapgit_definitions=>c_git_branch_type-annotated_tag.
-
-      WHEN OTHERS.
-
-        zcx_abapgit_exception=>raise( |Invalid tag type: { mv_selected_type }| ).
-
-    ENDCASE.
-
-    TRY.
-        zcl_abapgit_git_porcelain=>create_tag( iv_url = mo_repo_online->get_url( )
-                                               is_tag = ls_tag ).
-
-      CATCH zcx_abapgit_exception INTO lx_error.
-        zcx_abapgit_exception=>raise( |Cannot create tag { ls_tag-name }. Error: '{ lx_error->get_text( ) }'| ).
-    ENDTRY.
-
-    IF ls_tag-type = zif_abapgit_definitions=>c_git_branch_type-lightweight_tag.
-      lv_text = |Lightweight tag { zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag-name ) } created|.
-    ELSEIF ls_tag-type = zif_abapgit_definitions=>c_git_branch_type-annotated_tag.
-      lv_text = |Annotated tag { zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag-name ) } created|.
+    IF ms_tag-type = zif_abapgit_definitions=>c_git_branch_type-annotated_tag.
+      ro_form->start_group(
+        iv_name        = c_id-anno_group
+        iv_label       = 'Annotation'
+      )->text(
+        iv_name        = c_id-message
+        iv_label       = 'Comment'
+        iv_max         = lv_commitmsg_comment_length
+        iv_placeholder = |Add a mandatory comment with max { lv_commitmsg_comment_length } characters|
+      )->textarea(
+        iv_name        = c_id-body
+        iv_label       = 'Body'
+        iv_rows        = 6
+        iv_cols        = mo_settings->get_commitmsg_body_size( )
+        iv_placeholder = 'Add an optional description...'
+      )->text(
+        iv_name        = c_id-tagger_name
+        iv_label       = 'Tagger Name'
+      )->text(
+        iv_name        = c_id-tagger_email
+        iv_label       = 'Tagger Email' ).
+    ELSE.
+      ro_form->hidden( c_id-message
+      )->hidden( c_id-body
+      )->hidden( c_id-tagger_name
+      )->hidden( c_id-tagger_email ).
     ENDIF.
 
-    MESSAGE lv_text TYPE 'S'.
+    ro_form->command(
+      iv_label       = 'Create'
+      iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
+      iv_action      = c_event-create
+    )->command(
+      iv_label       = 'Back'
+      iv_action      = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
-  METHOD parse_change_tag_type_request.
+  METHOD get_tagger_email.
 
-    FIELD-SYMBOLS <lv_postdata> LIKE LINE OF it_postdata.
+    DATA li_user TYPE REF TO zif_abapgit_persist_user.
 
-    READ TABLE it_postdata ASSIGNING <lv_postdata> INDEX 1.
-    IF sy-subrc = 0.
-      FIND FIRST OCCURRENCE OF REGEX `type=(.*)` IN <lv_postdata> SUBMATCHES mv_selected_type.
-    ENDIF.
-
-    mv_selected_type = condense( mv_selected_type ).
-
-  ENDMETHOD.
-  METHOD parse_tag_request.
-
-    DATA lo_map TYPE REF TO zcl_abapgit_string_map.
-
-    lo_map = ii_event->form_data( ).
-    lo_map->strict( abap_false ). " Hack, refactor !
-    lo_map->to_abap( CHANGING cs_container = rs_git_tag ).
-    REPLACE ALL OCCURRENCES
-      OF zif_abapgit_definitions=>c_crlf
-      IN rs_git_tag-body
-      WITH zif_abapgit_definitions=>c_newline.
-
-  ENDMETHOD.
-  METHOD render_content.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( '<div class="repo">' ).
-    ri_html->add( render_menu( ) ).
-    ri_html->add( render_form( ) ).
-    ri_html->add( '</div>' ).
-
-    register_deferred_script( render_scripts( ) ).
-
-  ENDMETHOD.
-  METHOD render_form.
-
-    CONSTANTS: lc_body_col_max TYPE i VALUE 150.
-
-    DATA: li_user      TYPE REF TO zif_abapgit_persist_user,
-          lv_user      TYPE string,
-          lv_email     TYPE string,
-          lv_s_param   TYPE string,
-          lo_settings  TYPE REF TO zcl_abapgit_settings,
-          lv_body_size TYPE i,
-          lt_type      TYPE string_table,
-          lv_selected  TYPE string.
-
-    FIELD-SYMBOLS: <lv_type> LIKE LINE OF lt_type.
     li_user = zcl_abapgit_persistence_user=>get_instance( ).
 
-    lv_user = li_user->get_repo_git_user_name( mo_repo_online->get_url( ) ).
-    IF lv_user IS INITIAL.
-      lv_user = li_user->get_default_git_user_name( ).
+    rv_email = li_user->get_repo_git_user_email( mo_repo->get_url( ) ).
+    IF rv_email IS INITIAL.
+      rv_email = li_user->get_default_git_user_email( ).
     ENDIF.
-    IF lv_user IS INITIAL.
+    IF rv_email IS INITIAL.
       " get default from user record
-      lv_user = zcl_abapgit_user_record=>get_instance( sy-uname )->get_name( ).
+      rv_email = zcl_abapgit_user_record=>get_instance( sy-uname )->get_email( ).
     ENDIF.
 
-    lv_email = li_user->get_repo_git_user_email( mo_repo_online->get_url( ) ).
-    IF lv_email IS INITIAL.
-      lv_email = li_user->get_default_git_user_email( ).
+  ENDMETHOD.
+  METHOD get_tagger_name.
+
+    DATA li_user TYPE REF TO zif_abapgit_persist_user.
+
+    li_user = zcl_abapgit_persistence_user=>get_instance( ).
+
+    rv_user  = li_user->get_repo_git_user_name( mo_repo->get_url( ) ).
+    IF rv_user IS INITIAL.
+      rv_user  = li_user->get_default_git_user_name( ).
     ENDIF.
-    IF lv_email IS INITIAL.
+    IF rv_user IS INITIAL.
       " get default from user record
-      lv_email = zcl_abapgit_user_record=>get_instance( sy-uname )->get_email( ).
+      rv_user = zcl_abapgit_user_record=>get_instance( sy-uname )->get_name( ).
     ENDIF.
 
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+  ENDMETHOD.
+  METHOD initialize_form_data.
 
-    ri_html->add( '<div class="form-container">' ).
-    ri_html->add( '<form id="commit_form" class="aligned-form grey70"'
-               && ' method="post" action="sapevent:commit_post">' ).
+    ms_tag-type = zif_abapgit_definitions=>c_git_branch_type-lightweight_tag.
 
-    INSERT c_tag_type-lightweight
-           INTO TABLE lt_type.
+    mo_form_data->set(
+      iv_key = c_id-tag_type
+      iv_val = ms_tag-type ).
 
-    INSERT c_tag_type-annotated
-           INTO TABLE lt_type.
+    ms_tag-tagger_name  = get_tagger_name( ).
+    ms_tag-tagger_email = get_tagger_email( ).
 
-    ri_html->add( '<div class="row">' ).
-    ri_html->add( 'Tag type <select name="folder_logic" onchange="onTagTypeChange(this)">' ).
+    mo_form_data->set(
+      iv_key = c_id-tagger_name
+      iv_val = ms_tag-tagger_name ).
+    mo_form_data->set(
+      iv_key = c_id-tagger_email
+      iv_val = ms_tag-tagger_email ).
 
-    LOOP AT lt_type ASSIGNING <lv_type>.
+    " Set for is_dirty check
+    mo_form_util->set_data( mo_form_data ).
 
-      IF mv_selected_type = <lv_type>.
-        lv_selected = 'selected'.
-      ELSE.
-        CLEAR: lv_selected.
+  ENDMETHOD.
+  METHOD validate_form.
+
+    DATA:
+      lt_tags         TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
+      lv_new_tag_name TYPE string.
+
+    ro_validation_log = mo_form_util->validate( io_form_data ).
+
+    IF zcl_abapgit_utils=>is_valid_email( io_form_data->get( c_id-tagger_email ) ) = abap_false.
+      ro_validation_log->set(
+        iv_key = c_id-tagger_email
+        iv_val = |Invalid email address| ).
+    ENDIF.
+
+    lv_new_tag_name = io_form_data->get( c_id-name ).
+
+    IF lv_new_tag_name IS NOT INITIAL.
+      " Check if tag already exists
+      lt_tags = zcl_abapgit_git_transport=>branches( mo_repo->get_url( ) )->get_tags_only( ).
+
+      READ TABLE lt_tags TRANSPORTING NO FIELDS WITH TABLE KEY name_key
+        COMPONENTS name = zcl_abapgit_git_tag=>add_tag_prefix( lv_new_tag_name ).
+      IF sy-subrc = 0.
+        ro_validation_log->set(
+          iv_key = c_id-name
+          iv_val = |Tag already exists| ).
       ENDIF.
-
-      ri_html->add( |<option value="{ <lv_type> }" | && |{ lv_selected }>| && |{ <lv_type> }</option>| ).
-
-    ENDLOOP.
-
-    ri_html->add( '</div>' ).
-
-    ri_html->add( '</select>' ).
-    ri_html->add( '<br>' ).
-    ri_html->add( '<br>' ).
-
-    ri_html->add( render_text_input( iv_name  = 'sha1'
-                                     iv_label = 'SHA1'
-                                     iv_value = mo_repo_online->get_current_remote( ) ) ).
-
-    ri_html->add( render_text_input( iv_name  = 'name'
-                                     iv_label = 'tag name' ) ).
-
-    IF mv_selected_type = c_tag_type-annotated.
-
-      ri_html->add( render_text_input( iv_name  = 'tagger_name'
-                                       iv_label = 'tagger name'
-                                       iv_value = lv_user ) ).
-
-      ri_html->add( render_text_input( iv_name  = 'tagger_email'
-                                       iv_label = 'tagger e-mail'
-                                       iv_value = lv_email ) ).
-
-      lo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
-
-      lv_s_param = lo_settings->get_commitmsg_comment_length( ).
-
-      ri_html->add( render_text_input( iv_name       = 'message'
-                                       iv_label      = 'message'
-                                       iv_max_length = lv_s_param ) ).
-
-      ri_html->add( '<div class="row">' ).
-      ri_html->add( '<label for="c-body">body</label>' ).
-
-      lv_body_size = lo_settings->get_commitmsg_body_size( ).
-      IF lv_body_size > lc_body_col_max.
-        lv_body_size = lc_body_col_max.
-      ENDIF.
-      ri_html->add( |<textarea id="c-body" name="body" rows="10" cols="{ lv_body_size }"></textarea>| ).
-
     ENDIF.
-
-    ri_html->add( '<input type="submit" class="hidden-submit">' ).
-    ri_html->add( '</div>' ).
-
-    ri_html->add( '</form>' ).
-    ri_html->add( '</div>' ).
-
-  ENDMETHOD.
-  METHOD render_menu.
-
-    DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    CREATE OBJECT lo_toolbar.
-
-    lo_toolbar->add( iv_act = 'submitFormById(''commit_form'');'
-                     iv_txt = 'Create'
-                     iv_typ = zif_abapgit_html=>c_action_type-onclick
-                     iv_opt = zif_abapgit_html=>c_html_opt-strong ).
-
-    lo_toolbar->add( iv_act = c_action-commit_cancel
-                     iv_txt = 'Cancel'
-                     iv_opt = zif_abapgit_html=>c_html_opt-cancel ).
-
-    ri_html->add( '<div class="paddings">' ).
-    ri_html->add( lo_toolbar->render( ) ).
-    ri_html->add( '</div>' ).
-
-  ENDMETHOD.
-  METHOD render_scripts.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
-    ri_html->add( 'setInitialFocus("name");' ).
-
-  ENDMETHOD.
-  METHOD render_text_input.
-
-    DATA lv_attrs TYPE string.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    IF iv_value IS NOT INITIAL.
-      lv_attrs = | value="{ iv_value }"|.
-    ENDIF.
-
-    IF iv_max_length IS NOT INITIAL.
-      lv_attrs = | maxlength="{ iv_max_length }"|.
-    ENDIF.
-
-    ri_html->add( '<div class="row">' ).
-    ri_html->add( |<label for="{ iv_name }">{ iv_label }</label>| ).
-    ri_html->add( |<input id="{ iv_name }" name="{ iv_name }" type="text"{ lv_attrs }>| ).
-    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
+    DATA:
+      lx_error  TYPE REF TO zcx_abapgit_exception,
+      lv_commit TYPE zif_abapgit_definitions=>ty_sha1,
+      lv_text   TYPE string.
+
+    mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
+
     CASE ii_event->mv_action.
-      WHEN c_action-commit_post.
-
-        create_tag( ii_event ).
+      WHEN zif_abapgit_definitions=>c_action-go_back.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
 
-      WHEN c_action-change_tag_type.
+      WHEN c_event-choose_commit.
+        lv_commit = choose_commit( ).
 
-        parse_change_tag_type_request( ii_event->mt_postdata ).
+        IF lv_commit IS INITIAL.
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+        ELSE.
+          mo_form_data->set(
+            iv_key = c_id-sha1
+            iv_val = lv_commit ).
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+        ENDIF.
+
+      WHEN c_event-change_type.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+        mo_validation_log->clear( ).
 
-      WHEN c_action-commit_cancel.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+      WHEN c_event-create.
+        " Validate form entries before creating tag
+        mo_validation_log = validate_form( mo_form_data ).
+
+        IF mo_validation_log->is_empty( ) = abap_true.
+
+          mo_form_data->strict( abap_false ).
+          mo_form_data->to_abap( CHANGING cs_container = ms_tag ).
+
+          REPLACE ALL OCCURRENCES
+            OF zif_abapgit_definitions=>c_crlf
+            IN ms_tag-body
+            WITH zif_abapgit_definitions=>c_newline.
+
+          ms_tag-name = zcl_abapgit_git_tag=>add_tag_prefix( ms_tag-name ).
+          ASSERT ms_tag-name CP zif_abapgit_definitions=>c_git_branch-tags.
+
+          TRY.
+              zcl_abapgit_git_porcelain=>create_tag(
+                iv_url = mo_repo->get_url( )
+                is_tag = ms_tag ).
+            CATCH zcx_abapgit_exception INTO lx_error.
+              zcx_abapgit_exception=>raise( |Cannot create tag { ms_tag-name }: { lx_error->get_text( ) }| ).
+          ENDTRY.
+
+          lv_text = |Tag { zcl_abapgit_git_tag=>remove_tag_prefix( ms_tag-name ) } created|.
+          MESSAGE lv_text TYPE 'S'.
+
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+        ELSE.
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+        ENDIF.
 
     ENDCASE.
+
+    " If staying on form, initialize it with current settings
+    IF rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      mo_form = get_form_schema( mo_form_data ).
+      CREATE OBJECT mo_form_util
+        EXPORTING
+          io_form = mo_form.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    gui_services( )->register_event_handler( me ).
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( `<div class="repo">` ).
+
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
+                    io_repo               = mo_repo
+                    iv_show_commit        = abap_false
+                    iv_interactive_branch = abap_false ) ).
+
+    ri_html->add( mo_form->render( io_values         = mo_form_data
+                                   io_validation_log = mo_validation_log ) ).
+
+    ri_html->add( `</div>` ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -111181,6 +111231,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-30T10:19:18.704Z
+* abapmerge 0.14.3 - 2022-05-31T07:48:48.306Z
 ENDINTERFACE.
 ****************************************************
