@@ -46916,7 +46916,14 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   ENDMETHOD.
   METHOD footer.
 
+    DATA lv_version_detail TYPE string.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true.
+      lv_version_detail = ` (Standalone Version)`.
+    ELSE.
+      lv_version_detail = ` (Developer Version)`.
+    ENDIF.
 
     ri_html->add( '<div id="footer">' ).
     ri_html->add( '<table class="w100"><tr>' ).
@@ -46929,7 +46936,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ri_html->add( ri_html->icon( iv_name = 'abapgit'
                                  iv_hint = |{ iv_time } sec| ) ).
     ri_html->add( '</div>' ).
-    ri_html->add( |<div class="version">{ zif_abapgit_version=>c_abap_version }</div>| ).
+    ri_html->add( |<div class="version">{ zif_abapgit_version=>c_abap_version }{ lv_version_detail }</div>| ).
     ri_html->add( '</td>' ).
 
     ri_html->add( '<td id="debug-output" class="w40"></td>' ).
@@ -111239,6 +111246,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-05-31T15:43:47.449Z
+* abapmerge 0.14.3 - 2022-05-31T16:03:02.483Z
 ENDINTERFACE.
 ****************************************************
