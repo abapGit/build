@@ -86355,13 +86355,13 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
 
     CALL FUNCTION 'DSYS_EDIT'
       EXPORTING
-        dokclass         = mv_doc_object+0(4)
-        dokname          = mv_doc_object+4(*)
-        doklangu         = lv_lang
+        dokclass            = mv_doc_object+0(4)
+        dokname             = mv_doc_object+4(*)
+        doklangu            = lv_lang
       EXCEPTIONS
-        class_unknown    = 1
-        object_not_found = 2
-        OTHERS           = 3.
+        not_hypertext_class = 1
+        no_editor           = 2
+        OTHERS              = 3.
 
     rv_exit = boolc( sy-subrc = 0 ).
 
@@ -111249,6 +111249,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-06-01T08:34:54.210Z
+* abapmerge 0.14.3 - 2022-06-01T09:19:16.740Z
 ENDINTERFACE.
 ****************************************************
