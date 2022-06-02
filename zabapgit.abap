@@ -101621,12 +101621,14 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
 
         CALL FUNCTION 'TR_TADIR_INTERFACE'
           EXPORTING
-            wi_delete_tadir_entry          = abap_true
-            wi_tadir_pgmid                 = 'R3TR'
-            wi_tadir_object                = ms_item-obj_type
-            wi_tadir_obj_name              = ms_item-obj_name
-            wi_tadir_devclass              = ms_item-devclass
-            wi_test_modus                  = abap_false.
+            wi_delete_tadir_entry = abap_true
+            wi_tadir_pgmid        = 'R3TR'
+            wi_tadir_object       = ms_item-obj_type
+            wi_tadir_obj_name     = ms_item-obj_name
+            wi_tadir_devclass     = ms_item-devclass
+            wi_test_modus         = abap_false
+          EXCEPTIONS
+            OTHERS                = 1.
         IF sy-subrc <> 0.
           zcx_abapgit_exception=>raise_t100( ).
         ENDIF.
@@ -111249,6 +111251,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-06-01T09:19:16.740Z
+* abapmerge 0.14.3 - 2022-06-02T08:06:48.026Z
 ENDINTERFACE.
 ****************************************************
