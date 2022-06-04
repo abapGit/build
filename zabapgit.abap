@@ -8993,8 +8993,6 @@ CLASS zcl_abapgit_object_acid DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS: create_object
@@ -9112,7 +9110,7 @@ CLASS zcl_abapgit_object_amsd DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS:
       constructor
         IMPORTING
@@ -9120,7 +9118,6 @@ CLASS zcl_abapgit_object_amsd DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           iv_language TYPE spras
         RAISING
           zcx_abapgit_exception.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
@@ -9160,9 +9157,6 @@ CLASS zcl_abapgit_object_area DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_object .
-
-    ALIASES mo_files
-      FOR zif_abapgit_object~mo_files .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -9187,7 +9181,7 @@ CLASS zcl_abapgit_object_auth DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS constructor
       IMPORTING
         is_item     TYPE zif_abapgit_definitions=>ty_item
@@ -9250,7 +9244,7 @@ CLASS zcl_abapgit_object_bdef DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS:
       constructor
         IMPORTING
@@ -9258,7 +9252,6 @@ CLASS zcl_abapgit_object_bdef DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           iv_language TYPE spras
         RAISING
           zcx_abapgit_exception.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -9331,13 +9324,11 @@ CLASS zcl_abapgit_object_chdo DEFINITION
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor
       IMPORTING
         is_item     TYPE zif_abapgit_definitions=>ty_item
         iv_language TYPE spras.
-
   PROTECTED SECTION.
 
     METHODS after_import
@@ -9396,13 +9387,11 @@ CLASS zcl_abapgit_object_cus0 DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor
       IMPORTING
         is_item     TYPE zif_abapgit_definitions=>ty_item
         iv_language TYPE spras.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: ty_img_activity_texts TYPE STANDARD TABLE OF cus_imgact
@@ -9418,13 +9407,11 @@ CLASS zcl_abapgit_object_cus1 DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor
       IMPORTING
         is_item     TYPE zif_abapgit_definitions=>ty_item
         iv_language TYPE spras.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: ty_activity_titles TYPE STANDARD TABLE OF cus_actt
@@ -9451,13 +9438,11 @@ CLASS zcl_abapgit_object_cus2 DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor
       IMPORTING
         is_item     TYPE zif_abapgit_definitions=>ty_item
         iv_language TYPE spras.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: ty_attribute_titles        TYPE STANDARD TABLE OF cus_atrt
@@ -9484,8 +9469,6 @@ CLASS zcl_abapgit_object_dcls DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -9493,7 +9476,6 @@ CLASS zcl_abapgit_object_ddls DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor
       IMPORTING
@@ -9523,7 +9505,6 @@ CLASS zcl_abapgit_object_ddlx DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA mi_persistence TYPE REF TO if_wb_object_persist .
@@ -9548,8 +9529,7 @@ CLASS zcl_abapgit_object_devc DEFINITION
   PUBLIC SECTION.
     INTERFACES:
       zif_abapgit_object.
-    ALIASES:
-      mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS:
       constructor IMPORTING is_item     TYPE zif_abapgit_definitions=>ty_item
                             iv_language TYPE spras.
@@ -9621,13 +9601,12 @@ CLASS zcl_abapgit_object_doct DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS:
       constructor
         IMPORTING
           is_item     TYPE zif_abapgit_definitions=>ty_item
           iv_language TYPE spras.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -9639,8 +9618,6 @@ CLASS zcl_abapgit_object_docv DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS: c_typ     TYPE dokhl-typ VALUE 'E',
@@ -9661,8 +9638,6 @@ CLASS zcl_abapgit_object_doma DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -9706,7 +9681,7 @@ CLASS zcl_abapgit_object_drul DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS:
       constructor
         IMPORTING
@@ -9714,7 +9689,6 @@ CLASS zcl_abapgit_object_drul DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           iv_language TYPE spras
         RAISING
           zcx_abapgit_exception.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
@@ -9787,7 +9761,7 @@ CLASS zcl_abapgit_object_dtdc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS:
       constructor
         IMPORTING
@@ -9795,7 +9769,6 @@ CLASS zcl_abapgit_object_dtdc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           iv_language TYPE spras
         RAISING
           zcx_abapgit_exception.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
@@ -9836,8 +9809,6 @@ CLASS zcl_abapgit_object_dtel DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -9876,15 +9847,11 @@ CLASS zcl_abapgit_object_ecatt_super DEFINITION
 
     INTERFACES zif_abapgit_object .
 
-    ALIASES mo_files
-      FOR zif_abapgit_object~mo_files .
-
     METHODS:
       constructor
         IMPORTING
           !is_item     TYPE zif_abapgit_definitions=>ty_item
           !iv_language TYPE spras .
-
   PROTECTED SECTION.
     METHODS:
       get_object_type ABSTRACT
@@ -10096,14 +10063,12 @@ CLASS zcl_abapgit_object_enhc DEFINITION
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS:
       constructor
         IMPORTING
           is_item     TYPE zif_abapgit_definitions=>ty_item
           iv_language TYPE spras.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA:
@@ -10114,8 +10079,6 @@ CLASS zcl_abapgit_object_enho DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -10133,8 +10096,6 @@ CLASS zcl_abapgit_object_enhs DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
@@ -10155,9 +10116,6 @@ CLASS zcl_abapgit_object_enqu DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_object .
-
-    ALIASES mo_files
-      FOR zif_abapgit_object~mo_files .
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: ty_dd27p TYPE STANDARD TABLE OF dd27p WITH DEFAULT KEY.
@@ -10167,8 +10125,6 @@ ENDCLASS.
 CLASS zcl_abapgit_object_ensc DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -10218,12 +10174,11 @@ CLASS zcl_abapgit_object_form DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS constructor
       IMPORTING
         is_item     TYPE zif_abapgit_definitions=>ty_item
         iv_language TYPE spras.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS: c_objectname_form    TYPE thead-tdobject VALUE 'FORM' ##NO_TEXT.
@@ -10319,7 +10274,6 @@ CLASS zcl_abapgit_object_ftgl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS:
       constructor
@@ -10328,7 +10282,6 @@ CLASS zcl_abapgit_object_ftgl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           iv_language TYPE spras
         RAISING
           zcx_abapgit_exception.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA:
@@ -10385,8 +10338,6 @@ CLASS zcl_abapgit_object_iamu DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_internet_appl_comp_binary,
@@ -10423,12 +10374,11 @@ CLASS zcl_abapgit_object_iarp DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS:
       constructor
         IMPORTING is_item     TYPE zif_abapgit_definitions=>ty_item
                   iv_language TYPE spras.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA:
@@ -10492,13 +10442,12 @@ CLASS zcl_abapgit_object_iasp DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS:
       constructor
         IMPORTING
           is_item     TYPE zif_abapgit_definitions=>ty_item
           iv_language TYPE spras.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA:
@@ -10560,8 +10509,6 @@ CLASS zcl_abapgit_object_iatu DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
@@ -10652,14 +10599,13 @@ CLASS zcl_abapgit_object_idoc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS:
       constructor
         IMPORTING
           is_item     TYPE zif_abapgit_definitions=>ty_item
           iv_language TYPE spras.
     CLASS-METHODS clear_idoc_segement_fields CHANGING cg_structure TYPE any.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
@@ -10679,7 +10625,7 @@ CLASS zcl_abapgit_object_iext DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS:
       constructor
         IMPORTING
@@ -10700,8 +10646,6 @@ CLASS zcl_abapgit_object_iobj DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
@@ -10825,8 +10769,6 @@ CLASS zcl_abapgit_object_msag DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -10872,8 +10814,6 @@ CLASS zcl_abapgit_object_nrob DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
@@ -10951,9 +10891,6 @@ CLASS zcl_abapgit_object_odso DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_object .
-
-    ALIASES mo_files
-      FOR zif_abapgit_object~mo_files .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -10993,8 +10930,6 @@ CLASS zcl_abapgit_object_para DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -11008,12 +10943,10 @@ CLASS zcl_abapgit_object_pdxx_super DEFINITION
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor IMPORTING is_item     TYPE zif_abapgit_definitions=>ty_item
                                   iv_language TYPE spras
                         RAISING   zcx_abapgit_exception.
-
   PROTECTED SECTION.
     DATA ms_objkey TYPE hrsobject.
 
@@ -11089,13 +11022,12 @@ CLASS zcl_abapgit_object_pers DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS:
       constructor
         IMPORTING
           is_item     TYPE zif_abapgit_definitions=>ty_item
           iv_language TYPE spras.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
@@ -11477,9 +11409,6 @@ CLASS zcl_abapgit_object_sfpf DEFINITION
 
     INTERFACES zif_abapgit_object .
 
-    ALIASES mo_files
-      FOR zif_abapgit_object~mo_files .
-
     CLASS-METHODS fix_oref
       IMPORTING
         !ii_document TYPE REF TO if_ixml_document
@@ -11503,8 +11432,6 @@ CLASS zcl_abapgit_object_sfpi DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
@@ -11537,13 +11464,11 @@ CLASS zcl_abapgit_object_shi3 DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor
       IMPORTING
         is_item     TYPE zif_abapgit_definitions=>ty_item
         iv_language TYPE spras.
-
   PROTECTED SECTION.
 
     METHODS has_authorization
@@ -11579,7 +11504,6 @@ CLASS zcl_abapgit_object_shi5 DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor
       IMPORTING
@@ -11602,13 +11526,11 @@ CLASS zcl_abapgit_object_shi8 DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS constructor
       IMPORTING
         is_item     TYPE zif_abapgit_definitions=>ty_item
         iv_language TYPE spras.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: mv_assignment_id  TYPE hier_sfw_id.
@@ -11618,8 +11540,6 @@ CLASS zcl_abapgit_object_shlp DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -11639,9 +11559,6 @@ CLASS zcl_abapgit_object_sicf DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_object .
-
-    ALIASES mo_files
-      FOR zif_abapgit_object~mo_files .
 
     TYPES: ty_hash TYPE c LENGTH 25.
 
@@ -11716,8 +11633,6 @@ CLASS zcl_abapgit_object_smim DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS get_filename
@@ -11744,7 +11659,6 @@ CLASS zcl_abapgit_object_smtg DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS:
       constructor
@@ -11753,7 +11667,6 @@ CLASS zcl_abapgit_object_smtg DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           iv_language TYPE spras
         RAISING
           zcx_abapgit_exception.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA:
@@ -11794,10 +11707,6 @@ CLASS zcl_abapgit_object_sots DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PUBLIC SECTION.
     INTERFACES:
       zif_abapgit_object.
-
-    ALIASES:
-      mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
@@ -11832,8 +11741,6 @@ CLASS zcl_abapgit_object_splo DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -12032,7 +11939,7 @@ CLASS zcl_abapgit_object_srvb DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS:
       constructor
         IMPORTING
@@ -12040,7 +11947,6 @@ CLASS zcl_abapgit_object_srvb DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           iv_language TYPE spras
         RAISING
           zcx_abapgit_exception.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
@@ -12087,7 +11993,7 @@ CLASS zcl_abapgit_object_srvd DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS:
       constructor
         IMPORTING
@@ -12095,7 +12001,6 @@ CLASS zcl_abapgit_object_srvd DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           iv_language TYPE spras
         RAISING
           zcx_abapgit_exception.
-
   PROTECTED SECTION.
 
   PRIVATE SECTION.
@@ -12141,8 +12046,6 @@ CLASS zcl_abapgit_object_ssfo DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -12179,9 +12082,8 @@ CLASS zcl_abapgit_object_ssst DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-    CONSTANTS: c_style_active TYPE tdactivate VALUE 'A'.
 
+    CONSTANTS: c_style_active TYPE tdactivate VALUE 'A'.
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS validate_font
@@ -12212,8 +12114,6 @@ CLASS zcl_abapgit_object_styl DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_style,
@@ -12244,7 +12144,6 @@ CLASS zcl_abapgit_object_susc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
   PROTECTED SECTION.
 
     CONSTANTS transobjecttype_class TYPE c LENGTH 1 VALUE 'C' ##NO_TEXT.
@@ -12278,15 +12177,12 @@ CLASS zcl_abapgit_object_sush DEFINITION
 
     INTERFACES zif_abapgit_object .
 
-    ALIASES mo_files
-      FOR zif_abapgit_object~mo_files .
     METHODS constructor
       IMPORTING
         is_item     TYPE zif_abapgit_definitions=>ty_item
         iv_language TYPE spras
       RAISING
         zcx_abapgit_exception.
-
   PROTECTED SECTION.
 
   PRIVATE SECTION.
@@ -12303,14 +12199,12 @@ CLASS zcl_abapgit_object_suso DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
 
     METHODS:
       constructor
         IMPORTING
           is_item     TYPE zif_abapgit_definitions=>ty_item
           iv_language TYPE spras.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA:
@@ -12352,9 +12246,6 @@ CLASS zcl_abapgit_object_tabl DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_object .
-
-    ALIASES mo_files
-      FOR zif_abapgit_object~mo_files .
   PROTECTED SECTION.
     TYPES: BEGIN OF ty_segment_definition,
              segmentheader     TYPE edisegmhd,
@@ -12461,8 +12352,6 @@ CLASS zcl_abapgit_object_tobj DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_tobj,
@@ -12485,9 +12374,6 @@ CLASS zcl_abapgit_object_tran DEFINITION
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object .
-
-    ALIASES mo_files
-      FOR zif_abapgit_object~mo_files .
   PROTECTED SECTION.
 
   PRIVATE SECTION.
@@ -12589,8 +12475,6 @@ CLASS zcl_abapgit_object_ttyp DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -12598,8 +12482,6 @@ CLASS zcl_abapgit_object_type DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS: c_prefix TYPE c LENGTH 3 VALUE '%_C'.
@@ -12870,8 +12752,6 @@ CLASS zcl_abapgit_object_view DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: ty_dd26v TYPE STANDARD TABLE OF dd26v
@@ -12984,8 +12864,6 @@ CLASS zcl_abapgit_object_wapa DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_page,
@@ -13041,8 +12919,6 @@ CLASS zcl_abapgit_object_wdca DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_object .
-    ALIASES mo_files
-      FOR zif_abapgit_object~mo_files .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -13080,9 +12956,6 @@ CLASS zcl_abapgit_object_wdcc DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_object .
-
-    ALIASES mo_files
-      FOR zif_abapgit_object~mo_files .
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -13090,8 +12963,6 @@ CLASS zcl_abapgit_object_wdya DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS read
@@ -13114,9 +12985,6 @@ CLASS zcl_abapgit_object_wdyn DEFINITION
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_object .
-
-    ALIASES mo_files
-      FOR zif_abapgit_object~mo_files .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -13253,13 +13121,12 @@ CLASS zcl_abapgit_object_xinx DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS:
       constructor
         IMPORTING
           is_item     TYPE zif_abapgit_definitions=>ty_item
           iv_language TYPE spras.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
@@ -13287,8 +13154,6 @@ CLASS zcl_abapgit_object_xslt DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     METHODS:
@@ -13308,8 +13173,6 @@ CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM 
       RAISING   cx_sy_create_object_error.
 
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: mo_plugin TYPE REF TO object.
@@ -13532,9 +13395,6 @@ CLASS zcl_abapgit_object_clas DEFINITION
 
     INTERFACES zif_abapgit_object .
 
-    ALIASES mo_files
-      FOR zif_abapgit_object~mo_files .
-
     METHODS constructor
       IMPORTING
         !is_item     TYPE zif_abapgit_definitions=>ty_item
@@ -13625,8 +13485,6 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -13767,7 +13625,7 @@ ENDCLASS.
 CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objects_program.
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
+
     METHODS constructor
       IMPORTING
         is_item     TYPE zif_abapgit_definitions=>ty_item
@@ -13823,8 +13681,6 @@ CLASS zcl_abapgit_object_prog DEFINITION INHERITING FROM zcl_abapgit_objects_pro
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
-    ALIASES mo_files FOR zif_abapgit_object~mo_files.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -57753,7 +57609,7 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_BRIDGE IMPLEMENTATION.
+CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
   METHOD class_constructor.
 
     DATA lt_plugin_class    TYPE STANDARD TABLE OF seoclsname WITH DEFAULT KEY.
@@ -58935,8 +58791,9 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
 
     ls_attributes-devclass = iv_package.
 
-    lv_source = mo_files->read_string( iv_extra = 'source'
-                                       iv_ext   = 'xml' ).
+    lv_source = zif_abapgit_object~mo_files->read_string(
+      iv_extra = 'source'
+      iv_ext   = 'xml' ).
 
 * workaround: somewhere additional linefeeds are added
     lv_len = strlen( lv_source ) - 2.
@@ -59028,9 +58885,10 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
 
     lv_source = lo_xslt->get_source_string( ).
 
-    mo_files->add_string( iv_extra  = 'source'
-                          iv_ext    = 'xml'
-                          iv_string = lv_source ).
+    zif_abapgit_object~mo_files->add_string(
+      iv_extra  = 'source'
+      iv_ext    = 'xml'
+      iv_string = lv_source ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -60922,8 +60780,10 @@ CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'WDA_COMPONENT'
                   CHANGING  cg_data = ls_orig_config-component ).
 
-    lv_xml_string = mo_files->read_string( iv_extra = 'comp_config'
-                                           iv_ext   = 'xml' ).
+    lv_xml_string = zif_abapgit_object~mo_files->read_string(
+      iv_extra = 'comp_config'
+      iv_ext   = 'xml' ).
+
     TRY.
         lv_xml_string = zcl_abapgit_xml_pretty=>print( iv_xml           = lv_xml_string
                                                        iv_ignore_errors = abap_false
@@ -61198,9 +61058,10 @@ CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
       ASSERT sy-subrc = 0.
     ENDIF.
 
-    mo_files->add_string( iv_extra  = 'comp_config'
-                          iv_ext    = 'xml'
-                          iv_string = lv_xml_string ).
+    zif_abapgit_object~mo_files->add_string(
+      iv_extra  = 'comp_config'
+      iv_ext    = 'xml'
+      iv_string = lv_xml_string ).
 
     SELECT * FROM wdy_config_compt INTO TABLE lt_otr_texts
       WHERE config_id   = ls_orig_config-config_id
@@ -61451,8 +61312,10 @@ CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
           iv_transport = iv_transport ).
 
     TRY.
-        lv_xml_string = mo_files->read_string( iv_extra = 'appl_config'
-                                               iv_ext   = 'xml' ).
+        lv_xml_string = zif_abapgit_object~mo_files->read_string(
+          iv_extra = 'appl_config'
+          iv_ext   = 'xml' ).
+
         TRY.
             lv_xml_string = zcl_abapgit_xml_pretty=>print( iv_xml           = lv_xml_string
                                                            iv_ignore_errors = abap_false
@@ -61563,9 +61426,11 @@ CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
       ASSERT sy-subrc = 0.
     ENDIF.
 
-    mo_files->add_string( iv_extra  = 'appl_config'
-                          iv_ext    = 'xml'
-                          iv_string = lv_xml_string ).
+    zif_abapgit_object~mo_files->add_string(
+      iv_extra  = 'appl_config'
+      iv_ext    = 'xml'
+      iv_string = lv_xml_string ).
+
     SELECT * FROM wdy_config_appt INTO TABLE lt_cc_text
       WHERE config_id   = ls_outline-config_id
       AND config_type = ls_outline-config_type
@@ -61746,7 +61611,7 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
       REPLACE ALL OCCURRENCES OF '/' IN lv_ext WITH '_-'.
       REPLACE ALL OCCURRENCES OF '/' IN lv_extra WITH '_-'.
       IF iv_no_files_add = abap_false.
-        mo_files->add_raw(
+        zif_abapgit_object~mo_files->add_raw(
           iv_extra = lv_extra
           iv_ext   = lv_ext
           iv_data  = lv_content ).
@@ -61989,8 +61854,8 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
       REPLACE ALL OCCURRENCES OF '/' IN lv_extra WITH '_-'.
       REPLACE ALL OCCURRENCES OF '/' IN lv_ext WITH '_-'.
 
-      lt_remote_content = to_page_content( mo_files->read_raw( iv_extra = lv_extra
-                                                               iv_ext   = lv_ext ) ).
+      lt_remote_content = to_page_content( zif_abapgit_object~mo_files->read_raw( iv_extra = lv_extra
+                                                                                  iv_ext   = lv_ext ) ).
       lt_local_content = to_page_content( get_page_content( lo_page ) ).
 
       IF ls_local_page = <ls_remote_page> AND lt_local_content = lt_remote_content.
@@ -64482,7 +64347,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'DDTEXT'
                   CHANGING cg_data = lv_ddtext ).
 
-    lt_source = mo_files->read_abap( ).
+    lt_source = zif_abapgit_object~mo_files->read_abap( ).
 
     IF zif_abapgit_object~exists( ) = abap_false.
       create( iv_ddtext   = lv_ddtext
@@ -64543,7 +64408,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
     io_xml->add( iv_name = 'DDTEXT'
                  ig_data = lv_ddtext ).
 
-    mo_files->add_abap( lt_source ).
+    zif_abapgit_object~mo_files->add_abap( lt_source ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -65426,7 +65291,7 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TOBJ IMPLEMENTATION.
+CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
   METHOD delete_extra.
 
     DELETE FROM tddat WHERE tabname = iv_tabname.
@@ -68934,9 +68799,9 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
     ASSIGN COMPONENT 'CONTENT-SOURCE' OF STRUCTURE <lg_data> TO <lv_source>.
     ASSERT sy-subrc = 0.
 
-    <lv_source> = mo_files->read_string( mc_source_file ).
+    <lv_source> = zif_abapgit_object~mo_files->read_string( mc_source_file ).
     IF <lv_source> IS INITIAL.
-      <lv_source> = mo_files->read_string( 'assrvd' ).
+      <lv_source> = zif_abapgit_object~mo_files->read_string( 'assrvd' ).
     ENDIF.
 
     CREATE OBJECT ro_object_data TYPE ('CL_SRVD_WB_OBJECT_DATA').
@@ -69261,12 +69126,13 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
         lv_source = <lv_source>.
 
         io_xml->add(
-           iv_name = mc_xml_parent_name
-           ig_data = <lv_metadata> ).
+          iv_name = mc_xml_parent_name
+          ig_data = <lv_metadata> ).
 
-        mo_files->add_string(
-            iv_ext    = mc_source_file
-            iv_string = lv_source ).
+        zif_abapgit_object~mo_files->add_string(
+          iv_ext    = mc_source_file
+          iv_string = lv_source ).
+
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
@@ -70540,7 +70406,7 @@ CLASS zcl_abapgit_object_splo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
+CLASS zcl_abapgit_object_sots IMPLEMENTATION.
   METHOD create_sots.
 
     " Reimplementation of SOTR_STRING_CREATE_CONCEPT because we can't supply
@@ -70745,8 +70611,9 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
       LOOP AT <ls_sots>-entries ASSIGNING <ls_entry>.
 
         TRY.
-            <ls_entry>-text = mo_files->read_string( iv_extra = get_raw_text_filename( <ls_entry> )
-                                                     iv_ext   = 'txt' ).
+            <ls_entry>-text = zif_abapgit_object~mo_files->read_string(
+              iv_extra = get_raw_text_filename( <ls_entry> )
+              iv_ext   = 'txt' ).
 
           CATCH zcx_abapgit_exception.
             " Most probably file not found -> ignore
@@ -70818,9 +70685,10 @@ CLASS ZCL_ABAPGIT_OBJECT_SOTS IMPLEMENTATION.
 
       LOOP AT <ls_sots>-entries ASSIGNING <ls_entry>.
 
-        mo_files->add_string( iv_extra  = get_raw_text_filename( <ls_entry> )
-                              iv_ext    = 'txt'
-                              iv_string = <ls_entry>-text ).
+        zif_abapgit_object~mo_files->add_string(
+          iv_extra  = get_raw_text_filename( <ls_entry> )
+          iv_ext    = 'txt'
+          iv_string = <ls_entry>-text ).
 
         CLEAR: <ls_entry>-text.
 
@@ -71198,7 +71066,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
 
     lv_filename = build_filename( lv_filename ).
 
-    lt_files = mo_files->get_files( ).
+    lt_files = zif_abapgit_object~mo_files->get_files( ).
 
     READ TABLE lt_files ASSIGNING <ls_file>
         WITH KEY file
@@ -71444,7 +71312,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
       ls_file-filename = build_filename( lv_filename ).
       ls_file-path     = '/'.
       ls_file-data     = lv_content.
-      mo_files->add( ls_file ).
+      zif_abapgit_object~mo_files->add( ls_file ).
 
       SELECT SINGLE lo_class FROM smimloio INTO lv_class
         WHERE loio_id = lv_loio.                        "#EC CI_GENBUFF
@@ -72337,7 +72205,7 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SHI8 IMPLEMENTATION.
+CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item     = is_item
@@ -73337,8 +73205,9 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
     li_fp_layout = li_fp_form->get_layout( ).
     lv_layout_data = li_fp_layout->get_layout_data( ).
 
-    mo_files->add_raw( iv_ext = c_layout_file_ext
-                       iv_data = lv_layout_data ).
+    zif_abapgit_object~mo_files->add_raw(
+      iv_ext  = c_layout_file_ext
+      iv_data = lv_layout_data ).
 
     TRY.
         li_fp_layout->set_layout_data( i_layout_data   = lc_empty_data
@@ -73433,8 +73302,8 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
     TRY.
         li_form = cl_fp_helper=>convert_xstring_to_form( lv_xstr ).
 
-        IF mo_files->contains( c_layout_file_ext ) = abap_true.
-          lv_layout = mo_files->read_raw( c_layout_file_ext ).
+        IF zif_abapgit_object~mo_files->contains( c_layout_file_ext ) = abap_true.
+          lv_layout = zif_abapgit_object~mo_files->read_raw( c_layout_file_ext ).
           li_form->get_layout( )->set_layout_data( lv_layout ).
         ENDIF.
 
@@ -74996,7 +74865,7 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
 
     lv_program_name = ms_item-obj_name.
 
-    lt_source = mo_files->read_abap( ).
+    lt_source = zif_abapgit_object~mo_files->read_abap( ).
 
     io_xml->read( EXPORTING iv_name = 'TPOOL'
                   CHANGING cg_data = lt_tpool_ext ).
@@ -75083,7 +74952,7 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
 
     serialize_program( io_xml   = io_xml
                        is_item  = ms_item
-                       io_files = mo_files ).
+                       io_files = zif_abapgit_object~mo_files ).
 
     " Texts serializing (translations)
     IF io_xml->i18n_params( )-translation_languages IS INITIAL.
@@ -79591,7 +79460,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
           lt_descriptions TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt,
           ls_clskey       TYPE seoclskey.
     ls_clskey-clsname = ms_item-obj_name.
-    lt_source = mo_files->read_abap( ).
+    lt_source = zif_abapgit_object~mo_files->read_abap( ).
     ii_xml->read( EXPORTING iv_name = 'VSEOINTERF'
                   CHANGING cg_data = ls_vseointerf ).
 
@@ -79976,7 +79845,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
 
     lt_source = mi_object_oriented_object_fct->serialize_abap( ls_interface_key ).
 
-    mo_files->add_abap( lt_source ).
+    zif_abapgit_object~mo_files->add_abap( lt_source ).
 
     serialize_xml( io_xml ).
   ENDMETHOD.
@@ -80809,7 +80678,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'ATTR'
                   CHANGING cg_data = ls_attr ).
 
-    lv_source = mo_files->read_string( 'html' ).
+    lv_source = zif_abapgit_object~mo_files->read_string( 'html' ).
 
     ls_attr-devclass = iv_package.
     save( is_attr   = ls_attr
@@ -80857,8 +80726,9 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
     io_xml->add( iv_name = 'ATTR'
                  ig_data = ls_attr ).
 
-    mo_files->add_string( iv_ext    = 'html'
-                          iv_string = lv_source ).
+    zif_abapgit_object~mo_files->add_string(
+      iv_ext    = 'html'
+      iv_string = lv_source ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -81904,7 +81774,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
     LOOP AT it_functions ASSIGNING <ls_func>.
 
-      lt_source = mo_files->read_abap( iv_extra = <ls_func>-funcname ).
+      lt_source = zif_abapgit_object~mo_files->read_abap( iv_extra = <ls_func>-funcname ).
 
       lv_area = ms_item-obj_name.
 
@@ -82030,9 +81900,9 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
       ENDIF.
 
       TRY.
-          lt_source = mo_files->read_abap( iv_extra = <lv_include> ).
+          lt_source = zif_abapgit_object~mo_files->read_abap( iv_extra = <lv_include> ).
 
-          lo_xml = mo_files->read_xml( <lv_include> ).
+          lo_xml = zif_abapgit_object~mo_files->read_xml( <lv_include> ).
 
           lo_xml->read( EXPORTING iv_name = 'PROGDIR'
                         CHANGING cg_data = ls_progdir ).
@@ -82191,7 +82061,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
     LOOP AT lt_includes ASSIGNING <lv_include>.
 
-      lo_xml = mo_files->read_xml( <lv_include> ).
+      lo_xml = zif_abapgit_object~mo_files->read_xml( <lv_include> ).
 
       lo_xml->read( EXPORTING iv_name = 'PROGDIR'
                     CHANGING cg_data = ls_progdir ).
@@ -82520,11 +82390,13 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
       APPEND ls_function TO rt_functions.
 
       IF NOT lt_new_source IS INITIAL.
-        mo_files->add_abap( iv_extra = <ls_func>-funcname
-                            it_abap  = lt_new_source ).
+        zif_abapgit_object~mo_files->add_abap(
+          iv_extra = <ls_func>-funcname
+          it_abap  = lt_new_source ).
       ELSE.
-        mo_files->add_abap( iv_extra = <ls_func>-funcname
-                            it_abap  = lt_source ).
+        zif_abapgit_object~mo_files->add_abap(
+          iv_extra = <ls_func>-funcname
+          it_abap  = lt_source ).
       ENDIF.
 
     ENDLOOP.
@@ -82541,7 +82413,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
 * todo, filename is not correct, a include can be used in several programs
       serialize_program( is_item    = ms_item
-                         io_files   = mo_files
+                         io_files   = zif_abapgit_object~mo_files
                          iv_program = <lv_include>
                          iv_extra   = <lv_include> ).
 
@@ -83050,7 +82922,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
                  ig_data = it_lines ).
     lv_string = li_xml->render( ).
     IF lv_string IS NOT INITIAL.
-      mo_files->add_string( iv_extra  =
+      zif_abapgit_object~mo_files->add_string( iv_extra  =
                     build_extra_from_header( is_form_data-form_header )
                             iv_ext    = c_extension_xml
                             iv_string = lv_string ).
@@ -83071,12 +82943,12 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
     DATA li_xml TYPE REF TO zif_abapgit_xml_input.
 
     TRY.
-        lv_string = mo_files->read_string( iv_extra =
+        lv_string = zif_abapgit_object~mo_files->read_string( iv_extra =
                                    build_extra_from_header( is_form_data-form_header )
                                            iv_ext   = c_extension_xml ).
       CATCH zcx_abapgit_exception.
 
-        lv_string = mo_files->read_string( iv_extra =
+        lv_string = zif_abapgit_object~mo_files->read_string( iv_extra =
                                build_extra_from_header_old( is_form_data-form_header )
                                            iv_ext   = c_extension_xml ).
 
@@ -84621,17 +84493,17 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
         CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enho_hook
           EXPORTING
             is_item  = ms_item
-            io_files = mo_files.
+            io_files = zif_abapgit_object~mo_files.
       WHEN cl_enh_tool_class=>tooltype.
         CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enho_class
           EXPORTING
             is_item  = ms_item
-            io_files = mo_files.
+            io_files = zif_abapgit_object~mo_files.
       WHEN cl_enh_tool_intf=>tooltype.
         CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enho_intf
           EXPORTING
             is_item  = ms_item
-            io_files = mo_files.
+            io_files = zif_abapgit_object~mo_files.
       WHEN cl_wdr_cfg_enhancement=>tooltype.
         CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enho_wdyc
           EXPORTING
@@ -84640,7 +84512,7 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
         CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enho_fugr
           EXPORTING
             is_item  = ms_item
-            io_files = mo_files.
+            io_files = zif_abapgit_object~mo_files.
       WHEN 'WDYENH'.
         CREATE OBJECT ri_enho TYPE zcl_abapgit_object_enho_wdyn
           EXPORTING
@@ -85997,6 +85869,20 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
     ri_wb_object_operator = mi_wb_object_operator.
 
   ENDMETHOD.
+  METHOD has_own_wb_data_class.
+
+    DATA:
+      lr_own_type TYPE REF TO data,
+      lx_error    TYPE REF TO cx_root.
+
+    TRY.
+        CREATE DATA lr_own_type TYPE ('CL_DTDC_WB_OBJECT_DATA=>TY_DTDC_OBJECT_DATA').
+        rv_supported = abap_true.
+      CATCH cx_root INTO lx_error.
+        rv_supported = abap_false.
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     DATA:
@@ -86069,7 +85955,7 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
                TO <lv_source>.
         ASSERT sy-subrc = 0.
 
-        <lv_source> = mo_files->read_string( 'asdtdc' ).
+        <lv_source> = zif_abapgit_object~mo_files->read_string( 'asdtdc' ).
 
         tadir_insert( iv_package ).
 
@@ -86189,23 +86075,9 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
         iv_name = 'DTDC'
         ig_data = <ls_dynamic_cache> ).
 
-    mo_files->add_string(
+    zif_abapgit_object~mo_files->add_string(
         iv_ext    = 'asdtdc'
         iv_string = lv_source ).
-
-  ENDMETHOD.
-  METHOD has_own_wb_data_class.
-
-    DATA:
-      lr_own_type TYPE REF TO data,
-      lx_error    TYPE REF TO cx_root.
-
-    TRY.
-        CREATE DATA lr_own_type TYPE ('CL_DTDC_WB_OBJECT_DATA=>TY_DTDC_OBJECT_DATA').
-        rv_supported = abap_true.
-      CATCH cx_root INTO lx_error.
-        rv_supported = abap_false.
-    ENDTRY.
 
   ENDMETHOD.
 ENDCLASS.
@@ -86595,7 +86467,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
                TO <lv_source>.
         ASSERT sy-subrc = 0.
 
-        <lv_source> = mo_files->read_string( 'asdrul' ).
+        <lv_source> = zif_abapgit_object~mo_files->read_string( 'asdrul' ).
 
         tadir_insert( iv_package ).
 
@@ -86715,7 +86587,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
         iv_name = 'DRUL'
         ig_data = <ls_dependency_rule> ).
 
-    mo_files->add_string(
+    zif_abapgit_object~mo_files->add_string(
         iv_ext    = 'asdrul'
         iv_string = lv_source ).
 
@@ -88347,7 +88219,7 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
         TRY.
             " If the file doesn't exist that's ok, because previously
             " the source code was stored in the xml. We are downward compatible.
-            <lg_source> = mo_files->read_string( 'asddlxs' ).
+            <lg_source> = zif_abapgit_object~mo_files->read_string( 'asddlxs' ).
           CATCH zcx_abapgit_exception ##NO_HANDLER.
         ENDTRY.
 
@@ -88477,8 +88349,9 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
         ASSIGN COMPONENT 'CONTENT-SOURCE' OF STRUCTURE <lg_data> TO <lg_field>.
         ASSERT sy-subrc = 0.
 
-        mo_files->add_string( iv_ext    = 'asddlxs'
-                              iv_string = <lg_field> ).
+        zif_abapgit_object~mo_files->add_string(
+          iv_ext    = 'asddlxs'
+          iv_string = <lg_field> ).
 
         CLEAR <lg_field>.
 
@@ -88612,7 +88485,7 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
   METHOD read_baseinfo.
 
     TRY.
-        rv_baseinfo_string = mo_files->read_string( 'baseinfo' ).
+        rv_baseinfo_string = zif_abapgit_object~mo_files->read_string( 'baseinfo' ).
 
       CATCH zcx_abapgit_exception.
         " File not found. That's ok, as the object could have been created in a
@@ -88720,7 +88593,7 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
 
         ASSIGN COMPONENT 'SOURCE' OF STRUCTURE <lg_data> TO <lg_source>.
         ASSERT sy-subrc = 0.
-        <lg_source> = mo_files->read_string( 'asddls' ).
+        <lg_source> = zif_abapgit_object~mo_files->read_string( 'asddls' ).
 
         CALL METHOD ('CL_DD_DDL_HANDLER_FACTORY')=>('CREATE')
           RECEIVING
@@ -88884,8 +88757,9 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
             IF <lg_ddlname> = ms_item-obj_name AND <lg_as4local> = 'A'.
               ASSIGN COMPONENT 'BASEINFO_STRING' OF STRUCTURE <lg_data_baseinfo> TO <lg_field>.
               ASSERT sy-subrc = 0.
-              mo_files->add_string( iv_ext    = 'baseinfo'
-                                    iv_string = <lg_field> ).
+              zif_abapgit_object~mo_files->add_string(
+                iv_ext    = 'baseinfo'
+                iv_string = <lg_field> ).
               EXIT.
             ENDIF.
           ENDLOOP.
@@ -88922,8 +88796,9 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
 
     format_source_before_serialize( CHANGING cv_string = <lg_field> ).
 
-    mo_files->add_string( iv_ext    = 'asddls'
-                          iv_string = <lg_field> ).
+    zif_abapgit_object~mo_files->add_string(
+      iv_ext    = 'asddls'
+      iv_string = <lg_field> ).
 
     CLEAR <lg_field>.
 
@@ -89006,7 +88881,7 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
 
     ASSIGN COMPONENT 'SOURCE' OF STRUCTURE <lg_data> TO <lg_field>.
     ASSERT sy-subrc = 0.
-    <lg_field> = mo_files->read_string( 'asdcls' ).
+    <lg_field> = zif_abapgit_object~mo_files->read_string( 'asdcls' ).
 
     TRY.
         tadir_insert( iv_package ).
@@ -89127,8 +89002,9 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
         ASSIGN COMPONENT 'SOURCE' OF STRUCTURE <lg_data> TO <lg_field>.
         ASSERT sy-subrc = 0.
 
-        mo_files->add_string( iv_ext = 'asdcls'
-                              iv_string = <lg_field> ).
+        zif_abapgit_object~mo_files->add_string(
+          iv_ext    = 'asdcls'
+          iv_string = <lg_field> ).
 
         CLEAR <lg_field>.
 
@@ -89919,19 +89795,23 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
           lt_descriptions          TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt,
           ls_class_key             TYPE seoclskey,
           lt_attributes            TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
-    lt_source = mo_files->read_abap( ).
+    lt_source = zif_abapgit_object~mo_files->read_abap( ).
 
-    lt_local_definitions = mo_files->read_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-locals_def
-                                                iv_error = abap_false ).
+    lt_local_definitions = zif_abapgit_object~mo_files->read_abap(
+      iv_extra = zif_abapgit_oo_object_fnc=>c_parts-locals_def
+      iv_error = abap_false ).
 
-    lt_local_implementations = mo_files->read_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-locals_imp
-                                                    iv_error = abap_false ).
+    lt_local_implementations = zif_abapgit_object~mo_files->read_abap(
+      iv_extra = zif_abapgit_oo_object_fnc=>c_parts-locals_imp
+      iv_error = abap_false ).
 
-    lt_local_macros = mo_files->read_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-macros
-                                           iv_error = abap_false ).
+    lt_local_macros = zif_abapgit_object~mo_files->read_abap(
+      iv_extra = zif_abapgit_oo_object_fnc=>c_parts-macros
+      iv_error = abap_false ).
 
-    lt_test_classes = mo_files->read_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-testclasses
-                                           iv_error = abap_false ).
+    lt_test_classes = zif_abapgit_object~mo_files->read_abap(
+      iv_extra = zif_abapgit_oo_object_fnc=>c_parts-testclasses
+      iv_error = abap_false ).
 
     ls_class_key-clsname = ms_item-obj_name.
 
@@ -90497,22 +90377,24 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     source_apack_replacement( CHANGING ct_source = lt_source ).
 
-    mo_files->add_abap( lt_source ).
+    zif_abapgit_object~mo_files->add_abap( lt_source ).
 
     lt_source = mi_object_oriented_object_fct->serialize_abap(
       is_class_key = ls_class_key
       iv_type      = seop_ext_class_locals_def ).
     IF lines( lt_source ) > 0.
-      mo_files->add_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-locals_def
-                          it_abap  = lt_source ).
+      zif_abapgit_object~mo_files->add_abap(
+        iv_extra = zif_abapgit_oo_object_fnc=>c_parts-locals_def
+        it_abap  = lt_source ).
     ENDIF.
 
     lt_source = mi_object_oriented_object_fct->serialize_abap(
       is_class_key = ls_class_key
       iv_type      = seop_ext_class_locals_imp ).
     IF lines( lt_source ) > 0.
-      mo_files->add_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-locals_imp
-                          it_abap  = lt_source ).
+      zif_abapgit_object~mo_files->add_abap(
+        iv_extra = zif_abapgit_oo_object_fnc=>c_parts-locals_imp
+        it_abap  = lt_source ).
     ENDIF.
 
     lt_source = mi_object_oriented_object_fct->serialize_abap(
@@ -90521,16 +90403,18 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     mv_skip_testclass = mi_object_oriented_object_fct->get_skip_test_classes( ).
     IF lines( lt_source ) > 0 AND mv_skip_testclass = abap_false.
-      mo_files->add_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-testclasses
-                          it_abap  = lt_source ).
+      zif_abapgit_object~mo_files->add_abap(
+        iv_extra = zif_abapgit_oo_object_fnc=>c_parts-testclasses
+        it_abap  = lt_source ).
     ENDIF.
 
     lt_source = mi_object_oriented_object_fct->serialize_abap(
       is_class_key = ls_class_key
       iv_type      = seop_ext_class_macros ).
     IF lines( lt_source ) > 0.
-      mo_files->add_abap( iv_extra = zif_abapgit_oo_object_fnc=>c_parts-macros
-                          it_abap  = lt_source ).
+      zif_abapgit_object~mo_files->add_abap(
+        iv_extra = zif_abapgit_oo_object_fnc=>c_parts-macros
+        it_abap  = lt_source ).
     ENDIF.
 
     serialize_xml( io_xml ).
@@ -91306,7 +91190,7 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
     ASSIGN COMPONENT 'CONTENT-SOURCE' OF STRUCTURE <lg_data> TO <lv_source>.
     ASSERT sy-subrc = 0.
 
-    <lv_source> = mo_files->read_string( 'asbdef' ).
+    <lv_source> = zif_abapgit_object~mo_files->read_string( 'asbdef' ).
 
     CREATE OBJECT ro_object_data TYPE ('CL_BLUE_SOURCE_OBJECT_DATA').
 
@@ -91622,7 +91506,7 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
         iv_name = 'BDEF'
         ig_data = <lv_metadata> ).
 
-    mo_files->add_string(
+    zif_abapgit_object~mo_files->add_string(
         iv_ext    = 'asbdef'
         iv_string = lv_source ).
 
@@ -91976,7 +91860,7 @@ CLASS ZCL_ABAPGIT_OBJECT_AVAR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_AUTH IMPLEMENTATION.
+CLASS zcl_abapgit_object_auth IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item     = is_item
@@ -111251,6 +111135,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-06-02T08:06:48.026Z
+* abapmerge 0.14.3 - 2022-06-04T08:34:33.974Z
 ENDINTERFACE.
 ****************************************************
