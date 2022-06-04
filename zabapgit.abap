@@ -93370,6 +93370,7 @@ CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
   METHOD delete_sotr_package.
 
     DATA lt_sotr_head TYPE STANDARD TABLE OF sotr_head WITH DEFAULT KEY.
+    DATA lv_obj_name TYPE tadir-obj_name.
 
     FIELD-SYMBOLS <ls_sotr_head> LIKE LINE OF lt_sotr_head.
 
@@ -93394,6 +93395,43 @@ CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
       ENDIF.
 
     ENDLOOP.
+
+    " Nothing left, then delete SOTR from TADIR
+    SELECT * FROM sotr_head INTO TABLE lt_sotr_head WHERE paket = iv_package.
+    IF sy-subrc <> 0.
+      SELECT SINGLE obj_name FROM tadir INTO lv_obj_name
+        WHERE pgmid = 'R3TR' AND object = 'SOTR' AND obj_name = iv_package.
+      IF sy-subrc = 0.
+        CALL FUNCTION 'TR_TADIR_INTERFACE'
+          EXPORTING
+            wi_delete_tadir_entry = abap_true
+            wi_test_modus         = abap_false
+            wi_tadir_pgmid        = 'R3TR'
+            wi_tadir_object       = 'SOTR'
+            wi_tadir_obj_name     = lv_obj_name
+          EXCEPTIONS
+            OTHERS                = 1 ##FM_SUBRC_OK.
+
+        IF zcl_abapgit_factory=>get_sap_package( iv_package )->are_changes_recorded_in_tr_req( ) = abap_true.
+          CALL FUNCTION 'RS_CORR_INSERT'
+            EXPORTING
+              object              = lv_obj_name
+              object_class        = 'SOTR'
+              mode                = 'D'
+              global_lock         = abap_true
+              devclass            = iv_package
+              suppress_dialog     = abap_true
+            EXCEPTIONS
+              cancelled           = 1
+              permission_failure  = 2
+              unknown_objectclass = 3
+              OTHERS              = 4.
+          IF sy-subrc <> 0.
+            zcx_abapgit_exception=>raise_t100( ).
+          ENDIF.
+        ENDIF.
+      ENDIF.
+    ENDIF.
 
   ENDMETHOD.
   METHOD get_sotr_4_concept.
@@ -111135,6 +111173,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-06-04T08:34:33.974Z
+* abapmerge 0.14.3 - 2022-06-04T11:42:34.414Z
 ENDINTERFACE.
 ****************************************************
