@@ -603,18 +603,22 @@ CLASS zcx_abapgit_exception DEFINITION
     DATA msgv2 TYPE symsgv READ-ONLY .
     DATA msgv3 TYPE symsgv READ-ONLY .
     DATA msgv4 TYPE symsgv READ-ONLY .
-    DATA mt_callstack TYPE abap_callstack READ-ONLY .
+    DATA mv_longtext TYPE string READ-ONLY.
+    DATA mt_callstack TYPE abap_callstack READ-ONLY.
     DATA mi_log TYPE REF TO zif_abapgit_log READ-ONLY.
 
     "! Raise exception with text
     "! @parameter iv_text | Text
     "! @parameter ix_previous | Previous exception
+    "! @parameter ii_log | Log
+    "! @parameter iv_longtext | Longtext
     "! @raising zcx_abapgit_exception | Exception
     CLASS-METHODS raise
       IMPORTING
         !iv_text     TYPE clike
         !ix_previous TYPE REF TO cx_root OPTIONAL
         !ii_log      TYPE REF TO zif_abapgit_log OPTIONAL
+        !iv_longtext TYPE csequence OPTIONAL
       RAISING
         zcx_abapgit_exception .
     "! Raise exception with T100 message
@@ -627,6 +631,9 @@ CLASS zcx_abapgit_exception DEFINITION
     "! @parameter iv_msgv2 | Message variable 2
     "! @parameter iv_msgv3 | Message variable 3
     "! @parameter iv_msgv4 | Message variable 4
+    "! @parameter ii_log | Log
+    "! @parameter ix_previous | Previous exception
+    "! @parameter iv_longtext | Longtext
     "! @raising zcx_abapgit_exception | Exception
     CLASS-METHODS raise_t100
       IMPORTING
@@ -638,22 +645,29 @@ CLASS zcx_abapgit_exception DEFINITION
         VALUE(iv_msgv4) TYPE symsgv DEFAULT sy-msgv4
         !ii_log         TYPE REF TO zif_abapgit_log OPTIONAL
         !ix_previous    TYPE REF TO cx_root OPTIONAL
+        !iv_longtext    TYPE csequence OPTIONAL
       RAISING
         zcx_abapgit_exception .
+    "! Raise with text from previous exception
+    "! @parameter ix_previous | Previous exception
+    "! @parameter iv_longtext | Longtext
+    "! @raising zcx_abapgit_exception | Exception
     CLASS-METHODS raise_with_text
       IMPORTING
         !ix_previous TYPE REF TO cx_root
+        !iv_longtext TYPE csequence OPTIONAL
       RAISING
         zcx_abapgit_exception .
     METHODS constructor
       IMPORTING
         !textid   LIKE if_t100_message=>t100key OPTIONAL
         !previous LIKE previous OPTIONAL
-        !ii_log   TYPE REF TO zif_abapgit_log OPTIONAL
+        !log      TYPE REF TO zif_abapgit_log OPTIONAL
         !msgv1    TYPE symsgv OPTIONAL
         !msgv2    TYPE symsgv OPTIONAL
         !msgv3    TYPE symsgv OPTIONAL
-        !msgv4    TYPE symsgv OPTIONAL .
+        !msgv4    TYPE symsgv OPTIONAL
+        !longtext TYPE csequence OPTIONAL .
 
     METHODS get_source_position
         REDEFINITION .
@@ -662,7 +676,7 @@ CLASS zcx_abapgit_exception DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    CONSTANTS c_generic_error_msg TYPE string VALUE `An error occured (ZCX_ABAPGIT_EXCEPTION)` ##NO_TEXT.
+    CONSTANTS c_generic_error_msg TYPE string VALUE `An error occured (ZCX_ABAPGIT_EXCEPTION)`.
 
     CLASS-METHODS split_text_to_symsg
       IMPORTING
@@ -687,8 +701,13 @@ CLASS zcx_abapgit_exception DEFINITION
     METHODS replace_section_head_with_text
       CHANGING
         !cs_itf TYPE tline .
+    CLASS-METHODS remove_newlines_from_string
+      IMPORTING
+        iv_string        TYPE string
+      RETURNING
+        VALUE(rv_result) TYPE string.
 ENDCLASS.
-CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
+CLASS zcx_abapgit_exception IMPLEMENTATION.
   METHOD constructor ##ADT_SUPPRESS_GENERATION.
 
     super->constructor( previous = previous ).
@@ -697,9 +716,11 @@ CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
     me->msgv2 = msgv2.
     me->msgv3 = msgv3.
     me->msgv4 = msgv4.
-    me->mi_log = ii_log.
+    mi_log = log.
+    mv_longtext = longtext.
 
     CLEAR me->textid.
+
     IF textid IS INITIAL.
       if_t100_message~t100key = if_t100_message=>default_textid.
     ELSE.
@@ -724,7 +745,7 @@ CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
         IMPORTING
           program_name = program_name
           include_name = include_name
-          source_line  = source_line   ).
+          source_line  = source_line ).
     ENDIF.
 
   ENDMETHOD.
@@ -768,15 +789,20 @@ CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD if_message~get_longtext.
+    DATA: lv_preserve_newlines_handled TYPE abap_bool VALUE abap_false.
 
-    result = super->get_longtext( ).
-
-    IF if_t100_message~t100key IS NOT INITIAL.
-
+    IF mv_longtext IS NOT INITIAL.
+      result = mv_longtext.
+    ELSEIF if_t100_message~t100key IS NOT INITIAL.
       result = itf_to_string( get_t100_longtext_itf( ) ).
-
+    ELSE.
+      result = super->get_longtext( preserve_newlines ).
+      lv_preserve_newlines_handled = abap_true.
     ENDIF.
 
+    IF lv_preserve_newlines_handled = abap_false AND preserve_newlines = abap_false.
+      result = remove_newlines_from_string( result ).
+    ENDIF.
   ENDMETHOD.
   METHOD itf_to_string.
 
@@ -868,7 +894,8 @@ CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
 
     raise_t100(
       ii_log      = ii_log
-      ix_previous = ix_previous ).
+      ix_previous = ix_previous
+      iv_longtext = iv_longtext ).
 
   ENDMETHOD.
   METHOD raise_t100.
@@ -888,17 +915,19 @@ CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
     RAISE EXCEPTION TYPE zcx_abapgit_exception
       EXPORTING
         textid   = ls_t100_key
-        ii_log   = ii_log
+        log      = ii_log
         msgv1    = iv_msgv1
         msgv2    = iv_msgv2
         msgv3    = iv_msgv3
         msgv4    = iv_msgv4
-        previous = ix_previous.
+        previous = ix_previous
+        longtext = iv_longtext.
   ENDMETHOD.
   METHOD raise_with_text.
     raise(
-      iv_text = ix_previous->get_text( )
-      ix_previous = ix_previous ).
+      iv_text     = ix_previous->get_text( )
+      ix_previous = ix_previous
+      iv_longtext = iv_longtext ).
   ENDMETHOD.
   METHOD remove_empty_section.
     IF iv_tabix_to BETWEEN iv_tabix_from AND lines( ct_itf ).
@@ -1004,6 +1033,15 @@ CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
     rs_msg = ls_msg.
 
   ENDMETHOD.
+
+  METHOD remove_newlines_from_string.
+    rv_result = iv_string.
+
+    REPLACE ALL OCCURRENCES OF ` ` && cl_abap_char_utilities=>cr_lf IN rv_result WITH ` `.
+    REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>cr_lf IN rv_result WITH ` `.
+    REPLACE ALL OCCURRENCES OF ` ` && cl_abap_char_utilities=>newline IN rv_result WITH ` `.
+    REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>newline IN rv_result WITH ` `.
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcx_abapgit_cancel DEFINITION
@@ -1017,11 +1055,12 @@ CLASS zcx_abapgit_cancel DEFINITION
       IMPORTING
         !textid   LIKE if_t100_message=>t100key OPTIONAL
         !previous LIKE previous OPTIONAL
-        !ii_log   TYPE REF TO zif_abapgit_log OPTIONAL
+        !log      TYPE REF TO zif_abapgit_log OPTIONAL
         !msgv1    TYPE symsgv OPTIONAL
         !msgv2    TYPE symsgv OPTIONAL
         !msgv3    TYPE symsgv OPTIONAL
-        !msgv4    TYPE symsgv OPTIONAL.
+        !msgv4    TYPE symsgv OPTIONAL
+        !longtext TYPE csequence OPTIONAL.
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -1029,13 +1068,15 @@ CLASS zcx_abapgit_cancel IMPLEMENTATION.
   METHOD constructor ##ADT_SUPPRESS_GENERATION.
     super->constructor(
       previous = previous
-      ii_log   = ii_log
+      log      = log
       msgv1    = msgv1
       msgv2    = msgv2
       msgv3    = msgv3
-      msgv4    = msgv4 ).
+      msgv4    = msgv4
+      longtext = longtext ).
 
     CLEAR me->textid.
+
     IF textid IS INITIAL.
       if_t100_message~t100key = if_t100_message=>default_textid.
     ELSE.
@@ -28002,6 +28043,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  background-color: hsla(0, 42%, 90%, 1);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( '.message-panel-bar {' ).
+    lo_buf->add( '  position: absolute;' ).
+    lo_buf->add( '  bottom: 10px;' ).
+    lo_buf->add( '  right: 10px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.message-panel-commands {' ).
     lo_buf->add( '  display: none;' ).
     lo_buf->add( '  margin-right: 2em;' ).
@@ -47371,35 +47418,59 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
   METHOD render_error_message_box.
 
     DATA:
-      lv_error_text   TYPE string,
-      lv_longtext     TYPE string,
-      lv_program_name TYPE sy-repid,
-      lv_title        TYPE string,
-      lv_text         TYPE string.
+      lv_error_text          TYPE string,
+      lv_longtext            TYPE string,
+      lt_longtext_paragraphs TYPE string_table,
+      lv_program_name        TYPE sy-repid,
+      lv_title               TYPE string,
+      lv_text                TYPE string.
+    FIELD-SYMBOLS:
+      <lv_longtext_paragraph> TYPE string.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     lv_error_text = ix_error->get_text( ).
     lv_longtext = ix_error->if_message~get_longtext( abap_true ).
 
-    REPLACE FIRST OCCURRENCE OF REGEX
-      |({ zcx_abapgit_exception=>c_section_text-cause }{ cl_abap_char_utilities=>newline })|
-      IN lv_longtext WITH |<h3>$1</h3>|.
+    IF lv_longtext IS NOT INITIAL.
+      lv_error_text = |{ lv_error_text } <span class="emphasis">More...</span>|.
 
-    REPLACE FIRST OCCURRENCE OF REGEX
-      |({ zcx_abapgit_exception=>c_section_text-system_response }{ cl_abap_char_utilities=>newline })|
-      IN lv_longtext WITH |<h3>$1</h3>|.
+      REPLACE FIRST OCCURRENCE OF REGEX
+        |({ zcx_abapgit_exception=>c_section_text-cause }{ cl_abap_char_utilities=>newline })|
+        IN lv_longtext WITH |<h3>$1</h3>|.
 
-    REPLACE FIRST OCCURRENCE OF REGEX
-      |({ zcx_abapgit_exception=>c_section_text-what_to_do }{ cl_abap_char_utilities=>newline })|
-      IN lv_longtext WITH |<h3>$1</h3>|.
+      REPLACE FIRST OCCURRENCE OF REGEX
+        |({ zcx_abapgit_exception=>c_section_text-system_response }{ cl_abap_char_utilities=>newline })|
+        IN lv_longtext WITH |<h3>$1</h3>|.
 
-    REPLACE FIRST OCCURRENCE OF REGEX
-      |({ zcx_abapgit_exception=>c_section_text-sys_admin }{ cl_abap_char_utilities=>newline })|
-      IN lv_longtext WITH |<h3>$1</h3>|.
+      REPLACE FIRST OCCURRENCE OF REGEX
+        |({ zcx_abapgit_exception=>c_section_text-what_to_do }{ cl_abap_char_utilities=>newline })|
+        IN lv_longtext WITH |<h3>$1</h3>|.
+
+      REPLACE FIRST OCCURRENCE OF REGEX
+        |({ zcx_abapgit_exception=>c_section_text-sys_admin }{ cl_abap_char_utilities=>newline })|
+        IN lv_longtext WITH |<h3>$1</h3>|.
+
+      REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>cr_lf
+        IN lv_longtext
+        WITH cl_abap_char_utilities=>newline.
+
+      SPLIT lv_longtext AT cl_abap_char_utilities=>newline INTO TABLE lt_longtext_paragraphs.
+      CLEAR lv_longtext.
+
+      LOOP AT lt_longtext_paragraphs ASSIGNING <lv_longtext_paragraph>.
+        CONDENSE <lv_longtext_paragraph>.
+
+        IF <lv_longtext_paragraph> IS INITIAL.
+          CONTINUE.
+        ENDIF.
+
+        lv_longtext = |{ lv_longtext }<p>{ <lv_longtext_paragraph> }</p>{ cl_abap_char_utilities=>newline }|.
+      ENDLOOP.
+    ENDIF.
 
     ri_html->add( |<div id="message" class="message-panel">| ).
     ri_html->add( |{ ri_html->icon( 'exclamation-circle/red' ) } { lv_error_text }| ).
-    ri_html->add( |<div class="float-right">| ).
+    ri_html->add( |<div class="message-panel-bar">| ).
 
     ri_html->add_a(
       iv_txt   = `&#x274c;`
@@ -47409,7 +47480,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
 
     ri_html->add( |</div>| ).
 
-    ri_html->add( |<div class="float-right message-panel-commands">| ).
+    ri_html->add( |<div class="message-panel-bar message-panel-commands">| ).
 
     IF ix_error->if_t100_message~t100key-msgid IS NOT INITIAL.
 
@@ -53892,8 +53963,9 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD check_language.
 
     DATA:
-      lv_main_language TYPE spras,
-      lv_error_message TYPE string.
+      lv_main_language  TYPE spras,
+      lv_error_message  TYPE string,
+      lv_error_longtext TYPE string.
 
     " assumes find_remote_dot_abapgit has been called before
     lv_main_language = get_dot_abapgit( )->get_main_language( ).
@@ -53907,11 +53979,14 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       " Feature open in main language only exists if abapGit tcode is present
       IF zcl_abapgit_services_abapgit=>get_abapgit_tcode( ) IS INITIAL.
         lv_error_message = lv_error_message && | Please logon in main language and retry.|.
+        lv_error_longtext = |For the Advanced menu option 'Open in Main Language' to be available a transaction code| &&
+                            | must be assigned to report { sy-cprog }.|.
       ELSE.
         lv_error_message = lv_error_message && | Select 'Advanced' > 'Open in Main Language'|.
       ENDIF.
 
-      zcx_abapgit_exception=>raise( lv_error_message ).
+      zcx_abapgit_exception=>raise( iv_text     = lv_error_message
+                                    iv_longtext = lv_error_longtext ).
 
     ENDIF.
 
@@ -111181,6 +111256,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-06-05T12:38:44.702Z
+* abapmerge 0.14.3 - 2022-06-05T16:41:18.691Z
 ENDINTERFACE.
 ****************************************************
