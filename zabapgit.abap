@@ -8985,9 +8985,6 @@ CLASS zcl_abapgit_object_common_aff DEFINITION
 
     INTERFACES zif_abapgit_object
       ABSTRACT METHODS changed_by .
-
-    ALIASES mo_files
-      FOR zif_abapgit_object~mo_files .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -101686,7 +101683,7 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
                    <ls_text>                 TYPE any,
                    <ls_type>                 TYPE any.
 
-    lv_json_as_xstring = mo_files->read_raw( iv_ext = 'json' ).
+    lv_json_as_xstring = zif_abapgit_object~mo_files->read_raw( iv_ext = 'json' ).
 
     lv_name = ms_item-obj_name.
 
@@ -101947,8 +101944,9 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
           RECEIVING
             result = lv_json_as_xstring.
 
-        mo_files->add_raw( iv_ext = 'json'
-                           iv_data = lv_json_as_xstring ).
+        zif_abapgit_object~mo_files->add_raw(
+          iv_ext = 'json'
+          iv_data = lv_json_as_xstring ).
 
       CATCH cx_root INTO lx_exception.
         zcx_abapgit_exception=>raise_with_text( lx_exception ).
@@ -111277,6 +111275,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-06-05T19:29:51.199Z
+* abapmerge 0.14.3 - 2022-06-05T19:46:17.841Z
 ENDINTERFACE.
 ****************************************************
