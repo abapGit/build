@@ -28027,12 +28027,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'div.message-panel {' ).
     lo_buf->add( '  z-index: 99;' ).
     lo_buf->add( '  box-shadow: 2px 2px 4px 0px hsla(0, 0%, 0%, .1);' ).
-    lo_buf->add( '  padding: 12px;' ).
-    lo_buf->add( '  margin-left: -48%;' ).
+    lo_buf->add( '  padding: 0.5em 1em;' ).
     lo_buf->add( '  position: fixed;' ).
     lo_buf->add( '  bottom: 12px;' ).
-    lo_buf->add( '  width: 94%;' ).
-    lo_buf->add( '  left: 50%;' ).
+    lo_buf->add( '  width: 95%;' ).
+    lo_buf->add( '  margin: 0 auto;' ).
+    lo_buf->add( '  max-width: 1248px;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  border-radius: 5px;' ).
@@ -47231,7 +47231,7 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
+CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD advanced_submenu.
 
     DATA lv_supports_ie_devtools TYPE abap_bool.
@@ -47291,6 +47291,11 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
            WHERE arbgb = iv_msgid
            AND msgnr = iv_msgno
            AND sprsl = sy-langu.
+
+    " Don't return any generic messages like `&1 &2 &3 &4`
+    IF rv_text CO ' 0123456789&'.
+      CLEAR rv_text.
+    ENDIF.
 
   ENDMETHOD.
   METHOD help_submenu.
@@ -47483,15 +47488,16 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
         iv_msgid = ix_error->if_t100_message~t100key-msgid
         iv_msgno = ix_error->if_t100_message~t100key-msgno ).
 
-      lv_text = |Message ({ ix_error->if_t100_message~t100key-msgid }/{ ix_error->if_t100_message~t100key-msgno })|.
+      IF lv_title IS NOT INITIAL.
+        lv_text = |Message ({ ix_error->if_t100_message~t100key-msgid }/{ ix_error->if_t100_message~t100key-msgno })|.
 
-      ri_html->add_a(
-        iv_txt   = lv_text
-        iv_typ   = zif_abapgit_html=>c_action_type-sapevent
-        iv_act   = zif_abapgit_definitions=>c_action-goto_message
-        iv_title = lv_title
-        iv_id    = `a_goto_message` ).
-
+        ri_html->add_a(
+          iv_txt   = lv_text
+          iv_typ   = zif_abapgit_html=>c_action_type-sapevent
+          iv_act   = zif_abapgit_definitions=>c_action-goto_message
+          iv_title = lv_title
+          iv_id    = `a_goto_message` ).
+      ENDIF.
     ENDIF.
 
     ix_error->get_source_position( IMPORTING program_name = lv_program_name ).
@@ -111238,6 +111244,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-06-06T13:31:06.868Z
+* abapmerge 0.14.3 - 2022-06-08T05:55:17.520Z
 ENDINTERFACE.
 ****************************************************
