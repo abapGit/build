@@ -707,7 +707,7 @@ CLASS zcx_abapgit_exception DEFINITION
       RETURNING
         VALUE(rv_result) TYPE string.
 ENDCLASS.
-CLASS zcx_abapgit_exception IMPLEMENTATION.
+CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
   METHOD constructor ##ADT_SUPPRESS_GENERATION.
 
     super->constructor( previous = previous ).
@@ -936,6 +936,14 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
       DELETE ct_itf FROM iv_tabix_from.
     ENDIF.
   ENDMETHOD.
+  METHOD remove_newlines_from_string.
+    rv_result = iv_string.
+
+    REPLACE ALL OCCURRENCES OF ` ` && cl_abap_char_utilities=>cr_lf IN rv_result WITH ` `.
+    REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>cr_lf IN rv_result WITH ` `.
+    REPLACE ALL OCCURRENCES OF ` ` && cl_abap_char_utilities=>newline IN rv_result WITH ` `.
+    REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>newline IN rv_result WITH ` `.
+  ENDMETHOD.
   METHOD replace_section_head_with_text.
 
     CASE cs_itf-tdline.
@@ -1032,15 +1040,6 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
 
     rs_msg = ls_msg.
 
-  ENDMETHOD.
-
-  METHOD remove_newlines_from_string.
-    rv_result = iv_string.
-
-    REPLACE ALL OCCURRENCES OF ` ` && cl_abap_char_utilities=>cr_lf IN rv_result WITH ` `.
-    REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>cr_lf IN rv_result WITH ` `.
-    REPLACE ALL OCCURRENCES OF ` ` && cl_abap_char_utilities=>newline IN rv_result WITH ` `.
-    REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>newline IN rv_result WITH ` `.
   ENDMETHOD.
 ENDCLASS.
 
@@ -13235,61 +13234,68 @@ CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM 
     CLASS-DATA gt_objtype_map TYPE ty_t_objtype_map.
 
 ENDCLASS.
-CLASS zcl_abapgit_objects_program DEFINITION INHERITING FROM zcl_abapgit_objects_super.
+CLASS zcl_abapgit_objects_program DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    TYPES: BEGIN OF ty_progdir,
-             name    TYPE progdir-name,
-             state   TYPE progdir-state,
-             sqlx    TYPE progdir-sqlx,
-             edtx    TYPE progdir-edtx,
-             varcl   TYPE progdir-varcl,
-             dbapl   TYPE progdir-dbapl,
-             dbna    TYPE progdir-dbna,
-             clas    TYPE progdir-clas,
-             type    TYPE progdir-type,
-             occurs  TYPE progdir-occurs,
-             subc    TYPE progdir-subc,
-             appl    TYPE progdir-appl,
-             secu    TYPE progdir-secu,
-             cnam    TYPE progdir-cnam,
-             cdat    TYPE progdir-cdat,
-             unam    TYPE progdir-unam,
-             udat    TYPE progdir-udat,
-             vern    TYPE progdir-vern,
-             levl    TYPE progdir-levl,
-             rstat   TYPE progdir-rstat,
-             rmand   TYPE progdir-rmand,
-             rload   TYPE progdir-rload,
-             fixpt   TYPE progdir-fixpt,
-             sset    TYPE progdir-sset,
-             sdate   TYPE progdir-sdate,
-             stime   TYPE progdir-stime,
-             idate   TYPE progdir-idate,
-             itime   TYPE progdir-itime,
-             ldbname TYPE progdir-ldbname,
-             uccheck TYPE progdir-uccheck,
-           END OF ty_progdir.
+
+    TYPES:
+      BEGIN OF ty_progdir,
+        name    TYPE progdir-name,
+        state   TYPE progdir-state,
+        sqlx    TYPE progdir-sqlx,
+        edtx    TYPE progdir-edtx,
+        varcl   TYPE progdir-varcl,
+        dbapl   TYPE progdir-dbapl,
+        dbna    TYPE progdir-dbna,
+        clas    TYPE progdir-clas,
+        type    TYPE progdir-type,
+        occurs  TYPE progdir-occurs,
+        subc    TYPE progdir-subc,
+        appl    TYPE progdir-appl,
+        secu    TYPE progdir-secu,
+        cnam    TYPE progdir-cnam,
+        cdat    TYPE progdir-cdat,
+        unam    TYPE progdir-unam,
+        udat    TYPE progdir-udat,
+        vern    TYPE progdir-vern,
+        levl    TYPE progdir-levl,
+        rstat   TYPE progdir-rstat,
+        rmand   TYPE progdir-rmand,
+        rload   TYPE progdir-rload,
+        fixpt   TYPE progdir-fixpt,
+        sset    TYPE progdir-sset,
+        sdate   TYPE progdir-sdate,
+        stime   TYPE progdir-stime,
+        idate   TYPE progdir-idate,
+        itime   TYPE progdir-itime,
+        ldbname TYPE progdir-ldbname,
+        uccheck TYPE progdir-uccheck,
+      END OF ty_progdir.
 
     METHODS serialize_program
-      IMPORTING io_xml     TYPE REF TO zif_abapgit_xml_output OPTIONAL
-                is_item    TYPE zif_abapgit_definitions=>ty_item
-                io_files   TYPE REF TO zcl_abapgit_objects_files
-                iv_program TYPE programm OPTIONAL
-                iv_extra   TYPE clike OPTIONAL
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !io_xml TYPE REF TO zif_abapgit_xml_output OPTIONAL
+        !is_item TYPE zif_abapgit_definitions=>ty_item
+        !io_files TYPE REF TO zcl_abapgit_objects_files
+        !iv_program TYPE programm OPTIONAL
+        !iv_extra TYPE clike OPTIONAL
+      RAISING
+        zcx_abapgit_exception.
     METHODS read_progdir
-      IMPORTING iv_program        TYPE programm
-      RETURNING VALUE(rs_progdir) TYPE ty_progdir.
-
+      IMPORTING
+        !iv_program TYPE programm
+      RETURNING
+        VALUE(rs_progdir) TYPE ty_progdir.
     METHODS deserialize_program
-      IMPORTING is_progdir TYPE ty_progdir
-                it_source  TYPE abaptxt255_tab
-                it_tpool   TYPE textpool_table
-                iv_package TYPE devclass
-      RAISING   zcx_abapgit_exception.
-
+      IMPORTING
+        !is_progdir TYPE ty_progdir
+        !it_source TYPE abaptxt255_tab
+        !it_tpool TYPE textpool_table
+        !iv_package TYPE devclass
+      RAISING
+        zcx_abapgit_exception.
   PROTECTED SECTION.
 
     TYPES:
@@ -13322,7 +13328,7 @@ CLASS zcl_abapgit_objects_program DEFINITION INHERITING FROM zcl_abapgit_objects
 
     METHODS strip_generation_comments
       CHANGING
-        ct_source TYPE abaptxt255_tab.
+        ct_source TYPE STANDARD TABLE. " tab of string or charX
     METHODS serialize_dynpros
       IMPORTING
         !iv_program_name TYPE programm
@@ -56288,7 +56294,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_program IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
   METHOD add_tpool.
 
     FIELD-SYMBOLS: <ls_tpool_in>  LIKE LINE OF it_tpool,
@@ -57013,12 +57019,20 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
   ENDMETHOD.
   METHOD strip_generation_comments.
 
-    FIELD-SYMBOLS <lv_line> LIKE LINE OF ct_source.
+    FIELD-SYMBOLS <lv_line> TYPE any. " Assuming CHAR (e.g. abaptxt255_tab) or string (FUGR)
 
     IF ms_item-obj_type <> 'FUGR'.
       RETURN.
     ENDIF.
 
+    " Case 1: MV FM main prog and TOPs
+    READ TABLE ct_source INDEX 1 ASSIGNING <lv_line>.
+    IF sy-subrc = 0 AND <lv_line> CP '#**regenerated at *'.
+      DELETE ct_source INDEX 1.
+      RETURN.
+    ENDIF.
+
+    " Case 2: MV FM includes
     IF lines( ct_source ) < 5. " Generation header length
       RETURN.
     ENDIF.
@@ -81780,7 +81794,7 @@ CLASS zcl_abapgit_object_g4ba IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   METHOD check_rfc_parameters.
 
 * function module RS_FUNCTIONMODULE_INSERT does the same deep down, but the right error
@@ -82453,10 +82467,12 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
       APPEND ls_function TO rt_functions.
 
       IF NOT lt_new_source IS INITIAL.
+        strip_generation_comments( CHANGING ct_source = lt_new_source ).
         zif_abapgit_object~mo_files->add_abap(
           iv_extra = <ls_func>-funcname
           it_abap  = lt_new_source ).
       ELSE.
+        strip_generation_comments( CHANGING ct_source = lt_source ).
         zif_abapgit_object~mo_files->add_abap(
           iv_extra = <ls_func>-funcname
           it_abap  = lt_source ).
@@ -111244,6 +111260,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-06-08T17:17:12.247Z
+* abapmerge 0.14.3 - 2022-06-13T10:01:13.868Z
 ENDINTERFACE.
 ****************************************************
