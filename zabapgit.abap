@@ -2210,6 +2210,7 @@ INTERFACE zif_abapgit_auth.
   TYPES: ty_authorization TYPE string.
 
   CONSTANTS: BEGIN OF c_authorization,
+               startup               TYPE ty_authorization VALUE 'STARTUP',
                uninstall             TYPE ty_authorization VALUE 'UNINSTALL',
                create_repo           TYPE ty_authorization VALUE 'CREATE_REPO',
                transport_to_branch   TYPE ty_authorization VALUE 'TRANSPORT_TO_BRANCH',
@@ -111061,6 +111062,10 @@ FORM run.
   DATA lx_not_found TYPE REF TO zcx_abapgit_not_found.
 
   TRY.
+      IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>c_authorization-startup ) = abap_false.
+        zcx_abapgit_exception=>raise( 'No authorization to start abapGit' ).
+      ENDIF.
+
       zcl_abapgit_migrations=>run( ).
       PERFORM open_gui.
     CATCH zcx_abapgit_exception INTO lx_exception.
@@ -111260,6 +111265,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-06-13T10:01:13.868Z
+* abapmerge 0.14.3 - 2022-06-17T09:51:29.874Z
 ENDINTERFACE.
 ****************************************************
