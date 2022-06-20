@@ -4348,6 +4348,9 @@ INTERFACE zif_abapgit_environment.
   METHODS get_system_language_filter
     RETURNING
       VALUE(rt_system_language_filter) TYPE ty_system_language_filter.
+  METHODS is_variant_maintenance
+    RETURNING
+      VALUE(rv_is_variant_maintenance) TYPE abap_bool.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_exit .
@@ -24373,6 +24376,19 @@ CLASS zcl_abapgit_environment IMPLEMENTATION.
       <ls_system_language_filter>-option = 'EQ'.
       <ls_system_language_filter>-low = lv_pseudo_translation_language.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_environment~is_variant_maintenance.
+
+    DATA:
+      lt_variscreens TYPE STANDARD TABLE OF rsdynnr
+                          WITH NON-UNIQUE DEFAULT KEY.
+
+    " Memory is set in LSVARF08 / EXPORT_SCREEN_TABLES.
+    IMPORT variscreens = lt_variscreens FROM MEMORY ID '%_SCRNR_%'.
+
+    rv_is_variant_maintenance = boolc( lines( lt_variscreens ) > 0 ).
+
   ENDMETHOD.
 
 ENDCLASS.
@@ -111132,11 +111148,15 @@ FORM output.
     TABLES
       p_exclude = lt_ucomm.
 
-  TRY.
-      zcl_abapgit_ui_factory=>get_gui( )->set_focus( ).
-    CATCH zcx_abapgit_exception INTO lx_error.
-      MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
-  ENDTRY.
+  " For variant maintenance we have to omit this because
+  " it instantiates controls and hides maintenance screens.
+  IF zcl_abapgit_factory=>get_environment( )->is_variant_maintenance( ) = abap_false.
+    TRY.
+        zcl_abapgit_ui_factory=>get_gui( )->set_focus( ).
+      CATCH zcx_abapgit_exception INTO lx_error.
+        MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
+    ENDTRY.
+  ENDIF.
 
 ENDFORM.
 
@@ -111182,12 +111202,13 @@ FORM password_popup
 
 ENDFORM.
 
-FORM remove_toolbar USING pv_dynnr TYPE sy-dynnr.
+FORM adjust_toolbar USING pv_dynnr TYPE sy-dynnr.
 
   DATA: ls_header               TYPE rpy_dyhead,
         lt_containers           TYPE dycatt_tab,
         lt_fields_to_containers TYPE dyfatc_tab,
-        lt_flow_logic           TYPE swydyflow.
+        lt_flow_logic           TYPE swydyflow,
+        lv_no_toolbar           LIKE ls_header-no_toolbar.
 
   CALL FUNCTION 'RPY_DYNPRO_READ'
     EXPORTING
@@ -111208,11 +111229,16 @@ FORM remove_toolbar USING pv_dynnr TYPE sy-dynnr.
     RETURN. " Ignore errors, just exit
   ENDIF.
 
-  IF ls_header-no_toolbar = abap_true.
+  " Remove toolbar on html screen but re-insert toolbar for variant maintenance.
+  " Because otherwise important buttons are missing and variant maintenance is not possible.
+  lv_no_toolbar = boolc( zcl_abapgit_factory=>get_environment(
+                                           )->is_variant_maintenance( ) = abap_false ).
+
+  IF ls_header-no_toolbar = lv_no_toolbar.
     RETURN. " No change required
   ENDIF.
 
-  ls_header-no_toolbar = abap_true.
+  ls_header-no_toolbar = lv_no_toolbar.
 
   CALL FUNCTION 'RPY_DYNPRO_INSERT'
     EXPORTING
@@ -111240,7 +111266,7 @@ FORM remove_toolbar USING pv_dynnr TYPE sy-dynnr.
 ENDFORM.
 **********************************************************************
 INITIALIZATION.
-  PERFORM remove_toolbar USING '1001'. " Remove toolbar on html screen
+  PERFORM adjust_toolbar USING '1001'.
   lcl_password_dialog=>on_screen_init( ).
 
 START-OF-SELECTION.
@@ -111265,6 +111291,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-06-17T09:51:29.874Z
+* abapmerge 0.14.3 - 2022-06-20T15:31:47.820Z
 ENDINTERFACE.
 ****************************************************
