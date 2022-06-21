@@ -10751,6 +10751,9 @@ CLASS zcl_abapgit_object_iwpr DEFINITION
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
+    METHODS get_field_rules
+      RETURNING
+        VALUE(ro_result) TYPE REF TO zif_abapgit_field_rules.
 ENDCLASS.
 CLASS zcl_abapgit_object_iwsg DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
@@ -10786,6 +10789,9 @@ CLASS zcl_abapgit_object_iwsv DEFINITION
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
+    METHODS get_field_rules
+      RETURNING
+        VALUE(ro_result) TYPE REF TO zif_abapgit_field_rules.
 ENDCLASS.
 CLASS zcl_abapgit_object_iwvb DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
@@ -78742,8 +78748,9 @@ CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
 
     CREATE OBJECT ro_generic
       EXPORTING
-        is_item     = ms_item
-        iv_language = mv_language.
+        io_field_rules = get_field_rules( )
+        is_item        = ms_item
+        iv_language    = mv_language.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -78820,6 +78827,27 @@ CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
     get_generic( )->serialize( io_xml ).
 
   ENDMETHOD.
+
+  METHOD get_field_rules.
+    ro_result = zcl_abapgit_field_rules=>create( ).
+    ro_result->add(
+      iv_table     = '/IWBEP/I_MGW_SRH'
+      iv_field     = 'CREATED_BY'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_SRH'
+      iv_field     = 'CREATED_TIMESTMP'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_SRH'
+      iv_field     = 'CHANGED_BY'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_SRH'
+      iv_field     = 'CHANGED_TIMESTMP'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp ).
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_object_iwsg IMPLEMENTATION.
@@ -78909,8 +78937,9 @@ CLASS zcl_abapgit_object_iwpr IMPLEMENTATION.
 
     CREATE OBJECT ro_generic
       EXPORTING
-        is_item     = ms_item
-        iv_language = mv_language.
+        io_field_rules = get_field_rules( )
+        is_item        = ms_item
+        iv_language    = mv_language.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -78967,6 +78996,27 @@ CLASS zcl_abapgit_object_iwpr IMPLEMENTATION.
     get_generic( )->serialize( io_xml ).
 
   ENDMETHOD.
+
+  METHOD get_field_rules.
+    ro_result = zcl_abapgit_field_rules=>create( ).
+    ro_result->add(
+      iv_table     = '/IWBEP/I_SBD_GA'
+      iv_field     = 'CREATION_USER_ID'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWBEP/I_SBD_GA'
+      iv_field     = 'CREATION_TIME'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp
+    )->add(
+      iv_table     = '/IWBEP/I_SBD_GA'
+      iv_field     = 'LAST_CHG_USER_ID'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWBEP/I_SBD_GA'
+      iv_field     = 'LAST_CHG_TIME'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp ).
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_object_iwom IMPLEMENTATION.
@@ -111344,6 +111394,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-06-21T10:47:28.854Z
+* abapmerge 0.14.3 - 2022-06-21T11:06:29.534Z
 ENDINTERFACE.
 ****************************************************
