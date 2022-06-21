@@ -14423,6 +14423,11 @@ CLASS zcl_abapgit_repo DEFINITION
         ct_files TYPE zif_abapgit_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception .
+    METHODS check_and_create_package
+      IMPORTING
+         iv_package TYPE devclass
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
 
     DATA mt_local TYPE zif_abapgit_definitions=>ty_files_item_tt .
@@ -14705,12 +14710,6 @@ CLASS zcl_abapgit_repo_online DEFINITION
       FOR zif_abapgit_repo_online~switch_origin .
     ALIASES get_switched_origin
       FOR zif_abapgit_repo_online~get_switched_origin.
-
-    METHODS check_and_create_package
-      IMPORTING
-        !iv_package TYPE devclass
-      RAISING
-        zcx_abapgit_exception .
 
     METHODS get_files_remote
         REDEFINITION .
@@ -52623,6 +52622,8 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
     ls_repo-local_settings-main_language_only = iv_main_lang_only.
     lo_repo->set_local_settings( ls_repo-local_settings ).
+    lo_repo->check_and_create_package( iv_package ).
+
     ri_repo = lo_repo.
 
   ENDMETHOD.
@@ -52774,29 +52775,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
-  METHOD check_and_create_package.
 
-    DATA ls_item TYPE zif_abapgit_definitions=>ty_item.
-    DATA lv_package TYPE devclass.
-
-    ls_item-obj_type = 'DEVC'.
-    ls_item-obj_name = iv_package.
-
-    IF zcl_abapgit_objects=>exists( ls_item ) = abap_false.
-      " Check if any package is included in remote
-      READ TABLE mt_remote TRANSPORTING NO FIELDS
-        WITH KEY file
-        COMPONENTS filename = zcl_abapgit_filename_logic=>c_package_file.
-      IF sy-subrc <> 0.
-        " If not, prompt to create it
-        lv_package = zcl_abapgit_services_basis=>create_package( iv_package ).
-        IF lv_package IS NOT INITIAL.
-          COMMIT WORK AND WAIT.
-        ENDIF.
-      ENDIF.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD fetch_remote.
 
     DATA: li_progress TYPE REF TO zif_abapgit_progress,
@@ -53966,6 +53945,30 @@ CLASS ZCL_ABAPGIT_REPO_CHECKSUMS IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
+
+  METHOD check_and_create_package.
+
+    DATA ls_item TYPE zif_abapgit_definitions=>ty_item.
+    DATA lv_package TYPE devclass.
+
+    ls_item-obj_type = 'DEVC'.
+    ls_item-obj_name = iv_package.
+
+    IF zcl_abapgit_objects=>exists( ls_item ) = abap_false.
+      " Check if any package is included in remote
+      READ TABLE mt_remote TRANSPORTING NO FIELDS
+        WITH KEY file
+        COMPONENTS filename = zcl_abapgit_filename_logic=>c_package_file.
+      IF sy-subrc <> 0.
+        " If not, prompt to create it
+        lv_package = zcl_abapgit_services_basis=>create_package( iv_package ).
+        IF lv_package IS NOT INITIAL.
+          COMMIT WORK AND WAIT.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -111341,6 +111344,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.3 - 2022-06-21T09:08:12.956Z
+* abapmerge 0.14.3 - 2022-06-21T10:47:28.854Z
 ENDINTERFACE.
 ****************************************************
