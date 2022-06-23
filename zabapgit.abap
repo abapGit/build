@@ -10818,6 +10818,9 @@ CLASS zcl_abapgit_object_iwvb DEFINITION
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
+    METHODS get_field_rules
+      RETURNING
+        VALUE(ro_result) TYPE REF TO zif_abapgit_field_rules.
 ENDCLASS.
 CLASS zcl_abapgit_object_jobd DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -78735,8 +78738,9 @@ CLASS zcl_abapgit_object_iwvb IMPLEMENTATION.
 
     CREATE OBJECT ro_generic
       EXPORTING
-        is_item     = ms_item
-        iv_language = mv_language.
+        io_field_rules = get_field_rules( )
+        is_item        = ms_item
+        iv_language    = mv_language.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -78794,6 +78798,27 @@ CLASS zcl_abapgit_object_iwvb IMPLEMENTATION.
     get_generic( )->serialize( io_xml ).
 
   ENDMETHOD.
+
+  METHOD get_field_rules.
+    ro_result = zcl_abapgit_field_rules=>create( ).
+    ro_result->add(
+      iv_table     = '/IWBEP/I_MGW_VAH'
+      iv_field     = 'CREATED_BY'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_VAH'
+      iv_field     = 'CREATED_TIMESTMP'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_VAH'
+      iv_field     = 'CHANGED_BY'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_VAH'
+      iv_field     = 'CHANGED_TIMESTMP'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp ).
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
@@ -111505,6 +111530,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-06-23T05:13:15.578Z
+* abapmerge 0.14.7 - 2022-06-23T11:17:04.316Z
 ENDINTERFACE.
 ****************************************************
