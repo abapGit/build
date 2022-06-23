@@ -5592,12 +5592,16 @@ CLASS zcl_abapgit_git_pack DEFINITION
       IMPORTING
         !it_nodes      TYPE ty_nodes_tt
       RETURNING
-        VALUE(rv_data) TYPE xstring .
+        VALUE(rv_data) TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS encode_commit
       IMPORTING
         !is_commit     TYPE ty_commit
       RETURNING
-        VALUE(rv_data) TYPE xstring .
+        VALUE(rv_data) TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS encode_tag
       IMPORTING
         !is_tag        TYPE ty_tag
@@ -7233,7 +7237,9 @@ CLASS zcl_abapgit_objects_files DEFINITION
       IMPORTING
         !iv_extra  TYPE clike OPTIONAL
         !iv_ext    TYPE string
-        !iv_string TYPE string.
+        !iv_string TYPE string
+      RAISING
+        zcx_abapgit_exception .
     METHODS read_string
       IMPORTING
         !iv_extra        TYPE clike OPTIONAL
@@ -7247,7 +7253,9 @@ CLASS zcl_abapgit_objects_files DEFINITION
         !iv_extra     TYPE clike OPTIONAL
         !ii_xml       TYPE REF TO zif_abapgit_xml_output
         !iv_normalize TYPE abap_bool DEFAULT abap_true
-        !is_metadata  TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL.
+        !is_metadata  TYPE zif_abapgit_definitions=>ty_metadata OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
     METHODS read_xml
       IMPORTING
         !iv_extra     TYPE clike OPTIONAL
@@ -7266,7 +7274,9 @@ CLASS zcl_abapgit_objects_files DEFINITION
     METHODS add_abap
       IMPORTING
         !iv_extra TYPE clike OPTIONAL
-        !it_abap  TYPE STANDARD TABLE.
+        !it_abap  TYPE STANDARD TABLE
+      RAISING
+        zcx_abapgit_exception .
     METHODS add
       IMPORTING
         !is_file TYPE zif_abapgit_definitions=>ty_file .
@@ -12938,7 +12948,8 @@ CLASS zcl_abapgit_object_wapa DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         RAISING   zcx_abapgit_exception,
       to_page_content
         IMPORTING iv_content        TYPE xstring
-        RETURNING VALUE(rt_content) TYPE o2pageline_table,
+        RETURNING VALUE(rt_content) TYPE o2pageline_table
+        RAISING   zcx_abapgit_exception,
       read_page
         IMPORTING is_page         TYPE o2pagattr
                   iv_no_files_add TYPE abap_bool OPTIONAL
@@ -15345,7 +15356,9 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
         !iv_cachable  TYPE abap_bool DEFAULT abap_true
         !iv_mime_name TYPE wwwdatatab-objid OPTIONAL
         !iv_base64    TYPE string OPTIONAL
-        !iv_inline    TYPE string OPTIONAL .
+        !iv_inline    TYPE string OPTIONAL
+      RAISING
+        zcx_abapgit_exception.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -19871,17 +19884,23 @@ CLASS zcl_abapgit_convert DEFINITION
       IMPORTING
         !iv_string        TYPE string
       RETURNING
-        VALUE(rv_xstring) TYPE xstring .
+        VALUE(rv_xstring) TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS xstring_to_string_utf8
       IMPORTING
         !iv_data         TYPE xsequence
       RETURNING
-        VALUE(rv_string) TYPE string .
+        VALUE(rv_string) TYPE string
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS string_to_xstring_utf8_bom
       IMPORTING
         !iv_string        TYPE string
       RETURNING
-        VALUE(rv_xstring) TYPE xstring .
+        VALUE(rv_xstring) TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS xstring_to_int
       IMPORTING
         !iv_xstring TYPE xstring
@@ -19908,7 +19927,9 @@ CLASS zcl_abapgit_convert DEFINITION
       IMPORTING
         !iv_str        TYPE string
       RETURNING
-        VALUE(rv_xstr) TYPE xstring .
+        VALUE(rv_xstr) TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS string_to_tab
       IMPORTING
         !iv_str  TYPE string
@@ -19945,7 +19966,9 @@ CLASS zcl_abapgit_diff DEFINITION
         !iv_old                TYPE xstring
         !iv_ignore_indentation TYPE abap_bool DEFAULT abap_false
         !iv_ignore_comments    TYPE abap_bool DEFAULT abap_false
-        !iv_ignore_case        TYPE abap_bool DEFAULT abap_false.
+        !iv_ignore_case        TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception.
     METHODS get
       RETURNING
         VALUE(rt_diff) TYPE zif_abapgit_definitions=>ty_diffs_tt.
@@ -19998,7 +20021,9 @@ CLASS zcl_abapgit_diff DEFINITION
         !iv_old TYPE xstring
       EXPORTING
         !et_new TYPE rswsourcet
-        !et_old TYPE rswsourcet.
+        !et_old TYPE rswsourcet
+      RAISING
+        zcx_abapgit_exception.
     METHODS map_beacons.
     METHODS shortlist.
     METHODS create_regex_set
@@ -20525,14 +20550,14 @@ CLASS zcl_abapgit_utils DEFINITION
       IMPORTING
         !iv_data            TYPE xstring
       RETURNING
-        VALUE(rv_is_binary) TYPE abap_bool .
+        VALUE(rv_is_binary) TYPE abap_bool.
     CLASS-METHODS extract_author_data
       IMPORTING
         !iv_author TYPE string
       EXPORTING
-        !ev_author  TYPE zif_abapgit_definitions=>ty_commit-author
-        !ev_email   TYPE zif_abapgit_definitions=>ty_commit-email
-        !ev_time    TYPE zif_abapgit_definitions=>ty_commit-time
+        !ev_author TYPE zif_abapgit_definitions=>ty_commit-author
+        !ev_email  TYPE zif_abapgit_definitions=>ty_commit-email
+        !ev_time   TYPE zif_abapgit_definitions=>ty_commit-time
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS is_valid_email
@@ -20994,7 +21019,9 @@ CLASS zcl_abapgit_news DEFINITION
       IMPORTING
         !iv_rawdata          TYPE xstring
         !iv_lastseen_version TYPE string
-        !iv_current_version  TYPE string .
+        !iv_current_version  TYPE string
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -24995,7 +25022,11 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
 
     "unicode systems always add the byte order mark to the xml, while non-unicode does not
     "this code will always add the byte order mark if it is not in the xml
-    lv_mark = zcl_abapgit_convert=>xstring_to_string_utf8( cl_abap_char_utilities=>byte_order_mark_utf8 ).
+    TRY.
+        lv_mark = zcl_abapgit_convert=>xstring_to_string_utf8( cl_abap_char_utilities=>byte_order_mark_utf8 ).
+      CATCH zcx_abapgit_exception ##NO_HANDLER.
+        ASSERT 0 = 1.
+    ENDTRY.
     IF rv_xml(1) <> lv_mark.
       CONCATENATE lv_mark rv_xml INTO rv_xml.
     ENDIF.
@@ -25048,7 +25079,13 @@ CLASS zcl_abapgit_utils IMPLEMENTATION.
 
     lv_data = iv_data(lv_xlen).
 
-    lv_string_data = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
+    TRY.
+        lv_string_data = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
+      CATCH zcx_abapgit_exception.
+        " Contains data that does not convert to UTF-8 so consider it binary
+        rv_is_binary = abap_true.
+        RETURN.
+    ENDTRY.
 
     REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>newline IN lv_string_data WITH space.
     REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>cr_lf IN lv_string_data WITH space.
@@ -26683,7 +26720,7 @@ CLASS zcl_abapgit_diff IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
+CLASS zcl_abapgit_convert IMPLEMENTATION.
   METHOD base64_to_xstring.
 
     rv_xstr = cl_http_utility=>decode_x_base64( iv_base64 ).
@@ -26778,6 +26815,8 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   ENDMETHOD.
   METHOD string_to_xstring_utf8.
 
+    DATA lx_error TYPE REF TO cx_root.
+
     TRY.
         IF go_convert_out IS INITIAL.
           go_convert_out = cl_abap_conv_out_ce=>create( encoding = 'UTF-8' ).
@@ -26790,7 +26829,8 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
       CATCH cx_parameter_invalid_range
             cx_sy_codepage_converter_init
             cx_sy_conversion_codepage
-            cx_parameter_invalid_type.                  "#EC NO_HANDLER
+            cx_parameter_invalid_type INTO lx_error.
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -26844,6 +26884,8 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
   ENDMETHOD.
   METHOD xstring_to_string_utf8.
 
+    DATA lx_error TYPE REF TO cx_root.
+
     TRY.
         IF go_convert_in IS INITIAL.
           go_convert_in = cl_abap_conv_in_ce=>create( encoding = 'UTF-8' ).
@@ -26859,7 +26901,8 @@ CLASS ZCL_ABAPGIT_CONVERT IMPLEMENTATION.
       CATCH cx_parameter_invalid_range
             cx_sy_codepage_converter_init
             cx_sy_conversion_codepage
-            cx_parameter_invalid_type.                  "#EC NO_HANDLER
+            cx_parameter_invalid_type INTO lx_error.
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
   ENDMETHOD.
@@ -36018,7 +36061,11 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
 
     CONSTANTS lc_nbsp TYPE xstring VALUE 'C2A0'. " &nbsp;
 
-    gv_non_breaking_space = zcl_abapgit_convert=>xstring_to_string_utf8( lc_nbsp ).
+    TRY.
+        gv_non_breaking_space = zcl_abapgit_convert=>xstring_to_string_utf8( lc_nbsp ).
+      CATCH zcx_abapgit_exception.
+        ASSERT 0 = 1.
+    ENDTRY.
 
   ENDMETHOD.
   METHOD dbkey_encode.
@@ -39934,7 +39981,10 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
     rs_info-size = xstrlen( is_file-data ).
 
     IF is_file-filename CP '*.abap'.
-      lv_code = zcl_abapgit_convert=>xstring_to_string_utf8( is_file-data ).
+      TRY.
+          lv_code = zcl_abapgit_convert=>xstring_to_string_utf8( is_file-data ).
+        CATCH zcx_abapgit_exception ##NO_HANDLER.
+      ENDTRY.
 
       SPLIT lv_code AT zif_abapgit_definitions=>c_newline INTO TABLE lt_code.
 
@@ -50434,7 +50484,7 @@ CLASS ZCL_ABAPGIT_GUI_CSS_PROCESSOR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
   METHOD get_mime_asset.
 
     DATA: ls_key    TYPE wwwdatatab,
@@ -51556,7 +51606,10 @@ CLASS zcl_abapgit_syntax_highlighter IMPLEMENTATION.
         WITH '<span class="red">&odash;</span>'.
 
       IF strlen( rv_line ) BETWEEN 1 AND 2.
-        lv_bom = zcl_abapgit_convert=>string_to_xstring( rv_line ).
+        TRY.
+            lv_bom = zcl_abapgit_convert=>string_to_xstring( rv_line ).
+          CATCH zcx_abapgit_exception ##NO_HANDLER.
+        ENDTRY.
         IF lv_bom(2) = cl_abap_char_utilities=>byte_order_mark_big.
           rv_line = '<span class="red">&squf;</span>'. " UTF-16 big-endian (FE FF)
         ENDIF.
@@ -107152,7 +107205,7 @@ CLASS kHGwlHhZbTrIxNkYzsWttffscEwAXR IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
+CLASS zcl_abapgit_git_pack IMPLEMENTATION.
   METHOD decode.
 
     DATA: lv_x              TYPE x,
@@ -111452,6 +111505,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-06-22T15:53:17.433Z
+* abapmerge 0.14.7 - 2022-06-23T05:13:15.578Z
 ENDINTERFACE.
 ****************************************************
