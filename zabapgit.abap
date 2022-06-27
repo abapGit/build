@@ -31243,8 +31243,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    this.activatedDropdown = hint.parent.parentElement;' ).
     lo_buf->add( '    this.activatedDropdown.classList.toggle("force-nav-hover");' ).
     lo_buf->add( '    hint.parent.focus();' ).
-    lo_buf->add( '  } else if (hint.parent.type === "checkbox" || hint.parent.type === "radio") {' ).
+    lo_buf->add( '  } else if (hint.parent.type === "checkbox") {' ).
     lo_buf->add( '    this.toggleCheckbox(hint);' ).
+    lo_buf->add( '  } else if (hint.parent.type === "radio") {' ).
+    lo_buf->add( '    this.toggleRadioButton(hint);' ).
     lo_buf->add( '  } else if (hint.parent.type === "submit") {' ).
     lo_buf->add( '    hint.parent.click();' ).
     lo_buf->add( '  } else if (hint.parent.nodeName === "INPUT" || hint.parent.nodeName === "TEXTAREA") {' ).
@@ -31256,16 +31258,24 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'LinkHints.prototype.toggleCheckbox = function (hint) {' ).
-    lo_buf->add( '  // ensures that onclick handler is executed' ).
-    lo_buf->add( '  // https://stackoverflow.com/questions/41981509/trigger-an-event-when-a-checkbox-is-changed-programmatically-via-javascript' ).
-    lo_buf->add( '  var event = document.createEvent("HTMLEvents");' ).
     lo_buf->add( '  var checked = hint.parent.checked;' ).
-    lo_buf->add( '  event.initEvent("click", false, true);' ).
-    lo_buf->add( '  hint.parent.parentElement.dispatchEvent(event);' ).
+    lo_buf->add( '  this.triggerClickHandler(hint.parent.parentElement);' ).
     lo_buf->add( '  if (checked === hint.parent.checked) {' ).
     lo_buf->add( '    // fallback if no handler is registered' ).
     lo_buf->add( '    hint.parent.checked = !hint.parent.checked;' ).
     lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'LinkHints.prototype.toggleRadioButton = function(hint) {' ).
+    lo_buf->add( '  this.triggerClickHandler(hint.parent);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'LinkHints.prototype.triggerClickHandler = function(el){' ).
+    lo_buf->add( '  // ensures that onclick handler is executed' ).
+    lo_buf->add( '  // https://stackoverflow.com/questions/41981509/trigger-an-event-when-a-checkbox-is-changed-programmatically-via-javascript' ).
+    lo_buf->add( '  var event = document.createEvent("HTMLEvents");' ).
+    lo_buf->add( '  event.initEvent("click", false, true);' ).
+    lo_buf->add( '  el.dispatchEvent(event);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'LinkHints.prototype.filterHints = function () {' ).
@@ -111933,6 +111943,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-06-27T08:16:31.200Z
+* abapmerge 0.14.7 - 2022-06-27T08:39:24.869Z
 ENDINTERFACE.
 ****************************************************
