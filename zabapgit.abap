@@ -19636,7 +19636,7 @@ CLASS zcl_abapgit_html_viewer_gui DEFINITION
     DATA mo_html_viewer TYPE REF TO cl_gui_html_viewer .
 
     METHODS on_event
-        FOR EVENT sapevent OF cl_gui_html_viewer
+      FOR EVENT sapevent OF cl_gui_html_viewer
       IMPORTING
         !action
         !frame
@@ -35156,7 +35156,7 @@ CLASS zcl_abapgit_log_viewer IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTML_VIEWER_GUI IMPLEMENTATION.
+CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
   METHOD constructor.
 
     DATA: lt_events TYPE cntl_simple_events,
@@ -35233,7 +35233,8 @@ CLASS ZCL_ABAPGIT_HTML_VIEWER_GUI IMPLEMENTATION.
         dp_invalid_parameter   = 1
         dp_error_general       = 2
         cntl_error             = 3
-        html_syntax_notcorrect = 4 ).
+        " html_syntax_notcorrect = 4  " not in lower releases
+        OTHERS                 = 5 ).
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Error loading data for HTML viewer' ).
     ENDIF.
@@ -35248,7 +35249,8 @@ CLASS ZCL_ABAPGIT_HTML_VIEWER_GUI IMPLEMENTATION.
       EXCEPTIONS
         cntl_error                = 1
         cntl_system_error         = 2
-        illegal_event_combination = 3 ).
+        illegal_event_combination = 3
+        OTHERS                    = 4 ).
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Error registering events for HTML viewer' ).
     ENDIF.
@@ -35276,7 +35278,8 @@ CLASS ZCL_ABAPGIT_HTML_VIEWER_GUI IMPLEMENTATION.
         cntl_error             = 1
         cnht_error_not_allowed = 2
         cnht_error_parameter   = 3
-        dp_error_general       = 4 ).
+        dp_error_general       = 4
+        OTHERS                 = 5 ).
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Error showing URL in HTML viewer' ).
     ENDIF.
@@ -111943,6 +111946,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-06-27T08:45:45.897Z
+* abapmerge 0.14.7 - 2022-06-27T10:31:54.348Z
 ENDINTERFACE.
 ****************************************************
