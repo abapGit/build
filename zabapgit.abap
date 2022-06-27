@@ -36260,8 +36260,8 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
 
     IF is_field-rows > 0.
       lv_rows = | rows="{ is_field-rows }"|.
-    ELSE.
-      lv_rows = lines( zcl_abapgit_convert=>split_string( is_attr-value ) ).
+    ELSEIF is_attr-value IS NOT INITIAL.
+      lv_rows = | rows="{ lines( zcl_abapgit_convert=>split_string( is_attr-value ) ) + 1 }"|.
     ENDIF.
 
     IF is_field-cols > 0.
@@ -38583,12 +38583,9 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
       iv_key = c_id-starting_folder
       iv_val = ls_dot-starting_folder ).
 
-    LOOP AT ls_dot-ignore ASSIGNING <lv_ignore>.
-      lv_ignore = lv_ignore && <lv_ignore> && zif_abapgit_definitions=>c_newline.
-    ENDLOOP.
-    IF sy-subrc <> 0.
-      lv_ignore = zif_abapgit_definitions=>c_newline.
-    ENDIF.
+    lv_ignore = concat_lines_of(
+      table = ls_dot-ignore
+      sep   = zif_abapgit_definitions=>c_newline ).
 
     mo_form_data->set(
       iv_key = c_id-ignore
@@ -38658,9 +38655,12 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
 
     " Add newly entered ignores
     lt_ignore = zcl_abapgit_convert=>split_string( mo_form_data->get( c_id-ignore ) ).
-    LOOP AT lt_ignore INTO lv_ignore WHERE table_line IS NOT INITIAL.
-      lo_dot->add_ignore( iv_path = ''
-                          iv_filename = lv_ignore ).
+    LOOP AT lt_ignore INTO lv_ignore.
+      lv_ignore = condense( lv_ignore ).
+      IF lv_ignore IS NOT INITIAL.
+        lo_dot->add_ignore( iv_path = ''
+                            iv_filename = lv_ignore ).
+      ENDIF.
     ENDLOOP.
 
     " Requirements
@@ -111943,6 +111943,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-06-27T08:39:24.869Z
+* abapmerge 0.14.7 - 2022-06-27T08:45:45.897Z
 ENDINTERFACE.
 ****************************************************
