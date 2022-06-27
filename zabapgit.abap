@@ -91869,7 +91869,7 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
     ASSIGN COMPONENT 'METADATA' OF STRUCTURE <lg_data> TO <lv_metadata_node>.
     ASSERT sy-subrc = 0.
 
-    CREATE DATA lr_metadata  TYPE ('IF_ADT_TOOLS_CORE_SOURCE_TYPES=>TY_ABAP_SOURCE_MAIN_OBJECT').
+    CREATE DATA lr_metadata  TYPE ('CL_BLUE_SOURCE_OBJECT_DATA=>TY_OBJECT_DATA-METADATA').
     ASSIGN lr_metadata->* TO <ls_metadata>.
     ASSERT sy-subrc = 0.
 
@@ -111947,6 +111947,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-06-27T11:10:37.340Z
+* abapmerge 0.14.7 - 2022-06-27T11:17:15.786Z
 ENDINTERFACE.
 ****************************************************
