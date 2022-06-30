@@ -85,6 +85,7 @@ INTERFACE zif_abapgit_tadir DEFERRED.
 INTERFACE zif_abapgit_aff_types_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_oo_types_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_intf_v1 DEFERRED.
+INTERFACE zif_abapgit_aff_type_mapping DEFERRED.
 INTERFACE zif_abapgit_ajson_mapping DEFERRED.
 INTERFACE zif_abapgit_ajson_filter DEFERRED.
 INTERFACE zif_abapgit_ajson DEFERRED.
@@ -413,6 +414,7 @@ CLASS zcl_abapgit_object_common_aff DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_chkv DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_chko DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_chkc DEFINITION DEFERRED.
+CLASS zcl_abapgit_json_handler DEFINITION DEFERRED.
 CLASS zcl_abapgit_ajson_utilities DEFINITION DEFERRED.
 CLASS zcl_abapgit_ajson_mapping DEFINITION DEFERRED.
 CLASS zcl_abapgit_ajson_filter_lib DEFINITION DEFERRED.
@@ -1506,6 +1508,17 @@ INTERFACE zif_abapgit_ajson_mapping.
     RETURNING
       VALUE(rv_result) TYPE string.
 
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_aff_type_mapping .
+  METHODS:
+    "! Converts to AFF specific meta data
+    "!
+    "! @parameter iv_data | (meta-)data of the object
+    "! @parameter es_data | aff data of the object, e.g. zif_abapgit_aff_intf_v1=>ty_main
+    to_aff
+      IMPORTING iv_data TYPE data
+      EXPORTING es_data TYPE data.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_aff_types_v1.
@@ -6961,6 +6974,35 @@ CLASS zcl_abapgit_ajson_utilities DEFINITION
         !iv_keep_empty_arrays TYPE abap_bool
       RAISING
         zcx_abapgit_ajson_error .
+ENDCLASS.
+CLASS zcl_abapgit_json_handler DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    "! Serializes data to xstring. Type of data is specified in the
+    "! implementing class.
+    "!
+    "! @parameter iv_data | data to be serialized
+    "! @parameter rv_result | serialized data
+    METHODS serialize
+      IMPORTING iv_data          TYPE data
+      RETURNING VALUE(rv_result) TYPE xstring
+      RAISING   cx_static_check.
+
+    "! Deserializes xstring into data. The type of data is specified in
+    "! the implementing class
+    "!
+    "! @parameter iv_content | xstring to be deserialized
+    "! @parameter ev_data | data of the xstring
+    METHODS deserialize
+      IMPORTING iv_content TYPE xstring
+      EXPORTING ev_data    TYPE data
+      RAISING   cx_static_check.
+  PROTECTED SECTION.
+
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_dependencies DEFINITION
   FINAL
@@ -80132,6 +80174,70 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS kHGwlUKtFBXjILcBRBJOUAAKxuSDxK DEFINITION DEFERRED.
+CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd DEFINITION DEFERRED.
+*"* use this source file for the definition and implementation of
+*"* local helper classes, interface definitions and type
+*"* declarations
+* renamed: zcl_abapgit_object_intf :: lcl_aff_type_mapping
+CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_aff_type_mapping.
+ENDCLASS.
+
+CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd IMPLEMENTATION.
+
+  METHOD zif_abapgit_aff_type_mapping~to_aff.
+    DATA:
+      ls_data_abapgit TYPE zcl_abapgit_object_intf=>ty_intf,
+      ls_data_aff     TYPE zif_abapgit_aff_intf_v1=>ty_main.
+
+    ls_data_abapgit = iv_data.
+
+    " todo: to convert the data
+    ls_data_aff-format_version = '42'.
+
+    es_data = ls_data_aff.
+  ENDMETHOD.
+
+ENDCLASS.
+
+* renamed: zcl_abapgit_object_intf :: lcl_aff_serialize_metadata
+CLASS kHGwlUKtFBXjILcBRBJOUAAKxuSDxK DEFINITION.
+  PUBLIC SECTION.
+
+    CLASS-METHODS serialize
+      IMPORTING is_intf          TYPE data
+      RETURNING VALUE(rv_result) TYPE xstring
+      RAISING   zcx_abapgit_exception.
+ENDCLASS.
+
+CLASS kHGwlUKtFBXjILcBRBJOUAAKxuSDxK IMPLEMENTATION.
+
+  METHOD serialize.
+    DATA:
+      ls_data_abapgit TYPE zcl_abapgit_object_intf=>ty_intf,
+      ls_data_aff     TYPE zif_abapgit_aff_intf_v1=>ty_main,
+      lx_exception    TYPE REF TO cx_root,
+      lo_ajson        TYPE REF TO zcl_abapgit_json_handler,
+      lo_aff_mapper   TYPE REF TO zif_abapgit_aff_type_mapping.
+
+    ls_data_abapgit = is_intf.
+
+    CREATE OBJECT lo_aff_mapper TYPE kHGwlUKtFBXjILcBRBJOvDDGtKNvAd.
+    lo_aff_mapper->to_aff( EXPORTING iv_data = ls_data_abapgit
+                           IMPORTING es_data = ls_data_aff ).
+    CREATE OBJECT lo_ajson.
+    TRY.
+        rv_result = lo_ajson->serialize( ls_data_aff ).
+      CATCH cx_root INTO lx_exception.
+        zcx_abapgit_exception=>raise_with_text( lx_exception ).
+    ENDTRY.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
 CLASS zcl_abapgit_object_intf IMPLEMENTATION.
   METHOD constructor.
     super->constructor(
@@ -80333,6 +80439,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
     DATA:
       ls_intf             TYPE ty_intf,
       ls_clskey           TYPE seoclskey,
+      lv_serialized_data  TYPE xstring,
       lt_langu_additional TYPE zif_abapgit_lang_definitions=>ty_langus.
 
     ls_clskey-clsname = ms_item-obj_name.
@@ -80367,14 +80474,21 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
                                            iv_clsname = ls_clskey-clsname ).
 
     " HERE: switch with feature flag for XML or JSON file format
-    io_xml->add( iv_name = 'VSEOINTERF'
-               ig_data = ls_intf-vseointerf ).
-    io_xml->add( iv_name =  'DESCRIPTIONS'
-                 ig_data = ls_intf-description ).
-    io_xml->add( iv_name = 'LINES'
-                 ig_data = ls_intf-docu-lines ).
-    io_xml->add( iv_name = 'I18N_LINES'
-                 ig_data = ls_intf-docu-i18n_lines ).
+    IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) = abap_true.
+      lv_serialized_data = kHGwlUKtFBXjILcBRBJOUAAKxuSDxK=>serialize( ls_intf ).
+      zif_abapgit_object~mo_files->add_raw( iv_ext = 'json'
+                                            iv_data = lv_serialized_data ).
+
+    ELSE.
+      io_xml->add( iv_name = 'VSEOINTERF'
+                   ig_data = ls_intf-vseointerf ).
+      io_xml->add( iv_name =  'DESCRIPTIONS'
+                   ig_data = ls_intf-description ).
+      io_xml->add( iv_name = 'LINES'
+                   ig_data = ls_intf-docu-lines ).
+      io_xml->add( iv_name = 'I18N_LINES'
+                   ig_data = ls_intf-docu-i18n_lines ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -102808,6 +102922,105 @@ CLASS zcl_abapgit_object_chkc IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS kHGwlbVxgSjWYXcuzxmbrHxeswZCbe DEFINITION DEFERRED.
+CLASS kHGwlbVxgSjWYXcuzxmbjGTuUPjGkM DEFINITION DEFERRED.
+*"* use this source file for the definition and implementation of
+*"* local helper classes, interface definitions and type
+*"* declarations
+* renamed: zcl_abapgit_json_handler :: lcl_mapping
+CLASS kHGwlbVxgSjWYXcuzxmbjGTuUPjGkM DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_ajson_mapping.
+ENDCLASS.
+
+CLASS kHGwlbVxgSjWYXcuzxmbjGTuUPjGkM IMPLEMENTATION.
+  METHOD zif_abapgit_ajson_mapping~to_abap.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~to_json.
+    TYPES ty_token TYPE c LENGTH 255.
+    DATA lt_tokens TYPE STANDARD TABLE OF ty_token.
+    FIELD-SYMBOLS <lg_token> LIKE LINE OF lt_tokens.
+
+    rv_result = iv_name.
+
+    SPLIT rv_result AT `_` INTO TABLE lt_tokens.
+    LOOP AT lt_tokens ASSIGNING <lg_token> FROM 2.
+      TRANSLATE <lg_token>(1) TO UPPER CASE.
+    ENDLOOP.
+    CONCATENATE LINES OF lt_tokens INTO rv_result.
+
+  ENDMETHOD.
+ENDCLASS.
+* renamed: zcl_abapgit_json_handler :: lcl_aff_filter
+CLASS kHGwlbVxgSjWYXcuzxmbrHxeswZCbe DEFINITION FINAL.
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_ajson_filter.
+  PRIVATE SECTION.
+    DATA mt_skip_paths TYPE HASHED TABLE OF string WITH UNIQUE KEY table_line.
+ENDCLASS.
+
+CLASS kHGwlbVxgSjWYXcuzxmbrHxeswZCbe IMPLEMENTATION.
+
+  METHOD zif_abapgit_ajson_filter~keep_node.
+    DATA lv_path TYPE string.
+    lv_path = is_node-path && is_node-name.
+
+    rv_keep = boolc( NOT ( lv_path = `/header/abapLanguageVersion` AND is_node-value = 'X' ) ).
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_json_handler IMPLEMENTATION.
+  METHOD deserialize.
+    DATA lv_json    TYPE string.
+    DATA lo_ajson   TYPE REF TO zcl_abapgit_ajson.
+    DATA lo_mapping TYPE REF TO zif_abapgit_ajson_mapping.
+
+    CLEAR ev_data.
+
+    lv_json = zcl_abapgit_convert=>xstring_to_string_utf8( iv_content ).
+    lo_mapping = zcl_abapgit_ajson_mapping=>create_camel_case( ).
+
+    lo_ajson = zcl_abapgit_ajson=>parse( iv_json = lv_json
+                                         ii_custom_mapping = lo_mapping ).
+
+    lo_ajson->zif_abapgit_ajson~to_abap( IMPORTING ev_container = ev_data ).
+
+  ENDMETHOD.
+  METHOD serialize.
+    DATA lt_st_source  TYPE abap_trans_srcbind_tab.
+    DATA lo_mapping    TYPE REF TO kHGwlbVxgSjWYXcuzxmbjGTuUPjGkM.
+    DATA lv_json       TYPE string.
+    DATA lo_ajson      TYPE REF TO zcl_abapgit_ajson.
+    DATA lo_ajson_filtered TYPE REF TO zcl_abapgit_ajson.
+    DATA lo_aff_filter   TYPE REF TO zif_abapgit_ajson_filter.
+
+    FIELD-SYMBOLS: <lg_source> LIKE LINE OF lt_st_source.
+
+    APPEND INITIAL LINE TO lt_st_source ASSIGNING <lg_source>.
+    GET REFERENCE OF iv_data INTO <lg_source>-value.
+    CREATE OBJECT lo_mapping.
+
+    lo_ajson = zcl_abapgit_ajson=>create_empty( lo_mapping ).
+
+    lo_ajson->keep_item_order( ).
+    lo_ajson->set(
+      iv_path = '/'
+      iv_val  = iv_data ).
+
+    CREATE OBJECT lo_aff_filter TYPE kHGwlbVxgSjWYXcuzxmbrHxeswZCbe.
+    lo_ajson_filtered = zcl_abapgit_ajson=>create_from(
+      ii_source_json = lo_ajson
+      ii_filter = zcl_abapgit_ajson_filter_lib=>create_empty_filter( ) ).
+    lo_ajson_filtered->keep_item_order( ).
+
+    lv_json = lo_ajson_filtered->stringify( 2 ).
+
+    rv_result = zcl_abapgit_convert=>string_to_xstring_utf8( lv_json ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_ajson_utilities IMPLEMENTATION.
   METHOD delete_empty_nodes.
 
@@ -111987,6 +112200,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-06-30T09:52:27.187Z
+* abapmerge 0.14.7 - 2022-06-30T14:07:39.216Z
 ENDINTERFACE.
 ****************************************************
