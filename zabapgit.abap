@@ -41867,15 +41867,19 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
         CLEAR lv_msg.
 
-        IF mo_repo->is_offline( ) = abap_true
-            AND mo_repo->has_remote_source( ) = abap_true
-            AND mo_repo_aggregated_state->is_unchanged( ) = abap_true.
-          " Offline match banner
-          lv_msg = 'ZIP source is attached and completely <b>matches</b> the local state'.
-        ELSEIF lines( lt_repo_items ) = 0.
-          " Online match banner
+        IF lines( lt_repo_items ) = 0.
           IF mv_changes_only = abap_true.
-            lv_msg = 'Local state completely <b>matches</b> the remote repository'.
+            IF mo_repo->is_offline( ) = abap_true.
+              " Offline match banner
+              IF mo_repo->has_remote_source( ) = abap_true.
+                lv_msg = 'Local state completely <b>matches</b> the ZIP file'.
+              ELSE.
+                lv_msg = 'Import a ZIP file to see if there are any changes'.
+              ENDIF.
+            ELSE.
+              " Online match banner
+              lv_msg = 'Local state completely <b>matches</b> the remote repository'.
+            ENDIF.
           ELSE.
             lv_msg = |Package is empty. Show { build_dir_jump_link( 'parent' ) } package|.
           ENDIF.
@@ -112696,6 +112700,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-07-05T06:55:36.238Z
+* abapmerge 0.14.7 - 2022-07-06T08:24:13.350Z
 ENDINTERFACE.
 ****************************************************
