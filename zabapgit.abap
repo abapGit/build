@@ -80367,7 +80367,10 @@ CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd IMPLEMENTATION.
     DATA:
       lt_components     TYPE STANDARD TABLE OF ty_helper_type,
       lt_sub_components TYPE ty_sub_compontents,
-      lt_components_exp TYPE ty_compontents.
+      lt_components_exp TYPE ty_compontents,
+      ls_component_exp  LIKE LINE OF lt_components_exp.
+    FIELD-SYMBOLS:
+      <ls_component> LIKE LINE OF lt_components.
     SELECT component~cmpname component_text~descript component~cmptype
       INTO TABLE lt_components
       FROM seocompo AS component
@@ -80386,7 +80389,11 @@ CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd IMPLEMENTATION.
         AND sub_component_text~langu = iv_language
         AND sub_component_text~descript <> space.     "#EC CI_BUFFJOIN
 
-    MOVE-CORRESPONDING lt_components TO lt_components_exp.
+    LOOP AT lt_components ASSIGNING <ls_component>.
+      CLEAR ls_component_exp.
+      MOVE-CORRESPONDING <ls_component> TO ls_component_exp.
+      INSERT ls_component_exp INTO TABLE lt_components_exp.
+    ENDLOOP.
 
     rs_properties-attributes = get_attributes( lt_components_exp ).
     rs_properties-methods = get_methods( is_components = lt_components_exp
@@ -112700,6 +112707,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-07-06T08:24:13.350Z
+* abapmerge 0.14.7 - 2022-07-06T15:16:23.208Z
 ENDINTERFACE.
 ****************************************************
