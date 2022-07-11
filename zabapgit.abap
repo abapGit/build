@@ -105474,12 +105474,6 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
     ls_node-index = iv_index.
     ls_node-order = iv_item_order.
 
-    IF mi_custom_mapping IS BOUND.
-      ls_node-name = mi_custom_mapping->to_json(
-        iv_path = is_prefix-path
-        iv_name = is_prefix-name ).
-    ENDIF.
-
     IF ls_node-name IS INITIAL.
       ls_node-name  = is_prefix-name.
     ENDIF.
@@ -105569,6 +105563,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
     DATA lo_struc TYPE REF TO cl_abap_structdescr.
     DATA lt_comps TYPE cl_abap_structdescr=>component_table.
     DATA ls_next_prefix LIKE is_prefix.
+    DATA lv_mapping_prefix_name LIKE is_prefix-name.
     DATA lv_item_order TYPE i.
     DATA ls_root LIKE LINE OF ct_nodes.
 
@@ -105614,6 +105609,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
     ls_next_prefix-path = is_prefix-path && <root>-name && '/'.
 
     LOOP AT lt_comps ASSIGNING <c>.
+      CLEAR lv_mapping_prefix_name.
 
       IF <c>-as_include = abap_true.
 
@@ -105632,6 +105628,15 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
         ls_next_prefix-name = to_lower( <c>-name ).
         ASSIGN COMPONENT <c>-name OF STRUCTURE iv_data TO <val>.
         ASSERT sy-subrc = 0.
+
+        IF mi_custom_mapping IS BOUND AND <c>-type->kind = cl_abap_typedescr=>kind_elem.
+          lv_mapping_prefix_name = mi_custom_mapping->to_json( iv_path = ls_next_prefix-path
+                                                               iv_name = ls_next_prefix-name ).
+        ENDIF.
+
+        IF lv_mapping_prefix_name IS NOT INITIAL.
+          ls_next_prefix-name = lv_mapping_prefix_name.
+        ENDIF.
 
         IF mv_keep_item_order = abap_true.
           lv_item_order = <root>-children.
@@ -112711,6 +112716,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-07-10T12:59:14.997Z
+* abapmerge 0.14.7 - 2022-07-11T10:18:43.177Z
 ENDINTERFACE.
 ****************************************************
