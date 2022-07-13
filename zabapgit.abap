@@ -66523,8 +66523,8 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
     lv_package = iv_package.
 
     LOOP AT lt_segment_definitions ASSIGNING <ls_segment_definition>.
-      <ls_segment_definition>-segmentheader-presp = cl_abap_syst=>get_user_name( ).
-      <ls_segment_definition>-segmentheader-pwork = cl_abap_syst=>get_user_name( ).
+      <ls_segment_definition>-segmentheader-presp = sy-uname.
+      <ls_segment_definition>-segmentheader-pwork = sy-uname.
 
       CALL FUNCTION 'SEGMENT_READ'
         EXPORTING
@@ -66569,7 +66569,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
 
     ENDLOOP.
 
-    lv_uname = cl_abap_syst=>get_user_name( ).
+    lv_uname = sy-uname.
 
     CALL FUNCTION 'TR_TADIR_INTERFACE'
       EXPORTING
@@ -81132,7 +81132,7 @@ CLASS zcl_abapgit_object_iext IMPLEMENTATION.
                   CHANGING  cg_data = ls_extension ).
 
     MOVE-CORRESPONDING ls_extension-attributes TO ls_attributes.
-    ls_attributes-presp = cl_abap_syst=>get_user_name( ).
+    ls_attributes-presp = sy-uname.
     ls_attributes-pwork = ls_attributes-presp.
 
     IF zif_abapgit_object~exists( ) = abap_true.
@@ -89042,7 +89042,7 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
       ls_package_data-dlvunit = 'HOME'.
     ENDIF.
 
-    ls_package_data-as4user = cl_abap_syst=>get_user_name( ).
+    ls_package_data-as4user = sy-uname.
 
     IF li_package IS BOUND.
       " Package already exists, change it
@@ -101561,7 +101561,7 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
       ELSE.
         ls_package-devclass = iv_top.
         ls_package-ctext = iv_top.
-        ls_package-as4user = cl_abap_syst=>get_user_name( ).
+        ls_package-as4user = sy-uname.
         zcl_abapgit_factory=>get_sap_package( iv_top )->create( ls_package ).
       ENDIF.
     ENDIF.
@@ -112744,6 +112744,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-07-12T09:15:05.727Z
+* abapmerge 0.14.7 - 2022-07-13T07:14:33.447Z
 ENDINTERFACE.
 ****************************************************
