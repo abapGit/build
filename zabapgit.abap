@@ -1219,7 +1219,7 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_ajson.
 
-  CONSTANTS version TYPE string VALUE 'v1.1.4'. "#EC NOTEXT
+  CONSTANTS version TYPE string VALUE 'v1.1.6'. "#EC NOTEXT
   CONSTANTS origin TYPE string VALUE 'https://github.com/sbcgua/ajson'. "#EC NOTEXT
   CONSTANTS license TYPE string VALUE 'MIT'. "#EC NOTEXT
 
@@ -1273,6 +1273,10 @@ INTERFACE zif_abapgit_ajson.
       VALUE(ri_json) TYPE REF TO zif_abapgit_ajson.
 
   " METHODS ex.reader
+
+  METHODS is_empty
+    RETURNING
+      VALUE(rv_yes) TYPE abap_bool.
 
   METHODS exists
     IMPORTING
@@ -6671,6 +6675,7 @@ CLASS zcl_abapgit_ajson DEFINITION
     INTERFACES zif_abapgit_ajson .
 
     ALIASES:
+      is_empty FOR zif_abapgit_ajson~is_empty,
       exists FOR zif_abapgit_ajson~exists,
       members FOR zif_abapgit_ajson~members,
       get FOR zif_abapgit_ajson~get,
@@ -6907,6 +6912,9 @@ CLASS zcl_abapgit_ajson_utilities DEFINITION
 
   PUBLIC SECTION.
 
+    CLASS-METHODS new
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO zcl_abapgit_ajson_utilities.
     METHODS diff
       IMPORTING
         !iv_json_a            TYPE string OPTIONAL
@@ -6939,6 +6947,17 @@ CLASS zcl_abapgit_ajson_utilities DEFINITION
         VALUE(rv_sorted) TYPE string
       RAISING
         zcx_abapgit_ajson_error .
+    METHODS is_equal
+      IMPORTING
+        !iv_json_a            TYPE string OPTIONAL
+        !iv_json_b            TYPE string OPTIONAL
+        !ii_json_a            TYPE REF TO zif_abapgit_ajson OPTIONAL
+        !ii_json_b            TYPE REF TO zif_abapgit_ajson OPTIONAL
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool
+      RAISING
+        zcx_abapgit_ajson_error .
+
   PROTECTED SECTION.
 
   PRIVATE SECTION.
@@ -103752,6 +103771,29 @@ CLASS zcl_abapgit_ajson_utilities IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD is_equal.
+
+    DATA li_ins TYPE REF TO zif_abapgit_ajson.
+    DATA li_del TYPE REF TO zif_abapgit_ajson.
+    DATA li_mod TYPE REF TO zif_abapgit_ajson.
+
+    diff(
+      EXPORTING
+        iv_json_a = iv_json_a
+        iv_json_b = iv_json_b
+        io_json_a = ii_json_a
+        io_json_b = ii_json_b
+      IMPORTING
+        eo_insert = li_ins
+        eo_delete = li_del
+        eo_change = li_mod ).
+
+    rv_yes = boolc(
+      li_ins->is_empty( ) = abap_true AND
+      li_del->is_empty( ) = abap_true AND
+      li_mod->is_empty( ) = abap_true ).
+
+  ENDMETHOD.
   METHOD merge.
 
     mo_json_a = normalize_input(
@@ -103774,6 +103816,9 @@ CLASS zcl_abapgit_ajson_utilities IMPLEMENTATION.
       io_json              = ro_json
       iv_keep_empty_arrays = iv_keep_empty_arrays ).
 
+  ENDMETHOD.
+  METHOD new.
+    CREATE OBJECT ro_instance.
   ENDMETHOD.
   METHOD normalize_input.
 
@@ -106234,6 +106279,9 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
         RETURN.
     ENDTRY.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson~is_empty.
+    rv_yes = boolc( lines( mt_json_tree ) = 0 ).
   ENDMETHOD.
   METHOD zif_abapgit_ajson~keep_item_order.
     mv_keep_item_order = abap_true.
@@ -112744,6 +112792,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-07-13T08:58:42.131Z
+* abapmerge 0.14.7 - 2022-07-20T06:11:50.172Z
 ENDINTERFACE.
 ****************************************************
