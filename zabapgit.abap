@@ -102874,7 +102874,7 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_COMMON_AFF IMPLEMENTATION.
   METHOD zif_abapgit_object~delete.
 
     DATA: lr_intf_aff_obj    TYPE REF TO data,
@@ -102982,7 +102982,7 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
           lo_aff_factory          TYPE REF TO object,
           lr_messages             TYPE REF TO data,
           lv_json_as_xstring      TYPE xstring,
-          lx_exception            TYPE REF TO cx_static_check,
+          lx_exception            TYPE REF TO cx_root,
           lv_name                 TYPE c LENGTH 120.
 
     FIELD-SYMBOLS: <ls_intf_aff_obj>         TYPE any,
@@ -103083,7 +103083,9 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
 
         tadir_insert( ms_item-devclass ).
 
-      CATCH cx_static_check INTO lx_exception.
+      CATCH cx_root INTO lx_exception.
+        ii_log->add_error( is_item = ms_item
+                           iv_msg  = 'Error at deserialize' ).
         ii_log->add_exception(
            ix_exc  = lx_exception
            is_item = ms_item ).
@@ -103154,6 +103156,7 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
                                             iv_argument    = lv_argument  ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -112792,6 +112795,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-07-21T05:27:50.610Z
+* abapmerge 0.14.7 - 2022-07-21T05:38:46.012Z
 ENDINTERFACE.
 ****************************************************
