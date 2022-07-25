@@ -101980,14 +101980,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
     ENDLOOP.
 
     LOOP AT lt_namespace INTO lv_namespace.
-      CALL FUNCTION 'TR_READ_NAMESPACE'
-        EXPORTING
-          iv_namespace           = lv_namespace
-        IMPORTING
-          es_trnspace            = ls_trnspace
-        EXCEPTIONS
-          namespace_not_existing = 1
-          OTHERS                 = 2.
+      SELECT SINGLE editflag FROM trnspace INTO ls_trnspace-editflag WHERE namespace = lv_namespace.
       IF sy-subrc <> 0.
         ii_log->add( iv_msg  = |Namespace { lv_namespace } does not exist. Create it in transaction SE03|
                      iv_type = 'W' ).
@@ -112795,6 +112788,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-07-21T05:38:46.012Z
+* abapmerge 0.14.7 - 2022-07-25T08:30:49.487Z
 ENDINTERFACE.
 ****************************************************
