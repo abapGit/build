@@ -7000,14 +7000,36 @@ CLASS zcl_abapgit_json_handler DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    TYPES:
+      BEGIN OF ty_json_abap_mapping,
+        json TYPE string,
+        abap TYPE string,
+      END OF ty_json_abap_mapping,
+      ty_json_abap_mappings TYPE STANDARD TABLE OF ty_json_abap_mapping WITH DEFAULT KEY,
+      BEGIN OF ty_enum_mapping,
+        path     TYPE string,
+        mappings TYPE ty_json_abap_mappings,
+      END OF ty_enum_mapping,
+      ty_enum_mappings TYPE TABLE OF ty_enum_mapping WITH DEFAULT KEY.
+
+    TYPES:
+      BEGIN OF ty_path_value_pair,
+        path  TYPE string,
+        value TYPE string,
+      END OF ty_path_value_pair,
+      ty_skip_paths TYPE STANDARD TABLE OF ty_path_value_pair WITH KEY path.
 
     "! Serializes data to xstring. Type of data is specified in the
     "! implementing class.
     "!
     "! @parameter iv_data | data to be serialized
+    "! @parameter iv_enum_mappings | ABAP/JSON value mappings
+    "! @parameter iv_skip_paths | path/value pairs to be skipped during serialization
     "! @parameter rv_result | serialized data
     METHODS serialize
       IMPORTING iv_data          TYPE data
+                iv_enum_mappings TYPE ty_enum_mappings
+                iv_skip_paths    TYPE ty_skip_paths
       RETURNING VALUE(rv_result) TYPE xstring
       RAISING   cx_static_check.
 
@@ -7023,6 +7045,19 @@ CLASS zcl_abapgit_json_handler DEFINITION
   PROTECTED SECTION.
 
   PRIVATE SECTION.
+
+    METHODS:
+      set_original_language
+        CHANGING co_ajson TYPE REF TO zcl_abapgit_ajson
+        RAISING  zcx_abapgit_ajson_error,
+      set_custom_enum
+        IMPORTING it_enum_mappings TYPE ty_enum_mappings
+        CHANGING  co_ajson         TYPE REF TO zcl_abapgit_ajson
+        RAISING   zcx_abapgit_ajson_error,
+      set_abap_language_version
+        CHANGING co_ajson TYPE REF TO zcl_abapgit_ajson
+        RAISING  zcx_abapgit_ajson_error.
+
 ENDCLASS.
 CLASS zcl_abapgit_dependencies DEFINITION
   FINAL
@@ -80379,7 +80414,7 @@ CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd IMPLEMENTATION.
       WHERE sub_component~clsname    = iv_clif_name
         AND df~exposure              = iv_exposure
         AND sub_component_text~langu = iv_language
-        AND sub_component_text~descript <> space.     "#EC CI_BUFFJOIN
+        AND sub_component_text~descript <> space.      "#EC CI_BUFFJOIN
 
     rs_properties-attributes = get_attributes( lt_components ).
     rs_properties-methods = get_methods( is_components = lt_components
@@ -80408,7 +80443,7 @@ CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd IMPLEMENTATION.
      LEFT OUTER JOIN seocompotx AS component_text
       ON component~cmpname = component_text~cmpname AND component~clsname    = component_text~clsname
                                                     AND component_text~langu = iv_language
-      WHERE component~clsname = iv_clif_name.                   "#EC CI_BUFFJOIN
+      WHERE component~clsname = iv_clif_name.          "#EC CI_BUFFJOIN
 
     SELECT sub_component~cmpname sub_component~sconame sub_component_text~descript sub_component~scotype
       INTO TABLE lt_sub_components
@@ -80418,7 +80453,7 @@ CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd IMPLEMENTATION.
           AND sub_component~sconame = sub_component_text~sconame
       WHERE sub_component~clsname    = iv_clif_name
         AND sub_component_text~langu = iv_language
-        AND sub_component_text~descript <> space.     "#EC CI_BUFFJOIN
+        AND sub_component_text~descript <> space.      "#EC CI_BUFFJOIN
 
     LOOP AT lt_components ASSIGNING <ls_component>.
       CLEAR ls_component_exp.
@@ -80640,11 +80675,8 @@ CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd IMPLEMENTATION.
     ls_data_aff-header-original_language = ls_data_abapgit-vseointerf-langu.
 
     " get category and proxy
-    SELECT SINGLE category clsproxy AS proxy
-           FROM vseointerf
-           INTO (ls_data_aff-category, ls_data_aff-proxy)
-           WHERE clsname = ls_data_abapgit-vseointerf-clsname AND version = '1' AND
-                 langu = ls_data_aff-header-original_language.
+    ls_data_aff-category = ls_data_abapgit-vseointerf-category.
+    ls_data_aff-proxy = ls_data_abapgit-vseointerf-clsproxy.
 
     " get descriptions
     ls_data_aff-descriptions = kHGwlUKtFBXjILcBRBJOnvUCODLJDd=>get_descriptions_compo_subco(
@@ -80655,39 +80687,89 @@ CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-
 * renamed: zcl_abapgit_object_intf :: lcl_aff_serialize_metadata
 CLASS kHGwlUKtFBXjILcBRBJOUAAKxuSDxK DEFINITION.
   PUBLIC SECTION.
 
     CLASS-METHODS serialize
-      IMPORTING is_intf          TYPE data
+      IMPORTING is_intf          TYPE zcl_abapgit_object_intf=>ty_intf
       RETURNING VALUE(rv_result) TYPE xstring
       RAISING   zcx_abapgit_exception.
+  PRIVATE SECTION.
+    CLASS-METHODS:
+      get_mappings
+        RETURNING VALUE(rt_result) TYPE zcl_abapgit_json_handler=>ty_enum_mappings,
+      get_paths_to_skip
+        RETURNING VALUE(rt_result) TYPE zcl_abapgit_json_handler=>ty_skip_paths.
 ENDCLASS.
 
 CLASS kHGwlUKtFBXjILcBRBJOUAAKxuSDxK IMPLEMENTATION.
 
   METHOD serialize.
     DATA:
-      ls_data_abapgit TYPE zcl_abapgit_object_intf=>ty_intf,
-      ls_data_aff     TYPE zif_abapgit_aff_intf_v1=>ty_main,
-      lx_exception    TYPE REF TO cx_root,
-      lo_ajson        TYPE REF TO zcl_abapgit_json_handler,
-      lo_aff_mapper   TYPE REF TO zif_abapgit_aff_type_mapping.
-
-    ls_data_abapgit = is_intf.
-
+      ls_data_aff      TYPE zif_abapgit_aff_intf_v1=>ty_main,
+      lx_exception     TYPE REF TO cx_root,
+      lo_aff_handler   TYPE REF TO zcl_abapgit_json_handler,
+      lo_aff_mapper    TYPE REF TO zif_abapgit_aff_type_mapping,
+      lt_enum_mappings TYPE zcl_abapgit_json_handler=>ty_enum_mappings,
+      lt_paths_to_skip TYPE zcl_abapgit_json_handler=>ty_skip_paths.
     CREATE OBJECT lo_aff_mapper TYPE kHGwlUKtFBXjILcBRBJOvDDGtKNvAd.
-    lo_aff_mapper->to_aff( EXPORTING iv_data = ls_data_abapgit
+    lo_aff_mapper->to_aff( EXPORTING iv_data = is_intf
                            IMPORTING es_data = ls_data_aff ).
-    CREATE OBJECT lo_ajson.
+
+    lt_enum_mappings = get_mappings( ).
+    lt_paths_to_skip = get_paths_to_skip( ).
+
+    CREATE OBJECT lo_aff_handler.
     TRY.
-        rv_result = lo_ajson->serialize( ls_data_aff ).
+        rv_result = lo_aff_handler->serialize( iv_data          = ls_data_aff
+                                               iv_enum_mappings = lt_enum_mappings
+                                               iv_skip_paths    = lt_paths_to_skip ).
       CATCH cx_root INTO lx_exception.
         zcx_abapgit_exception=>raise_with_text( lx_exception ).
     ENDTRY.
 
+  ENDMETHOD.
+
+  METHOD get_mappings.
+    DATA:
+      ls_category_mapping   TYPE zcl_abapgit_json_handler=>ty_enum_mapping,
+      ls_json_abap_mapping  TYPE zcl_abapgit_json_handler=>ty_json_abap_mapping,
+      lt_json_abap_mappings TYPE zcl_abapgit_json_handler=>ty_json_abap_mappings.
+
+    ls_json_abap_mapping-abap = zif_abapgit_aff_intf_v1=>co_category-general.
+    ls_json_abap_mapping-json = 'standard'.
+    APPEND ls_json_abap_mapping TO lt_json_abap_mappings.
+    ls_json_abap_mapping-abap = zif_abapgit_aff_intf_v1=>co_category-classic_badi.
+    ls_json_abap_mapping-json = 'classicBadi'.
+    APPEND ls_json_abap_mapping TO lt_json_abap_mappings.
+    ls_json_abap_mapping-abap = zif_abapgit_aff_intf_v1=>co_category-business_static_components.
+    ls_json_abap_mapping-json = 'businessStaticComponents'.
+    APPEND ls_json_abap_mapping TO lt_json_abap_mappings.
+    ls_json_abap_mapping-abap = zif_abapgit_aff_intf_v1=>co_category-db_procedure_proxy.
+    ls_json_abap_mapping-json = 'dbProcedureProxy'.
+    APPEND ls_json_abap_mapping TO lt_json_abap_mappings.
+    ls_json_abap_mapping-abap = zif_abapgit_aff_intf_v1=>co_category-web_dynpro_runtime.
+    ls_json_abap_mapping-json = 'webDynproRuntime'.
+    APPEND ls_json_abap_mapping TO lt_json_abap_mappings.
+    ls_json_abap_mapping-abap = zif_abapgit_aff_intf_v1=>co_category-enterprise_service.
+    ls_json_abap_mapping-json = 'enterpriseService'.
+    APPEND ls_json_abap_mapping TO lt_json_abap_mappings.
+
+    ls_category_mapping-path = '/category'.
+    ls_category_mapping-mappings = lt_json_abap_mappings.
+
+    APPEND ls_category_mapping TO rt_result.
+  ENDMETHOD.
+
+  METHOD get_paths_to_skip.
+    DATA:
+      ls_path_to_skipp TYPE zcl_abapgit_json_handler=>ty_path_value_pair.
+
+    ls_path_to_skipp-path  = '/category'.
+    ls_path_to_skipp-value = 'standard'.
+
+    APPEND ls_path_to_skipp TO rt_result.
   ENDMETHOD.
 
 ENDCLASS.
@@ -103478,51 +103560,76 @@ CLASS zcl_abapgit_object_chkc IMPLEMENTATION.
 ENDCLASS.
 
 CLASS kHGwlbVxgSjWYXcuzxmbrHxeswZCbe DEFINITION DEFERRED.
-CLASS kHGwlbVxgSjWYXcuzxmbjGTuUPjGkM DEFINITION DEFERRED.
-*"* use this source file for the definition and implementation of
-*"* local helper classes, interface definitions and type
-*"* declarations
-* renamed: zcl_abapgit_json_handler :: lcl_mapping
-CLASS kHGwlbVxgSjWYXcuzxmbjGTuUPjGkM DEFINITION.
-  PUBLIC SECTION.
-    INTERFACES zif_abapgit_ajson_mapping.
-ENDCLASS.
-
-CLASS kHGwlbVxgSjWYXcuzxmbjGTuUPjGkM IMPLEMENTATION.
-  METHOD zif_abapgit_ajson_mapping~to_abap.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_ajson_mapping~to_json.
-    TYPES ty_token TYPE c LENGTH 255.
-    DATA lt_tokens TYPE STANDARD TABLE OF ty_token.
-    FIELD-SYMBOLS <lg_token> LIKE LINE OF lt_tokens.
-
-    rv_result = iv_name.
-
-    SPLIT rv_result AT `_` INTO TABLE lt_tokens.
-    LOOP AT lt_tokens ASSIGNING <lg_token> FROM 2.
-      TRANSLATE <lg_token>(1) TO UPPER CASE.
-    ENDLOOP.
-    CONCATENATE LINES OF lt_tokens INTO rv_result.
-
-  ENDMETHOD.
-ENDCLASS.
 * renamed: zcl_abapgit_json_handler :: lcl_aff_filter
 CLASS kHGwlbVxgSjWYXcuzxmbrHxeswZCbe DEFINITION FINAL.
   PUBLIC SECTION.
     INTERFACES zif_abapgit_ajson_filter.
+    TYPES:
+      BEGIN OF ty_path_value_pair,
+        path  TYPE string,
+        value TYPE string,
+      END OF ty_path_value_pair,
+      ty_skip_paths TYPE STANDARD TABLE OF ty_path_value_pair WITH KEY path.
+
+    METHODS constructor
+      IMPORTING iv_skip_paths TYPE ty_skip_paths OPTIONAL
+      RAISING   zcx_abapgit_ajson_error.
   PRIVATE SECTION.
-    DATA mt_skip_paths TYPE HASHED TABLE OF string WITH UNIQUE KEY table_line.
+    DATA mt_skip_paths TYPE ty_skip_paths.
 ENDCLASS.
 
 CLASS kHGwlbVxgSjWYXcuzxmbrHxeswZCbe IMPLEMENTATION.
 
   METHOD zif_abapgit_ajson_filter~keep_node.
+
     DATA lv_path TYPE string.
+
     lv_path = is_node-path && is_node-name.
 
-    rv_keep = boolc( NOT ( lv_path = `/header/abapLanguageVersion` AND is_node-value = 'X' ) ).
+    READ TABLE mt_skip_paths WITH KEY path = lv_path value = is_node-value TRANSPORTING NO FIELDS.
+    IF boolc( sy-subrc = 0 ) = abap_true
+      AND iv_visit = zif_abapgit_ajson_filter=>visit_type-value.
+      rv_keep = abap_false.
+      RETURN.
+    ELSE.
+      READ TABLE mt_skip_paths WITH KEY path = lv_path TRANSPORTING NO FIELDS.
+      IF boolc( sy-subrc = 0 ) = abap_true
+        AND iv_visit = zif_abapgit_ajson_filter=>visit_type-value.
+        rv_keep = abap_true.
+        RETURN.
+      ENDIF.
+    ENDIF.
+
+    IF is_node-type = 'bool' AND is_node-value = 'false' AND iv_visit = zif_abapgit_ajson_filter=>visit_type-value.
+      rv_keep = abap_false.
+      RETURN.
+    ENDIF.
+
+    " AFF: if INTEGER type is initial (0) then is will be skipped
+    "      However, if type is $required, it should be serialized.
+    IF NOT ( ( iv_visit = zif_abapgit_ajson_filter=>visit_type-value AND is_node-value IS NOT INITIAL ) OR
+         ( iv_visit <> zif_abapgit_ajson_filter=>visit_type-value AND is_node-children > 0 ) ).
+      rv_keep = abap_false.
+      RETURN.
+    ENDIF.
+
+    rv_keep = abap_true.
+
   ENDMETHOD.
+
+  METHOD constructor.
+    " extract annotations and build table for values to be skipped ( path/name | value )
+    DATA lo_abap_language_pair TYPE ty_path_value_pair.
+    lo_abap_language_pair-path = `/header/abapLanguageVersion`.
+    lo_abap_language_pair-value = 'standard'.
+
+    APPEND lo_abap_language_pair TO mt_skip_paths.
+
+    IF iv_skip_paths IS NOT INITIAL.
+      APPEND LINES OF iv_skip_paths TO mt_skip_paths.
+    ENDIF.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_json_handler IMPLEMENTATION.
@@ -103536,25 +103643,27 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
     lv_json = zcl_abapgit_convert=>xstring_to_string_utf8( iv_content ).
     lo_mapping = zcl_abapgit_ajson_mapping=>create_camel_case( ).
 
-    lo_ajson = zcl_abapgit_ajson=>parse( iv_json = lv_json
+    lo_ajson = zcl_abapgit_ajson=>parse( iv_json           = lv_json
                                          ii_custom_mapping = lo_mapping ).
 
     lo_ajson->zif_abapgit_ajson~to_abap( IMPORTING ev_container = ev_data ).
 
   ENDMETHOD.
   METHOD serialize.
-    DATA lt_st_source  TYPE abap_trans_srcbind_tab.
-    DATA lo_mapping    TYPE REF TO kHGwlbVxgSjWYXcuzxmbjGTuUPjGkM.
-    DATA lv_json       TYPE string.
-    DATA lo_ajson      TYPE REF TO zcl_abapgit_ajson.
-    DATA lo_ajson_filtered TYPE REF TO zcl_abapgit_ajson.
-    DATA lo_aff_filter   TYPE REF TO zif_abapgit_ajson_filter.
+    DATA: lt_st_source      TYPE abap_trans_srcbind_tab,
+          lo_mapping        TYPE REF TO zif_abapgit_ajson_mapping,
+          lv_json           TYPE string,
+          lo_ajson          TYPE REF TO zcl_abapgit_ajson,
+          lo_ajson_filtered TYPE REF TO zif_abapgit_ajson,
+          lv_enum_abap      TYPE string,
+          lo_filter         TYPE REF TO kHGwlbVxgSjWYXcuzxmbrHxeswZCbe.
 
     FIELD-SYMBOLS: <lg_source> LIKE LINE OF lt_st_source.
 
     APPEND INITIAL LINE TO lt_st_source ASSIGNING <lg_source>.
     GET REFERENCE OF iv_data INTO <lg_source>-value.
-    CREATE OBJECT lo_mapping.
+
+    lo_mapping = zcl_abapgit_ajson_mapping=>create_camel_case( iv_first_json_upper = abap_false ).
 
     lo_ajson = zcl_abapgit_ajson=>create_empty( lo_mapping ).
 
@@ -103563,17 +103672,79 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
       iv_path = '/'
       iv_val  = iv_data ).
 
-    CREATE OBJECT lo_aff_filter TYPE kHGwlbVxgSjWYXcuzxmbrHxeswZCbe.
+    set_original_language( CHANGING co_ajson = lo_ajson ).
+    set_abap_language_version( CHANGING co_ajson = lo_ajson ).
+    set_custom_enum( EXPORTING it_enum_mappings = iv_enum_mappings
+                     CHANGING co_ajson          = lo_ajson ).
+
+    CREATE OBJECT lo_filter EXPORTING iv_skip_paths = iv_skip_paths.
     lo_ajson_filtered = zcl_abapgit_ajson=>create_from(
-      ii_source_json = lo_ajson
-      ii_filter = zcl_abapgit_ajson_filter_lib=>create_empty_filter( ) ).
+                          ii_source_json = lo_ajson
+                          ii_filter      = lo_filter ).
+
     lo_ajson_filtered->keep_item_order( ).
 
     lv_json = lo_ajson_filtered->stringify( 2 ).
 
-    rv_result = zcl_abapgit_convert=>string_to_xstring_utf8( lv_json ).
+    " files end with an empty line (EOF)
+    lv_json = lv_json && cl_abap_char_utilities=>newline.
 
+    rv_result = zcl_abapgit_convert=>string_to_xstring_utf8( lv_json ).
   ENDMETHOD.
+
+  METHOD set_original_language.
+    DATA:
+      lv_iso_language      TYPE i18_a_langiso2,
+      lv_original_language TYPE sy-langu.
+    lv_original_language = co_ajson->get_string( '/header/originalLanguage' ).
+
+    cl_i18n_languages=>sap1_to_iso639_1(
+      EXPORTING
+        im_lang_sap1   = lv_original_language
+      IMPORTING
+        ex_lang_iso639 = lv_iso_language
+      EXCEPTIONS
+        OTHERS         = 1 ).
+
+    IF sy-subrc = 0.
+      co_ajson->set_string( iv_path = '/header/originalLanguage'
+                            iv_val  = lv_iso_language ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD set_abap_language_version.
+    DATA:
+      lv_enum_abap TYPE string,
+      lv_enum_json TYPE string.
+    lv_enum_abap = co_ajson->get_string( '/header/abapLanguageVersion' ).
+    IF lv_enum_abap = zif_abapgit_aff_types_v1=>co_abap_language_version_src-standard
+      OR lv_enum_abap = zif_abapgit_aff_types_v1=>co_abap_language_version-standard.
+      lv_enum_json = 'standard'.
+    ELSEIF lv_enum_abap = zif_abapgit_aff_types_v1=>co_abap_language_version-cloud_development.
+      lv_enum_json = 'cloudDevelopment'.
+    ELSEIF lv_enum_abap = zif_abapgit_aff_types_v1=>co_abap_language_version-key_user.
+      lv_enum_json = 'keyUser'.
+    ENDIF.
+
+    co_ajson->set_string( iv_path = '/header/abapLanguageVersion'
+                          iv_val  = lv_enum_json ).
+  ENDMETHOD.
+
+  METHOD set_custom_enum.
+    DATA:
+      lv_enum_abap    TYPE string,
+      ls_enum_mapping TYPE ty_enum_mapping,
+      ls_mapping      TYPE ty_json_abap_mapping.
+    LOOP AT it_enum_mappings INTO ls_enum_mapping.
+      lv_enum_abap = co_ajson->get_string( ls_enum_mapping-path ).
+      READ TABLE ls_enum_mapping-mappings WITH KEY abap = lv_enum_abap INTO ls_mapping.
+      IF sy-subrc = 0.
+        co_ajson->set_string( iv_path = ls_enum_mapping-path
+                              iv_val  = ls_mapping-json ).
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_ajson_utilities IMPLEMENTATION.
@@ -112777,6 +112948,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-07-25T08:35:01.928Z
+* abapmerge 0.14.7 - 2022-07-26T05:54:48.041Z
 ENDINTERFACE.
 ****************************************************
