@@ -80258,10 +80258,11 @@ CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd DEFINITION DEFERRED.
 * renamed: zcl_abapgit_object_intf :: lcl_aff_helper
 CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd DEFINITION.
   PUBLIC SECTION.
-    CLASS-METHODS: create_empty_interface
-      IMPORTING iv_intf_name   TYPE seoclsname
-                io_lock_handle TYPE REF TO if_adt_lock_handle
-      RAISING   zcx_abapgit_exception,
+    CLASS-METHODS:
+*    create_empty_interface
+*      IMPORTING iv_intf_name   TYPE seoclsname
+*                io_lock_handle TYPE REF TO if_adt_lock_handle
+*      RAISING   zcx_abapgit_exception,
       generate_class_pool
         IMPORTING iv_class_name TYPE seoclsname,
       get_descriptions_compo_subco
@@ -80327,36 +80328,36 @@ CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd DEFINITION.
                   is_properties TYPE zif_abapgit_aff_oo_types_v1=>ty_descriptions .
 ENDCLASS.
 CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd IMPLEMENTATION.
-  METHOD create_empty_interface.
-    DATA:
-      lo_interface_error TYPE string,
-      ls_empty_interface TYPE vseointerf.
-
-    ls_empty_interface-clsname = iv_intf_name.
-    ls_empty_interface-version = seoc_version_active.
-    ls_empty_interface-langu = sy-langu.
-    ls_empty_interface-descript = space.
-    ls_empty_interface-state = seoc_state_implemented.
-    ls_empty_interface-exposure = seoc_exposure_public.
-
-    CALL FUNCTION 'SEO_INTERFACE_CREATE_COMPLETE'
-      EXPORTING
-        version       = seoc_version_active
-        suppress_corr = abap_true
-        lock_handle   = io_lock_handle
-      CHANGING
-        interface     = ls_empty_interface
-      EXCEPTIONS
-        OTHERS        = 1.
-    IF sy-subrc <> 0.
-      IF sy-msgid IS NOT INITIAL.
-        MESSAGE ID sy-msgid TYPE 'S' NUMBER sy-msgno WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 INTO lo_interface_error.
-      ELSE.
-        lo_interface_error = 'Internal error'.
-      ENDIF.
-      " todo: raise exception here
-    ENDIF.
-  ENDMETHOD.
+*  METHOD create_empty_interface.
+*    DATA:
+*      lo_interface_error TYPE string,
+*      ls_empty_interface TYPE vseointerf.
+*
+*    ls_empty_interface-clsname = iv_intf_name.
+*    ls_empty_interface-version = seoc_version_active.
+*    ls_empty_interface-langu = sy-langu.
+*    ls_empty_interface-descript = space.
+*    ls_empty_interface-state = seoc_state_implemented.
+*    ls_empty_interface-exposure = seoc_exposure_public.
+*
+*    CALL FUNCTION 'SEO_INTERFACE_CREATE_COMPLETE'
+*      EXPORTING
+*        version       = seoc_version_active
+*        suppress_corr = abap_true
+*        lock_handle   = io_lock_handle
+*      CHANGING
+*        interface     = ls_empty_interface
+*      EXCEPTIONS
+*        OTHERS        = 1.
+*    IF sy-subrc <> 0.
+*      IF sy-msgid IS NOT INITIAL.
+*        MESSAGE ID sy-msgid TYPE 'S' NUMBER sy-msgno WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 INTO lo_interface_error.
+*      ELSE.
+*        lo_interface_error = 'Internal error'.
+*      ENDIF.
+*      " todo: raise exception here
+*    ENDIF.
+*  ENDMETHOD.
   METHOD generate_class_pool.
     DATA:
       lo_cifkey TYPE seoclskey.
@@ -112942,6 +112943,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-08-03T15:16:50.487Z
+* abapmerge 0.14.7 - 2022-08-04T08:04:54.347Z
 ENDINTERFACE.
 ****************************************************
