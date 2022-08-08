@@ -104296,7 +104296,8 @@ INTERFACE iUFTsMWhQrsNKkKXALnpdAMURRqLkF.
     struct_flat TYPE ty_kind VALUE cl_abap_typedescr=>typekind_struct1,
     struct_deep TYPE ty_kind VALUE cl_abap_typedescr=>typekind_struct2,
     data_ref    TYPE ty_kind VALUE cl_abap_typedescr=>typekind_dref,
-    object_ref  TYPE ty_kind VALUE cl_abap_typedescr=>typekind_oref.
+    object_ref  TYPE ty_kind VALUE cl_abap_typedescr=>typekind_oref,
+    enum        TYPE ty_kind VALUE 'k'. " cl_abap_typedescr=>typekind_enum not in lower releases
 
   CONSTANTS:
     BEGIN OF numeric,
@@ -105665,7 +105666,8 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
         ls_node-value = |{ iv_data }|.
       ENDIF.
     ELSEIF io_type->type_kind CO iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>texts OR
-           io_type->type_kind CO iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>binary.
+           io_type->type_kind CO iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>binary OR
+           io_type->type_kind CO iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>enum.
       ls_node-type = zif_abapgit_ajson=>node_type-string.
       ls_node-value = |{ iv_data }|.
     ELSEIF io_type->type_kind = iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>date.
@@ -112871,6 +112873,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-08-07T06:39:27.859Z
+* abapmerge 0.14.7 - 2022-08-08T05:05:06.805Z
 ENDINTERFACE.
 ****************************************************
