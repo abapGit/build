@@ -9443,6 +9443,11 @@ CLASS zcl_abapgit_object_common_aff DEFINITION
       ABSTRACT METHODS changed_by .
   PROTECTED SECTION.
   PRIVATE SECTION.
+    METHODS is_file_empty
+      IMPORTING
+        io_object_json_file TYPE REF TO object
+      RETURNING
+        VALUE(rv_is_empty)  TYPE abap_bool.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_chkc DEFINITION
@@ -102942,7 +102947,7 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_COMMON_AFF IMPLEMENTATION.
+CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
   METHOD zif_abapgit_object~delete.
 
     DATA: lr_intf_aff_obj    TYPE REF TO data,
@@ -103255,7 +103260,9 @@ CLASS ZCL_ABAPGIT_OBJECT_COMMON_AFF IMPLEMENTATION.
           lo_aff_factory       TYPE REF TO object,
           lv_json_as_xstring   TYPE xstring,
           lx_exception         TYPE REF TO cx_root,
-          lv_name              TYPE c LENGTH 120.
+          lv_name              TYPE c LENGTH 120,
+          lv_is_deletion       TYPE abap_bool VALUE abap_false,
+          lv_dummy             TYPE string.
 
     FIELD-SYMBOLS: <ls_intf_aff_obj>      TYPE any,
                    <ls_intf_aff_log>      TYPE any,
@@ -103337,6 +103344,12 @@ CLASS ZCL_ABAPGIT_OBJECT_COMMON_AFF IMPLEMENTATION.
           RECEIVING
             result = lo_object_json_file.
 
+        " avoid to serialize empty content (object was never activated, exists inactive only).
+        IF is_file_empty( lo_object_json_file ) = abap_true.
+          MESSAGE s821(eu) WITH lv_name INTO lv_dummy.
+          zcx_abapgit_exception=>raise_t100( ).
+        ENDIF.
+
         CALL METHOD lo_object_json_file->('IF_AFF_FILE~GET_CONTENT')
           RECEIVING
             result = lv_json_as_xstring.
@@ -103348,6 +103361,13 @@ CLASS ZCL_ABAPGIT_OBJECT_COMMON_AFF IMPLEMENTATION.
       CATCH cx_root INTO lx_exception.
         zcx_abapgit_exception=>raise_with_text( lx_exception ).
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD is_file_empty.
+
+    CALL METHOD io_object_json_file->('IF_AFF_FILE~IS_DELETION')
+      RECEIVING
+        result = rv_is_empty.
 
   ENDMETHOD.
 ENDCLASS.
@@ -112873,6 +112893,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-08-08T05:05:06.805Z
+* abapmerge 0.14.7 - 2022-08-09T15:22:37.650Z
 ENDINTERFACE.
 ****************************************************
