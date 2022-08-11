@@ -1516,6 +1516,16 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_aff_type_mapping .
   METHODS:
+    "! Convert from AFF to abapGit data
+    "!
+    "! @parameter iv_data | ABAP data as AFF type
+    "! @parameter iv_object_name | Name of object
+    "! @parameter es_data | ABAP data as abapGit type
+    to_abapgit
+      IMPORTING iv_data TYPE data
+                iv_object_name TYPE sobj_name
+      EXPORTING es_data TYPE data,
+
     "! Converts to AFF specific meta data
     "!
     "! @parameter iv_data | (meta-)data of the object
@@ -7034,26 +7044,46 @@ CLASS zcl_abapgit_json_handler DEFINITION
     "! the implementing class
     "!
     "! @parameter iv_content | xstring to be deserialized
+    "! @parameter iv_defaults | path-value pairs that apply if value is initial
     "! @parameter ev_data | data of the xstring
     METHODS deserialize
-      IMPORTING iv_content TYPE xstring
-      EXPORTING ev_data    TYPE data
+      IMPORTING iv_content       TYPE xstring
+                iv_defaults      TYPE ty_skip_paths
+                iv_enum_mappings TYPE ty_enum_mappings
+      EXPORTING ev_data          TYPE data
       RAISING   cx_static_check.
   PROTECTED SECTION.
 
   PRIVATE SECTION.
 
     METHODS:
-      set_original_language
+      map2json_original_language
         CHANGING co_ajson TYPE REF TO zcl_abapgit_ajson
         RAISING  zcx_abapgit_ajson_error,
-      set_custom_enum
+      map2json_custom_enum
         IMPORTING it_enum_mappings TYPE ty_enum_mappings
         CHANGING  co_ajson         TYPE REF TO zcl_abapgit_ajson
         RAISING   zcx_abapgit_ajson_error,
-      set_abap_language_version
+      map2json_abap_language_version
         CHANGING co_ajson TYPE REF TO zcl_abapgit_ajson
-        RAISING  zcx_abapgit_ajson_error.
+        RAISING  zcx_abapgit_ajson_error,
+      "! Get the enum mapping from object handler, as other enums as well
+      map2abap_abap_language_version
+        CHANGING co_ajson TYPE REF TO zcl_abapgit_ajson
+        RAISING  zcx_abapgit_ajson_error,
+      "! For deserialization
+      map2abap_original_language
+        CHANGING co_ajson TYPE REF TO zcl_abapgit_ajson
+        RAISING  zcx_abapgit_ajson_error,
+      "! For deserialization
+      set_defaults
+        IMPORTING it_defaults TYPE ty_skip_paths
+        CHANGING  co_ajson    TYPE REF TO zcl_abapgit_ajson
+        RAISING   zcx_abapgit_ajson_error,
+      map2abap_custom_enum
+        IMPORTING it_enum_mappings TYPE ty_enum_mappings
+        CHANGING  co_ajson         TYPE REF TO zcl_abapgit_ajson
+        RAISING   zcx_abapgit_ajson_error.
 
 ENDCLASS.
 CLASS zcl_abapgit_dependencies DEFINITION
@@ -14212,6 +14242,10 @@ CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objec
     METHODS read_xml
       IMPORTING
                 ii_xml         TYPE REF TO zif_abapgit_xml_input
+      RETURNING VALUE(rs_intf) TYPE ty_intf
+      RAISING
+                zcx_abapgit_exception.
+    METHODS read_json
       RETURNING VALUE(rs_intf) TYPE ty_intf
       RAISING
                 zcx_abapgit_exception.
@@ -80254,7 +80288,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS kHGwlUKtFBXjILcBRBJOUAAKxuSDxK DEFINITION DEFERRED.
+CLASS kHGwlUKtFBXjILcBRBJOrsxFJiznPf DEFINITION DEFERRED.
 CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd DEFINITION DEFERRED.
 CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd DEFINITION DEFERRED.
 * renamed: zcl_abapgit_object_intf :: lcl_aff_helper
@@ -80660,6 +80694,11 @@ ENDCLASS.
 CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd DEFINITION.
   PUBLIC SECTION.
     INTERFACES zif_abapgit_aff_type_mapping.
+  PRIVATE SECTION.
+    METHODS set_abapgit_descriptions
+      IMPORTING is_clsname       TYPE seoclsname
+                is_intf_aff      TYPE zif_abapgit_aff_intf_v1=>ty_main
+      RETURNING VALUE(rs_return) TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt.
 ENDCLASS.
 
 CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd IMPLEMENTATION.
@@ -80690,24 +80729,97 @@ CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd IMPLEMENTATION.
     es_data = ls_data_aff.
   ENDMETHOD.
 
+  METHOD zif_abapgit_aff_type_mapping~to_abapgit.
+    DATA:
+      ls_data_abapgit TYPE zcl_abapgit_object_intf=>ty_intf,
+      ls_data_aff     TYPE zif_abapgit_aff_intf_v1=>ty_main,
+      lv_classname    TYPE seoclsname.
+    ls_data_aff = iv_data.
+
+    lv_classname = iv_object_name.
+
+    ls_data_abapgit-description = set_abapgit_descriptions( is_clsname  = lv_classname
+                                                            is_intf_aff = ls_data_aff ).
+
+    ls_data_abapgit-vseointerf-clsname = iv_object_name.
+    ls_data_abapgit-vseointerf-descript = ls_data_aff-header-description.
+    ls_data_abapgit-vseointerf-category = ls_data_aff-category.
+    ls_data_abapgit-vseointerf-unicode  = ls_data_aff-header-abap_language_version.
+    ls_data_abapgit-vseointerf-langu    = ls_data_aff-header-original_language.
+    ls_data_abapgit-vseointerf-clsproxy = ls_data_aff-proxy.
+    ls_data_abapgit-vseointerf-exposure = seoc_exposure_public.
+    ls_data_abapgit-vseointerf-state    = seoc_state_implemented.
+
+    es_data = ls_data_abapgit.
+
+  ENDMETHOD.
+
+  METHOD set_abapgit_descriptions.
+
+    DATA ls_description TYPE seocompotx.
+    FIELD-SYMBOLS <ls_description>      TYPE zif_abapgit_aff_oo_types_v1=>ty_component_description.
+    FIELD-SYMBOLS <ls_meth_description> TYPE zif_abapgit_aff_oo_types_v1=>ty_method.
+    FIELD-SYMBOLS <ls_evt_description>  TYPE zif_abapgit_aff_oo_types_v1=>ty_event.
+    LOOP AT is_intf_aff-descriptions-types ASSIGNING <ls_description>.
+      ls_description-clsname  = is_clsname.
+      ls_description-cmpname  = <ls_description>-name.
+      ls_description-langu    = is_intf_aff-header-original_language.
+      ls_description-descript = <ls_description>-description.
+      APPEND ls_description TO rs_return.
+    ENDLOOP.
+
+    LOOP AT is_intf_aff-descriptions-attributes ASSIGNING <ls_description>.
+      ls_description-clsname  = is_clsname.
+      ls_description-cmpname  = <ls_description>-name.
+      ls_description-langu    = is_intf_aff-header-original_language.
+      ls_description-descript = <ls_description>-description.
+      APPEND ls_description TO rs_return.
+    ENDLOOP.
+
+    LOOP AT is_intf_aff-descriptions-methods ASSIGNING <ls_meth_description>.
+      ls_description-clsname  = is_clsname.
+      ls_description-cmpname  = <ls_meth_description>-name.
+      ls_description-langu    = is_intf_aff-header-original_language.
+      ls_description-descript = <ls_meth_description>-description.
+      APPEND ls_description TO rs_return.
+    ENDLOOP.
+
+    LOOP AT is_intf_aff-descriptions-events ASSIGNING <ls_evt_description>.
+      ls_description-clsname  = is_clsname.
+      ls_description-cmpname  = <ls_evt_description>-name.
+      ls_description-langu    = is_intf_aff-header-original_language.
+      ls_description-descript = <ls_evt_description>-description.
+      APPEND ls_description TO rs_return.
+    ENDLOOP.
+
+  ENDMETHOD.
+
 ENDCLASS.
-* renamed: zcl_abapgit_object_intf :: lcl_aff_serialize_metadata
-CLASS kHGwlUKtFBXjILcBRBJOUAAKxuSDxK DEFINITION.
+* renamed: zcl_abapgit_object_intf :: lcl_aff_metadata_handler
+CLASS kHGwlUKtFBXjILcBRBJOrsxFJiznPf DEFINITION.
   PUBLIC SECTION.
 
     CLASS-METHODS serialize
       IMPORTING is_intf          TYPE zcl_abapgit_object_intf=>ty_intf
       RETURNING VALUE(rv_result) TYPE xstring
       RAISING   zcx_abapgit_exception.
+    CLASS-METHODS deserialize
+      IMPORTING iv_data          TYPE xstring
+      RETURNING VALUE(rv_result) TYPE zif_abapgit_aff_intf_v1=>ty_main
+      RAISING   zcx_abapgit_exception.
   PRIVATE SECTION.
     CLASS-METHODS:
+      "! For serialization
+      "! @parameter rt_result | Map/table that associates ABAP values to JSON values (enums)
       get_mappings
         RETURNING VALUE(rt_result) TYPE zcl_abapgit_json_handler=>ty_enum_mappings,
+      "! For serialization
+      "! @parameter rt_result | Paths that will not be serialized (depending on value)
       get_paths_to_skip
         RETURNING VALUE(rt_result) TYPE zcl_abapgit_json_handler=>ty_skip_paths.
 ENDCLASS.
 
-CLASS kHGwlUKtFBXjILcBRBJOUAAKxuSDxK IMPLEMENTATION.
+CLASS kHGwlUKtFBXjILcBRBJOrsxFJiznPf IMPLEMENTATION.
 
   METHOD serialize.
     DATA:
@@ -80776,6 +80888,35 @@ CLASS kHGwlUKtFBXjILcBRBJOUAAKxuSDxK IMPLEMENTATION.
     APPEND ls_path_to_skipp TO rt_result.
   ENDMETHOD.
 
+  METHOD deserialize.
+    DATA:
+      lo_ajson                      TYPE REF TO zcl_abapgit_json_handler,
+      lx_exception                  TYPE REF TO cx_static_check,
+      lt_enum_mappings              TYPE zcl_abapgit_json_handler=>ty_enum_mappings,
+      lt_default_abap_langu_version TYPE zcl_abapgit_json_handler=>ty_path_value_pair,
+      lt_values_for_initial         TYPE zcl_abapgit_json_handler=>ty_skip_paths.
+
+    lt_values_for_initial = get_paths_to_skip( ).
+
+    lt_default_abap_langu_version-path  = '/header/abapLanguageVersion'.
+    lt_default_abap_langu_version-value = 'standard'.
+    APPEND lt_default_abap_langu_version TO lt_values_for_initial.
+
+    lt_enum_mappings = get_mappings( ).
+    CREATE OBJECT lo_ajson.
+    TRY.
+        lo_ajson->deserialize(
+           EXPORTING
+             iv_content = iv_data
+             iv_defaults = lt_values_for_initial
+             iv_enum_mappings = lt_enum_mappings
+           IMPORTING
+             ev_data    = rv_result ).
+      CATCH cx_static_check INTO lx_exception.
+        zcx_abapgit_exception=>raise_with_text( lx_exception ).
+    ENDTRY.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_object_intf IMPLEMENTATION.
@@ -80836,19 +80977,20 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_pre_ddic.
 
-    DATA: ls_vseointerf TYPE vseointerf,
-          ls_clskey     TYPE seoclskey.
+    DATA: ls_intf   TYPE ty_intf.
 
-    ls_clskey-clsname = ms_item-obj_name.
-
-    ii_xml->read( EXPORTING iv_name = 'VSEOINTERF'
-                  CHANGING  cg_data = ls_vseointerf ).
+    IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) = abap_true.
+      ls_intf = read_json( ).
+    ELSE.
+      ii_xml->read( EXPORTING iv_name = 'VSEOINTERF'
+                    CHANGING  cg_data = ls_intf-vseointerf ).
+    ENDIF.
 
     mi_object_oriented_object_fct->create(
       EXPORTING
         iv_package    = iv_package
       CHANGING
-        cg_properties = ls_vseointerf ).
+        cg_properties = ls_intf-vseointerf ).
 
   ENDMETHOD.
   METHOD deserialize_proxy.
@@ -80996,7 +81138,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
 
     " HERE: switch with feature flag for XML or JSON file format
     IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) = abap_true.
-      lv_serialized_data = kHGwlUKtFBXjILcBRBJOUAAKxuSDxK=>serialize( ls_intf ).
+      lv_serialized_data = kHGwlUKtFBXjILcBRBJOrsxFJiznPf=>serialize( ls_intf ).
       zif_abapgit_object~mo_files->add_raw( iv_ext  = 'json'
                                             iv_data = lv_serialized_data ).
 
@@ -81065,12 +81207,20 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
     mi_object_oriented_object_fct->delete( ls_clskey ).
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
-    DATA: lt_source TYPE rswsourcet,
-          ls_clskey TYPE seoclskey,
-          ls_intf   TYPE ty_intf.
+    DATA: lt_source     TYPE rswsourcet,
+          ls_clskey     TYPE seoclskey,
+          lv_json_data  TYPE xstring,
+          ls_intf_aff   TYPE zif_abapgit_aff_intf_v1=>ty_main,
+          lo_aff_mapper TYPE REF TO zif_abapgit_aff_type_mapping,
+          ls_intf       TYPE ty_intf.
 
     IF iv_step = zif_abapgit_object=>gc_step_id-abap.
-      ls_intf = read_xml( io_xml ).
+      " HERE: switch with feature flag between XML and JSON file format
+      IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) = abap_true.
+        ls_intf = read_json( ).
+      ELSE.
+        ls_intf = read_xml( io_xml ).
+      ENDIF.
 
       IF ls_intf-vseointerf-clsproxy = abap_true.
         " Proxy interfaces are managed via SPRX
@@ -81108,6 +81258,19 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
 
     ENDIF.
 
+  ENDMETHOD.
+  METHOD read_json.
+    DATA lv_json_data TYPE xstring.
+    DATA ls_intf_aff TYPE zif_abapgit_aff_intf_v1=>ty_main.
+    DATA lo_aff_mapper TYPE REF TO zif_abapgit_aff_type_mapping.
+
+    lv_json_data = zif_abapgit_object~mo_files->read_raw( iv_ext = 'json' ).
+    ls_intf_aff = kHGwlUKtFBXjILcBRBJOrsxFJiznPf=>deserialize( lv_json_data ).
+
+    CREATE OBJECT lo_aff_mapper TYPE kHGwlUKtFBXjILcBRBJOvDDGtKNvAd.
+    lo_aff_mapper->to_abapgit( EXPORTING iv_data = ls_intf_aff
+                                         iv_object_name = ms_item-obj_name
+                               IMPORTING es_data = rs_intf ).
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
@@ -103588,6 +103751,12 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
 
     lo_ajson = zcl_abapgit_ajson=>parse( iv_json           = lv_json
                                          ii_custom_mapping = lo_mapping ).
+    map2abap_original_language( CHANGING co_ajson = lo_ajson ).
+    set_defaults( EXPORTING it_defaults = iv_defaults
+                  CHANGING  co_ajson    = lo_ajson ).
+    map2abap_abap_language_version( CHANGING co_ajson = lo_ajson ).
+    map2abap_custom_enum( EXPORTING it_enum_mappings = iv_enum_mappings
+                          CHANGING co_ajson          = lo_ajson  ).
 
     lo_ajson->zif_abapgit_ajson~to_abap( IMPORTING ev_container = ev_data ).
 
@@ -103615,10 +103784,10 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
       iv_path = '/'
       iv_val  = iv_data ).
 
-    set_original_language( CHANGING co_ajson = lo_ajson ).
-    set_abap_language_version( CHANGING co_ajson = lo_ajson ).
-    set_custom_enum( EXPORTING it_enum_mappings = iv_enum_mappings
-                     CHANGING co_ajson          = lo_ajson ).
+    map2json_original_language( CHANGING co_ajson = lo_ajson ).
+    map2json_abap_language_version( CHANGING co_ajson = lo_ajson ).
+    map2json_custom_enum( EXPORTING it_enum_mappings = iv_enum_mappings
+                          CHANGING co_ajson          = lo_ajson ).
 
     CREATE OBJECT lo_filter EXPORTING iv_skip_paths = iv_skip_paths.
     lo_ajson_filtered = zcl_abapgit_ajson=>create_from(
@@ -103635,7 +103804,7 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
     rv_result = zcl_abapgit_convert=>string_to_xstring_utf8( lv_json ).
   ENDMETHOD.
 
-  METHOD set_original_language.
+  METHOD map2json_original_language.
     DATA:
       lv_iso_language      TYPE i18_a_langiso2,
       lv_original_language TYPE sy-langu.
@@ -103655,7 +103824,7 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD set_abap_language_version.
+  METHOD map2json_abap_language_version.
     DATA:
       lv_enum_abap TYPE string,
       lv_enum_json TYPE string.
@@ -103673,7 +103842,24 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
                           iv_val  = lv_enum_json ).
   ENDMETHOD.
 
-  METHOD set_custom_enum.
+  METHOD map2abap_abap_language_version.
+    DATA:
+      lv_enum_abap TYPE string,
+      lv_enum_json TYPE string.
+    lv_enum_json = co_ajson->get_string( '/header/abapLanguageVersion' ).
+    IF lv_enum_json = 'standard'.
+      lv_enum_abap = zif_abapgit_aff_types_v1=>co_abap_language_version_src-standard.
+    ELSEIF lv_enum_json = 'cloudDevelopment'.
+      lv_enum_abap = zif_abapgit_aff_types_v1=>co_abap_language_version-cloud_development.
+    ELSEIF lv_enum_json = 'keyUser'.
+      lv_enum_abap = zif_abapgit_aff_types_v1=>co_abap_language_version-key_user.
+    ENDIF.
+
+    co_ajson->set_string( iv_path = '/header/abapLanguageVersion'
+                          iv_val  = lv_enum_abap ).
+  ENDMETHOD.
+
+  METHOD map2json_custom_enum.
     DATA:
       lv_enum_abap    TYPE string,
       ls_enum_mapping TYPE ty_enum_mapping,
@@ -103686,6 +103872,72 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
                               iv_val  = ls_mapping-json ).
       ENDIF.
     ENDLOOP.
+  ENDMETHOD.
+  METHOD map2abap_custom_enum.
+    DATA:
+      lv_enum_json    TYPE string,
+      ls_enum_mapping TYPE ty_enum_mapping,
+      ls_mapping      TYPE ty_json_abap_mapping.
+    LOOP AT it_enum_mappings INTO ls_enum_mapping.
+      lv_enum_json = co_ajson->get_string( ls_enum_mapping-path ).
+      READ TABLE ls_enum_mapping-mappings WITH KEY json = lv_enum_json INTO ls_mapping.
+      IF sy-subrc = 0.
+        co_ajson->set_string( iv_path = ls_enum_mapping-path
+                              iv_val  = ls_mapping-abap ).
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+  METHOD set_defaults.
+    DATA:
+      lv_enum_json TYPE string,
+      ls_default   TYPE ty_path_value_pair.
+    LOOP AT it_defaults INTO ls_default.
+      lv_enum_json = co_ajson->get_string( ls_default-path ).
+      IF lv_enum_json = ``.
+        co_ajson->set_string( iv_path = ls_default-path
+                              iv_val  = ls_default-value ).
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD map2abap_original_language.
+    DATA:
+      lv_iso_language      TYPE i18_a_langiso2,
+      lv_original_language TYPE sy-langu.
+    lv_iso_language = co_ajson->get_string( '/header/originalLanguage' ).
+
+    cl_i18n_languages=>locale_to_sap1(
+      EXPORTING
+        iv_localename        = lv_iso_language
+        iv_consider_inactive = abap_true
+      IMPORTING
+        ev_lang_sap1         = lv_original_language
+      EXCEPTIONS
+        no_assignment        = 1
+        OTHERS               = 2 ).
+    IF sy-subrc <> 0.
+      FIND REGEX `[A-Z]{2}` IN lv_iso_language.
+      IF sy-subrc = 0.
+        "Fallback try to convert from SAP language
+        cl_i18n_languages=>sap2_to_sap1(
+          EXPORTING
+            im_lang_sap2      = lv_iso_language
+          RECEIVING
+            re_lang_sap1      = lv_original_language
+          EXCEPTIONS
+            no_assignment     = 1
+            no_representation = 2
+            OTHERS            = 3 ).
+        IF sy-subrc <> 0.
+          RAISE EXCEPTION TYPE zcx_abapgit_ajson_error.
+        ENDIF.
+      ELSE.
+        RAISE EXCEPTION TYPE zcx_abapgit_ajson_error.
+      ENDIF.
+    ENDIF.
+
+    co_ajson->set_string( iv_path = '/header/originalLanguage'
+                          iv_val  = lv_original_language ).
   ENDMETHOD.
 
 ENDCLASS.
@@ -112893,6 +113145,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-08-09T15:22:37.650Z
+* abapmerge 0.14.7 - 2022-08-11T04:56:27.578Z
 ENDINTERFACE.
 ****************************************************
