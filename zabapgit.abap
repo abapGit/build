@@ -22078,20 +22078,24 @@ CLASS zcl_abapgit_zlib_stream DEFINITION
     "! Take bytes, there's an implicit realignment to start at the beginning of a byte
     "! i.e. if next bit of current byte is not the first bit, then this byte is skipped
     "! and the bytes are taken from the next one.
-    "! @parameter iv_length | <p class="shorttext synchronized" lang="en">Number of BYTES to read (not bits)</p>
-    "! @parameter rv_bytes | <p class="shorttext synchronized" lang="en">Bytes taken</p>
+    "! @parameter iv_length | <p class="shorttext synchronized" lang="en"></p>
+    "! @parameter rv_bytes | <p class="shorttext synchronized" lang="en"></p>
     METHODS take_bytes
       IMPORTING
-        iv_length       TYPE i
+        !iv_length      TYPE i
       RETURNING
-        VALUE(rv_bytes) TYPE xstring.
+        VALUE(rv_bytes) TYPE xstring .
+    METHODS clear_bits .
   PROTECTED SECTION.
   PRIVATE SECTION.
-    DATA: mv_compressed TYPE xstring,
-          mv_bits       TYPE string.
 
+    DATA mv_bits TYPE string .
+    DATA mv_compressed TYPE xstring .
 ENDCLASS.
-CLASS zcl_abapgit_zlib_stream IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ZLIB_STREAM IMPLEMENTATION.
+  METHOD clear_bits.
+    CLEAR mv_bits.
+  ENDMETHOD.
   METHOD constructor.
 
     mv_compressed = iv_data.
@@ -22328,7 +22332,6 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
       CASE lv_btype.
         WHEN '00'.
           not_compressed( ).
-          EXIT.
         WHEN '01'.
           fixed( ).
           decode_loop( ).
@@ -22607,13 +22610,16 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
 
     DATA: lv_len  TYPE i,
           lv_nlen TYPE i ##NEEDED.
+    DATA lv_bytes TYPE xstring.
 
-    go_stream->take_bits( 5 ).
+* skip any remaining bits in current partially processed byte
+    go_stream->clear_bits( ).
 
     lv_len = go_stream->take_int( 16 ).
     lv_nlen = go_stream->take_int( 16 ).
 
-    gv_out = go_stream->take_bytes( lv_len ).
+    lv_bytes = go_stream->take_bytes( lv_len ).
+    CONCATENATE gv_out lv_bytes INTO gv_out IN BYTE MODE.
 
   ENDMETHOD.
   METHOD read_pair.
@@ -113185,6 +113191,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-08-16T06:02:38.789Z
+* abapmerge 0.14.7 - 2022-08-18T04:01:49.225Z
 ENDINTERFACE.
 ****************************************************
