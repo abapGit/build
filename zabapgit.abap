@@ -41461,11 +41461,16 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       ro_advanced_dropdown->add( iv_txt = 'Stage by Transport'
                                  iv_act = |{ zif_abapgit_definitions=>c_action-go_stage_transport }?key={ mv_key }| ).
     ENDIF.
+
+    ro_advanced_dropdown->add( iv_txt = 'Quality Assurance'
+                               iv_typ = zif_abapgit_html=>c_action_type-separator ).
     ro_advanced_dropdown->add( iv_txt = 'Syntax Check'
                                iv_act = |{ zif_abapgit_definitions=>c_action-repo_syntax_check }?key={ mv_key }| ).
     ro_advanced_dropdown->add( iv_txt = 'Run Code Inspector'
                                iv_act = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }?key={ mv_key }| ).
 
+    ro_advanced_dropdown->add( iv_txt = 'Very Advanced'
+                               iv_typ = zif_abapgit_html=>c_action_type-separator ).
     CLEAR lv_crossout.
     IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>c_authorization-update_local_checksum ) = abap_false.
       lv_crossout = zif_abapgit_html=>c_html_opt-crossout.
@@ -41483,6 +41488,9 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
         iv_txt = 'Open in Main Language'
         iv_act = |{ zif_abapgit_definitions=>c_action-repo_open_in_master_lang }?key={ mv_key }| ).
     ENDIF.
+
+    ro_advanced_dropdown->add( iv_txt = 'Danger'
+                               iv_typ = zif_abapgit_html=>c_action_type-separator ).
 
     ro_advanced_dropdown->add( iv_txt   = 'Remove'
                                iv_title = `Remove abapGit's records of the repository (the system's `
@@ -113191,6 +113199,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-08-18T04:01:49.225Z
+* abapmerge 0.14.7 - 2022-08-20T10:03:38.848Z
 ENDINTERFACE.
 ****************************************************
