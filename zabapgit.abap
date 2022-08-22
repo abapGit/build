@@ -103864,18 +103864,15 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
       lv_original_language TYPE sy-langu.
     lv_original_language = co_ajson->get_string( '/header/originalLanguage' ).
 
-    cl_i18n_languages=>sap1_to_iso639_1(
+    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_OUTPUT'
       EXPORTING
-        im_lang_sap1   = lv_original_language
+        input  = lv_original_language
       IMPORTING
-        ex_lang_iso639 = lv_iso_language
-      EXCEPTIONS
-        OTHERS         = 1 ).
+        output = lv_iso_language.
 
-    IF sy-subrc = 0.
-      co_ajson->set_string( iv_path = '/header/originalLanguage'
-                            iv_val  = lv_iso_language ).
-    ENDIF.
+    TRANSLATE lv_iso_language TO LOWER CASE.
+    co_ajson->set_string( iv_path = '/header/originalLanguage'
+                          iv_val  = lv_iso_language ).
   ENDMETHOD.
 
   METHOD map2json_abap_language_version.
@@ -103960,35 +103957,11 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
       lv_original_language TYPE sy-langu.
     lv_iso_language = co_ajson->get_string( '/header/originalLanguage' ).
 
-    cl_i18n_languages=>locale_to_sap1(
+    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_INPUT'
       EXPORTING
-        iv_localename        = lv_iso_language
-        iv_consider_inactive = abap_true
+        input  = lv_iso_language
       IMPORTING
-        ev_lang_sap1         = lv_original_language
-      EXCEPTIONS
-        no_assignment        = 1
-        OTHERS               = 2 ).
-    IF sy-subrc <> 0.
-      FIND REGEX `[A-Z]{2}` IN lv_iso_language.
-      IF sy-subrc = 0.
-        "Fallback try to convert from SAP language
-        cl_i18n_languages=>sap2_to_sap1(
-          EXPORTING
-            im_lang_sap2      = lv_iso_language
-          RECEIVING
-            re_lang_sap1      = lv_original_language
-          EXCEPTIONS
-            no_assignment     = 1
-            no_representation = 2
-            OTHERS            = 3 ).
-        IF sy-subrc <> 0.
-          RAISE EXCEPTION TYPE zcx_abapgit_ajson_error.
-        ENDIF.
-      ELSE.
-        RAISE EXCEPTION TYPE zcx_abapgit_ajson_error.
-      ENDIF.
-    ENDIF.
+        output = lv_original_language.
 
     co_ajson->set_string( iv_path = '/header/originalLanguage'
                           iv_val  = lv_original_language ).
@@ -113199,6 +113172,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-08-20T10:03:38.848Z
+* abapmerge 0.14.7 - 2022-08-22T15:25:17.203Z
 ENDINTERFACE.
 ****************************************************
