@@ -5383,7 +5383,7 @@ CLASS zcl_abapgit_transport DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-
+* todo, add interfaces for this class, consider merging zcl_abapgit_transport_mass into this class?
     CLASS-METHODS zip
       IMPORTING
         !iv_show_log_popup TYPE abap_bool DEFAULT abap_true
@@ -5393,6 +5393,7 @@ CLASS zcl_abapgit_transport DEFINITION
         VALUE(rv_xstr)     TYPE xstring
       RAISING
         zcx_abapgit_exception .
+
     CLASS-METHODS to_tadir
       IMPORTING
         it_transport_headers TYPE trwbo_request_headers
@@ -5400,11 +5401,21 @@ CLASS zcl_abapgit_transport DEFINITION
         VALUE(rt_tadir)      TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
+
     CLASS-METHODS add_all_objects_to_trans_req
       IMPORTING
         iv_key TYPE zif_abapgit_persistence=>ty_value
       RAISING
         zcx_abapgit_exception .
+
+    CLASS-METHODS read
+      IMPORTING
+        !is_trkorr        TYPE trwbo_request_header OPTIONAL
+      RETURNING
+        VALUE(rs_request) TYPE trwbo_request
+      RAISING
+        zcx_abapgit_exception .
+
   PROTECTED SECTION.
 
     CLASS-METHODS read_requests
@@ -17130,9 +17141,10 @@ CLASS zcl_abapgit_gui_page_data DEFINITION
 
     CONSTANTS:
       BEGIN OF c_event,
-        add    TYPE string VALUE 'add',
-        update TYPE string VALUE 'update',
-        remove TYPE string VALUE 'remove',
+        add               TYPE string VALUE 'add',
+        update            TYPE string VALUE 'update',
+        remove            TYPE string VALUE 'remove',
+        add_via_transport TYPE string VALUE 'add_via_transport',
       END OF c_event .
 
     CONSTANTS:
@@ -17149,6 +17161,18 @@ CLASS zcl_abapgit_gui_page_data DEFINITION
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
 
+    CLASS-METHODS concatenated_key_to_where
+      IMPORTING
+        !iv_table       TYPE tabname
+        !iv_tabkey      TYPE clike
+      RETURNING
+        VALUE(rv_where) TYPE string .
+    METHODS add_via_transport
+      RAISING
+        zcx_abapgit_exception .
+    METHODS build_menu
+      RETURNING
+        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS build_where
       IMPORTING
         !io_map         TYPE REF TO zcl_abapgit_string_map
@@ -46050,6 +46074,51 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
+  METHOD add_via_transport.
+
+    DATA lt_trkorr  TYPE trwbo_request_headers.
+    DATA ls_trkorr  LIKE LINE OF lt_trkorr.
+    DATA ls_request TYPE trwbo_request.
+    DATA ls_key     LIKE LINE OF ls_request-keys.
+    DATA lv_where   TYPE string.
+    DATA ls_config  TYPE zif_abapgit_data_config=>ty_config.
+    lt_trkorr = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_transports( ).
+    IF lines( lt_trkorr ) <> 1.
+      RETURN.
+    ENDIF.
+
+    READ TABLE lt_trkorr INDEX 1 INTO ls_trkorr.
+    ASSERT sy-subrc = 0.
+
+    ls_request = zcl_abapgit_transport=>read( ls_trkorr ).
+
+    IF lines( ls_request-keys ) = 0.
+      zcx_abapgit_exception=>raise( |No keys found, select task| ).
+    ENDIF.
+
+    LOOP AT ls_request-keys INTO ls_key WHERE object = 'TABU'.
+      ASSERT ls_key-objname IS NOT INITIAL.
+      ASSERT ls_key-tabkey IS NOT INITIAL.
+
+      CLEAR ls_config.
+      ls_config-type = zif_abapgit_data_config=>c_data_type-tabu.
+      ls_config-name = to_upper( ls_key-objname ).
+      lv_where = concatenated_key_to_where(
+        iv_table  = ls_key-objname
+        iv_tabkey = ls_key-tabkey ).
+      APPEND lv_where TO ls_config-where.
+      mi_config->add_config( ls_config ).
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD build_menu.
+
+    CREATE OBJECT ro_menu.
+
+    ro_menu->add( iv_txt = 'Add via transport'
+                  iv_act = c_event-add_via_transport ).
+
+  ENDMETHOD.
   METHOD build_where.
 
     DATA lv_where LIKE LINE OF rt_where.
@@ -46065,11 +46134,40 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD concatenated_key_to_where.
+
+    DATA lo_structdescr TYPE REF TO cl_abap_structdescr.
+    DATA lt_fields      TYPE ddfields.
+    DATA ls_field       LIKE LINE OF lt_fields.
+    DATA lv_key         TYPE string.
+
+    lv_key = iv_tabkey.
+    lo_structdescr ?= cl_abap_typedescr=>describe_by_name( iv_table ).
+
+    lt_fields = lo_structdescr->get_ddic_field_list( ).
+
+    LOOP AT lt_fields INTO ls_field WHERE keyflag = abap_true.
+      IF ls_field-position = '0001' AND ls_field-datatype = 'CLNT'.
+        lv_key = lv_key+ls_field-leng.
+        CONTINUE.
+      ENDIF.
+      IF lv_key = |*|.
+        EXIT. " current loop
+      ENDIF.
+      IF NOT rv_where IS INITIAL.
+        rv_where = |{ rv_where } AND |.
+      ENDIF.
+      rv_where = |{ rv_where }{ to_lower( ls_field-fieldname ) } = '{ lv_key(ls_field-leng) }'|.
+      lv_key = lv_key+ls_field-leng.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD constructor.
 
     super->constructor( ).
 
     ms_control-page_title = 'Data'.
+    ms_control-page_menu = build_menu( ).
 
     mo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
     mi_config = mo_repo->get_data_config( ).
@@ -46143,9 +46241,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
   METHOD render_content.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( render_add( ) ).
+    ri_html->add( '<div class="repo">' ).
     ri_html->add( render_existing( ) ).
+    ri_html->add( render_add( ) ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_existing.
@@ -46196,12 +46295,19 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
     CASE ii_event->mv_action.
       WHEN c_event-add.
         event_add( ii_event ).
+        mo_repo->refresh( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_event-update.
         event_update( ii_event ).
+        mo_repo->refresh( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_event-remove.
         event_remove( ii_event ).
+        mo_repo->refresh( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN c_event-add_via_transport.
+        add_via_transport( ).
+        mo_repo->refresh( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
     ENDCASE.
 
@@ -110511,13 +110617,25 @@ CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_data_config~add_config.
 
+    DATA lv_where TYPE string.
+
+    FIELD-SYMBOLS <ls_config> LIKE LINE OF mt_config.
+
     ASSERT is_config-type IS NOT INITIAL.
     ASSERT is_config-name IS NOT INITIAL.
     ASSERT is_config-name = to_upper( is_config-name ).
 
     INSERT is_config INTO TABLE mt_config.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Already in table' ).
+* append to existing
+      READ TABLE mt_config ASSIGNING <ls_config> WITH KEY type = is_config-type name = is_config-name.
+      ASSERT sy-subrc = 0.
+      LOOP AT is_config-where INTO lv_where.
+        READ TABLE <ls_config>-where TRANSPORTING NO FIELDS WITH KEY table_line = lv_where.
+        IF sy-subrc <> 0.
+          INSERT lv_where INTO TABLE <ls_config>-where.
+        ENDIF.
+      ENDLOOP.
     ENDIF.
 
   ENDMETHOD.
@@ -111120,6 +111238,29 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
     ENDLOOP.
 
     READ TABLE lt_super INDEX lines( lt_super ) INTO rv_package.
+  ENDMETHOD.
+  METHOD read.
+
+    rs_request-h-trkorr = is_trkorr-trkorr.
+
+    CALL FUNCTION 'TRINT_READ_REQUEST'
+      EXPORTING
+        iv_read_e070       = abap_true
+        iv_read_e07t       = abap_true
+        iv_read_e070c      = abap_true
+        iv_read_e070m      = abap_true
+        iv_read_objs_keys  = abap_true
+        iv_read_objs       = abap_true
+        iv_read_attributes = abap_true
+      CHANGING
+        cs_request         = rs_request
+      EXCEPTIONS
+        error_occured      = 1
+        OTHERS             = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
   ENDMETHOD.
   METHOD read_requests.
     DATA lt_requests LIKE rt_requests.
@@ -113179,6 +113320,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-08-26T06:20:29.282Z
+* abapmerge 0.14.7 - 2022-08-26T06:34:12.232Z
 ENDINTERFACE.
 ****************************************************
