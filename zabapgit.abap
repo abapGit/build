@@ -54809,6 +54809,11 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
     DATA: li_package TYPE REF TO zif_abapgit_sap_package.
 
+    find_remote_dot_abapgit( ).
+
+    check_write_protect( ).
+    check_language( ).
+
     li_package = zcl_abapgit_factory=>get_sap_package( get_package( ) ).
     rs_checks-transport-required = li_package->are_changes_recorded_in_tr_req( ).
 
@@ -113320,6 +113325,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-08-26T06:34:12.232Z
+* abapmerge 0.14.7 - 2022-08-30T02:00:41.106Z
 ENDINTERFACE.
 ****************************************************
