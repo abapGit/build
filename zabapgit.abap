@@ -17564,6 +17564,7 @@ CLASS zcl_abapgit_gui_page_ex_object DEFINITION
       BEGIN OF c_id,
         object_type TYPE string VALUE 'object_type',
         object_name TYPE string VALUE 'object_name',
+        only_main   TYPE string VALUE 'only_main',
       END OF c_id.
 
     CONSTANTS:
@@ -21971,17 +21972,18 @@ CLASS zcl_abapgit_zip DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS export_object
       IMPORTING
-        iv_object_type TYPE trobjtype
-        iv_object_name TYPE sobj_name
+        !iv_object_type        TYPE trobjtype
+        !iv_object_name        TYPE sobj_name
+        !iv_main_language_only TYPE abap_bool DEFAULT abap_false
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS export_package
       IMPORTING
-        iv_package        TYPE devclass
-        iv_folder_logic   TYPE string
-        iv_main_lang_only TYPE abap_bool
+        !iv_package        TYPE devclass
+        !iv_folder_logic   TYPE string
+        !iv_main_lang_only TYPE abap_bool
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     CLASS-METHODS load
       IMPORTING
         !iv_xstr        TYPE xstring
@@ -22700,7 +22702,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_zip IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
   METHOD encode_files.
 
     DATA: lo_zip      TYPE REF TO cl_abap_zip,
@@ -22772,8 +22774,10 @@ CLASS zcl_abapgit_zip IMPLEMENTATION.
     ls_files_item-item-obj_type = ls_tadir-object.
     ls_files_item-item-obj_name = ls_tadir-obj_name.
 
-    ls_files_item = zcl_abapgit_objects=>serialize( is_item     = ls_files_item-item
-                                                    iv_language = sy-langu ).
+    ls_files_item = zcl_abapgit_objects=>serialize(
+      iv_main_language_only = iv_main_language_only
+      is_item               = ls_files_item-item
+      iv_language           = sy-langu ).
 
     IF lines( ls_files_item-files ) = 0.
       zcx_abapgit_exception=>raise( 'Empty' ).
@@ -44839,7 +44843,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EX_OBJECT IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
+
     CREATE OBJECT mo_form_data.
+    mo_form_data->set(
+      iv_key = c_id-only_main
+      iv_val = abap_true ).
+
     mo_form = get_form_schema( ).
     mo_form_util = zcl_abapgit_html_form_utils=>create( mo_form ).
   ENDMETHOD.
@@ -44854,13 +44863,16 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EX_OBJECT IMPLEMENTATION.
   METHOD export_object.
     DATA lv_object_type TYPE trobjtype.
     DATA lv_object_name TYPE sobj_name.
+    DATA lv_only_main TYPE abap_bool.
 
     lv_object_type = mo_form_data->get( c_id-object_type ).
     lv_object_name = mo_form_data->get( c_id-object_name ).
+    lv_only_main = mo_form_data->get( c_id-only_main ).
 
     zcl_abapgit_zip=>export_object(
-      iv_object_type = lv_object_type
-      iv_object_name = lv_object_name ).
+      iv_main_language_only = lv_only_main
+      iv_object_type        = lv_object_type
+      iv_object_name        = lv_object_name ).
   ENDMETHOD.
   METHOD get_form_schema.
     ro_form = zcl_abapgit_html_form=>create( iv_form_id = 'export-object-to-files' ).
@@ -44875,8 +44887,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EX_OBJECT IMPLEMENTATION.
       iv_label       = 'Object Name'
       iv_name        = c_id-object_name
       iv_required    = abap_true
-      iv_upper_case  = abap_true
-    )->command(
+      iv_upper_case  = abap_true ).
+
+    ro_form->checkbox(
+      iv_label = 'Only Main Language'
+      iv_name  = c_id-only_main ).
+
+    ro_form->command(
       iv_label       = 'Export'
       iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
       iv_action      = c_event-export
@@ -113548,6 +113565,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-02T06:44:12.660Z
+* abapmerge 0.14.7 - 2022-09-02T06:54:42.376Z
 ENDINTERFACE.
 ****************************************************
