@@ -46390,7 +46390,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
     DATA lo_structdescr TYPE REF TO cl_abap_structdescr.
     DATA lt_fields      TYPE ddfields.
     DATA ls_field       LIKE LINE OF lt_fields.
-    DATA lv_key         TYPE string.
+    DATA lv_key         TYPE c LENGTH 900.
 
     lv_key = iv_tabkey.
     lo_structdescr ?= cl_abap_typedescr=>describe_by_name( iv_table ).
@@ -113588,6 +113588,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-05T07:21:28.980Z
+* abapmerge 0.14.7 - 2022-09-05T16:25:49.310Z
 ENDINTERFACE.
 ****************************************************
