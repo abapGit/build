@@ -1257,6 +1257,12 @@ INTERFACE zif_abapgit_ajson.
       path TYPE string,
       name TYPE string,
     END OF ty_path_name.
+  TYPES:
+    BEGIN OF ty_opts,
+      read_only TYPE abap_bool,
+      keep_item_order TYPE abap_bool,
+      format_datetime TYPE abap_bool,
+    END OF ty_opts.
 
   " DATA
 
@@ -1273,6 +1279,9 @@ INTERFACE zif_abapgit_ajson.
       iv_use_iso TYPE abap_bool DEFAULT abap_true
     RETURNING
       VALUE(ri_json) TYPE REF TO zif_abapgit_ajson.
+  METHODS opts
+    RETURNING
+      VALUE(rs_opts) TYPE ty_opts.
 
   " METHODS ex.reader
 
@@ -6765,6 +6774,7 @@ CLASS zcl_abapgit_ajson DEFINITION
     DATA mi_custom_mapping TYPE REF TO zif_abapgit_ajson_mapping.
     DATA mv_keep_item_order TYPE abap_bool.
     DATA mv_format_datetime TYPE abap_bool.
+    " TODO restructure into zif_ajson=>ty_opts
 
     METHODS get_item
       IMPORTING
@@ -6804,6 +6814,7 @@ CLASS zcl_abapgit_ajson_filter_lib DEFINITION
       IMPORTING
         !it_skip_paths TYPE string_table OPTIONAL
         !iv_skip_paths TYPE string OPTIONAL
+        !iv_pattern_search TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(ri_filter) TYPE REF TO zif_abapgit_ajson_filter
       RAISING
@@ -104811,21 +104822,35 @@ CLASS kHGwlqZELdDwrxoEPdVyKlBZxFUUhA DEFINITION FINAL.
       IMPORTING
         it_skip_paths TYPE string_table OPTIONAL
         iv_skip_paths TYPE string OPTIONAL
+        iv_pattern_search TYPE abap_bool
       RAISING
         zcx_abapgit_ajson_error.
   PRIVATE SECTION.
     DATA mt_skip_paths TYPE HASHED TABLE OF string WITH UNIQUE KEY table_line.
+    DATA mv_pattern_search TYPE abap_bool.
 ENDCLASS.
 
 CLASS kHGwlqZELdDwrxoEPdVyKlBZxFUUhA IMPLEMENTATION.
 
   METHOD zif_abapgit_ajson_filter~keep_node.
 
-    DATA lv_path TYPE string.
+    DATA lv_full_path TYPE string.
+    FIELD-SYMBOLS <p> LIKE LINE OF mt_skip_paths.
 
-    lv_path = is_node-path && is_node-name.
-    READ TABLE mt_skip_paths WITH KEY table_line = lv_path TRANSPORTING NO FIELDS.
-    rv_keep = boolc( sy-subrc <> 0 ).
+    lv_full_path = is_node-path && is_node-name.
+
+    IF mv_pattern_search = abap_true.
+      rv_keep = abap_true.
+      LOOP AT mt_skip_paths ASSIGNING <p>.
+        IF lv_full_path CP <p>.
+          rv_keep = abap_false.
+          EXIT.
+        ENDIF.
+      ENDLOOP.
+    ELSE.
+      READ TABLE mt_skip_paths WITH KEY table_line = lv_full_path TRANSPORTING NO FIELDS.
+      rv_keep = boolc( sy-subrc <> 0 ).
+    ENDIF.
 
   ENDMETHOD.
 
@@ -104859,6 +104884,7 @@ CLASS kHGwlqZELdDwrxoEPdVyKlBZxFUUhA IMPLEMENTATION.
     DELETE ADJACENT DUPLICATES FROM lt_tab.
 
     mt_skip_paths = lt_tab.
+    mv_pattern_search = iv_pattern_search.
 
   ENDMETHOD.
 
@@ -104923,6 +104949,7 @@ CLASS zcl_abapgit_ajson_filter_lib IMPLEMENTATION.
   METHOD create_path_filter.
     CREATE OBJECT ri_filter TYPE kHGwlqZELdDwrxoEPdVyKlBZxFUUhA
       EXPORTING
+        iv_pattern_search = iv_pattern_search
         it_skip_paths = it_skip_paths
         iv_skip_paths = iv_skip_paths.
   ENDMETHOD.
@@ -105970,11 +105997,7 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI IMPLEMENTATION.
         zcx_abapgit_ajson_error=>raise( 'Unexpected error calculating timestamp' ).
     ENDTRY.
 
-    cl_abap_tstmp=>move(
-      EXPORTING
-        tstmp_src = lv_timestamp
-      IMPORTING
-        tstmp_tgt = rv_result ).
+    rv_result = lv_timestamp.
 
   ENDMETHOD.
 
@@ -106272,20 +106295,13 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
     DATA lv_date TYPE d.
     DATA lv_time TYPE t.
 
-    IF iv_ts IS INITIAL.
-      " The zero value is January 1, year 1, 00:00:00.000000000 UTC.
-      lv_date = '00010101'.
-    ELSE.
-
-      CONVERT TIME STAMP iv_ts TIME ZONE lc_utc
-        INTO DATE lv_date TIME lv_time.
-
-    ENDIF.
+    CONVERT TIME STAMP iv_ts TIME ZONE lc_utc
+      INTO DATE lv_date TIME lv_time.
 
     rv_str =
       lv_date+0(4) && '-' && lv_date+4(2) && '-' && lv_date+6(2) &&
       'T' &&
-      lv_time+0(2) && '-' && lv_time+2(2) && '-' && lv_time+4(2) &&
+      lv_time+0(2) && ':' && lv_time+2(2) && ':' && lv_time+4(2) &&
       'Z'.
 
   ENDMETHOD.
@@ -106719,6 +106735,13 @@ CLASS kHGwlMWhQrsNKkKXALnplwblMIpVBS IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_ajson IMPLEMENTATION.
+
+  METHOD zif_abapgit_ajson~opts.
+    rs_opts-read_only       = mv_read_only.
+    rs_opts-format_datetime = mv_format_datetime.
+    rs_opts-keep_item_order = mv_keep_item_order.
+  ENDMETHOD.
+
   METHOD constructor.
     format_datetime( abap_true ).
   ENDMETHOD.
@@ -113565,6 +113588,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-02T06:54:42.376Z
+* abapmerge 0.14.7 - 2022-09-05T07:21:28.980Z
 ENDINTERFACE.
 ****************************************************
