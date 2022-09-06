@@ -89729,7 +89729,12 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = get_package( )->changed_by.
+    DATA li_package TYPE REF TO if_package.
+
+    li_package = get_package( ).
+    IF li_package IS BOUND.
+      rv_user = li_package->changed_by.
+    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -113793,6 +113798,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-05T16:59:32.905Z
+* abapmerge 0.14.7 - 2022-09-06T18:37:45.141Z
 ENDINTERFACE.
 ****************************************************
