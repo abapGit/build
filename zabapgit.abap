@@ -4252,6 +4252,7 @@ INTERFACE zif_abapgit_repo_srv .
   TYPES:
     ty_repo_list TYPE STANDARD TABLE OF REF TO zif_abapgit_repo WITH DEFAULT KEY .
 
+  METHODS init.
   METHODS delete
     IMPORTING
       !ii_repo TYPE REF TO zif_abapgit_repo
@@ -41630,7 +41631,7 @@ CLASS zcl_abapgit_gui_page_run_bckg IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -42222,6 +42223,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
     gui_services( )->register_event_handler( me ).
     CREATE OBJECT mo_repo_aggregated_state.
 
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
     TRY.
         " Reinit, for the case of type change
         mo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
@@ -42231,7 +42234,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
 
         lo_news = zcl_abapgit_news=>create( mo_repo ).
 
-        CREATE OBJECT ri_html TYPE zcl_abapgit_html.
         ri_html->add( |<div class="repo" id="repo{ mv_key }">| ).
         ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
           io_repo               = mo_repo
@@ -50411,10 +50413,10 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
 
     lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
       iv_titlebar              = 'Warning'
-      iv_text_question         = 'Delete?'
-      iv_text_button_1         = 'Ok'
+      iv_text_question         = |Are you sure you want to delete entry { is_key-type } { is_key-value }?|
+      iv_text_button_1         = 'Yes'
       iv_icon_button_1         = 'ICON_DELETE'
-      iv_text_button_2         = 'Cancel'
+      iv_text_button_2         = 'No'
       iv_icon_button_2         = 'ICON_CANCEL'
       iv_default_button        = '2'
       iv_display_cancel_button = abap_false ).
@@ -50426,6 +50428,17 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
     zcl_abapgit_persistence_db=>get_instance( )->delete(
       iv_type  = is_key-type
       iv_value = is_key-value ).
+
+    " If deleting repo, also delete corresponding checksums
+    " Other way around is ok, since checksums are automatically recreated
+    IF is_key-type = zcl_abapgit_persistence_db=>c_type_repo.
+      zcl_abapgit_persistence_db=>get_instance( )->delete(
+        iv_type  = zcl_abapgit_persistence_db=>c_type_repo_csum
+        iv_value = is_key-value ).
+
+      " Initialize repo list
+      zcl_abapgit_repo_srv=>get_instance( )->init( ).
+    ENDIF.
 
     COMMIT WORK.
 
@@ -53487,7 +53500,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       ENDLOOP.
     ENDDO.
 
-    zcx_abapgit_exception=>raise( 'repo not found, get' ).
+    zcx_abapgit_exception=>raise( |Repository not found in database. Key: REPO, { iv_key }| ).
 
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~get_repo_from_package.
@@ -53556,6 +53569,9 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
     ENDLOOP.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_srv~init.
+    CLEAR mv_init.
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~is_repo_installed.
 
@@ -113798,6 +113814,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-06T18:37:45.141Z
+* abapmerge 0.14.7 - 2022-09-07T12:42:30.660Z
 ENDINTERFACE.
 ****************************************************
