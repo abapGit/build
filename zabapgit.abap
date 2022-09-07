@@ -4485,15 +4485,6 @@ INTERFACE zif_abapgit_popups .
       VALUE(et_list)         TYPE STANDARD TABLE
     RAISING
       zcx_abapgit_exception .
-  METHODS branch_popup_callback
-    IMPORTING
-      !iv_code       TYPE clike
-    CHANGING
-      !ct_fields     TYPE ty_sval_tt
-      !cs_error      TYPE svale
-      !cv_show_popup TYPE char01
-    RAISING
-      zcx_abapgit_exception .
   METHODS popup_transport_request
     IMPORTING
       !is_transport_type        TYPE zif_abapgit_definitions=>ty_transport_type
@@ -34279,67 +34270,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       lv_text = |Branch switched from { zcl_abapgit_git_branch_list=>get_display_name( iv_default_branch ) } to {
         zcl_abapgit_git_branch_list=>get_display_name( rs_branch-name ) } |.
       MESSAGE lv_text TYPE 'S'.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_popups~branch_popup_callback.
-
-    DATA: lv_url          TYPE string,
-          ls_package_data TYPE scompkdtln,
-          ls_branch       TYPE zif_abapgit_definitions=>ty_git_branch,
-          lv_create       TYPE abap_bool,
-          lv_text         TYPE string.
-
-    FIELD-SYMBOLS: <ls_furl>     LIKE LINE OF ct_fields,
-                   <ls_fbranch>  LIKE LINE OF ct_fields,
-                   <ls_fpackage> LIKE LINE OF ct_fields.
-
-    CLEAR cs_error.
-
-    IF iv_code = 'COD1'.
-      cv_show_popup = abap_true.
-
-      READ TABLE ct_fields ASSIGNING <ls_furl> WITH KEY tabname = 'ABAPTXT255'.
-      IF sy-subrc <> 0 OR <ls_furl>-value IS INITIAL.
-        MESSAGE 'Fill URL' TYPE 'S' DISPLAY LIKE 'E'.
-        RETURN.
-      ENDIF.
-      lv_url = <ls_furl>-value.
-
-      ls_branch = zif_abapgit_popups~branch_list_popup( lv_url ).
-      IF ls_branch IS INITIAL.
-        RETURN.
-      ENDIF.
-
-      READ TABLE ct_fields ASSIGNING <ls_fbranch> WITH KEY tabname = 'TEXTL'.
-      ASSERT sy-subrc = 0.
-      <ls_fbranch>-value = ls_branch-name.
-
-    ELSEIF iv_code = 'COD2'.
-      cv_show_popup = abap_true.
-
-      READ TABLE ct_fields ASSIGNING <ls_fpackage> WITH KEY fieldname = 'DEVCLASS'.
-      ASSERT sy-subrc = 0.
-      ls_package_data-devclass = <ls_fpackage>-value.
-
-      IF zcl_abapgit_factory=>get_sap_package( ls_package_data-devclass )->exists( ) = abap_true.
-        lv_text = |Package { ls_package_data-devclass } already exists|.
-        MESSAGE lv_text TYPE 'I' DISPLAY LIKE 'E'.
-        RETURN.
-      ENDIF.
-
-      zif_abapgit_popups~popup_to_create_package(
-        IMPORTING
-          es_package_data = ls_package_data
-          ev_create       = lv_create ).
-      IF lv_create = abap_false.
-        RETURN.
-      ENDIF.
-
-      zcl_abapgit_factory=>get_sap_package( ls_package_data-devclass )->create( ls_package_data ).
-      COMMIT WORK.
-
-      <ls_fpackage>-value = ls_package_data-devclass.
     ENDIF.
 
   ENDMETHOD.
@@ -113629,32 +113559,6 @@ FORM open_gui RAISING zcx_abapgit_exception.
 
 ENDFORM.
 
-FORM branch_popup TABLES   tt_fields TYPE zif_abapgit_popups=>ty_sval_tt
-                  USING    pv_code TYPE clike
-                  CHANGING cs_error TYPE svale
-                           cv_show_popup TYPE c
-                  RAISING zcx_abapgit_exception ##CALLED ##NEEDED.
-* called dynamically from function module POPUP_GET_VALUES_USER_BUTTONS
-
-  DATA: lx_error  TYPE REF TO zcx_abapgit_exception,
-        li_popups TYPE REF TO zif_abapgit_popups.
-
-  TRY.
-      li_popups = zcl_abapgit_ui_factory=>get_popups( ).
-      li_popups->branch_popup_callback(
-        EXPORTING
-          iv_code       = pv_code
-        CHANGING
-          ct_fields     = tt_fields[]
-          cs_error      = cs_error
-          cv_show_popup = cv_show_popup ).
-
-    CATCH zcx_abapgit_exception INTO lx_error.
-      MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.
-  ENDTRY.
-
-ENDFORM.                    "branch_popup
-
 FORM output.
 
   DATA: lx_error TYPE REF TO zcx_abapgit_exception,
@@ -113814,6 +113718,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-07T12:42:30.660Z
+* abapmerge 0.14.7 - 2022-09-07T13:48:44.301Z
 ENDINTERFACE.
 ****************************************************
