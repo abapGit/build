@@ -63503,6 +63503,8 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
     io_xml->add( iv_name = 'TEXT'
                  ig_data = ms_key-text ).
 
+    SORT lt_w3params.
+
     io_xml->add( iv_name = 'PARAMS'
                  ig_data = lt_w3params ).
 
@@ -113773,6 +113775,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-08T06:05:02.485Z
+* abapmerge 0.14.7 - 2022-09-08T06:15:21.212Z
 ENDINTERFACE.
 ****************************************************
