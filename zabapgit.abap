@@ -79842,6 +79842,25 @@ CLASS zcl_abapgit_object_jobd IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_iwvb IMPLEMENTATION.
+  METHOD get_field_rules.
+    ro_result = zcl_abapgit_field_rules=>create( ).
+    ro_result->add(
+      iv_table     = '/IWBEP/I_MGW_VAH'
+      iv_field     = 'CREATED_BY'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_VAH'
+      iv_field     = 'CREATED_TIMESTMP'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_VAH'
+      iv_field     = 'CHANGED_BY'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_VAH'
+      iv_field     = 'CHANGED_TIMESTMP'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp ).
+  ENDMETHOD.
   METHOD get_generic.
 
     CREATE OBJECT ro_generic
@@ -79852,7 +79871,19 @@ CLASS zcl_abapgit_object_iwvb IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+
+    DATA lv_created TYPE sy-uname.
+    DATA lv_changed TYPE sy-uname.
+
+    " Get entry with highest version
+    SELECT created_by changed_by INTO (lv_created, lv_changed) FROM ('/IWBEP/I_MGW_VAH')
+      WHERE technical_name = ms_item-obj_name.
+      rv_user = lv_changed.
+      IF lv_changed IS INITIAL.
+        rv_user = lv_created.
+      ENDIF.
+    ENDSELECT.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -79906,30 +79937,28 @@ CLASS zcl_abapgit_object_iwvb IMPLEMENTATION.
     get_generic( )->serialize( io_xml ).
 
   ENDMETHOD.
-
-  METHOD get_field_rules.
-    ro_result = zcl_abapgit_field_rules=>create( ).
-    ro_result->add(
-      iv_table     = '/IWBEP/I_MGW_VAH'
-      iv_field     = 'CREATED_BY'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
-    )->add(
-      iv_table     = '/IWBEP/I_MGW_VAH'
-      iv_field     = 'CREATED_TIMESTMP'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp
-    )->add(
-      iv_table     = '/IWBEP/I_MGW_VAH'
-      iv_field     = 'CHANGED_BY'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
-    )->add(
-      iv_table     = '/IWBEP/I_MGW_VAH'
-      iv_field     = 'CHANGED_TIMESTMP'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp ).
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
+  METHOD get_field_rules.
+    ro_result = zcl_abapgit_field_rules=>create( ).
+    ro_result->add(
+      iv_table     = '/IWBEP/I_MGW_SRH'
+      iv_field     = 'CREATED_BY'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_SRH'
+      iv_field     = 'CREATED_TIMESTMP'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_SRH'
+      iv_field     = 'CHANGED_BY'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_SRH'
+      iv_field     = 'CHANGED_TIMESTMP'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp ).
+  ENDMETHOD.
   METHOD get_generic.
 
     CREATE OBJECT ro_generic
@@ -79940,7 +79969,19 @@ CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+
+    DATA lv_created TYPE sy-uname.
+    DATA lv_changed TYPE sy-uname.
+
+    " Get entry with highest version
+    SELECT created_by changed_by INTO (lv_created, lv_changed) FROM ('/IWBEP/I_MGW_SRH')
+      WHERE technical_name = ms_item-obj_name.
+      rv_user = lv_changed.
+      IF lv_changed IS INITIAL.
+        rv_user = lv_created.
+      ENDIF.
+    ENDSELECT.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -80013,27 +80054,6 @@ CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
     get_generic( )->serialize( io_xml ).
 
   ENDMETHOD.
-
-  METHOD get_field_rules.
-    ro_result = zcl_abapgit_field_rules=>create( ).
-    ro_result->add(
-      iv_table     = '/IWBEP/I_MGW_SRH'
-      iv_field     = 'CREATED_BY'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
-    )->add(
-      iv_table     = '/IWBEP/I_MGW_SRH'
-      iv_field     = 'CREATED_TIMESTMP'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp
-    )->add(
-      iv_table     = '/IWBEP/I_MGW_SRH'
-      iv_field     = 'CHANGED_BY'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
-    )->add(
-      iv_table     = '/IWBEP/I_MGW_SRH'
-      iv_field     = 'CHANGED_TIMESTMP'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp ).
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_IWSG IMPLEMENTATION.
@@ -80290,6 +80310,25 @@ CLASS zcl_abapgit_object_iwom IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_iwmo IMPLEMENTATION.
+  METHOD get_field_rules.
+    ro_result = zcl_abapgit_field_rules=>create( ).
+    ro_result->add(
+      iv_table     = '/IWBEP/I_MGW_OHD'
+      iv_field     = 'CREATED_BY'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_OHD'
+      iv_field     = 'CREATED_TIMESTMP'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_OHD'
+      iv_field     = 'CHANGED_BY'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWBEP/I_MGW_OHD'
+      iv_field     = 'CHANGED_TIMESTMP'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp ).
+  ENDMETHOD.
   METHOD get_generic.
 
     CREATE OBJECT ro_generic
@@ -80300,7 +80339,19 @@ CLASS zcl_abapgit_object_iwmo IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+
+    DATA lv_created TYPE sy-uname.
+    DATA lv_changed TYPE sy-uname.
+
+    " Get entry with highest version
+    SELECT created_by changed_by INTO (lv_created, lv_changed) FROM ('/IWBEP/I_MGW_OHD')
+      WHERE technical_name = ms_item-obj_name.
+      rv_user = lv_changed.
+      IF lv_changed IS INITIAL.
+        rv_user = lv_created.
+      ENDIF.
+    ENDSELECT.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -80373,27 +80424,6 @@ CLASS zcl_abapgit_object_iwmo IMPLEMENTATION.
     get_generic( )->serialize( io_xml ).
 
   ENDMETHOD.
-
-  METHOD get_field_rules.
-    ro_result = zcl_abapgit_field_rules=>create( ).
-    ro_result->add(
-      iv_table     = '/IWBEP/I_MGW_OHD'
-      iv_field     = 'CREATED_BY'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
-    )->add(
-      iv_table     = '/IWBEP/I_MGW_OHD'
-      iv_field     = 'CREATED_TIMESTMP'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp
-    )->add(
-      iv_table     = '/IWBEP/I_MGW_OHD'
-      iv_field     = 'CHANGED_BY'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
-    )->add(
-      iv_table     = '/IWBEP/I_MGW_OHD'
-      iv_field     = 'CHANGED_TIMESTMP'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp ).
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
@@ -83616,7 +83646,19 @@ CLASS zcl_abapgit_object_g4bs IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+
+    DATA lv_created TYPE sy-uname.
+    DATA lv_changed TYPE sy-uname.
+
+    " Get entry with highest version
+    SELECT created_by changed_by INTO (lv_created, lv_changed) FROM ('/IWBEP/I_V4_MSRV')
+      WHERE service_id = ms_item-obj_name ORDER BY PRIMARY KEY.
+      rv_user = lv_changed.
+      IF lv_changed IS INITIAL.
+        rv_user = lv_created.
+      ENDIF.
+    ENDSELECT.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -83712,7 +83754,16 @@ CLASS zcl_abapgit_object_g4ba IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+    DATA lv_created TYPE sy-uname.
+    DATA lv_changed TYPE sy-uname.
+
+    SELECT SINGLE created_by changed_by INTO (lv_created, lv_changed) FROM ('/IWBEP/I_V4_MSGR')
+      WHERE group_id = ms_item-obj_name.
+
+    rv_user = lv_changed.
+    IF lv_changed IS INITIAL.
+      rv_user = lv_created.
+    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -113718,6 +113769,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-07T13:48:44.301Z
+* abapmerge 0.14.7 - 2022-09-08T05:33:35.368Z
 ENDINTERFACE.
 ****************************************************
