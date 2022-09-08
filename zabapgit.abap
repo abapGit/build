@@ -75235,12 +75235,14 @@ CLASS zcl_abapgit_object_scvi IMPLEMENTATION.
     SELECT *
     FROM shdsvtxci
     INTO TABLE ls_screen_variant-shdsvtxci[]
-    WHERE scvariant = ls_screen_variant-shdsvci-scvariant.
+    WHERE scvariant = ls_screen_variant-shdsvci-scvariant
+    ORDER BY PRIMARY KEY.
 
     SELECT *
     FROM shdgxtcode
     INTO TABLE ls_screen_variant-shdgxtcode[]
-    WHERE scvariant = ls_screen_variant-shdsvci-scvariant.
+    WHERE scvariant = ls_screen_variant-shdsvci-scvariant
+    ORDER BY PRIMARY KEY.
 
     io_xml->add( iv_name = 'SCVI'
                  ig_data = ls_screen_variant ).
@@ -113771,6 +113773,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-08T06:01:48.374Z
+* abapmerge 0.14.7 - 2022-09-08T06:05:02.485Z
 ENDINTERFACE.
 ****************************************************
