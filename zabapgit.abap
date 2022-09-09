@@ -68502,6 +68502,7 @@ CLASS zcl_abapgit_object_sush IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
+    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -103470,6 +103471,12 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
         WHEN 'AUTH'.
           " AUTH after DCLS
           <ls_tadir>-korrnum = '715000'.
+        WHEN 'SUSH'.
+          " SUSH after SUSC
+          <ls_tadir>-korrnum = '712000'.
+        WHEN 'SUSC'.
+          " SUSC after SUSO
+          <ls_tadir>-korrnum = '711000'.
         WHEN 'SUSO'.
           " SUSO after DCLS
           <ls_tadir>-korrnum = '710000'.
@@ -103482,8 +103489,6 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
           <ls_tadir>-korrnum = '551000'.
         WHEN 'IATU'.
           <ls_tadir>-korrnum = '550000'.
-        WHEN 'SUSC'.
-          <ls_tadir>-korrnum = '500000'.
         WHEN 'ACID'.
           " ACID after PROG/FUGR/CLAS
           <ls_tadir>-korrnum = '300000'.
@@ -113775,6 +113780,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-08T06:15:21.212Z
+* abapmerge 0.14.7 - 2022-09-09T12:25:45.580Z
 ENDINTERFACE.
 ****************************************************
