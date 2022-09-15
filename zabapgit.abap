@@ -3382,6 +3382,8 @@ INTERFACE zif_abapgit_oo_object_fnc.
 
   TYPES:
     ty_seocompotx_tt TYPE STANDARD TABLE OF seocompotx WITH DEFAULT KEY .
+  TYPES:
+    ty_seosubcotx_tt TYPE STANDARD TABLE OF seosubcotx WITH DEFAULT KEY .
 
   METHODS:
     create
@@ -3421,6 +3423,10 @@ INTERFACE zif_abapgit_oo_object_fnc.
       IMPORTING
         is_key          TYPE seoclskey
         it_descriptions TYPE ty_seocompotx_tt,
+    update_descriptions_sub
+      IMPORTING
+        is_key          TYPE seoclskey
+        it_descriptions TYPE ty_seosubcotx_tt,
     add_to_activation_list
       IMPORTING
         is_item TYPE zif_abapgit_definitions=>ty_item
@@ -3512,6 +3518,12 @@ INTERFACE zif_abapgit_oo_object_fnc.
         iv_language            TYPE spras OPTIONAL
       RETURNING
         VALUE(rt_descriptions) TYPE ty_seocompotx_tt,
+    read_descriptions_sub
+      IMPORTING
+        iv_object_name         TYPE seoclsname
+        iv_language            TYPE spras OPTIONAL
+      RETURNING
+        VALUE(rt_descriptions) TYPE ty_seosubcotx_tt,
     delete
       IMPORTING
         is_deletion_key TYPE seoclskey
@@ -13846,23 +13858,23 @@ CLASS zcl_abapgit_objects_program DEFINITION
 
     METHODS serialize_program
       IMPORTING
-        !io_xml TYPE REF TO zif_abapgit_xml_output OPTIONAL
-        !is_item TYPE zif_abapgit_definitions=>ty_item
-        !io_files TYPE REF TO zcl_abapgit_objects_files
+        !io_xml     TYPE REF TO zif_abapgit_xml_output OPTIONAL
+        !is_item    TYPE zif_abapgit_definitions=>ty_item
+        !io_files   TYPE REF TO zcl_abapgit_objects_files
         !iv_program TYPE programm OPTIONAL
-        !iv_extra TYPE clike OPTIONAL
+        !iv_extra   TYPE clike OPTIONAL
       RAISING
         zcx_abapgit_exception.
     METHODS read_progdir
       IMPORTING
-        !iv_program TYPE programm
+        !iv_program       TYPE programm
       RETURNING
         VALUE(rs_progdir) TYPE ty_progdir.
     METHODS deserialize_program
       IMPORTING
         !is_progdir TYPE ty_progdir
-        !it_source TYPE abaptxt255_tab
-        !it_tpool TYPE textpool_table
+        !it_source  TYPE abaptxt255_tab
+        !it_tpool   TYPE textpool_table
         !iv_package TYPE devclass
       RAISING
         zcx_abapgit_exception.
@@ -14043,6 +14055,12 @@ CLASS zcl_abapgit_object_clas DEFINITION
         RAISING
           zcx_abapgit_exception,
       serialize_descr
+        IMPORTING
+          !ii_xml     TYPE REF TO zif_abapgit_xml_output
+          !iv_clsname TYPE seoclsname
+        RAISING
+          zcx_abapgit_exception,
+      serialize_descr_sub
         IMPORTING
           !ii_xml     TYPE REF TO zif_abapgit_xml_output
           !iv_clsname TYPE seoclsname
@@ -14249,16 +14267,16 @@ CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objec
 
     TYPES:
       BEGIN OF ty_intf,
-        vseointerf  TYPE vseointerf,
-        docu        TYPE ty_docu,
-        description TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt,
+        vseointerf      TYPE vseointerf,
+        docu            TYPE ty_docu,
+        description     TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt,
+        description_sub TYPE zif_abapgit_oo_object_fnc=>ty_seosubcotx_tt,
       END OF ty_intf.
 
     METHODS constructor
       IMPORTING
         is_item     TYPE zif_abapgit_definitions=>ty_item
         iv_language TYPE spras.
-
   PROTECTED SECTION.
     METHODS deserialize_proxy
       IMPORTING
@@ -14285,6 +14303,13 @@ CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objec
       RETURNING VALUE(rs_description) TYPE ty_intf-description
       RAISING
                 zcx_abapgit_exception.
+    METHODS serialize_descr_sub
+      IMPORTING
+                !ii_xml               TYPE REF TO zif_abapgit_xml_output
+                !iv_clsname           TYPE seoclsname
+      RETURNING VALUE(rs_description) TYPE ty_intf-description_sub
+      RAISING
+                zcx_abapgit_exception.
     METHODS serialize_xml
       IMPORTING
         !io_xml TYPE REF TO zif_abapgit_xml_output
@@ -14304,6 +14329,9 @@ CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objec
     METHODS deserialize_descriptions
       IMPORTING
         it_description TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt OPTIONAL.
+    METHODS deserialize_descr_sub
+      IMPORTING
+        it_description TYPE zif_abapgit_oo_object_fnc=>ty_seosubcotx_tt OPTIONAL.
     METHODS read_xml
       IMPORTING
                 ii_xml         TYPE REF TO zif_abapgit_xml_input
@@ -57330,7 +57358,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
+CLASS zcl_abapgit_objects_program IMPLEMENTATION.
   METHOD add_tpool.
 
     FIELD-SYMBOLS: <ls_tpool_in>  LIKE LINE OF it_tpool,
@@ -57455,10 +57483,10 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
 
     CONSTANTS lc_rpyty_force_off TYPE c LENGTH 1 VALUE '/'.
 
-    DATA: lv_name   TYPE dwinactiv-obj_name,
+    DATA: lv_name            TYPE dwinactiv-obj_name,
           lt_d020s_to_delete TYPE TABLE OF d020s,
-          ls_d020s  LIKE LINE OF lt_d020s_to_delete,
-          ls_dynpro LIKE LINE OF it_dynpros.
+          ls_d020s           LIKE LINE OF lt_d020s_to_delete,
+          ls_dynpro          LIKE LINE OF it_dynpros.
 
     FIELD-SYMBOLS: <ls_field> TYPE rpy_dyfatc.
 
@@ -57562,9 +57590,9 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
 
       CALL FUNCTION 'RS_SCRP_DELETE'
         EXPORTING
-          dynnr      = ls_d020s-dnum
-          progname   = ms_item-obj_name
-          with_popup = abap_false
+          dynnr                  = ls_d020s-dnum
+          progname               = ms_item-obj_name
+          with_popup             = abap_false
         EXCEPTIONS
           enqueued_by_user       = 1
           enqueue_system_failure = 2
@@ -81531,22 +81559,19 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
       iv_language = iv_language ).
     mi_object_oriented_object_fct = zcl_abapgit_oo_factory=>make( ms_item-obj_type ).
   ENDMETHOD.
-  METHOD read_xml.
-    ii_xml->read( EXPORTING iv_name = 'VSEOINTERF'
-                  CHANGING  cg_data = rs_intf-vseointerf ).
-    ii_xml->read( EXPORTING iv_name = 'DESCRIPTIONS'
-                  CHANGING  cg_data = rs_intf-description ).
-    ii_xml->read( EXPORTING iv_name = 'LINES'
-                  CHANGING  cg_data = rs_intf-docu-lines ).
-    ii_xml->read( EXPORTING iv_name = 'I18N_LINES'
-                  CHANGING  cg_data = rs_intf-docu-i18n_lines ).
-  ENDMETHOD.
-
   METHOD deserialize_descriptions.
     DATA:  ls_clskey TYPE seoclskey.
     ls_clskey-clsname = ms_item-obj_name.
 
     mi_object_oriented_object_fct->update_descriptions(
+      is_key          = ls_clskey
+      it_descriptions = it_description ).
+  ENDMETHOD.
+  METHOD deserialize_descr_sub.
+    DATA:  ls_clskey TYPE seoclskey.
+    ls_clskey-clsname = ms_item-obj_name.
+
+    mi_object_oriented_object_fct->update_descriptions_sub(
       is_key          = ls_clskey
       it_descriptions = it_description ).
   ENDMETHOD.
@@ -81637,6 +81662,31 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD read_json.
+    DATA lv_json_data TYPE xstring.
+    DATA ls_intf_aff TYPE zif_abapgit_aff_intf_v1=>ty_main.
+    DATA lo_aff_mapper TYPE REF TO zif_abapgit_aff_type_mapping.
+
+    lv_json_data = zif_abapgit_object~mo_files->read_raw( iv_ext = 'json' ).
+    ls_intf_aff = kHGwlUKtFBXjILcBRBJOrsxFJiznPf=>deserialize( lv_json_data ).
+
+    CREATE OBJECT lo_aff_mapper TYPE kHGwlUKtFBXjILcBRBJOvDDGtKNvAd.
+    lo_aff_mapper->to_abapgit( EXPORTING iv_data = ls_intf_aff
+                                         iv_object_name = ms_item-obj_name
+                               IMPORTING es_data = rs_intf ).
+  ENDMETHOD.
+  METHOD read_xml.
+    ii_xml->read( EXPORTING iv_name = 'VSEOINTERF'
+                  CHANGING  cg_data = rs_intf-vseointerf ).
+    ii_xml->read( EXPORTING iv_name = 'DESCRIPTIONS'
+                  CHANGING  cg_data = rs_intf-description ).
+    ii_xml->read( EXPORTING iv_name = 'DESCRIPTIONS_SUB'
+                  CHANGING  cg_data = rs_intf-description_sub ).
+    ii_xml->read( EXPORTING iv_name = 'LINES'
+                  CHANGING  cg_data = rs_intf-docu-lines ).
+    ii_xml->read( EXPORTING iv_name = 'I18N_LINES'
+                  CHANGING  cg_data = rs_intf-docu-i18n_lines ).
+  ENDMETHOD.
   METHOD serialize_descr.
 
     DATA: lt_descriptions    TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt,
@@ -81648,6 +81698,31 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
     ENDIF.
 
     lt_descriptions = mi_object_oriented_object_fct->read_descriptions(
+      iv_object_name = iv_clsname
+      iv_language    = lv_language ).
+
+    " Remove technical languages
+    lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
+    DELETE lt_descriptions WHERE NOT langu IN lt_language_filter.
+
+    IF lines( lt_descriptions ) = 0.
+      RETURN.
+    ENDIF.
+
+    rs_description = lt_descriptions.
+
+  ENDMETHOD.
+  METHOD serialize_descr_sub.
+
+    DATA: lt_descriptions    TYPE zif_abapgit_oo_object_fnc=>ty_seosubcotx_tt,
+          lv_language        TYPE spras,
+          lt_language_filter TYPE zif_abapgit_environment=>ty_system_language_filter.
+
+    IF ii_xml->i18n_params( )-main_language_only = abap_true.
+      lv_language = mv_language.
+    ENDIF.
+
+    lt_descriptions = mi_object_oriented_object_fct->read_descriptions_sub(
       iv_object_name = iv_clsname
       iv_language    = lv_language ).
 
@@ -81741,6 +81816,9 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
     ls_intf-description = serialize_descr( ii_xml     = io_xml
                                            iv_clsname = ls_clskey-clsname ).
 
+    ls_intf-description_sub = serialize_descr_sub( ii_xml     = io_xml
+                                                   iv_clsname = ls_clskey-clsname ).
+
     " HERE: switch with feature flag for XML or JSON file format
     IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) = abap_true.
       lv_serialized_data = kHGwlUKtFBXjILcBRBJOrsxFJiznPf=>serialize( ls_intf ).
@@ -81752,6 +81830,8 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
                    ig_data = ls_intf-vseointerf ).
       io_xml->add( iv_name = 'DESCRIPTIONS'
                    ig_data = ls_intf-description ).
+      io_xml->add( iv_name = 'DESCRIPTIONS_SUB'
+                   ig_data = ls_intf-description_sub ).
       io_xml->add( iv_name = 'LINES'
                    ig_data = ls_intf-docu-lines ).
       io_xml->add( iv_name = 'I18N_LINES'
@@ -81846,6 +81926,8 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
 
         deserialize_descriptions( it_description = ls_intf-description ).
 
+        deserialize_descr_sub( it_description = ls_intf-description_sub ).
+
         deserialize_docu( is_docu = ls_intf-docu ).
 
         mi_object_oriented_object_fct->add_to_activation_list( ms_item ).
@@ -81863,19 +81945,6 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
 
     ENDIF.
 
-  ENDMETHOD.
-  METHOD read_json.
-    DATA lv_json_data TYPE xstring.
-    DATA ls_intf_aff TYPE zif_abapgit_aff_intf_v1=>ty_main.
-    DATA lo_aff_mapper TYPE REF TO zif_abapgit_aff_type_mapping.
-
-    lv_json_data = zif_abapgit_object~mo_files->read_raw( iv_ext = 'json' ).
-    ls_intf_aff = kHGwlUKtFBXjILcBRBJOrsxFJiznPf=>deserialize( lv_json_data ).
-
-    CREATE OBJECT lo_aff_mapper TYPE kHGwlUKtFBXjILcBRBJOvDDGtKNvAd.
-    lo_aff_mapper->to_abapgit( EXPORTING iv_data = ls_intf_aff
-                                         iv_object_name = ms_item-obj_name
-                               IMPORTING es_data = rs_intf ).
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
@@ -91962,6 +92031,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
           lt_local_macros          TYPE seop_source_string,
           lt_test_classes          TYPE seop_source_string,
           lt_descriptions          TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt,
+          lt_descriptions_sub      TYPE zif_abapgit_oo_object_fnc=>ty_seosubcotx_tt,
           ls_class_key             TYPE seoclskey,
           lt_attributes            TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
     lt_source = zif_abapgit_object~mo_files->read_abap( ).
@@ -92020,6 +92090,13 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     mi_object_oriented_object_fct->update_descriptions(
       is_key          = ls_class_key
       it_descriptions = lt_descriptions ).
+
+    ii_xml->read( EXPORTING iv_name = 'DESCRIPTIONS_SUB'
+                  CHANGING cg_data = lt_descriptions_sub ).
+
+    mi_object_oriented_object_fct->update_descriptions_sub(
+      is_key          = ls_class_key
+      it_descriptions = lt_descriptions_sub ).
 
     mi_object_oriented_object_fct->add_to_activation_list( ms_item ).
 
@@ -92214,6 +92291,31 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
                  ig_data = lt_descriptions ).
 
   ENDMETHOD.
+  METHOD serialize_descr_sub.
+
+    DATA: lt_descriptions    TYPE zif_abapgit_oo_object_fnc=>ty_seosubcotx_tt,
+          lv_language        TYPE spras,
+          lt_language_filter TYPE zif_abapgit_environment=>ty_system_language_filter.
+
+    IF ii_xml->i18n_params( )-main_language_only = abap_true.
+      lv_language = mv_language.
+    ENDIF.
+
+    lt_descriptions = mi_object_oriented_object_fct->read_descriptions_sub(
+      iv_object_name = iv_clsname
+      iv_language    = lv_language ).
+
+    IF lines( lt_descriptions ) = 0.
+      RETURN.
+    ENDIF.
+    " Remove technical languages
+    lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
+    DELETE lt_descriptions WHERE NOT langu IN lt_language_filter.
+
+    ii_xml->add( iv_name = 'DESCRIPTIONS_SUB'
+                 ig_data = lt_descriptions ).
+
+  ENDMETHOD.
   METHOD serialize_docu.
 
     DATA: lt_lines      TYPE tlinetab,
@@ -92402,6 +92504,9 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     serialize_descr( ii_xml     = ii_xml
                      iv_clsname = ls_clskey-clsname ).
+
+    serialize_descr_sub( ii_xml     = ii_xml
+                         iv_clsname = ls_clskey-clsname ).
 
     serialize_attr( ii_xml     = ii_xml
                     iv_clsname = ls_clskey-clsname ).
@@ -97319,7 +97424,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
+CLASS zcl_abapgit_oo_base IMPLEMENTATION.
   METHOD convert_attrib_to_vseoattrib.
     FIELD-SYMBOLS: <ls_attribute>  LIKE LINE OF it_attributes,
                    <ls_vseoattrib> LIKE LINE OF rt_vseoattrib.
@@ -97411,6 +97516,8 @@ CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
       ORDER BY PRIMARY KEY.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~read_descriptions.
+    FIELD-SYMBOLS <ls_description> LIKE LINE OF rt_descriptions.
+
     IF iv_language IS INITIAL.
       " load all languages
       SELECT * FROM seocompotx INTO TABLE rt_descriptions
@@ -97425,6 +97532,32 @@ CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
                 AND descript <> ''
               ORDER BY PRIMARY KEY.                       "#EC CI_SUBRC
     ENDIF.
+
+    LOOP AT rt_descriptions ASSIGNING <ls_description>.
+      CLEAR <ls_description>-clsname.
+    ENDLOOP.
+  ENDMETHOD.
+  METHOD zif_abapgit_oo_object_fnc~read_descriptions_sub.
+    FIELD-SYMBOLS <ls_description> LIKE LINE OF rt_descriptions.
+
+    IF iv_language IS INITIAL.
+      " load all languages
+      SELECT * FROM seosubcotx INTO TABLE rt_descriptions
+             WHERE clsname   = iv_object_name
+               AND descript <> ''
+             ORDER BY PRIMARY KEY.                        "#EC CI_SUBRC
+    ELSE.
+      " load main language
+      SELECT * FROM seosubcotx INTO TABLE rt_descriptions
+              WHERE clsname   = iv_object_name
+                AND langu     = iv_language
+                AND descript <> ''
+              ORDER BY PRIMARY KEY.                       "#EC CI_SUBRC
+    ENDIF.
+
+    LOOP AT rt_descriptions ASSIGNING <ls_description>.
+      CLEAR <ls_description>-clsname.
+    ENDLOOP.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~read_documentation.
     DATA: lv_state  TYPE dokstate,
@@ -97480,8 +97613,26 @@ CLASS ZCL_ABAPGIT_OO_BASE IMPLEMENTATION.
     ENDCASE.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~update_descriptions.
+    DATA lt_descriptions LIKE it_descriptions.
+    FIELD-SYMBOLS <ls_description> LIKE LINE OF it_descriptions.
+
+    lt_descriptions = it_descriptions.
+    LOOP AT lt_descriptions ASSIGNING <ls_description>.
+      <ls_description>-clsname = is_key-clsname.
+    ENDLOOP.
     DELETE FROM seocompotx WHERE clsname = is_key-clsname. "#EC CI_SUBRC
-    INSERT seocompotx FROM TABLE it_descriptions.         "#EC CI_SUBRC
+    INSERT seocompotx FROM TABLE lt_descriptions.         "#EC CI_SUBRC
+  ENDMETHOD.
+  METHOD zif_abapgit_oo_object_fnc~update_descriptions_sub.
+    DATA lt_descriptions LIKE it_descriptions.
+    FIELD-SYMBOLS <ls_description> LIKE LINE OF it_descriptions.
+
+    lt_descriptions = it_descriptions.
+    LOOP AT lt_descriptions ASSIGNING <ls_description>.
+      <ls_description>-clsname = is_key-clsname.
+    ENDLOOP.
+    DELETE FROM seosubcotx WHERE clsname = is_key-clsname. "#EC CI_SUBRC
+    INSERT seosubcotx FROM TABLE lt_descriptions.         "#EC CI_SUBRC
   ENDMETHOD.
 ENDCLASS.
 
@@ -113820,6 +113971,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-15T13:09:13.181Z
+* abapmerge 0.14.7 - 2022-09-15T15:35:28.548Z
 ENDINTERFACE.
 ****************************************************
