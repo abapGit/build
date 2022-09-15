@@ -42761,6 +42761,13 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     SORT ct_overview BY (lt_sort).
   ENDMETHOD.
+  METHOD column.
+    IF iv_css_class IS NOT INITIAL.
+      rv_html = |<td class="{ iv_css_class }">| && iv_content && |</td>|.
+    ELSE.
+      rv_html = |<td>| && iv_content && |</td>|.
+    ENDIF.
+  ENDMETHOD.
   METHOD constructor.
 
     super->constructor( ).
@@ -42775,6 +42782,9 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
         OTHERS              = 2.
     ASSERT sy-subrc = 0.
 
+  ENDMETHOD.
+  METHOD get_only_favorites.
+    rv_result = mv_only_favorites.
   ENDMETHOD.
   METHOD map_repo_list_to_overview.
 
@@ -42831,6 +42841,93 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       INSERT ls_overview INTO TABLE rt_overview.
 
     ENDLOOP.
+
+  ENDMETHOD.
+  METHOD render_actions.
+
+    CONSTANTS:
+      lc_dummy_key     TYPE string VALUE `?key=#`,
+      lc_offline_class TYPE string VALUE `action_offline_repo`,
+      lc_online_class  TYPE string VALUE `action_online_repo`,
+      lc_action_class  TYPE string VALUE `action_link`.
+
+    DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
+    DATA lo_toolbar_more_sub TYPE REF TO zcl_abapgit_html_toolbar.
+
+    CREATE OBJECT lo_toolbar EXPORTING iv_id = 'toolbar-ovp'.
+
+    lo_toolbar->add( iv_txt      = |Pull|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-git_reset }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class } { lc_online_class }|
+                     iv_li_class = |{ lc_action_class }| ).
+
+    lo_toolbar->add( iv_txt      = |Stage|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-go_stage }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class } { lc_online_class }|
+                     iv_li_class = |{ lc_action_class }| ).
+
+    lo_toolbar->add( iv_txt      = |Patch|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-go_patch }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class } { lc_online_class }|
+                     iv_li_class = |{ lc_action_class }| ).
+
+    lo_toolbar->add( iv_txt      = |Diff|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-go_repo_diff }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class } { lc_online_class }|
+                     iv_li_class = |{ lc_action_class }| ).
+
+    lo_toolbar->add( iv_txt      = |Check|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class }|
+                     iv_li_class = |{ lc_action_class }| ).
+    lo_toolbar->add( iv_txt      = |Import|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-zip_import }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class } { lc_offline_class }|
+                     iv_li_class = |{ lc_action_class }| ).
+
+    lo_toolbar->add( iv_txt      = |Export|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-zip_export }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class } { lc_offline_class }|
+                     iv_li_class = |{ lc_action_class }| ).
+
+    lo_toolbar->add( iv_txt      = |Settings|
+                     iv_act      = |{ zif_abapgit_definitions=>c_action-repo_settings }{ lc_dummy_key }|
+                     iv_class    = |{ lc_action_class }|
+                     iv_li_class = |{ lc_action_class }| ).
+
+    CREATE OBJECT lo_toolbar_more_sub EXPORTING iv_id = 'toolbar-ovp-more_sub'.
+
+    lo_toolbar_more_sub->add( iv_txt      = |Stage by Transport|
+                              iv_act      = |{ zif_abapgit_definitions=>c_action-go_stage_transport }{ lc_dummy_key }|
+                              iv_class    = |{ lc_action_class } { lc_online_class }|
+                              iv_li_class = |{ lc_action_class }| ).
+
+    lo_toolbar_more_sub->add( iv_txt      = |Export by Transport|
+                              iv_act      = |{ zif_abapgit_definitions=>c_action-zip_export_transport }{ lc_dummy_key }|
+                              iv_class    = |{ lc_action_class } { lc_offline_class }|
+                              iv_li_class = |{ lc_action_class }| ).
+
+    lo_toolbar_more_sub->add( iv_txt = 'Danger'
+                              iv_typ = zif_abapgit_html=>c_action_type-separator ).
+
+    lo_toolbar_more_sub->add( iv_txt   = |Remove|
+                              iv_title = |Remove abapGit's records of the repository (the system's |
+                                         && |development objects will remain unaffected)|
+                              iv_act   = |{ zif_abapgit_definitions=>c_action-repo_remove }{ lc_dummy_key }| ).
+
+    lo_toolbar_more_sub->add( iv_txt      = |Uninstall|
+                              iv_title    = |Delete all development objects belonging to this package |
+                                            && |(and subpackages) from the system|
+                              iv_act      = |{ zif_abapgit_definitions=>c_action-repo_purge }{ lc_dummy_key }|
+                              iv_class    = |{ lc_action_class } { lc_online_class }|
+                              iv_li_class = |{ lc_action_class }| ).
+
+    lo_toolbar->add( iv_txt      = |More|
+                     io_sub      = lo_toolbar_more_sub
+                     iv_class    = |{ lc_action_class }|
+                     iv_li_class = |{ lc_action_class }| ).
+
+    ii_html->add( lo_toolbar->render( iv_right = abap_true ) ).
 
   ENDMETHOD.
   METHOD render_header_bar.
@@ -43036,99 +43133,6 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
-  METHOD render_actions.
-
-    CONSTANTS:
-      lc_dummy_key     TYPE string VALUE `?key=#`,
-      lc_offline_class TYPE string VALUE `action_offline_repo`,
-      lc_online_class  TYPE string VALUE `action_online_repo`,
-      lc_action_class  TYPE string VALUE `action_link`.
-
-    DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
-    DATA lo_toolbar_more_sub TYPE REF TO zcl_abapgit_html_toolbar.
-
-    CREATE OBJECT lo_toolbar EXPORTING iv_id = 'toolbar-ovp'.
-
-    lo_toolbar->add( iv_txt      = |Pull|
-                     iv_act      = |{ zif_abapgit_definitions=>c_action-git_reset }{ lc_dummy_key }|
-                     iv_class    = |{ lc_action_class } { lc_online_class }|
-                     iv_li_class = |{ lc_action_class }| ).
-
-    lo_toolbar->add( iv_txt      = |Stage|
-                     iv_act      = |{ zif_abapgit_definitions=>c_action-go_stage }{ lc_dummy_key }|
-                     iv_class    = |{ lc_action_class } { lc_online_class }|
-                     iv_li_class = |{ lc_action_class }| ).
-
-    lo_toolbar->add( iv_txt      = |Patch|
-                     iv_act      = |{ zif_abapgit_definitions=>c_action-go_patch }{ lc_dummy_key }|
-                     iv_class    = |{ lc_action_class } { lc_online_class }|
-                     iv_li_class = |{ lc_action_class }| ).
-
-    lo_toolbar->add( iv_txt      = |Diff|
-                     iv_act      = |{ zif_abapgit_definitions=>c_action-go_repo_diff }{ lc_dummy_key }|
-                     iv_class    = |{ lc_action_class } { lc_online_class }|
-                     iv_li_class = |{ lc_action_class }| ).
-
-    lo_toolbar->add( iv_txt      = |Check|
-                     iv_act      = |{ zif_abapgit_definitions=>c_action-repo_code_inspector }{ lc_dummy_key }|
-                     iv_class    = |{ lc_action_class }|
-                     iv_li_class = |{ lc_action_class }| ).
-    lo_toolbar->add( iv_txt      = |Import|
-                     iv_act      = |{ zif_abapgit_definitions=>c_action-zip_import }{ lc_dummy_key }|
-                     iv_class    = |{ lc_action_class } { lc_offline_class }|
-                     iv_li_class = |{ lc_action_class }| ).
-
-    lo_toolbar->add( iv_txt      = |Export|
-                     iv_act      = |{ zif_abapgit_definitions=>c_action-zip_export }{ lc_dummy_key }|
-                     iv_class    = |{ lc_action_class } { lc_offline_class }|
-                     iv_li_class = |{ lc_action_class }| ).
-
-    lo_toolbar->add( iv_txt      = |Settings|
-                     iv_act      = |{ zif_abapgit_definitions=>c_action-repo_settings }{ lc_dummy_key }|
-                     iv_class    = |{ lc_action_class }|
-                     iv_li_class = |{ lc_action_class }| ).
-
-    CREATE OBJECT lo_toolbar_more_sub EXPORTING iv_id = 'toolbar-ovp-more_sub'.
-
-    lo_toolbar_more_sub->add( iv_txt      = |Stage by Transport|
-                              iv_act      = |{ zif_abapgit_definitions=>c_action-go_stage_transport }{ lc_dummy_key }|
-                              iv_class    = |{ lc_action_class } { lc_online_class }|
-                              iv_li_class = |{ lc_action_class }| ).
-
-    lo_toolbar_more_sub->add( iv_txt      = |Export by Transport|
-                              iv_act      = |{ zif_abapgit_definitions=>c_action-zip_export_transport }{ lc_dummy_key }|
-                              iv_class    = |{ lc_action_class } { lc_offline_class }|
-                              iv_li_class = |{ lc_action_class }| ).
-
-    lo_toolbar->add( iv_txt      = |More|
-                     io_sub      = lo_toolbar_more_sub
-                     iv_class    = |{ lc_action_class }|
-                     iv_li_class = |{ lc_action_class }| ).
-
-    ii_html->add( lo_toolbar->render( iv_right = abap_true ) ).
-
-  ENDMETHOD.
-
-  METHOD shorten_repo_url.
-    DATA lv_new_length TYPE i.
-    DATA lv_length_to_truncate_to TYPE i.
-
-    rv_shortened = iv_full_url.
-
-    REPLACE FIRST OCCURRENCE OF 'https://' IN rv_shortened WITH ''.
-    REPLACE FIRST OCCURRENCE OF 'http://' IN rv_shortened WITH ''.
-    IF rv_shortened CP '*.git'.
-      lv_new_length = strlen( rv_shortened ) - 4.
-      rv_shortened  = rv_shortened(lv_new_length).
-    ENDIF.
-
-    IF strlen( rv_shortened ) > iv_max_length.
-      lv_length_to_truncate_to = iv_max_length - 3.
-      rv_shortened = rv_shortened(lv_length_to_truncate_to) && `...`.
-    ENDIF.
-  ENDMETHOD.
-
   METHOD render_table_header.
 
     CLEAR mt_col_spec.
@@ -43249,11 +43253,32 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     mv_filter = condense( mv_filter ).
 
   ENDMETHOD.
+  METHOD set_only_favorites.
+    mv_only_favorites = iv_only_favorites.
+  ENDMETHOD.
   METHOD set_order_by.
     mv_order_by = iv_order_by.
   ENDMETHOD.
   METHOD set_order_direction.
     mv_order_descending = iv_order_descending.
+  ENDMETHOD.
+  METHOD shorten_repo_url.
+    DATA lv_new_length TYPE i.
+    DATA lv_length_to_truncate_to TYPE i.
+
+    rv_shortened = iv_full_url.
+
+    REPLACE FIRST OCCURRENCE OF 'https://' IN rv_shortened WITH ''.
+    REPLACE FIRST OCCURRENCE OF 'http://' IN rv_shortened WITH ''.
+    IF rv_shortened CP '*.git'.
+      lv_new_length = strlen( rv_shortened ) - 4.
+      rv_shortened  = rv_shortened(lv_new_length).
+    ENDIF.
+
+    IF strlen( rv_shortened ) > iv_max_length.
+      lv_length_to_truncate_to = iv_max_length - 3.
+      rv_shortened = rv_shortened(lv_length_to_truncate_to) && `...`.
+    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
@@ -43284,23 +43309,6 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     <ls_col>-add_tz = iv_add_tz.
     <ls_col>-allow_order_by = iv_allow_order_by.
   ENDMETHOD.
-
-  METHOD column.
-    IF iv_css_class IS NOT INITIAL.
-      rv_html = |<td class="{ iv_css_class }">| && iv_content && |</td>|.
-    ELSE.
-      rv_html = |<td>| && iv_content && |</td>|.
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD set_only_favorites.
-    mv_only_favorites = iv_only_favorites.
-  ENDMETHOD.
-
-  METHOD get_only_favorites.
-    rv_result = mv_only_favorites.
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
@@ -113812,6 +113820,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-13T14:40:27.777Z
+* abapmerge 0.14.7 - 2022-09-15T13:09:13.181Z
 ENDINTERFACE.
 ****************************************************
