@@ -105975,6 +105975,7 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI DEFINITION FINAL.
 
     METHODS constructor
       IMPORTING
+        !iv_corresponding  TYPE abap_bool DEFAULT abap_false
         !ii_custom_mapping TYPE REF TO zif_abapgit_ajson_mapping OPTIONAL.
 
     METHODS to_abap
@@ -106015,6 +106016,7 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI DEFINITION FINAL.
 
     DATA mr_nodes TYPE REF TO zif_abapgit_ajson=>ty_nodes_ts.
     DATA mi_custom_mapping TYPE REF TO zif_abapgit_ajson_mapping.
+    DATA mv_corresponding TYPE abap_bool.
 
     METHODS any_to_abap
       IMPORTING
@@ -106049,6 +106051,7 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI IMPLEMENTATION.
 
   METHOD constructor.
     mi_custom_mapping = ii_custom_mapping.
+    mv_corresponding  = iv_corresponding.
   ENDMETHOD.
 
   METHOD to_abap.
@@ -106115,7 +106118,12 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI IMPLEMENTATION.
             EXCEPTIONS
               component_not_found = 4 ).
           IF sy-subrc <> 0.
-            zcx_abapgit_ajson_error=>raise( |Path not found| ).
+            IF mv_corresponding = abap_false.
+              zcx_abapgit_ajson_error=>raise( |Path not found| ).
+            ELSE.
+              CLEAR rs_node_type.
+              RETURN.
+            ENDIF.
           ENDIF.
 
         WHEN ''. " Root node
@@ -106181,9 +106189,15 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI IMPLEMENTATION.
         " Get or create type cache record
           IF is_parent_type-type_kind <> iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>table OR ls_node_type-type_kind IS INITIAL.
           " table records are the same, no need to refetch twice
+
             ls_node_type = get_node_type(
             is_node        = <n>
             is_parent_type = is_parent_type ).
+
+            IF mv_corresponding = abap_true AND ls_node_type IS INITIAL.
+              CONTINUE.
+            ENDIF.
+
           ENDIF.
 
         " Validate node type
@@ -106401,7 +106415,13 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI IMPLEMENTATION.
         zcx_abapgit_ajson_error=>raise( 'Unexpected error calculating timestamp' ).
     ENDTRY.
 
-    rv_result = lv_timestamp.
+    IF lv_timestamp IS NOT INITIAL.
+      cl_abap_tstmp=>move(
+        EXPORTING
+          tstmp_src = lv_timestamp
+        IMPORTING
+          tstmp_tgt = rv_result ).
+    ENDIF.
 
   ENDMETHOD.
 
@@ -113950,6 +113970,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-19T04:44:45.086Z
+* abapmerge 0.14.7 - 2022-09-19T05:21:44.658Z
 ENDINTERFACE.
 ****************************************************
