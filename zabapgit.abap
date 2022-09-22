@@ -111056,7 +111056,7 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
         ENDIF.
       CATCH cx_sy_sql_error INTO lx_sql.
         zcx_abapgit_exception=>raise(
-          iv_text     = lx_sql->sqlmsg
+          iv_text     = lx_sql->get_text( )
           ix_previous = lx_sql ).
     ENDTRY.
 
@@ -113970,6 +113970,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-19T17:49:41.445Z
+* abapmerge 0.14.7 - 2022-09-22T05:00:00.199Z
 ENDINTERFACE.
 ****************************************************
