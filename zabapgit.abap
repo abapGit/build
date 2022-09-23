@@ -3581,6 +3581,8 @@ INTERFACE zif_abapgit_longtexts .
   METHODS deserialize
     IMPORTING
       !iv_longtext_name TYPE string DEFAULT 'LONGTEXTS'
+      !iv_object_name   TYPE sobj_name
+      !iv_longtext_id   TYPE dokil-id
       !ii_xml           TYPE REF TO zif_abapgit_xml_input
       !iv_main_language TYPE sy-langu
     RAISING
@@ -9454,6 +9456,7 @@ CLASS zcl_abapgit_objects_super DEFINITION
     METHODS deserialize_longtexts
       IMPORTING
         !ii_xml           TYPE REF TO zif_abapgit_xml_input
+        !iv_longtext_id   TYPE dokil-id OPTIONAL
         !iv_longtext_name TYPE string DEFAULT 'LONGTEXTS'
       RAISING
         zcx_abapgit_exception .
@@ -11374,6 +11377,8 @@ CLASS zcl_abapgit_object_msag DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     TYPES:
       ty_t100s      TYPE STANDARD TABLE OF t100
                            WITH NON-UNIQUE DEFAULT KEY .
+
+    CONSTANTS c_longtext_id_msag TYPE dokil-id VALUE 'NA'.
 
     METHODS serialize_texts
       IMPORTING
@@ -57206,6 +57211,8 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
     zcl_abapgit_factory=>get_longtexts( )->deserialize(
       ii_xml           = ii_xml
       iv_longtext_name = iv_longtext_name
+      iv_object_name   = ms_item-obj_name
+      iv_longtext_id   = iv_longtext_id
       iv_main_language = mv_language ).
 
   ENDMETHOD.
@@ -61568,10 +61575,13 @@ CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
 
     add_with_inactive_parts( ).
 
-    deserialize_longtexts( io_xml ).
+    deserialize_longtexts(
+      ii_xml         = io_xml
+      iv_longtext_id = c_longtext_id_wd ).
 
     deserialize_longtexts(
       ii_xml           = io_xml
+      iv_longtext_id   = c_longtext_id_wc
       iv_longtext_name = c_longtext_name_wc ).
 
   ENDMETHOD.
@@ -67575,7 +67585,8 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
       deserialize_texts( io_xml   = io_xml
                          is_dd02v = ls_dd02v ).
 
-      deserialize_longtexts( io_xml ).
+      deserialize_longtexts( ii_xml         = io_xml
+                             iv_longtext_id = c_longtext_id_tabl ).
 
       io_xml->read( EXPORTING iv_name = c_s_dataname-tabl_extras
                     CHANGING cg_data = ls_extras ).
@@ -76229,7 +76240,8 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
       deserialize_texts( io_xml ).
       deserialize_lxe_texts( io_xml ).
 
-      deserialize_longtexts( io_xml ).
+      deserialize_longtexts( ii_xml         = io_xml
+                             iv_longtext_id = c_longtext_id_prog ).
 
     ENDIF.
 
@@ -79315,7 +79327,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
     CLEAR lv_key_s.
     CALL FUNCTION 'DOCU_OBJECT_NAME_CONCATENATE'
       EXPORTING
-        docu_id  = 'NA'
+        docu_id  = c_longtext_id_msag
         element  = iv_message_id
         addition = '   '
       IMPORTING
@@ -79325,7 +79337,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
 
     CALL FUNCTION 'DOKU_DELETE_ALL'
       EXPORTING
-        doku_id                        = 'NA'
+        doku_id                        = c_longtext_id_msag
         doku_object                    = lv_key_s
         generic_use                    = 'X'
         suppress_authority             = space
@@ -79430,7 +79442,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
       SELECT * FROM dokil
         INTO TABLE lt_dokil
         FOR ALL ENTRIES IN lt_doku_object_names
-        WHERE id = 'NA'
+        WHERE id = c_longtext_id_msag
         AND object = lt_doku_object_names-table_line
         AND masterlang = abap_true
         ORDER BY PRIMARY KEY.
@@ -79439,7 +79451,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
       SELECT * FROM dokil
         INTO TABLE lt_dokil
         FOR ALL ENTRIES IN lt_doku_object_names
-        WHERE id = 'NA'
+        WHERE id = c_longtext_id_msag
         AND object = lt_doku_object_names-table_line
         AND langu IN lt_language_filter
         ORDER BY PRIMARY KEY.
@@ -79640,7 +79652,8 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
         AND msgnr = ls_t100u-msgnr.                       "#EC CI_SUBRC
     ENDLOOP.
 
-    deserialize_longtexts( io_xml ).
+    deserialize_longtexts( ii_xml         = io_xml
+                           iv_longtext_id = c_longtext_id_msag ).
 
     deserialize_texts( io_xml ).
 
@@ -87781,7 +87794,8 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
     deserialize_texts( ii_xml   = io_xml
                        is_dd04v = ls_dd04v ).
 
-    deserialize_longtexts( io_xml ).
+    deserialize_longtexts( ii_xml         = io_xml
+                           iv_longtext_id = c_longtext_id_dtel ).
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
@@ -88364,6 +88378,8 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
       WHEN 'v2.0.0'.
         zcl_abapgit_factory=>get_longtexts( )->deserialize(
           ii_xml           = io_xml
+          iv_object_name   = mv_doc_object
+          iv_longtext_id   = c_id
           iv_main_language = mv_language ).
 
       WHEN OTHERS.
@@ -89028,7 +89044,8 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
                        is_dd01v = ls_dd01v
                        it_dd07v = lt_dd07v ).
 
-    deserialize_longtexts( io_xml ).
+    deserialize_longtexts( ii_xml         = io_xml
+                           iv_longtext_id = c_longtext_id_doma ).
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
@@ -89288,6 +89305,8 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
 
     mi_longtexts->deserialize(
       iv_longtext_name = c_name
+      iv_object_name   = ms_item-obj_name
+      iv_longtext_id   = c_id
       ii_xml           = io_xml
       iv_main_language = mv_language ).
 
@@ -96330,8 +96349,11 @@ CLASS zcl_abapgit_longtexts IMPLEMENTATION.
   METHOD zif_abapgit_longtexts~deserialize.
 
     DATA: lt_longtexts    TYPE ty_longtexts,
+          lt_dokil        TYPE zif_abapgit_definitions=>ty_dokil_tt,
           lv_no_main_lang TYPE dokil-masterlang.
-    FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext.
+
+    FIELD-SYMBOLS: <ls_longtext> TYPE ty_longtext,
+                   <ls_dokil>    TYPE dokil.
 
     ii_xml->read(
       EXPORTING
@@ -96352,6 +96374,38 @@ CLASS zcl_abapgit_longtexts IMPLEMENTATION.
           no_masterlang = lv_no_main_lang
         TABLES
           line          = <ls_longtext>-lines.
+
+    ENDLOOP.
+
+    " Read existing texts and check if they were deserialized above
+    " If not, delete the texts
+    SELECT * FROM dokil
+      INTO TABLE lt_dokil
+      WHERE id     = iv_longtext_id
+      AND   object = iv_object_name.
+
+    LOOP AT lt_dokil ASSIGNING <ls_dokil>.
+
+      READ TABLE lt_longtexts TRANSPORTING NO FIELDS WITH KEY
+        dokil-id     = <ls_dokil>-id
+        dokil-langu  = <ls_dokil>-langu
+        dokil-object = <ls_dokil>-object
+        dokil-typ    = <ls_dokil>-typ.
+      IF sy-subrc <> 0.
+        CALL FUNCTION 'DOCU_DEL'
+          EXPORTING
+            id       = <ls_dokil>-id
+            langu    = <ls_dokil>-langu
+            object   = <ls_dokil>-object
+            typ      = <ls_dokil>-typ
+          EXCEPTIONS
+            ret_code = 1
+            OTHERS   = 2.
+
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise_t100( ).
+        ENDIF.
+      ENDIF.
 
     ENDLOOP.
 
@@ -113970,6 +114024,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-22T05:12:04.789Z
+* abapmerge 0.14.7 - 2022-09-23T13:58:40.637Z
 ENDINTERFACE.
 ****************************************************
