@@ -8678,6 +8678,16 @@ CLASS zcl_abapgit_oo_class DEFINITION
     CLASS-METHODS delete_report
       IMPORTING
         !iv_program TYPE programm .
+    CLASS-METHODS get_method_includes
+      IMPORTING
+        !iv_classname      TYPE seoclsname
+      RETURNING
+        VALUE(rt_includes) TYPE seop_methods_w_include.
+    CLASS-METHODS repair_classpool
+      IMPORTING
+        !is_key TYPE seoclskey
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_oo_factory DEFINITION.
 
@@ -96988,6 +96998,11 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD get_method_includes.
+    " get method includes for implemented interfaces
+    " this will contain also leftover includes for deleted interface methods
+    rt_includes = cl_oo_classname_service=>get_all_method_includes( iv_classname ).
+  ENDMETHOD.
   METHOD init_scanner.
 
     DATA: lx_exc       TYPE REF TO cx_root,
@@ -97013,6 +97028,19 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
         ENDIF.
         zcx_abapgit_exception=>raise( lv_message ).
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD repair_classpool.
+
+    CALL FUNCTION 'SEO_CLASS_REPAIR_CLASSPOOL'
+      EXPORTING
+        clskey       = is_key
+      EXCEPTIONS
+        not_existing = 1
+        OTHERS       = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error repairing class { is_key-clsname }| ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD update_cs_number_of_methods.
@@ -97259,6 +97287,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
           lv_program TYPE program,
           lo_scanner TYPE REF TO cl_oo_source_scanner_class,
           lt_methods TYPE cl_oo_source_scanner_class=>type_method_implementations,
+          lt_incls   TYPE seop_methods_w_include,
           lv_method  LIKE LINE OF lt_methods,
           lt_public  TYPE seop_source_string,
           lt_source  TYPE seop_source_string.
@@ -97317,6 +97346,8 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
 * methods
     lt_methods = lo_scanner->get_method_implementations( ).
 
+    lt_incls = get_method_includes( is_key-clsname ).
+
     LOOP AT lt_methods INTO lv_method.
       TRY.
           lt_source = lo_scanner->get_method_impl_source( lv_method ).
@@ -97330,12 +97361,21 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
       update_report(
         iv_program = lv_program
         it_source  = lt_source ).
+
+      " If method was implemented before, remove from list
+      DELETE lt_incls WHERE cpdkey-clsname = is_key-clsname AND cpdkey-cpdname = lv_method.
     ENDLOOP.
 
 * full class include
     update_full_class_include( iv_classname = is_key-clsname
                                it_source    = it_source
                                it_methods   = lt_methods ).
+
+    " If there are leftover method includes, then class needs to be repaired
+    " which will delete the obsolete includes
+    IF lt_incls IS NOT INITIAL.
+      repair_classpool( is_key ).
+    ENDIF.
 
     update_source_index(
       iv_clsname = is_key-clsname
@@ -114029,6 +114069,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-09-26T10:51:19.438Z
+* abapmerge 0.14.7 - 2022-09-26T15:21:10.657Z
 ENDINTERFACE.
 ****************************************************
