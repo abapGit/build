@@ -12927,6 +12927,8 @@ CLASS zcl_abapgit_object_tabl DEFINITION
     TYPES:
       ty_dd03p_tt TYPE STANDARD TABLE OF dd03p .
     TYPES:
+      ty_dd08v_tt TYPE STANDARD TABLE OF dd08v.
+    TYPES:
       BEGIN OF ty_dd02_text,
         ddlanguage TYPE dd02t-ddlanguage,
         ddtext     TYPE dd02t-ddtext,
@@ -12976,6 +12978,9 @@ CLASS zcl_abapgit_object_tabl DEFINITION
         !iv_tabclass               TYPE dd02l-tabclass
       RETURNING
         VALUE(rv_is_db_table_type) TYPE dd02l-tabclass .
+    METHODS clear_foreign_keys
+      CHANGING
+        !ct_dd08v TYPE ty_dd08v_tt.
 ENDCLASS.
 CLASS zcl_abapgit_object_tobj DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -66997,6 +67002,28 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
            cs_dd03p-signflag.
 
   ENDMETHOD.
+  METHOD clear_foreign_keys.
+
+    DATA:
+      ls_item  TYPE zif_abapgit_definitions=>ty_item,
+      lv_index TYPE sy-tabix.
+
+    FIELD-SYMBOLS <ls_dd08v> TYPE dd08v.
+
+    " Remove foreign key definitions where the check table/view does not exist (yet)
+    LOOP AT ct_dd08v ASSIGNING <ls_dd08v>.
+      lv_index = sy-tabix.
+      ls_item-obj_name = <ls_dd08v>-checktable.
+      ls_item-obj_type = 'TABL'.
+      IF zcl_abapgit_objects=>exists( ls_item ) = abap_false.
+        ls_item-obj_type = 'VIEW'.
+        IF zcl_abapgit_objects=>exists( ls_item ) = abap_false.
+          DELETE ct_dd08v INDEX lv_index.
+        ENDIF.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD delete_extras.
 
     DELETE FROM tddat WHERE tabname = iv_tabname.
@@ -67544,7 +67571,8 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
 
       " DDIC Step: Remove references to search helps and foreign keys
       IF iv_step = zif_abapgit_object=>gc_step_id-ddic.
-        CLEAR: lt_dd08v, lt_dd35v, lt_dd36m.
+        CLEAR: lt_dd35v, lt_dd36m.
+        clear_foreign_keys( CHANGING ct_dd08v = lt_dd08v ).
       ENDIF.
 
       IF iv_step = zif_abapgit_object=>gc_step_id-late
@@ -114069,6 +114097,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-01T09:21:43.748Z
+* abapmerge 0.14.7 - 2022-10-02T07:20:16.608Z
 ENDINTERFACE.
 ****************************************************
