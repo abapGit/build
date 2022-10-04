@@ -63546,6 +63546,11 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
     READ TABLE ct_params ASSIGNING <ls_param> WITH KEY name = c_param_names-filename.
     <ls_param>-value = zcl_abapgit_path=>get_filename_from_syspath( |{ <ls_param>-value }| ).
 
+    " Clear id and object name
+    LOOP AT ct_params ASSIGNING <ls_param>.
+      CLEAR: <ls_param>-relid, <ls_param>-objid.
+    ENDLOOP.
+
     " Clear version & filesize
     DELETE ct_params WHERE name = c_param_names-version.
     DELETE ct_params WHERE name = c_param_names-filesize.
@@ -114622,6 +114627,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-04T13:44:58.417Z
+* abapmerge 0.14.7 - 2022-10-04T13:48:02.547Z
 ENDINTERFACE.
 ****************************************************
