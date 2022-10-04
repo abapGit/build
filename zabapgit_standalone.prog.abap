@@ -3726,6 +3726,7 @@ INTERFACE zif_abapgit_dot_abapgit.
       folder_logic                 TYPE string,
       ignore                       TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
       requirements                 TYPE ty_requirement_tt,
+      version_constant             TYPE string,
     END OF ty_dot_abapgit .
 
   CONSTANTS:
@@ -14878,6 +14879,10 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
     METHODS set_requirements
       IMPORTING
         !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt .
+    METHODS get_version_constant
+      RETURNING VALUE(rv_version_constant) TYPE string.
+    METHODS set_version_constant
+      IMPORTING iv_version_constant TYPE csequence.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -19103,14 +19108,16 @@ CLASS zcl_abapgit_gui_page_sett_repo DEFINITION
 
     CONSTANTS:
       BEGIN OF c_id,
-        dot             TYPE string VALUE 'dot',
-        main_language   TYPE string VALUE 'main_language',
-        i18n_langs      TYPE string VALUE 'i18n_langs',
-        starting_folder TYPE string VALUE 'starting_folder',
-        folder_logic    TYPE string VALUE 'folder_logic',
-        ignore          TYPE string VALUE 'ignore',
-        requirements    TYPE string VALUE 'requirements',
-      END OF c_id .
+        dot              TYPE string VALUE 'dot',
+        main_language    TYPE string VALUE 'main_language',
+        i18n_langs       TYPE string VALUE 'i18n_langs',
+        starting_folder  TYPE string VALUE 'starting_folder',
+        folder_logic     TYPE string VALUE 'folder_logic',
+        ignore           TYPE string VALUE 'ignore',
+        requirements     TYPE string VALUE 'requirements',
+        version_constant TYPE string VALUE 'version_constant',
+        version_value    TYPE string VALUE 'version_value',
+      END OF c_id.
     CONSTANTS:
       BEGIN OF c_event,
         save TYPE string VALUE 'save',
@@ -22022,6 +22029,21 @@ CLASS zcl_abapgit_version DEFINITION
         !is_b            TYPE zif_abapgit_definitions=>ty_version OPTIONAL
       RETURNING
         VALUE(rv_result) TYPE i .
+    CLASS-METHODS get_version_constant_value
+      IMPORTING
+        iv_version_constant TYPE string
+      RETURNING
+        VALUE(rv_version)   TYPE string
+      RAISING
+        zcx_abapgit_exception.
+    CLASS-METHODS parse_version_from_source
+      IMPORTING
+        it_source         TYPE string_table
+        iv_component_name TYPE csequence
+      RETURNING
+        VALUE(rv_version) TYPE string
+      RAISING
+        zcx_abapgit_exception.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -23237,6 +23259,120 @@ CLASS zcl_abapgit_version IMPLEMENTATION.
     rv_version = lv_major * 1000000 + lv_minor * 1000 + lv_release.
 
   ENDMETHOD.
+
+  METHOD get_version_constant_value.
+    DATA: lv_version_class     TYPE string,
+          lv_version_component TYPE string.
+    FIELD-SYMBOLS: <lv_version> TYPE string.
+
+    IF iv_version_constant NP '*=>*'.
+      zcx_abapgit_exception=>raise( 'Version constant needs to use the format CLASS=>CONSTANT' ).
+    ENDIF.
+
+    SPLIT iv_version_constant AT '=>' INTO lv_version_class lv_version_component.
+    IF sy-subrc <> 0 OR lv_version_class IS INITIAL OR lv_version_component IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Version constant cannot be parsed' ).
+    ENDIF.
+
+    ASSIGN (lv_version_class)=>(lv_version_component) TO <lv_version>.
+    IF sy-subrc = 0.
+      rv_version = <lv_version>.
+    ELSE.
+      zcx_abapgit_exception=>raise( |Could not access version at class { lv_version_class } component | &&
+                                    |{ lv_version_component }| ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD parse_version_from_source.
+    TYPES: ty_statement TYPE c LENGTH 40.
+    CONSTANTS: BEGIN OF c_token_types,
+                 identifier TYPE stokes-type VALUE 'I',
+                 literal    TYPE stokes-type VALUE 'S',
+               END OF c_token_types.
+    DATA: lt_keyword_filter    TYPE STANDARD TABLE OF ty_statement,
+          lt_statements        TYPE sstmnt_tab,
+          lt_tokens            TYPE stokes_tab,
+          lt_structures        TYPE sstruc_tab,
+          lv_found_token_index TYPE i,
+          lv_component_name    TYPE string,
+          lv_version_length    TYPE i.
+    FIELD-SYMBOLS: <ls_structure> TYPE sstruc,
+                   <ls_statement> TYPE sstmnt,
+                   <ls_token>     TYPE stokes.
+
+    IF iv_component_name CA '-'.
+      zcx_abapgit_exception=>raise( 'Structured version constants are not supported' ).
+    ENDIF.
+
+    lv_component_name = condense( to_upper( iv_component_name ) ).
+
+    APPEND 'CONSTANTS' TO lt_keyword_filter.
+
+    SCAN ABAP-SOURCE it_source
+      KEYWORDS FROM lt_keyword_filter
+      STATEMENTS INTO lt_statements
+      TOKENS INTO lt_tokens
+      STRUCTURES INTO lt_structures.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Source code could not be parsed to extract version (syntax error?)' ).
+    ENDIF.
+
+    READ TABLE lt_structures ASSIGNING <ls_structure> WITH KEY type = 'P'.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Could not find top level structure to parse version constant' ).
+    ENDIF.
+
+    LOOP AT lt_statements FROM <ls_structure>-stmnt_from TO <ls_structure>-stmnt_to ASSIGNING <ls_statement>.
+      LOOP AT lt_tokens FROM <ls_statement>-from TO <ls_statement>-to
+           TRANSPORTING NO FIELDS
+           WHERE type = c_token_types-identifier AND str = lv_component_name.
+        lv_found_token_index = sy-tabix.
+        EXIT.
+      ENDLOOP.
+
+      IF sy-subrc = 0.
+        LOOP AT lt_tokens FROM lv_found_token_index TO <ls_statement>-to
+             TRANSPORTING NO FIELDS
+             WHERE type = c_token_types-identifier AND str = 'VALUE'.
+          lv_found_token_index = sy-tabix.
+          EXIT.
+        ENDLOOP.
+
+        IF lv_found_token_index + 1 > <ls_statement>-to.
+          zcx_abapgit_exception=>raise( 'Internal error parsing version constant' ).
+        ENDIF.
+
+        READ TABLE lt_tokens INDEX lv_found_token_index + 1 ASSIGNING <ls_token>.
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( 'Internal error parsing version constant' ).
+        ENDIF.
+
+        CASE <ls_token>-type.
+          WHEN c_token_types-identifier.
+            rv_version = <ls_token>-str.
+            IF rv_version(1) CA sy-abcde.
+              zcx_abapgit_exception=>raise(
+                'References to other constants are not supported in version constant value' ).
+            ENDIF.
+          WHEN c_token_types-literal.
+            rv_version = <ls_token>-str.
+            IF rv_version CP '`*`' OR rv_version CP `'*'`.
+              lv_version_length = strlen( rv_version ).
+              rv_version = substring(
+                             val = rv_version
+                             off = 1
+                             len = lv_version_length - 2 ).
+            ENDIF.
+        ENDCASE.
+
+        CONDENSE rv_version.
+
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+
+    zcx_abapgit_exception=>raise( |Could not parse version constant { iv_component_name }| ).
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_stage_logic IMPLEMENTATION.
@@ -23960,12 +24096,13 @@ CLASS zcl_abapgit_news IMPLEMENTATION.
       lc_log_filename    TYPE string VALUE 'changelog*',
       lc_log_filename_up TYPE string VALUE 'CHANGELOG*'.
 
-    DATA: lo_apack       TYPE REF TO zcl_abapgit_apack_reader,
-          lt_remote      TYPE zif_abapgit_definitions=>ty_files_tt,
-          lv_version     TYPE string,
-          lv_last_seen   TYPE string,
-          lv_url         TYPE string,
-          lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
+    DATA: lo_apack            TYPE REF TO zcl_abapgit_apack_reader,
+          lt_remote           TYPE zif_abapgit_definitions=>ty_files_tt,
+          lv_version          TYPE string,
+          lv_last_seen        TYPE string,
+          lv_url              TYPE string,
+          lo_repo_online      TYPE REF TO zcl_abapgit_repo_online,
+          lv_version_constant TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit-version_constant.
 
     FIELD-SYMBOLS <ls_file> LIKE LINE OF lt_remote.
     IF io_repo->is_offline( ) = abap_true.
@@ -23975,17 +24112,20 @@ CLASS zcl_abapgit_news IMPLEMENTATION.
     lo_repo_online ?= io_repo.
     lv_url          = lo_repo_online->get_url( ).
 
-    IF zcl_abapgit_url=>is_abapgit_repo( lv_url ) = abap_true.
-      lv_version = zif_abapgit_version=>c_abap_version. " TODO refactor
-    ELSE.
-
-      lo_apack = io_repo->get_dot_apack( ).
-      IF lo_apack IS NOT BOUND.
-        RETURN.
-      ENDIF.
-
+    lo_apack = io_repo->get_dot_apack( ).
+    IF lo_apack IS BOUND.
       lv_version = lo_apack->get_manifest_descriptor( )-version.
+    ENDIF.
 
+    IF lv_version IS INITIAL.
+      TRY.
+          lv_version_constant = io_repo->get_dot_abapgit( )->get_version_constant( ).
+          IF lv_version_constant IS NOT INITIAL.
+            lv_version = zcl_abapgit_version=>get_version_constant_value( lv_version_constant ).
+          ENDIF.
+        CATCH zcx_abapgit_exception.
+          CLEAR lv_version.
+      ENDTRY.
     ENDIF.
 
     IF lv_version IS INITIAL.
@@ -38830,6 +38970,14 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
     )->column(
       iv_label       = 'Minimum Patch'
       iv_width       = '30%'
+    )->text(
+      iv_name        = c_id-version_constant
+      iv_label       = 'Version Constant'
+      iv_placeholder = 'ZVERSION_CLASS=>VERSION_CONSTANT'
+    )->text(
+      iv_name        = c_id-version_value
+      iv_label       = 'Version Value'
+      iv_readonly    = abap_true
     )->command(
       iv_label       = 'Save Settings'
       iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
@@ -38878,6 +39026,18 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
     mo_form_data->set(
       iv_key = c_id-starting_folder
       iv_val = ls_dot-starting_folder ).
+    mo_form_data->set(
+      iv_key = c_id-version_constant
+      iv_val = ls_dot-version_constant ).
+    TRY.
+        mo_form_data->set(
+          iv_key = c_id-version_value
+          iv_val = zcl_abapgit_version=>get_version_constant_value( ls_dot-version_constant ) ).
+      CATCH zcx_abapgit_exception.
+        mo_form_data->set(
+          iv_key = c_id-version_value
+          iv_val = '' ).
+    ENDTRY.
 
     lv_ignore = concat_lines_of(
       table = ls_dot-ignore
@@ -38936,6 +39096,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
 
     lo_dot->set_folder_logic( mo_form_data->get( c_id-folder_logic ) ).
     lo_dot->set_starting_folder( mo_form_data->get( c_id-starting_folder ) ).
+    lo_dot->set_version_constant( mo_form_data->get( c_id-version_constant ) ).
 
     lo_dot->set_i18n_languages(
       zcl_abapgit_lxe_texts=>convert_lang_string_to_table(
@@ -38986,11 +39147,13 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
   METHOD validate_form.
 
     DATA:
-      lv_folder      TYPE string,
-      lv_len         TYPE i,
-      lv_component   TYPE zif_abapgit_dot_abapgit=>ty_requirement-component,
-      lv_min_release TYPE zif_abapgit_dot_abapgit=>ty_requirement-min_release,
-      lv_min_patch   TYPE zif_abapgit_dot_abapgit=>ty_requirement-min_patch.
+      lv_folder           TYPE string,
+      lv_len              TYPE i,
+      lv_component        TYPE zif_abapgit_dot_abapgit=>ty_requirement-component,
+      lv_min_release      TYPE zif_abapgit_dot_abapgit=>ty_requirement-min_release,
+      lv_min_patch        TYPE zif_abapgit_dot_abapgit=>ty_requirement-min_patch,
+      lv_version_constant TYPE string,
+      lx_exception        TYPE REF TO zcx_abapgit_exception.
 
     ro_validation_log = mo_form_util->validate( io_form_data ).
 
@@ -39025,6 +39188,17 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
           iv_val = |If you enter a software component, you must also enter a minumum release| ).
       ENDIF.
     ENDDO.
+
+    TRY.
+        lv_version_constant = io_form_data->get( c_id-version_constant ).
+        IF lv_version_constant IS NOT INITIAL.
+          zcl_abapgit_version=>get_version_constant_value( lv_version_constant ).
+        ENDIF.
+      CATCH zcx_abapgit_exception INTO lx_exception.
+        ro_validation_log->set(
+          iv_key = c_id-version_constant
+          iv_val = lx_exception->get_text( ) ).
+    ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -55870,6 +56044,15 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   METHOD set_starting_folder.
     ms_data-starting_folder = iv_path.
   ENDMETHOD.
+
+  METHOD get_version_constant.
+    rv_version_constant = ms_data-version_constant.
+  ENDMETHOD.
+
+  METHOD set_version_constant.
+    ms_data-version_constant = iv_version_constant.
+  ENDMETHOD.
+
   METHOD to_file.
     rs_file-path     = zif_abapgit_definitions=>c_root_dir.
     rs_file-filename = zif_abapgit_definitions=>c_dot_abapgit.
@@ -55892,6 +56075,7 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
     ASSERT sy-subrc = 0.
 
   ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
@@ -114097,6 +114281,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-02T09:00:18.796Z
+* abapmerge 0.14.7 - 2022-10-04T05:51:33.392Z
 ENDINTERFACE.
 ****************************************************
