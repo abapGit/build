@@ -9895,6 +9895,8 @@ CLASS zcl_abapgit_object_char DEFINITION
         cls_attr_valuet TYPE STANDARD TABLE OF cls_attr_valuet WITH DEFAULT KEY,
       END OF ty_char .
 
+    CONSTANTS c_longtext_id_char TYPE dokil-id VALUE 'CH'.
+
     METHODS instantiate_char_and_lock
       IMPORTING
         !iv_type_group       TYPE cls_object_type_group
@@ -10426,6 +10428,7 @@ CLASS zcl_abapgit_object_dtel DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       ty_dd04_texts TYPE STANDARD TABLE OF ty_dd04_text .
 
     CONSTANTS c_longtext_id_dtel TYPE dokil-id VALUE 'DE' ##NO_TEXT.
+    CONSTANTS c_longtext_id_dtel_suppl TYPE dokil-id VALUE 'DZ' ##NO_TEXT.
 
     METHODS serialize_texts
       IMPORTING
@@ -11999,6 +12002,8 @@ CLASS zcl_abapgit_object_sfbf DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CONSTANTS c_longtext_id_sfbf TYPE dokil-id VALUE 'BF'.
+
     METHODS:
       get
         RETURNING VALUE(ro_bf) TYPE REF TO cl_sfw_bf
@@ -12012,6 +12017,8 @@ CLASS zcl_abapgit_object_sfbs DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CONSTANTS c_longtext_id_sfbs TYPE dokil-id VALUE 'BS'.
+
     METHODS:
       get
         RETURNING VALUE(ro_bfs) TYPE REF TO cl_sfw_bfs
@@ -12068,6 +12075,8 @@ CLASS zcl_abapgit_object_sfsw DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CONSTANTS c_longtext_id_sfsw TYPE dokil-id VALUE 'SW'.
+
     METHODS:
       get
         RETURNING VALUE(ro_switch) TYPE REF TO cl_sfw_sw
@@ -12848,6 +12857,8 @@ CLASS zcl_abapgit_object_suso DEFINITION INHERITING FROM zcl_abapgit_objects_sup
           iv_language TYPE spras.
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CONSTANTS c_longtext_id_suso TYPE dokil-id VALUE 'UO'.
+
     DATA:
       mv_objectname TYPE tobj-objct.
 
@@ -13123,6 +13134,7 @@ CLASS zcl_abapgit_object_ttyp DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CONSTANTS c_longtext_id_ttyp TYPE dokil-id VALUE 'TT'.
 ENDCLASS.
 CLASS zcl_abapgit_object_type DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -13420,6 +13432,7 @@ CLASS zcl_abapgit_object_view DEFINITION INHERITING FROM zcl_abapgit_objects_sup
                  external     TYPE viewclass VALUE 'X',
                  replication  TYPE viewclass VALUE 'R',
                END OF co_viewclass.
+    CONSTANTS c_longtext_id_view TYPE dokil-id VALUE 'VW'.
 
     METHODS:
       read_view
@@ -13612,6 +13625,8 @@ CLASS zcl_abapgit_object_wdya DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CONSTANTS c_longtext_id_wdya TYPE dokil-id VALUE 'WA'.
+
     METHODS read
       EXPORTING es_app        TYPE wdy_application
                 et_properties TYPE wdy_app_property_table
@@ -13785,6 +13800,8 @@ CLASS zcl_abapgit_object_xinx DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
     CONSTANTS:
       c_objtype_extension_index   TYPE trobjtype VALUE 'XINX'.
+
+    CONSTANTS c_longtext_id_xinx TYPE dokil-id VALUE 'XI'.
 
     DATA:
       mv_name TYPE ddobjname,
@@ -60532,6 +60549,9 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Cannot activate extension index { mv_id } of table { mv_name }| ).
     ENDIF.
 
+    deserialize_longtexts( ii_xml         = io_xml
+                           iv_longtext_id = c_longtext_id_xinx ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
@@ -60595,6 +60615,9 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
 
     io_xml->add( iv_name = 'XINX'
                  ig_data = ls_extension_index ).
+
+    serialize_longtexts( ii_xml         = io_xml
+                         iv_longtext_id = c_longtext_id_xinx ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -62004,6 +62027,8 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'WDYA, error deleting' ).
     ENDTRY.
 
+    delete_longtexts( c_longtext_id_wdya ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -62022,6 +62047,9 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
     zcl_abapgit_sotr_handler=>create_sotr(
       iv_package = iv_package
       io_xml     = io_xml ).
+
+    deserialize_longtexts( ii_xml         = io_xml
+                           iv_longtext_id = c_longtext_id_wdya ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -62077,6 +62105,9 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
       iv_object   = ms_item-obj_type
       iv_obj_name = ms_item-obj_name
       io_xml      = io_xml ).
+
+    serialize_longtexts( ii_xml         = io_xml
+                         iv_longtext_id = c_longtext_id_wdya ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -63939,6 +63970,9 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
+    deserialize_longtexts( ii_xml         = io_xml
+                           iv_longtext_id = c_longtext_id_view ).
+
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.
@@ -64063,6 +64097,9 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
                  iv_name = 'DD28J_TABLE' ).
     io_xml->add( ig_data = lt_dd28v
                  iv_name = 'DD28V_TABLE' ).
+
+    serialize_longtexts( ii_xml         = io_xml
+                         iv_longtext_id = c_longtext_id_view ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -65854,6 +65891,9 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
       zcx_abapgit_exception=>raise( lv_msg ).
     ENDIF.
 
+    deserialize_longtexts( ii_xml         = io_xml
+                           iv_longtext_id = c_longtext_id_ttyp ).
+
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.
@@ -65933,6 +65973,9 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
                  ig_data = lt_dd42v ).
     io_xml->add( iv_name = 'DD43V'
                  ig_data = lt_dd43v ).
+
+    serialize_longtexts( ii_xml         = io_xml
+                         iv_longtext_id = c_longtext_id_ttyp ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -68496,6 +68539,9 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
     DELETE FROM tobjvor WHERE objct = ms_item-obj_name.   "#EC CI_SUBRC
     INSERT tobjvor FROM TABLE lt_tobjvor.                 "#EC CI_SUBRC
 
+    deserialize_longtexts( ii_xml         = io_xml
+                           iv_longtext_id = c_longtext_id_suso ).
+
     regenerate_sap_all( ).
 
   ENDMETHOD.
@@ -68583,6 +68629,9 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
                  iv_name = 'TOBJVORDAT' ).
     io_xml->add( ig_data = lt_tobjvor
                  iv_name = 'TOBJVOR' ).
+
+    serialize_longtexts( ii_xml         = io_xml
+                         iv_longtext_id = c_longtext_id_suso ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -74470,6 +74519,9 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error in CL_SFW_SW->SAVE_ALL' ).
     ENDIF.
 
+    deserialize_longtexts( ii_xml         = io_xml
+                           iv_longtext_id = c_longtext_id_sfsw ).
+
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.
@@ -74550,6 +74602,9 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
                  iv_name = 'PARENT_BF' ).
     io_xml->add( ig_data = lt_conflicts
                  iv_name = 'CONFLICTS' ).
+
+    serialize_longtexts( ii_xml         = io_xml
+                         iv_longtext_id = c_longtext_id_sfsw ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -75085,6 +75140,9 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
 
     lo_bfs->save_all( ).
 
+    deserialize_longtexts( ii_xml         = io_xml
+                           iv_longtext_id = c_longtext_id_sfbs ).
+
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.
@@ -75171,6 +75229,9 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
                  iv_name = 'NESTED_BFS' ).
     io_xml->add( ig_data = lt_parent_bfs
                  iv_name = 'PARENT_BFS' ).
+
+    serialize_longtexts( ii_xml         = io_xml
+                         iv_longtext_id = c_longtext_id_sfbs ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -75281,6 +75342,9 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
 
     lo_bf->save_all( ).
 
+    deserialize_longtexts( ii_xml         = io_xml
+                           iv_longtext_id = c_longtext_id_sfbf ).
+
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.
@@ -75383,6 +75447,9 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
                  iv_name = 'CONTENT_RN' ).
     io_xml->add( ig_data = lt_parent_bfs
                  iv_name = 'PARENT_BFS' ).
+
+    serialize_longtexts( ii_xml         = io_xml
+                         iv_longtext_id = c_longtext_id_sfbf ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -88066,6 +88133,10 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
     deserialize_longtexts( ii_xml         = io_xml
                            iv_longtext_id = c_longtext_id_dtel ).
 
+    deserialize_longtexts( ii_xml           = io_xml
+                           iv_longtext_name = 'LONGTEXTS_' && c_longtext_id_dtel_suppl
+                           iv_longtext_id   = c_longtext_id_dtel_suppl ).
+
     zcl_abapgit_objects_activation=>add_item( ms_item ).
 
   ENDMETHOD.
@@ -88166,6 +88237,10 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
 
     serialize_longtexts( ii_xml         = io_xml
                          iv_longtext_id = c_longtext_id_dtel ).
+
+    serialize_longtexts( ii_xml           = io_xml
+                         iv_longtext_name = 'LONGTEXTS_' && c_longtext_id_dtel_suppl
+                         iv_longtext_id   = c_longtext_id_dtel_suppl ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -93497,6 +93572,9 @@ CLASS zcl_abapgit_object_char IMPLEMENTATION.
         lo_char->if_pak_wb_object_internal~unlock( ).
     ENDTRY.
 
+    deserialize_longtexts( ii_xml         = io_xml
+                           iv_longtext_id = c_longtext_id_char ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
@@ -93562,6 +93640,9 @@ CLASS zcl_abapgit_object_char IMPLEMENTATION.
 
     io_xml->add( iv_name = 'CHAR'
                  ig_data = ls_char ).
+
+    serialize_longtexts( ii_xml         = io_xml
+                         iv_longtext_id = c_longtext_id_char ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -114354,6 +114435,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-04T13:07:25.835Z
+* abapmerge 0.14.7 - 2022-10-04T13:19:13.845Z
 ENDINTERFACE.
 ****************************************************
