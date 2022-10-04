@@ -81575,9 +81575,10 @@ CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd DEFINITION.
     INTERFACES zif_abapgit_aff_type_mapping.
   PRIVATE SECTION.
     METHODS set_abapgit_descriptions
-      IMPORTING is_clsname       TYPE seoclsname
-                is_intf_aff      TYPE zif_abapgit_aff_intf_v1=>ty_main
-      RETURNING VALUE(rs_return) TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt.
+      IMPORTING is_clsname          TYPE seoclsname
+                is_intf_aff         TYPE zif_abapgit_aff_intf_v1=>ty_main
+      EXPORTING et_descriptions     TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt
+                et_descriptions_sub TYPE zif_abapgit_oo_object_fnc=>ty_seosubcotx_tt.
 ENDCLASS.
 
 CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd IMPLEMENTATION.
@@ -81617,8 +81618,10 @@ CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd IMPLEMENTATION.
 
     lv_classname = iv_object_name.
 
-    ls_data_abapgit-description = set_abapgit_descriptions( is_clsname  = lv_classname
-                                                            is_intf_aff = ls_data_aff ).
+    set_abapgit_descriptions( EXPORTING is_clsname          = lv_classname
+                                        is_intf_aff         = ls_data_aff
+                              IMPORTING et_descriptions     = ls_data_abapgit-description
+                                        et_descriptions_sub = ls_data_abapgit-description_sub ).
 
     ls_data_abapgit-vseointerf-clsname = iv_object_name.
     ls_data_abapgit-vseointerf-descript = ls_data_aff-header-description.
@@ -81635,7 +81638,8 @@ CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd IMPLEMENTATION.
 
   METHOD set_abapgit_descriptions.
 
-    DATA ls_description TYPE seocompotx.
+    DATA ls_description       TYPE seocompotx.
+    DATA ls_description_subco TYPE seosubcotx.
     FIELD-SYMBOLS <ls_description>      TYPE zif_abapgit_aff_oo_types_v1=>ty_component_description.
     FIELD-SYMBOLS <ls_meth_description> TYPE zif_abapgit_aff_oo_types_v1=>ty_method.
     FIELD-SYMBOLS <ls_evt_description>  TYPE zif_abapgit_aff_oo_types_v1=>ty_event.
@@ -81644,7 +81648,7 @@ CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd IMPLEMENTATION.
       ls_description-cmpname  = <ls_description>-name.
       ls_description-langu    = is_intf_aff-header-original_language.
       ls_description-descript = <ls_description>-description.
-      APPEND ls_description TO rs_return.
+      APPEND ls_description TO et_descriptions.
     ENDLOOP.
 
     LOOP AT is_intf_aff-descriptions-attributes ASSIGNING <ls_description>.
@@ -81652,7 +81656,7 @@ CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd IMPLEMENTATION.
       ls_description-cmpname  = <ls_description>-name.
       ls_description-langu    = is_intf_aff-header-original_language.
       ls_description-descript = <ls_description>-description.
-      APPEND ls_description TO rs_return.
+      APPEND ls_description TO et_descriptions.
     ENDLOOP.
 
     LOOP AT is_intf_aff-descriptions-methods ASSIGNING <ls_meth_description>.
@@ -81660,7 +81664,25 @@ CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd IMPLEMENTATION.
       ls_description-cmpname  = <ls_meth_description>-name.
       ls_description-langu    = is_intf_aff-header-original_language.
       ls_description-descript = <ls_meth_description>-description.
-      APPEND ls_description TO rs_return.
+      APPEND ls_description TO et_descriptions.
+
+      LOOP AT <ls_meth_description>-parameters ASSIGNING <ls_description>.
+        ls_description_subco-clsname  = ls_description-clsname.
+        ls_description_subco-cmpname  = ls_description-cmpname.
+        ls_description_subco-langu    = ls_description-langu.
+        ls_description_subco-sconame  = <ls_description>-name.
+        ls_description_subco-descript = <ls_description>-description.
+        APPEND ls_description_subco TO et_descriptions_sub.
+      ENDLOOP.
+
+      LOOP AT <ls_meth_description>-exceptions ASSIGNING <ls_description>.
+        ls_description_subco-clsname  = ls_description-clsname.
+        ls_description_subco-cmpname  = ls_description-cmpname.
+        ls_description_subco-langu    = ls_description-langu.
+        ls_description_subco-sconame  = <ls_description>-name.
+        ls_description_subco-descript = <ls_description>-description.
+        APPEND ls_description_subco TO et_descriptions_sub.
+      ENDLOOP.
     ENDLOOP.
 
     LOOP AT is_intf_aff-descriptions-events ASSIGNING <ls_evt_description>.
@@ -81668,7 +81690,16 @@ CLASS kHGwlUKtFBXjILcBRBJOvDDGtKNvAd IMPLEMENTATION.
       ls_description-cmpname  = <ls_evt_description>-name.
       ls_description-langu    = is_intf_aff-header-original_language.
       ls_description-descript = <ls_evt_description>-description.
-      APPEND ls_description TO rs_return.
+      APPEND ls_description TO et_descriptions.
+
+      LOOP AT <ls_evt_description>-parameters ASSIGNING <ls_description>.
+        ls_description_subco-clsname  = ls_description-clsname.
+        ls_description_subco-cmpname  = ls_description-cmpname.
+        ls_description_subco-langu    = ls_description-langu.
+        ls_description_subco-sconame  = <ls_description>-name.
+        ls_description_subco-descript = <ls_description>-description.
+        APPEND ls_description_subco TO et_descriptions_sub.
+      ENDLOOP.
     ENDLOOP.
 
   ENDMETHOD.
@@ -114323,6 +114354,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-04T06:59:07.489Z
+* abapmerge 0.14.7 - 2022-10-04T09:17:58.166Z
 ENDINTERFACE.
 ****************************************************
