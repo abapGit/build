@@ -104862,7 +104862,9 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
             result = rv_bool.
 
       CATCH cx_root INTO lx_error.
-        zcx_abapgit_exception=>raise_with_text( lx_error ).
+        " return false instead of raising exception, because abapGit assumes
+        " that raising exception = existing object
+        rv_bool = abap_false.
     ENDTRY.
 
   ENDMETHOD.
@@ -104908,7 +104910,6 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
           lv_json_as_xstring   TYPE xstring,
           lx_exception         TYPE REF TO cx_root,
           lv_name              TYPE c LENGTH 120,
-          lv_is_deletion       TYPE abap_bool VALUE abap_false,
           lv_dummy             TYPE string.
 
     FIELD-SYMBOLS: <ls_intf_aff_obj>      TYPE any,
@@ -114627,6 +114628,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-04T14:44:45.638Z
+* abapmerge 0.14.7 - 2022-10-04T21:48:56.487Z
 ENDINTERFACE.
 ****************************************************
