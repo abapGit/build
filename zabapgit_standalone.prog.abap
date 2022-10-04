@@ -14183,6 +14183,11 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
   PROTECTED SECTION.
   PRIVATE SECTION.
 
+    CONSTANTS:
+      c_longtext_id_prog     TYPE dokil-id VALUE 'RE',
+      c_longtext_id_func     TYPE dokil-id VALUE 'FU',
+      c_longtext_id_func_exc TYPE dokil-id VALUE 'FX'.
+
     TYPES:
       ty_rs38l_incl_tt TYPE STANDARD TABLE OF rs38l_incl WITH DEFAULT KEY .
     TYPES:
@@ -14249,6 +14254,20 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
         !it_functions TYPE ty_function_tt
         !ii_log       TYPE REF TO zif_abapgit_log
         !iv_transport TYPE trkorr
+      RAISING
+        zcx_abapgit_exception .
+    METHODS serialize_function_docs
+      IMPORTING
+        !iv_prog_name TYPE programm
+        !it_functions TYPE ty_function_tt
+        !ii_xml       TYPE REF TO zif_abapgit_xml_output
+      RAISING
+        zcx_abapgit_exception .
+    METHODS deserialize_function_docs
+      IMPORTING
+        !iv_prog_name TYPE programm
+        !it_functions TYPE ty_function_tt
+        !ii_xml       TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
     METHODS serialize_xml
@@ -84319,7 +84338,7 @@ CLASS zcl_abapgit_object_g4ba IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
+CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   METHOD check_rfc_parameters.
 
 * function module RS_FUNCTIONMODULE_INSERT does the same deep down, but the right error
@@ -84473,6 +84492,32 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
       INSERT REPORT lv_include FROM lt_source.
       ii_log->add_success( iv_msg = |Function module { <ls_func>-funcname } imported|
                            is_item = ms_item ).
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD deserialize_function_docs.
+
+    FIELD-SYMBOLS <ls_func> LIKE LINE OF it_functions.
+
+    zcl_abapgit_factory=>get_longtexts( )->deserialize(
+      iv_longtext_id   = c_longtext_id_prog
+      iv_object_name   = iv_prog_name
+      ii_xml           = ii_xml
+      iv_main_language = mv_language ).
+
+    LOOP AT it_functions ASSIGNING <ls_func>.
+      zcl_abapgit_factory=>get_longtexts( )->deserialize(
+        iv_longtext_name = |LONGTEXTS_{ <ls_func>-funcname }|
+        iv_longtext_id   = c_longtext_id_func
+        iv_object_name   = <ls_func>-funcname
+        ii_xml           = ii_xml
+        iv_main_language = mv_language ).
+      zcl_abapgit_factory=>get_longtexts( )->deserialize(
+        iv_longtext_name = |LONGTEXTS_{ <ls_func>-funcname }___EXC|
+        iv_longtext_id   = c_longtext_id_func_exc
+        iv_object_name   = <ls_func>-funcname
+        ii_xml           = ii_xml
+        iv_main_language = mv_language ).
     ENDLOOP.
 
   ENDMETHOD.
@@ -85006,6 +85051,29 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD serialize_function_docs.
+
+    FIELD-SYMBOLS <ls_func> LIKE LINE OF it_functions.
+
+    zcl_abapgit_factory=>get_longtexts( )->serialize(
+      iv_longtext_id = c_longtext_id_prog
+      iv_object_name = iv_prog_name
+      ii_xml         = ii_xml ).
+
+    LOOP AT it_functions ASSIGNING <ls_func>.
+      zcl_abapgit_factory=>get_longtexts( )->serialize(
+        iv_longtext_name = |LONGTEXTS_{ <ls_func>-funcname }|
+        iv_longtext_id   = c_longtext_id_func
+        iv_object_name   = <ls_func>-funcname
+        ii_xml           = ii_xml ).
+      zcl_abapgit_factory=>get_longtexts( )->serialize(
+        iv_longtext_name = |LONGTEXTS_{ <ls_func>-funcname }___EXC|
+        iv_longtext_id   = c_longtext_id_func_exc
+        iv_object_name   = <ls_func>-funcname
+        ii_xml           = ii_xml ).
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD serialize_includes.
 
     DATA: lt_includes TYPE ty_sobj_name_tt.
@@ -85224,6 +85292,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
     io_xml->read( EXPORTING iv_name = 'FUNCTIONS'
                   CHANGING cg_data = lt_functions ).
+
     deserialize_functions(
       it_functions = lt_functions
       ii_log       = ii_log
@@ -85243,12 +85312,19 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
     io_xml->read( EXPORTING iv_name = 'DYNPROS'
                   CHANGING cg_data = lt_dynpros ).
+
     deserialize_dynpros( lt_dynpros ).
 
     io_xml->read( EXPORTING iv_name = 'CUA'
                   CHANGING cg_data = ls_cua ).
+
     deserialize_cua( iv_program_name = lv_program_name
                      is_cua = ls_cua ).
+
+    deserialize_function_docs(
+      iv_prog_name = lv_program_name
+      it_functions = lt_functions
+      ii_xml       = io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -85315,6 +85391,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     serialize_xml( io_xml ).
 
     lt_functions = serialize_functions( ).
+
     io_xml->add( iv_name = 'FUNCTIONS'
                  ig_data = lt_functions ).
 
@@ -85341,6 +85418,10 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
       io_xml->add( iv_name = 'CUA'
                    ig_data = ls_cua ).
     ENDIF.
+
+    serialize_function_docs( iv_prog_name = lv_program_name
+                             it_functions = lt_functions
+                             ii_xml       = io_xml ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -114541,6 +114622,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-04T13:34:28.006Z
+* abapmerge 0.14.7 - 2022-10-04T13:44:58.417Z
 ENDINTERFACE.
 ****************************************************
