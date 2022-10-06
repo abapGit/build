@@ -98651,6 +98651,10 @@ CLASS zcl_abapgit_object_enho_wdyn IMPLEMENTATION.
         lo_wdyn->if_enh_object~unlock( ).
 
       CATCH cx_root.
+        TRY.
+            lo_wdyn->if_enh_object~unlock( ).
+          CATCH cx_sy_ref_is_initial cx_enh_mod_not_allowed ##NO_HANDLER.
+        ENDTRY.
         zcx_abapgit_exception=>raise( |error deserializing ENHO wdyn { ms_item-obj_name }| ).
     ENDTRY.
 
@@ -98732,6 +98736,10 @@ CLASS zcl_abapgit_object_enho_wdyc IMPLEMENTATION.
         lo_wdyconf->if_enh_object~save( run_dark = abap_true ).
         lo_wdyconf->if_enh_object~unlock( ).
       CATCH cx_enh_root cx_static_check.
+        TRY.
+            lo_wdyconf->if_enh_object~unlock( ).
+          CATCH cx_sy_ref_is_initial cx_enh_mod_not_allowed ##NO_HANDLER.
+        ENDTRY.
         zcx_abapgit_exception=>raise( 'error deserializing ENHO wdyconf' ).
     ENDTRY.
   ENDMETHOD.
@@ -98817,6 +98825,10 @@ CLASS zcl_abapgit_object_enho_intf IMPLEMENTATION.
         lo_enh_intf->if_enh_object~save( run_dark = abap_true ).
         lo_enh_intf->if_enh_object~unlock( ).
       CATCH cx_enh_root INTO lx_enh_root.
+        TRY.
+            lo_enh_intf->if_enh_object~unlock( ).
+          CATCH cx_sy_ref_is_initial cx_enh_mod_not_allowed ##NO_HANDLER.
+        ENDTRY.
         zcx_abapgit_exception=>raise_with_text( lx_enh_root ).
     ENDTRY.
 
@@ -99001,6 +99013,10 @@ CLASS zcl_abapgit_object_enho_hook IMPLEMENTATION.
         lo_hook_impl->if_enh_object~save( run_dark = abap_true ).
         lo_hook_impl->if_enh_object~unlock( ).
       CATCH cx_enh_root INTO lx_enh_root.
+        TRY.
+            lo_hook_impl->if_enh_object~unlock( ).
+          CATCH cx_sy_ref_is_initial cx_enh_mod_not_allowed ##NO_HANDLER.
+        ENDTRY.
         zcx_abapgit_exception=>raise_with_text( lx_enh_root ).
     ENDTRY.
 
@@ -99109,6 +99125,10 @@ CLASS zcl_abapgit_object_enho_fugr IMPLEMENTATION.
         lo_fugrdata->if_enh_object~save( run_dark = abap_true ).
         lo_fugrdata->if_enh_object~unlock( ).
       CATCH cx_enh_root INTO lx_enh_root.
+        TRY.
+            lo_fugrdata->if_enh_object~unlock( ).
+          CATCH cx_sy_ref_is_initial cx_enh_mod_not_allowed ##NO_HANDLER.
+        ENDTRY.
         zcx_abapgit_exception=>raise_with_text( lx_enh_root ).
     ENDTRY.
 
@@ -99478,6 +99498,10 @@ CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
         lo_enh_class->if_enh_object~save( run_dark = abap_true ).
         lo_enh_class->if_enh_object~unlock( ).
       CATCH cx_enh_root INTO lx_enh_root.
+        TRY.
+            lo_enh_class->if_enh_object~unlock( ).
+          CATCH cx_sy_ref_is_initial cx_enh_mod_not_allowed ##NO_HANDLER.
+        ENDTRY.
         zcx_abapgit_exception=>raise_with_text( lx_enh_root ).
     ENDTRY.
 
@@ -99570,6 +99594,10 @@ CLASS zcl_abapgit_object_enho_badi IMPLEMENTATION.
         lo_badi->if_enh_object~save( run_dark = abap_true ).
         lo_badi->if_enh_object~unlock( ).
       CATCH cx_enh_root INTO lx_enh_root.
+        TRY.
+            lo_badi->if_enh_object~unlock( ).
+          CATCH cx_sy_ref_is_initial cx_enh_mod_not_allowed ##NO_HANDLER.
+        ENDTRY.
         zcx_abapgit_exception=>raise_with_text( lx_enh_root ).
     ENDTRY.
 
@@ -114768,6 +114796,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-06T00:12:38.875Z
+* abapmerge 0.14.7 - 2022-10-06T08:18:19.682Z
 ENDINTERFACE.
 ****************************************************
