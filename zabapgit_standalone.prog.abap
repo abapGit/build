@@ -2229,10 +2229,14 @@ INTERFACE zif_abapgit_html.
 
   METHODS set_title
     IMPORTING
-      iv_title TYPE string.
+      iv_title TYPE string
+    RETURNING
+      VALUE(ri_self) TYPE REF TO zif_abapgit_html.
   METHODS add
     IMPORTING
-      !ig_chunk TYPE any .
+      !ig_chunk TYPE any
+    RETURNING
+      VALUE(ri_self) TYPE REF TO zif_abapgit_html.
   METHODS render
     IMPORTING
       !iv_no_indent_jscss TYPE abap_bool OPTIONAL
@@ -2250,11 +2254,15 @@ INTERFACE zif_abapgit_html.
       !iv_class TYPE string OPTIONAL
       !iv_id    TYPE string OPTIONAL
       !iv_style TYPE string OPTIONAL
-      !iv_title TYPE string OPTIONAL.
+      !iv_title TYPE string OPTIONAL
+    RETURNING
+      VALUE(ri_self) TYPE REF TO zif_abapgit_html.
   METHODS add_checkbox
     IMPORTING
       iv_id      TYPE string
-      iv_checked TYPE abap_bool OPTIONAL.
+      iv_checked TYPE abap_bool OPTIONAL
+    RETURNING
+      VALUE(ri_self) TYPE REF TO zif_abapgit_html.
   METHODS a
     IMPORTING
       !iv_txt       TYPE string
@@ -2281,7 +2289,42 @@ INTERFACE zif_abapgit_html.
       !iv_name    TYPE string
       !iv_hint    TYPE string OPTIONAL
       !iv_class   TYPE string OPTIONAL
-      !iv_onclick TYPE string OPTIONAL .
+      !iv_onclick TYPE string OPTIONAL
+    RETURNING
+      VALUE(ri_self) TYPE REF TO zif_abapgit_html.
+
+  METHODS wrap
+    IMPORTING
+      !iv_tag     TYPE string
+      !iv_content TYPE string OPTIONAL
+      !ii_content TYPE REF TO zif_abapgit_html OPTIONAL
+      !iv_id      TYPE string OPTIONAL
+      !iv_class   TYPE string OPTIONAL
+      !iv_hint    TYPE string OPTIONAL
+    RETURNING
+      VALUE(ri_self) TYPE REF TO zif_abapgit_html.
+
+  METHODS td
+    IMPORTING
+      !iv_content TYPE string OPTIONAL
+      !ii_content TYPE REF TO zif_abapgit_html OPTIONAL
+      !iv_id      TYPE string OPTIONAL
+      !iv_class   TYPE string OPTIONAL
+      !iv_hint    TYPE string OPTIONAL
+      PREFERRED PARAMETER iv_content
+    RETURNING
+      VALUE(ri_self) TYPE REF TO zif_abapgit_html.
+
+  METHODS th
+    IMPORTING
+      !iv_content TYPE string OPTIONAL
+      !ii_content TYPE REF TO zif_abapgit_html OPTIONAL
+      !iv_id      TYPE string OPTIONAL
+      !iv_class   TYPE string OPTIONAL
+      !iv_hint    TYPE string OPTIONAL
+      PREFERRED PARAMETER iv_content
+    RETURNING
+      VALUE(ri_self) TYPE REF TO zif_abapgit_html.
 
 ENDINTERFACE.
 
@@ -16244,6 +16287,9 @@ CLASS zcl_abapgit_html DEFINITION
     CONSTANTS c_indent_size TYPE i VALUE 2 ##NO_TEXT.
 
     CLASS-METHODS class_constructor .
+    CLASS-METHODS create
+      RETURNING
+        VALUE(ri_instance) TYPE REF TO zif_abapgit_html.
     CLASS-METHODS icon
       IMPORTING
         !iv_name      TYPE string
@@ -16254,12 +16300,15 @@ CLASS zcl_abapgit_html DEFINITION
         VALUE(rv_str) TYPE string .
     CLASS-METHODS checkbox
       IMPORTING
-         iv_id         TYPE string OPTIONAL
-         iv_checked    TYPE abap_bool OPTIONAL
+        iv_id          TYPE string OPTIONAL
+        iv_checked     TYPE abap_bool OPTIONAL
       RETURNING
         VALUE(rv_html) TYPE string .
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    ALIASES add FOR zif_abapgit_html~add.
+    ALIASES wrap FOR zif_abapgit_html~wrap.
 
     TYPES:
       BEGIN OF ty_indent_context,
@@ -51120,7 +51169,7 @@ CLASS ZCL_ABAPGIT_HTML_PARTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_html IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
   METHOD checkbox.
 
     DATA: lv_checked TYPE string.
@@ -51135,6 +51184,7 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
     ENDIF.
 
     rv_html = rv_html && `/>`.
+
   ENDMETHOD.
   METHOD class_constructor.
     CREATE OBJECT go_single_tags_re
@@ -51142,9 +51192,13 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
         pattern     = '<(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|LINK|META|PARAM|SOURCE|!)'
         ignore_case = abap_false.
 
-    gv_spaces = repeat( val = ` `
-                        occ = 200 ).
+    gv_spaces = repeat(
+      val = ` `
+      occ = 200 ).
 
+  ENDMETHOD.
+  METHOD create.
+    CREATE OBJECT ri_instance TYPE zcl_abapgit_html.
   ENDMETHOD.
   METHOD icon.
 
@@ -51394,6 +51448,8 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
         ASSERT 1 = 0. " Dev mistake
     ENDCASE.
 
+    ri_self = me.
+
   ENDMETHOD.
   METHOD zif_abapgit_html~add_a.
 
@@ -51407,12 +51463,16 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
       iv_style = iv_style
       iv_title = iv_title ) ).
 
+    ri_self = me.
+
   ENDMETHOD.
   METHOD zif_abapgit_html~add_checkbox.
 
     zif_abapgit_html~add( checkbox(
       iv_id      = iv_id
       iv_checked = iv_checked ) ).
+
+    ri_self = me.
 
   ENDMETHOD.
   METHOD zif_abapgit_html~add_icon.
@@ -51422,6 +51482,8 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
       iv_class   = iv_class
       iv_hint    = iv_hint
       iv_onclick = iv_onclick ) ).
+
+    ri_self = me.
 
   ENDMETHOD.
   METHOD zif_abapgit_html~icon.
@@ -51456,6 +51518,69 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_html~set_title.
     zif_abapgit_html~mv_chunk_title = iv_title.
+    ri_self = me.
+  ENDMETHOD.
+  METHOD zif_abapgit_html~td.
+    wrap(
+      iv_tag   = 'td'
+      iv_content = iv_content
+      ii_content = ii_content
+      iv_id    = iv_id
+      iv_class = iv_class
+      iv_hint  = iv_hint ).
+    ri_self = me.
+  ENDMETHOD.
+  METHOD zif_abapgit_html~th.
+    wrap(
+      iv_tag   = 'th'
+      iv_content = iv_content
+      ii_content = ii_content
+      iv_id    = iv_id
+      iv_class = iv_class
+      iv_hint  = iv_hint ).
+    ri_self = me.
+  ENDMETHOD.
+  METHOD zif_abapgit_html~wrap.
+
+    DATA lv_open_tag TYPE string.
+    DATA lv_close_tag TYPE string.
+
+    DATA: lv_class TYPE string,
+          lv_id    TYPE string,
+          lv_title TYPE string.
+
+    IF iv_id IS NOT INITIAL.
+      lv_id = | id="{ iv_id }"|.
+    ENDIF.
+
+    IF iv_class IS NOT INITIAL.
+      lv_class = | class="{ iv_class }"|.
+    ENDIF.
+
+    IF iv_hint IS NOT INITIAL.
+      lv_title = | title="{ iv_hint }"|.
+    ENDIF.
+
+    lv_open_tag = |<{ iv_tag }{ lv_id }{ lv_class }{ lv_title }>|.
+    lv_close_tag = |</{ iv_tag }>|.
+
+    IF ii_content IS NOT BOUND AND iv_content IS INITIAL.
+      lv_open_tag = lv_open_tag && lv_close_tag.
+      CLEAR lv_close_tag.
+    ENDIF.
+
+    add( lv_open_tag ).
+    IF ii_content IS BOUND.
+      add( ii_content ).
+    ELSEIF iv_content IS NOT INITIAL.
+      add( iv_content ).
+    ENDIF.
+    IF lv_close_tag IS NOT INITIAL.
+      add( `</` && iv_tag && `>` ).
+    ENDIF.
+
+    ri_self = me.
+
   ENDMETHOD.
 ENDCLASS.
 
@@ -114847,6 +114972,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-06T13:12:32.903Z
+* abapmerge 0.14.7 - 2022-10-06T20:34:59.486Z
 ENDINTERFACE.
 ****************************************************
