@@ -3432,8 +3432,8 @@ INTERFACE zif_abapgit_oo_object_fnc.
   METHODS:
     create
       IMPORTING
+        iv_check      TYPE abap_bool
         iv_package    TYPE devclass
-        iv_overwrite  TYPE abap_bool DEFAULT abap_true
         it_attributes TYPE zif_abapgit_definitions=>ty_obj_attribute_tt OPTIONAL
       CHANGING
         cg_properties TYPE any
@@ -82420,7 +82420,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_pre_ddic.
 
-    DATA: ls_intf   TYPE ty_intf.
+    DATA ls_intf TYPE ty_intf.
 
     IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) = abap_true.
       ls_intf = read_json( ).
@@ -82431,6 +82431,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
 
     mi_object_oriented_object_fct->create(
       EXPORTING
+        iv_check      = abap_false
         iv_package    = iv_package
       CHANGING
         cg_properties = ls_intf-vseointerf ).
@@ -82602,16 +82603,6 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
 
     ls_intf-vseointerf = mi_object_oriented_object_fct->get_interface_properties( ls_clskey ).
 
-    CLEAR: ls_intf-vseointerf-uuid,
-           ls_intf-vseointerf-author,
-           ls_intf-vseointerf-createdon,
-           ls_intf-vseointerf-changedby,
-           ls_intf-vseointerf-changedon,
-           ls_intf-vseointerf-chgdanyby,
-           ls_intf-vseointerf-chgdanyon,
-           ls_intf-vseointerf-r3release,
-           ls_intf-vseointerf-version.
-
     " Select all active translations of documentation
     " Skip main language - it was already serialized
     SELECT DISTINCT langu
@@ -82742,6 +82733,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
       ELSE.
         mi_object_oriented_object_fct->create(
           EXPORTING
+            iv_check      = abap_true
             iv_package    = iv_package
           CHANGING
             cg_properties = ls_intf-vseointerf ).
@@ -92973,6 +92965,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     mi_object_oriented_object_fct->create(
       EXPORTING
+        iv_check      = abap_true
         iv_package    = iv_package
         it_attributes = lt_attributes
       CHANGING
@@ -93067,16 +93060,16 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD deserialize_pre_ddic.
-    DATA: ls_vseoclass  TYPE vseoclass,
-          lt_attributes TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
+
+    DATA: ls_vseoclass TYPE vseoclass.
 
     ii_xml->read( EXPORTING iv_name = 'VSEOCLASS'
                   CHANGING  cg_data = ls_vseoclass ).
 
     mi_object_oriented_object_fct->create(
       EXPORTING
+        iv_check      = abap_false
         iv_package    = iv_package
-        it_attributes = lt_attributes
       CHANGING
         cg_properties = ls_vseoclass ).
 
@@ -93395,19 +93388,6 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     ENDTRY.
 
     zcl_abapgit_language=>restore_login_language( ).
-
-    CLEAR: ls_vseoclass-uuid,
-           ls_vseoclass-author,
-           ls_vseoclass-createdon,
-           ls_vseoclass-changedby,
-           ls_vseoclass-changedon,
-           ls_vseoclass-r3release,
-           ls_vseoclass-chgdanyby,
-           ls_vseoclass-chgdanyon,
-           ls_vseoclass-clsfinal,
-           ls_vseoclass-clsabstrct,
-           ls_vseoclass-exposure,
-           ls_vseoclass-version.
 
     IF mv_skip_testclass = abap_true.
       CLEAR ls_vseoclass-with_unit_tests.
@@ -97719,11 +97699,27 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~create.
-    DATA: lt_vseoattrib TYPE seoo_attributes_r.
+
+    DATA:
+      lt_vseoattrib    TYPE seoo_attributes_r,
+      ls_interface_key TYPE seoclskey,
+      ls_properties    TYPE vseointerf.
+
     FIELD-SYMBOLS: <lv_clsname> TYPE seoclsname.
 
     ASSIGN COMPONENT 'CLSNAME' OF STRUCTURE cg_properties TO <lv_clsname>.
     ASSERT sy-subrc = 0.
+
+    " Get existing interface properties and check if the interface
+    " needs to be created/updated (or is the same)
+    IF iv_check = abap_true.
+      ls_interface_key-clsname = <lv_clsname>.
+      ls_properties = zif_abapgit_oo_object_fnc~get_interface_properties( ls_interface_key ).
+
+      IF ls_properties = cg_properties.
+        RETURN.
+      ENDIF.
+    ENDIF.
 
     lt_vseoattrib = convert_attrib_to_vseoattrib(
                       iv_clsname    = <lv_clsname>
@@ -97733,7 +97729,7 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
         CALL FUNCTION 'SEO_INTERFACE_CREATE_COMPLETE'
           EXPORTING
             devclass        = iv_package
-            overwrite       = iv_overwrite
+            overwrite       = abap_true
             version         = seoc_version_active
             suppress_dialog = abap_true " Parameter missing in 702
           CHANGING
@@ -97751,7 +97747,7 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
         CALL FUNCTION 'SEO_INTERFACE_CREATE_COMPLETE'
           EXPORTING
             devclass        = iv_package
-            overwrite       = iv_overwrite
+            overwrite       = abap_true
             version         = seoc_version_active
           CHANGING
             interface       = cg_properties
@@ -97768,6 +97764,7 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~delete.
     CALL FUNCTION 'SEO_INTERFACE_DELETE_COMPLETE'
@@ -97850,6 +97847,17 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
     ELSEIF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
+
+    CLEAR:
+      rs_interface_properties-uuid,
+      rs_interface_properties-author,
+      rs_interface_properties-createdon,
+      rs_interface_properties-changedby,
+      rs_interface_properties-changedon,
+      rs_interface_properties-chgdanyby,
+      rs_interface_properties-chgdanyon,
+      rs_interface_properties-r3release,
+      rs_interface_properties-version.
   ENDMETHOD.
 ENDCLASS.
 
@@ -98158,13 +98166,28 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~create.
 
-    DATA: lt_vseoattrib TYPE seoo_attributes_r.
-    FIELD-SYMBOLS: <lv_clsname> TYPE seoclsname.
+    DATA:
+      lt_vseoattrib TYPE seoo_attributes_r,
+      ls_class_key  TYPE seoclskey,
+      ls_properties TYPE vseoclass,
+      lt_attributes TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
 
-* same as in super class, but with "version = seoc_version_active"
+    FIELD-SYMBOLS: <lv_clsname> TYPE seoclsname.
 
     ASSIGN COMPONENT 'CLSNAME' OF STRUCTURE cg_properties TO <lv_clsname>.
     ASSERT sy-subrc = 0.
+
+    " Get existing class properties and attributes and check if the class
+    " needs to be created/updated (or is the same)
+    IF iv_check = abap_true.
+      ls_class_key-clsname = <lv_clsname>.
+      ls_properties = zif_abapgit_oo_object_fnc~get_class_properties( ls_class_key ).
+      lt_attributes = zif_abapgit_oo_object_fnc~read_attributes( <lv_clsname> ).
+
+      IF ls_properties = cg_properties AND lt_attributes = it_attributes.
+        RETURN.
+      ENDIF.
+    ENDIF.
 
     lt_vseoattrib = convert_attrib_to_vseoattrib(
                       iv_clsname    = <lv_clsname>
@@ -98174,7 +98197,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
         CALL FUNCTION 'SEO_CLASS_CREATE_COMPLETE'
           EXPORTING
             devclass        = iv_package
-            overwrite       = iv_overwrite
+            overwrite       = abap_true
             version         = seoc_version_active
             suppress_dialog = abap_true " Parameter missing in 702
           CHANGING
@@ -98192,7 +98215,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
         CALL FUNCTION 'SEO_CLASS_CREATE_COMPLETE'
           EXPORTING
             devclass        = iv_package
-            overwrite       = iv_overwrite
+            overwrite       = abap_true
             version         = seoc_version_active
           CHANGING
             class           = cg_properties
@@ -98398,6 +98421,20 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
     ELSEIF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
+
+    CLEAR:
+      rs_class_properties-uuid,
+      rs_class_properties-author,
+      rs_class_properties-createdon,
+      rs_class_properties-changedby,
+      rs_class_properties-changedon,
+      rs_class_properties-r3release,
+      rs_class_properties-chgdanyby,
+      rs_class_properties-chgdanyon,
+      rs_class_properties-clsfinal,
+      rs_class_properties-clsabstrct,
+      rs_class_properties-exposure,
+      rs_class_properties-version.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~get_includes.
 * note: includes returned might not exist
@@ -115092,6 +115129,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-07T18:47:32.516Z
+* abapmerge 0.14.7 - 2022-10-07T19:01:22.711Z
 ENDINTERFACE.
 ****************************************************
