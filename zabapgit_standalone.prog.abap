@@ -86,6 +86,7 @@ INTERFACE zif_abapgit_aff_types_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_oo_types_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_intf_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_type_mapping DEFERRED.
+INTERFACE zif_abapgit_aff_registry DEFERRED.
 INTERFACE zif_abapgit_ajson_mapping DEFERRED.
 INTERFACE zif_abapgit_ajson_filter DEFERRED.
 INTERFACE zif_abapgit_ajson DEFERRED.
@@ -419,6 +420,7 @@ CLASS zcl_abapgit_object_chkv DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_chko DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_chkc DEFINITION DEFERRED.
 CLASS zcl_abapgit_json_handler DEFINITION DEFERRED.
+CLASS zcl_abapgit_aff_registry DEFINITION DEFERRED.
 CLASS zcl_abapgit_ajson_utilities DEFINITION DEFERRED.
 CLASS zcl_abapgit_ajson_mapping DEFINITION DEFERRED.
 CLASS zcl_abapgit_ajson_filter_lib DEFINITION DEFERRED.
@@ -1525,6 +1527,19 @@ INTERFACE zif_abapgit_ajson_mapping.
     RETURNING
       VALUE(rv_result) TYPE string.
 
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_aff_registry .
+
+  METHODS:
+    "! Returns TRUE if the object type is supported by ABAP file formats (AFF) in abapGit.<br/>
+    "! Either there is a (standalone AFF capable) object handler,
+    "! or object handler calls the AFF framework in newer ABAP systems.
+    is_supported_object_type
+      IMPORTING
+        iv_obj_type      TYPE tadir-object
+      RETURNING
+        VALUE(rv_result) TYPE abap_bool.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_aff_type_mapping .
@@ -7085,6 +7100,39 @@ CLASS zcl_abapgit_ajson_utilities DEFINITION
       RAISING
         zcx_abapgit_ajson_error .
 ENDCLASS.
+CLASS zcl_abapgit_aff_registry DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_aff_registry.
+
+    METHODS:
+      constructor
+        IMPORTING
+          io_settings TYPE REF TO zcl_abapgit_settings OPTIONAL.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    TYPES:
+      BEGIN OF ty_registry_entry,
+        obj_type     TYPE tadir-object,
+        experimental TYPE abap_bool,
+      END OF ty_registry_entry.
+
+    CLASS-DATA:
+      gt_registry TYPE HASHED TABLE OF ty_registry_entry WITH UNIQUE KEY obj_type.
+
+    DATA:
+      mo_settings TYPE REF TO zcl_abapgit_settings.
+
+    CLASS-METHODS:
+      register
+        IMPORTING
+          iv_obj_type     TYPE tadir-object
+          iv_experimental TYPE abap_bool DEFAULT abap_false.
+
+ENDCLASS.
 CLASS zcl_abapgit_json_handler DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -7409,7 +7457,6 @@ CLASS zcl_abapgit_filename_logic DEFINITION
       BEGIN OF c_json_file,
         extension TYPE c LENGTH 4 VALUE 'json',
       END OF c_json_file.
-
     CLASS-METHODS file_to_object
       IMPORTING
         !iv_filename TYPE string
@@ -7431,6 +7478,9 @@ CLASS zcl_abapgit_filename_logic DEFINITION
         VALUE(rv_filename) TYPE string .
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CLASS-DATA:
+      go_aff_registry TYPE REF TO zif_abapgit_aff_registry.
+
 ENDCLASS.
 CLASS zcl_abapgit_folder_logic DEFINITION
   CREATE PUBLIC .
@@ -103794,7 +103844,7 @@ CLASS zcl_abapgit_filename_logic IMPLEMENTATION.
 
     DATA:
       lv_name TYPE string,
-      lv_type TYPE string,
+      lv_type TYPE trobjtype,
       lv_ext  TYPE string.
 
     " Guess object type and name
@@ -103804,6 +103854,12 @@ CLASS zcl_abapgit_filename_logic IMPLEMENTATION.
     REPLACE ALL OCCURRENCES OF '#' IN lv_name WITH '/'.
     REPLACE ALL OCCURRENCES OF '#' IN lv_type WITH '/'.
     REPLACE ALL OCCURRENCES OF '#' IN lv_ext WITH '/'.
+    " Assume AFF namespace convention
+    CREATE OBJECT go_aff_registry TYPE zcl_abapgit_aff_registry.
+    IF go_aff_registry->is_supported_object_type( lv_type ) = abap_true.
+      REPLACE ALL OCCURRENCES OF '(' IN lv_name WITH '/'.
+      REPLACE ALL OCCURRENCES OF ')' IN lv_name WITH '/'.
+    ENDIF.
 
     " The counter part to this logic must be maintained in OBJECT_TO_FILE
     IF lv_type = to_upper( c_package_file-obj_type ).
@@ -103829,7 +103885,7 @@ CLASS zcl_abapgit_filename_logic IMPLEMENTATION.
   METHOD object_to_file.
 
     DATA lv_obj_name TYPE string.
-
+    DATA lv_nb_of_slash TYPE string.
     lv_obj_name = is_item-obj_name.
 
     " The counter part to this logic must be maintained in FILE_TO_OBJECT
@@ -103862,10 +103918,20 @@ CLASS zcl_abapgit_filename_logic IMPLEMENTATION.
     ENDIF.
 
     " handle namespaces
-    REPLACE ALL OCCURRENCES OF '/' IN rv_filename WITH '#'.
-    TRANSLATE rv_filename TO LOWER CASE.
+    CREATE OBJECT go_aff_registry TYPE zcl_abapgit_aff_registry.
+    IF go_aff_registry->is_supported_object_type( is_item-obj_type ) = abap_true.
+      FIND ALL OCCURRENCES OF `/` IN rv_filename MATCH COUNT lv_nb_of_slash.
+      IF lv_nb_of_slash = 2.
+        REPLACE FIRST OCCURRENCE OF `/` IN rv_filename WITH `(`.
+        REPLACE `/` IN rv_filename WITH `)`.
+      ENDIF.
+    ELSE.
+      REPLACE ALL OCCURRENCES OF '/' IN rv_filename WITH '#'.
+    ENDIF.
 
+    TRANSLATE rv_filename TO LOWER CASE.
   ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_file_status IMPLEMENTATION.
@@ -105205,6 +105271,8 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
           lr_messages             TYPE REF TO data,
           lv_json_as_xstring      TYPE xstring,
           lx_exception            TYPE REF TO cx_root,
+          lv_file_name            TYPE string,
+          lo_file_name_mapper     TYPE REF TO object,
           lv_name                 TYPE c LENGTH 120.
 
     FIELD-SYMBOLS: <ls_intf_aff_obj>         TYPE any,
@@ -105232,11 +105300,6 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
           RECEIVING
             result      = lo_object_handler.
 
-        CREATE OBJECT lo_object_json_file TYPE ('CL_AFF_FILE')
-          EXPORTING
-            name    = |{ to_lower( lv_name ) }.{ to_lower( ms_item-obj_type ) }.json|
-            content = lv_json_as_xstring.
-
         CREATE OBJECT lo_object_aff TYPE ('CL_AFF_OBJ')
           EXPORTING
             package = ms_item-devclass
@@ -105251,11 +105314,26 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
           EXPORTING
             object = <ls_intf_aff_obj>.
 
+        CALL METHOD ('CL_AFF_FILE_NAME_MAPPER')=>for_json
+          RECEIVING
+            result = lo_file_name_mapper.
+
+        CALL METHOD lo_file_name_mapper->('IF_AFF_FILE_NAME_MAPPER~GET_FILE_NAME_FROM_OBJECT')
+          EXPORTING
+            object = <ls_intf_aff_obj>
+          RECEIVING
+            result = lv_file_name.
+
         CREATE OBJECT lo_settings TYPE ('CL_AFF_SETTINGS_DESERIALIZE')
           EXPORTING
             version  = 'A'
             language = mv_language
             user     = sy-uname.
+
+        CREATE OBJECT lo_object_json_file TYPE ('CL_AFF_FILE')
+          EXPORTING
+            name    = lv_file_name
+            content = lv_json_as_xstring.
 
         CREATE DATA lr_intf_aff_file TYPE REF TO ('IF_AFF_FILE').
         ASSIGN lr_intf_aff_file->* TO <ls_intf_aff_file>.
@@ -105411,6 +105489,9 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
           lv_json_as_xstring   TYPE xstring,
           lx_exception         TYPE REF TO cx_root,
           lv_name              TYPE c LENGTH 120,
+          lv_file_name         TYPE string,
+          lo_file_name_mapper  TYPE REF TO object,
+          lv_is_deletion       TYPE abap_bool VALUE abap_false,
           lv_dummy             TYPE string.
 
     FIELD-SYMBOLS: <ls_intf_aff_obj>      TYPE any,
@@ -105487,9 +105568,19 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
           ENDIF.
         ENDLOOP.
 
+        CALL METHOD ('CL_AFF_FILE_NAME_MAPPER')=>for_json
+          RECEIVING
+            result = lo_file_name_mapper.
+
+        CALL METHOD lo_file_name_mapper->('IF_AFF_FILE_NAME_MAPPER~GET_FILE_NAME_FROM_OBJECT')
+          EXPORTING
+            object = <ls_intf_aff_obj>
+          RECEIVING
+            result = lv_file_name.
+
         CALL METHOD lo_files_container->('IF_AFF_FILES_CONTAINER~GET_FILE')
           EXPORTING
-            name   = |{ to_lower( lv_name ) }.{ to_lower( ms_item-obj_type ) }.json|
+            name   = lv_file_name
           RECEIVING
             result = lo_object_json_file.
 
@@ -105897,6 +105988,50 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
 
     co_ajson->set_string( iv_path = '/header/originalLanguage'
                           iv_val  = lv_original_language ).
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS zcl_abapgit_aff_registry IMPLEMENTATION.
+
+  METHOD constructor.
+    IF io_settings IS SUPPLIED.
+      mo_settings = io_settings.
+    ELSE.
+      mo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_aff_registry~is_supported_object_type.
+
+    DATA ls_registry_entry TYPE ty_registry_entry.
+
+    IF gt_registry IS INITIAL.
+      register( iv_obj_type = 'CHKC' ).
+      register( iv_obj_type = 'CHKO' ).
+      register( iv_obj_type = 'CHKV' ).
+      register( iv_obj_type = 'EVTB' ).
+      register( iv_obj_type = 'INTF'
+                iv_experimental = abap_true ).
+      register( iv_obj_type = 'SMBC' ).
+    ENDIF.
+
+    READ TABLE gt_registry WITH TABLE KEY obj_type = iv_obj_type INTO ls_registry_entry.
+    IF sy-subrc = 0 AND ls_registry_entry-experimental = abap_false.
+      rv_result = abap_true.
+    ELSEIF sy-subrc = 0 AND mo_settings->get_experimental_features( ) = abap_true.
+      rv_result = abap_true.
+    ELSE.
+      rv_result = abap_false.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD register.
+    DATA ls_registry_entry TYPE ty_registry_entry.
+
+    ls_registry_entry-obj_type = iv_obj_type.
+    ls_registry_entry-experimental = iv_experimental.
+    INSERT ls_registry_entry INTO TABLE gt_registry.
   ENDMETHOD.
 
 ENDCLASS.
@@ -115129,6 +115264,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-08T06:12:29.570Z
+* abapmerge 0.14.7 - 2022-10-10T15:39:45.922Z
 ENDINTERFACE.
 ****************************************************
