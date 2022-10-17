@@ -81741,12 +81741,6 @@ CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd DEFINITION DEFERRED.
 CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd DEFINITION.
   PUBLIC SECTION.
     CLASS-METHODS:
-*    create_empty_interface
-*      IMPORTING iv_intf_name   TYPE seoclsname
-*                io_lock_handle TYPE REF TO if_adt_lock_handle
-*      RAISING   zcx_abapgit_exception,
-      generate_class_pool
-        IMPORTING iv_class_name TYPE seoclsname,
       get_descriptions_compo_subco
         IMPORTING iv_language          TYPE sy-langu
                   iv_clif_name         TYPE seoclsname
@@ -81810,66 +81804,7 @@ CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd DEFINITION.
                   is_properties TYPE zif_abapgit_aff_oo_types_v1=>ty_descriptions .
 ENDCLASS.
 CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd IMPLEMENTATION.
-*  METHOD create_empty_interface.
-*    DATA:
-*      lo_interface_error TYPE string,
-*      ls_empty_interface TYPE vseointerf.
-*
-*    ls_empty_interface-clsname = iv_intf_name.
-*    ls_empty_interface-version = seoc_version_active.
-*    ls_empty_interface-langu = sy-langu.
-*    ls_empty_interface-descript = space.
-*    ls_empty_interface-state = seoc_state_implemented.
-*    ls_empty_interface-exposure = seoc_exposure_public.
-*
-*    CALL FUNCTION 'SEO_INTERFACE_CREATE_COMPLETE'
-*      EXPORTING
-*        version       = seoc_version_active
-*        suppress_corr = abap_true
-*        lock_handle   = io_lock_handle
-*      CHANGING
-*        interface     = ls_empty_interface
-*      EXCEPTIONS
-*        OTHERS        = 1.
-*    IF sy-subrc <> 0.
-*      IF sy-msgid IS NOT INITIAL.
-*        MESSAGE ID sy-msgid TYPE 'S' NUMBER sy-msgno WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 INTO lo_interface_error.
-*      ELSE.
-*        lo_interface_error = 'Internal error'.
-*      ENDIF.
-*      " todo: raise exception here
-*    ENDIF.
-*  ENDMETHOD.
-  METHOD generate_class_pool.
-    DATA:
-      lo_cifkey TYPE seoclskey.
 
-    lo_cifkey-clsname = iv_class_name.
-    PERFORM set_wbinactive IN PROGRAM saplseok USING ' '.
-    CALL FUNCTION 'SEO_WBINACTIVE_BROADCAST'
-      EXPORTING
-        wbia = ' '.
-    CALL FUNCTION 'SEO_CLIF_SET_WBINACTIVE'
-      EXPORTING
-        wbia = ' '.
-
-    CALL FUNCTION 'SEO_BUFFER_REFRESH'
-      EXPORTING
-        cifkey  = lo_cifkey
-        version = seoc_version_active.
-
-    CALL FUNCTION 'SEO_BUFFER_REFRESH'
-      EXPORTING
-        cifkey  = lo_cifkey
-        version = seoc_version_inactive.
-
-    CALL FUNCTION 'SEO_CLASS_GENERATE_CLASSPOOL'
-      EXPORTING
-        clskey        = lo_cifkey
-        suppress_corr = seox_true
-      EXCEPTIONS
-        OTHERS        = 1 ##FM_SUBRC_OK.
-  ENDMETHOD.
   METHOD get_descr_comp_subc_w_exposure.
     DATA:
       lt_components     TYPE ty_compontents,
@@ -82392,6 +82327,7 @@ CLASS kHGwlUKtFBXjILcBRBJOrsxFJiznPf IMPLEMENTATION.
       CATCH cx_static_check INTO lx_exception.
         zcx_abapgit_exception=>raise_with_text( lx_exception ).
     ENDTRY.
+
   ENDMETHOD.
 
 ENDCLASS.
@@ -115248,6 +115184,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-17T13:28:03.336Z
+* abapmerge 0.14.7 - 2022-10-17T13:48:50.919Z
 ENDINTERFACE.
 ****************************************************
