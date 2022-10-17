@@ -51085,8 +51085,6 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
   METHOD explain_content_repo_cs.
 
     DATA:
-      ls_result TYPE match_result,
-      ls_match  TYPE submatch_result,
       lt_lines  TYPE string_table.
 
     IF strlen( is_data-data_str ) > 0.
@@ -54765,9 +54763,7 @@ CLASS zcl_abapgit_repo_filter IMPLEMENTATION.
     DATA ls_item TYPE zif_abapgit_definitions=>ty_item.
     DATA ls_tadir TYPE zif_abapgit_definitions=>ty_tadir.
     DATA lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
-    DATA lt_items TYPE zif_abapgit_definitions=>ty_items_tt.
-
-    DATA: lt_filter TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_tadir
+    DATA lt_filter TYPE SORTED TABLE OF zif_abapgit_definitions=>ty_tadir
                       WITH NON-UNIQUE KEY object obj_name.
 
     lt_filter = it_filter.
@@ -63933,7 +63929,6 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
     DATA lt_w3mime    TYPE STANDARD TABLE OF w3mime.
     DATA lt_w3html    TYPE STANDARD TABLE OF w3html.
     DATA lv_size      TYPE i.
-    DATA lv_tadir_obj TYPE tadir-object.
     io_xml->read( EXPORTING iv_name = 'TEXT'
                   CHANGING  cg_data = ms_key-text ).
 
@@ -82764,9 +82759,6 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
   METHOD zif_abapgit_object~deserialize.
     DATA: lt_source     TYPE rswsourcet,
           ls_clskey     TYPE seoclskey,
-          lv_json_data  TYPE xstring,
-          ls_intf_aff   TYPE zif_abapgit_aff_intf_v1=>ty_main,
-          lo_aff_mapper TYPE REF TO zif_abapgit_aff_type_mapping,
           ls_intf       TYPE ty_intf.
 
     IF iv_step = zif_abapgit_object=>gc_step_id-abap.
@@ -105491,7 +105483,6 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
           lv_name              TYPE c LENGTH 120,
           lv_file_name         TYPE string,
           lo_file_name_mapper  TYPE REF TO object,
-          lv_is_deletion       TYPE abap_bool VALUE abap_false,
           lv_dummy             TYPE string.
 
     FIELD-SYMBOLS: <ls_intf_aff_obj>      TYPE any,
@@ -105936,7 +105927,6 @@ CLASS ZCL_ABAPGIT_JSON_HANDLER IMPLEMENTATION.
           lv_json           TYPE string,
           lo_ajson          TYPE REF TO zcl_abapgit_ajson,
           lo_ajson_filtered TYPE REF TO zif_abapgit_ajson,
-          lv_enum_abap      TYPE string,
           lo_filter         TYPE REF TO kHGwlbVxgSjWYXcuzxmbrHxeswZCbe.
 
     FIELD-SYMBOLS: <lg_source> LIKE LINE OF lt_st_source.
@@ -115258,6 +115248,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-14T19:18:29.644Z
+* abapmerge 0.14.7 - 2022-10-17T13:28:03.336Z
 ENDINTERFACE.
 ****************************************************
