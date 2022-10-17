@@ -28291,8 +28291,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '/* REPOSITORY */' ).
     lo_buf->add( 'div.repo {' ).
-    lo_buf->add( '  margin-top: 3px;' ).
-    lo_buf->add( '  margin-bottom: 3px;' ).
     lo_buf->add( '  padding: 0.5em 1em 0.5em 1em;' ).
     lo_buf->add( '  position: relative;' ).
     lo_buf->add( '}' ).
@@ -28589,7 +28587,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  font-size: 10pt;' ).
     lo_buf->add( '  width: 100%;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( 'table.diff_tab td,th {' ).
+    lo_buf->add( 'table.diff_tab td,' ).
+    lo_buf->add( 'table.diff_tab th {' ).
     lo_buf->add( '  padding-left: 0.5em;' ).
     lo_buf->add( '  padding-right: 0.5em;' ).
     lo_buf->add( '}' ).
@@ -28718,7 +28717,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  overflow-x: auto;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'table.db_tab{' ).
+    lo_buf->add( 'table.db_tab {' ).
     lo_buf->add( '  table-layout: fixed;' ).
     lo_buf->add( '}' ).
     lo_buf->add( 'table.db_tab pre {' ).
@@ -28729,23 +28728,25 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  margin: 0px;' ).
     lo_buf->add( '  width: 30em;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '' ).
     lo_buf->add( 'table.db_tab tr.firstrow td { padding-top: 0.5em; }' ).
     lo_buf->add( 'table.db_tab th {' ).
     lo_buf->add( '  text-align: left;' ).
     lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.db_tab thead tr {' ).
     lo_buf->add( '  border-bottom: 1px solid;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'table.db_tab tfoot tr {' ).
+    lo_buf->add( '  border-top: 1px solid;' ).
     lo_buf->add( '}' ).
     lo_buf->add( 'table.db_tab td {' ).
     lo_buf->add( '  padding: 4px 8px;' ).
     lo_buf->add( '  vertical-align: middle;' ).
     lo_buf->add( '  word-break: break-all;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '' ).
     lo_buf->add( 'table.db_tab th.package {' ).
     lo_buf->add( '    width: 45ch;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '' ).
     lo_buf->add( 'table.db_tab td.data {' ).
     lo_buf->add( '  font-style: italic;' ).
     lo_buf->add( '}' ).
@@ -29123,10 +29124,44 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* Repo overview */' ).
-    lo_buf->add( '.repo-overview { font-size: smaller; }' ).
-    lo_buf->add( '.repo-overview tbody td { height: 2em; }' ).
-    lo_buf->add( '.ro-detail { display: none; }' ).
-    lo_buf->add( '.ro-go { font-size: 150%; }' ).
+    lo_buf->add( '.repo-overview { ' ).
+    lo_buf->add( '  font-size: 90%;' ).
+    lo_buf->add( '  padding: 0.5em 0.7em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview-toolbar {' ).
+    lo_buf->add( '  padding: 1em;' ).
+    lo_buf->add( '  /*margin-top: -0.5em;*/' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview th {' ).
+    lo_buf->add( '  text-align: left;' ).
+    lo_buf->add( '  font-weight: normal;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview table {' ).
+    lo_buf->add( '  border: 1px solid;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview thead tr {' ).
+    lo_buf->add( '  border-bottom: 1px solid;' ).
+    lo_buf->add( '  line-height: 1.5;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview tfoot tr {' ).
+    lo_buf->add( '  border-top: 1px solid;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview tr.favorite .icon-star {' ).
+    lo_buf->add( '  color: #5e8dc9 !important;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview td,' ).
+    lo_buf->add( '.repo-overview th { ' ).
+    lo_buf->add( '  padding: 6px 6px; /* maybe use height ? */' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview .ro-detail { display: none; }' ).
+    lo_buf->add( '.repo-overview .ro-go a {' ).
+    lo_buf->add( '  padding: 0px 0.15em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview .ro-go a:hover { ' ).
+    lo_buf->add( '  color: #ff721e;' ).
+    lo_buf->add( '  text-decoration: none;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* Branch Overview Page */' ).
     lo_buf->add( '.gitGraph-scrollWrapper, .gitGraph-Wrapper{' ).
@@ -29473,12 +29508,16 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  --theme-background-color: #E8E8E8;' ).
     lo_buf->add( '  --theme-container-background-color: #f2f2f2;' ).
     lo_buf->add( '  --theme-container-border-color: lightgrey;' ).
+    lo_buf->add( '  --theme-table-background-color: white;' ).
+    lo_buf->add( '  --theme-table-border-color: #ddd;' ).
+    lo_buf->add( '  --theme-table-cell-border-color: #eee;' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  --theme-primary-font: "72", Arial, Helvetica, sans-serif;' ).
     lo_buf->add( '  --theme-primary-font-color: #333333;' ).
     lo_buf->add( '  --theme-primary-font-color-reduced: #ccc;' ).
     lo_buf->add( '  --theme-font-size: 12pt;' ).
     lo_buf->add( '  --theme-link-color: #4078c0;' ).
-    lo_buf->add( '  --theme-table-border-color: #eee;' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  --theme-greyscale-dark: #808080;' ).
     lo_buf->add( '  --theme-greyscale-medium: #b3b3b3;' ).
     lo_buf->add( '  --theme-greyscale-light: #ccc;' ).
@@ -29603,20 +29642,20 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '/* REPOSITORY TABLE*/' ).
     lo_buf->add( 'table.repo_tab {' ).
-    lo_buf->add( '  border-color: #ddd;' ).
-    lo_buf->add( '  background-color: #fff;' ).
+    lo_buf->add( '  border-color: var(--theme-table-border-color);' ).
+    lo_buf->add( '  background-color: var(--theme-table-background-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab th {' ).
     lo_buf->add( '  color: var(--theme-link-color);' ).
     lo_buf->add( '  background-color: #edf2f9;' ).
-    lo_buf->add( '  border-bottom-color: #ddd;' ).
+    lo_buf->add( '  border-bottom-color: var(--theme-table-border-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab td {' ).
-    lo_buf->add( '  color: #333;' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '.repo_tab tr.object_row{' ).
-    lo_buf->add( '  border-top-color: var(--theme-table-border-color);' ).
+    lo_buf->add( '  border-top-color: var(--theme-table-cell-border-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo_tab .inactive      { color: orange; }' ).
     lo_buf->add( '.repo_tab tr.unsupported { color: var(--theme-greyscale-lighter); }' ).
@@ -29662,7 +29701,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '.stage_tab td {' ).
     lo_buf->add( '  color: var(--theme-greyscale-medium);' ).
-    lo_buf->add( '  border-top-color: var(--theme-table-border-color);' ).
+    lo_buf->add( '  border-top-color: var(--theme-table-cell-border-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.stage_tab td.status {' ).
     lo_buf->add( '  color: var(--theme-primary-font-color-reduced);' ).
@@ -29774,7 +29813,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DIFF TABLE */' ).
-    lo_buf->add( 'table.diff_tab td,th {' ).
+    lo_buf->add( 'table.diff_tab td,' ).
+    lo_buf->add( 'table.diff_tab th {' ).
     lo_buf->add( '  color: #444;' ).
     lo_buf->add( '}' ).
     lo_buf->add( 'table.diff_tab thead.header th {' ).
@@ -29789,13 +29829,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( 'table.diff_tab td.num, th.num {' ).
     lo_buf->add( '  color: var(--theme-primary-font-color-reduced);' ).
-    lo_buf->add( '  border-left-color: var(--theme-table-border-color);' ).
-    lo_buf->add( '  border-right-color: var(--theme-table-border-color);' ).
+    lo_buf->add( '  border-left-color: var(--theme-table-cell-border-color);' ).
+    lo_buf->add( '  border-right-color: var(--theme-table-cell-border-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( 'table.diff_tab td.patch, th.patch {' ).
     lo_buf->add( '  color: var(--theme-primary-font-color-reduced);' ).
-    lo_buf->add( '  border-left-color: var(--theme-table-border-color);' ).
-    lo_buf->add( '  border-right-color: var(--theme-table-border-color);' ).
+    lo_buf->add( '  border-left-color: var(--theme-table-cell-border-color);' ).
+    lo_buf->add( '  border-right-color: var(--theme-table-cell-border-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* STYLES for Syntax Highlighting */' ).
@@ -29825,6 +29865,28 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( '/* Repo overview */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.repo-overview { background-color: var(--theme-container-background-color); }' ).
+    lo_buf->add( '.repo-overview table { ' ).
+    lo_buf->add( '  background-color: var(--theme-table-background-color);' ).
+    lo_buf->add( '  border-color: var(--theme-table-border-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview th {' ).
+    lo_buf->add( '  color: var(--theme-link-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview thead tr {' ).
+    lo_buf->add( '  background-color: #edf2f9;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview thead tr,' ).
+    lo_buf->add( '.repo-overview tfoot tr {' ).
+    lo_buf->add( '  border-color: var(--theme-table-border-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview a.remote_repo { color: var(--theme-primary-font-color-reduced); }' ).
+    lo_buf->add( '.repo-overview a.remote_repo:hover { color: var(--theme-link-color); }' ).
+    lo_buf->add( '.repo-overview tbody tr:hover td { background-color: hsla(214, 50%, 50%, 0.05); }' ).
+    lo_buf->add( '.repo-overview tbody tr.selected { background-color: hsla(214, 50%, 75%, 0.33); }' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/* DB ENTRIES */' ).
     lo_buf->add( 'div.db_list { background-color: #fff; }' ).
     lo_buf->add( 'table.db_tab td      { color: #333; }' ).
@@ -29837,11 +29899,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( 'table.db_tab th {' ).
     lo_buf->add( '  color: var(--theme-link-color);' ).
-    lo_buf->add( '  border-bottom-color: #ddd;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'table.db_tab tr.selected {' ).
-    lo_buf->add( '  background-color: rgba(191, 191, 191, 1) !important;' ).
+    lo_buf->add( 'table.db_tab thead tr,' ).
+    lo_buf->add( 'table.db_tab tfoot tr {' ).
+    lo_buf->add( '  border-color: #ddd;' ).
     lo_buf->add( '}' ).
     lo_buf->add( 'table.db_tab a.remote_repo {' ).
     lo_buf->add( '  color: var(--theme-primary-font-color-reduced);' ).
@@ -30594,8 +30655,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.pageId = "RepoOverViewHelperState"; // constant is OK for this case' ).
     lo_buf->add( '  this.isDetailsDisplayed = false;' ).
     lo_buf->add( '  this.isOnlyFavoritesDisplayed = false;' ).
-    lo_buf->add( '  this.detailCssClass = findStyleSheetByName(".ro-detail");' ).
-    lo_buf->add( '  this.actionCssClass = findStyleSheetByName(".ro-action");' ).
+    lo_buf->add( '  this.detailCssClass = findStyleSheetByName(".repo-overview .ro-detail");' ).
     lo_buf->add( '  var icon = document.getElementById("icon-filter-detail");' ).
     lo_buf->add( '  this.toggleFilterIcon(icon, this.isDetailsDisplayed);' ).
     lo_buf->add( '  this.registerRowSelection();' ).
@@ -30628,26 +30688,30 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    }' ).
     lo_buf->add( '    var keycode = event.keyCode;' ).
     lo_buf->add( '    var rows = Array.prototype.slice.call(self.getVisibleRows());' ).
-    lo_buf->add( '    var selected = document.querySelector(".repo.selected");' ).
+    lo_buf->add( '    var selected = document.querySelector(".repo-overview tr.selected");' ).
     lo_buf->add( '    var indexOfSelected = rows.indexOf(selected);' ).
+    lo_buf->add( '    var lastRow = rows.length - 1;' ).
     lo_buf->add( '' ).
-    lo_buf->add( '    if (keycode == 13 && // "enter" to open' ).
-    lo_buf->add( '       document.activeElement.tagName.toLowerCase() != "input") { // prevent opening if command field has focus' ).
+    lo_buf->add( '    if (keycode == 13 && document.activeElement.tagName.toLowerCase() != "input") {' ).
+    lo_buf->add( '      // "enter" to open, unless command field has focus' ).
     lo_buf->add( '      self.openSelectedRepo();' ).
-    lo_buf->add( '    } else if ((keycode == 52 || keycode == 100) && indexOfSelected > 0) {' ).
-    lo_buf->add( '      // "4" for previous' ).
+    lo_buf->add( '    } else if ((keycode == 52 || keycode == 56) && indexOfSelected > 0) {' ).
+    lo_buf->add( '      // "4,8" for previous, digits are the numlock keys' ).
+    lo_buf->add( '      // NB: numpad must be activated, keypress does not detect arrows' ).
+    lo_buf->add( '      //     if we need arrows it will be keydown. But then mind the keycodes, they may change !' ).
+    lo_buf->add( '      //     e.g. 100 is ''d'' with keypress (and conflicts with diff hotkey), and also it is arrow-left keydown' ).
     lo_buf->add( '      self.selectRowByIndex(indexOfSelected - 1);' ).
-    lo_buf->add( '    } else if ((keycode == 54 || keycode == 102) && indexOfSelected < rows.length - 1) {' ).
-    lo_buf->add( '      // "6" for next' ).
+    lo_buf->add( '    } else if ((keycode == 54 || keycode == 50) && indexOfSelected < lastRow) {' ).
+    lo_buf->add( '      // "6,2" for next' ).
     lo_buf->add( '      self.selectRowByIndex(indexOfSelected + 1);' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  });' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.openSelectedRepo = function () {' ).
-    lo_buf->add( '  this.selectedRepoKey = document.querySelector(".repo.selected").dataset.key;' ).
+    lo_buf->add( '  this.selectedRepoKey = document.querySelector(".repo-overview tr.selected").dataset.key;' ).
     lo_buf->add( '  this.saveLocalStorage();' ).
-    lo_buf->add( '  document.querySelector(".repo.selected td.ro-go a").click();' ).
+    lo_buf->add( '  document.querySelector(".repo-overview tr.selected td.ro-go a").click();' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.selectRowByIndex = function (index) {' ).
@@ -30668,7 +30732,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.selectRowByRepoKey = function (key) {' ).
     lo_buf->add( '  var attributeQuery = "[data-key=''" + key + "'']";' ).
-    lo_buf->add( '  var row = document.querySelector(".repo" + attributeQuery);' ).
+    lo_buf->add( '  var row = document.querySelector(".repo-overview tbody tr" + attributeQuery);' ).
     lo_buf->add( '  // navigation to already selected repo' ).
     lo_buf->add( '  if (row.dataset.key === key && row.classList.contains("selected")) {' ).
     lo_buf->add( '    return;' ).
@@ -30715,24 +30779,24 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.deselectAllRows = function () {' ).
-    lo_buf->add( '  document.querySelectorAll(".repo").forEach(function (x) {' ).
+    lo_buf->add( '  document.querySelectorAll(".repo-overview tbody tr").forEach(function (x) {' ).
     lo_buf->add( '    x.classList.remove("selected");' ).
     lo_buf->add( '  });' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.getVisibleRows = function () {' ).
-    lo_buf->add( '  return document.querySelectorAll(".repo:not(.nodisplay)");' ).
+    lo_buf->add( '  return document.querySelectorAll(".repo-overview tbody tr:not(.nodisplay)");' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.registerRowSelection = function () {' ).
     lo_buf->add( '  var self = this;' ).
-    lo_buf->add( '  document.querySelectorAll(".repo td:not(.ro-go)").forEach(function (repoListRowCell) {' ).
+    lo_buf->add( '  document.querySelectorAll(".repo-overview tr td:not(.ro-go)").forEach(function (repoListRowCell) {' ).
     lo_buf->add( '    repoListRowCell.addEventListener("click", function () {' ).
     lo_buf->add( '      self.selectRowByRepoKey(this.parentElement.dataset.key);' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '  });' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  document.querySelectorAll(".repo td.ro-go").forEach(function (openRepoIcon) {' ).
+    lo_buf->add( '  document.querySelectorAll(".repo-overview tr td.ro-go").forEach(function (openRepoIcon) {' ).
     lo_buf->add( '    openRepoIcon.addEventListener("click", function () {' ).
     lo_buf->add( '      var selectedRow = this.parentElement;' ).
     lo_buf->add( '      self.selectRowByRepoKey(selectedRow.dataset.key);' ).
@@ -43221,14 +43285,16 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
       iv_txt   = |Remove|
       iv_title = |Remove abapGit's records of the repository (the system's |
               && |development objects will remain unaffected)|
-      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_remove }{ lc_dummy_key }| ).
+      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_remove }{ lc_dummy_key }|
+      iv_class    = |{ lc_action_class }|
+      iv_li_class = |{ lc_action_class }| ).
 
     lo_toolbar_more_sub->add(
       iv_txt      = |Uninstall|
       iv_title    = |Delete all development objects belonging to this package |
                  && |(and subpackages) from the system|
       iv_act      = |{ zif_abapgit_definitions=>c_action-repo_purge }{ lc_dummy_key }|
-      iv_class    = |{ lc_action_class } { lc_online_class }|
+      iv_class    = |{ lc_action_class }|
       iv_li_class = |{ lc_action_class }| ).
 
     lo_toolbar->add(
@@ -43274,7 +43340,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_header_bar.
 
-    ii_html->add( |<div class="pad-1em" id="repo-overview-toolbar">| ).
+    ii_html->add( |<div class="repo-overview-toolbar">| ).
     ii_html->add( render_filter_bar( ) ).
     ii_html->add( render_action_toolbar( ) ).
     ii_html->add( |</div>| ).
@@ -43282,8 +43348,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_repo_list.
 
-    ii_html->add( |<div class="db_list repo-overview">| ).
-    ii_html->add( |<table class="db_tab">| ).
+    ii_html->add( |<table>| ).
 
     render_table_header( ii_html ).
     render_table_body(
@@ -43292,7 +43357,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     render_table_footer( ii_html ).
 
     ii_html->add( |</table>| ).
-    ii_html->add( |</div>| ).
 
   ENDMETHOD.
   METHOD render_scripts.
@@ -43322,12 +43386,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   METHOD render_table_footer.
 
     IF mv_only_favorites = abap_true.
-      ii_html->add( `<tfoot><tr><td colspan="5">` ).
-      ii_html->add( `(Only favorites are shown. ` ).
-      ii_html->add( ii_html->a(
-        iv_txt   = |Show All|
-        iv_act   = |{ zif_abapgit_definitions=>c_action-toggle_favorites }?force_state={ abap_false }| ) ).
-      ii_html->add( `)</td></tr></tfoot>` ).
+      ii_html->add( `<tfoot>` ).
+      ii_html->add( `<tr><td colspan="100%">` ).
+      ii_html->add( |(Only favorites are shown. {
+        ii_html->a(
+          iv_txt   = |Show All|
+          iv_act   = |{ zif_abapgit_definitions=>c_action-toggle_favorites }?force_state={ abap_false }| )
+      })| ).
+      ii_html->add( `</td></tr>` ).
+      ii_html->add( `</tfoot>` ).
     ENDIF.
 
   ENDMETHOD.
@@ -43399,7 +43466,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
     _add_column(
       iv_tech_name      = 'GO'
-      iv_css_class      = 'ro-go'
+      iv_css_class      = 'ro-go wmin'
       iv_allow_order_by = abap_false ).
 
     ii_html->add( |<thead>| ).
@@ -43421,31 +43488,22 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
       lv_repo_type_icon TYPE string,
       lv_favorite_icon  TYPE string,
       lv_fav_tr_class   TYPE string,
-      lv_lock           TYPE string,
-      lv_repo_go_link   TYPE string.
+      lv_lock           TYPE string.
 
     lv_is_online_repo = boolc( is_repo-type = abap_false ).
 
     " Start of row
     IF is_repo-favorite = abap_true.
-      lv_fav_tr_class = ' favorite'.
+      lv_fav_tr_class = ' class="favorite"'.
     ELSE.
       lv_fav_tr_class = ''.
     ENDIF.
 
-    ii_html->add( |<tr class="repo{
-      lv_fav_tr_class }" data-key="{
-      is_repo-key }" data-offline="{ is_repo-type }">| ).
+    ii_html->add( |<tr{ lv_fav_tr_class } data-key="{ is_repo-key }" data-offline="{ is_repo-type }">| ).
 
     " Favorite
-    IF is_repo-favorite = abap_true.
-      lv_favorite_icon = 'star/blue'.
-    ELSE.
-      lv_favorite_icon = 'star/grey'.
-    ENDIF.
-
     lv_favorite_icon = ii_html->icon(
-      iv_name  = lv_favorite_icon
+      iv_name  = 'star/grey' " blue is added in css, based on TR style
       iv_class = 'pad-sides'
       iv_hint  = 'Click to toggle favorite' ).
 
@@ -43531,15 +43589,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
       iv_class = 'ro-detail'
       iv_content = |{ is_repo-key }| ).
 
-    " the link is clicked in javascript
-    lv_repo_go_link = ii_html->a(
-      iv_txt   = ``
-      iv_act   = |{ c_action-select }?key={ is_repo-key }|
-      iv_class = 'hidden' ).
-
+    " Go-to action
     ii_html->td(
-      iv_class   = 'ro-go'
-      iv_content = |<span class="link" title="Open">&rsaquo;{ lv_repo_go_link }</span>| ).
+      iv_class = 'ro-go wmin'
+      iv_content = ii_html->a(
+        iv_title = 'Open'
+        iv_txt   = '&rtrif;'
+        iv_act   = |{ c_action-select }?key={ is_repo-key }| ) ).
 
     ii_html->add( `</tr>` ).
 
@@ -43675,11 +43731,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    render_header_bar( ri_html ).
     zcl_abapgit_exit=>get_instance( )->wall_message_list( ri_html ).
+
+    ri_html->add( |<div class="repo-overview">| ).
+    render_header_bar( ri_html ).
     render_repo_list(
       ii_html     = ri_html
       it_overview = lt_overview ).
+    ri_html->add( |</div>| ).
 
     gui_services( )->register_event_handler( me ).
     register_deferred_script( render_scripts( ) ).
@@ -115020,6 +115079,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-17T14:14:49.862Z
+* abapmerge 0.14.7 - 2022-10-17T19:18:17.870Z
 ENDINTERFACE.
 ****************************************************
