@@ -23621,7 +23621,9 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
     rv_hide_author = ms_settings-commitmsg_hide_author.
   ENDMETHOD.
   METHOD get_experimental_features.
-    rv_run = ms_settings-experimental_features.
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
+      rv_run = ms_settings-experimental_features.
+    ENDIF.
   ENDMETHOD.
   METHOD get_icon_scaling.
     rv_scaling = ms_user_settings-icon_scaling.
@@ -23651,7 +23653,9 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
     rv_proxy_url = ms_settings-proxy_url.
   ENDMETHOD.
   METHOD get_run_critical_tests.
-    rv_run = ms_settings-run_critical_tests.
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
+      rv_run = ms_settings-run_critical_tests.
+    ENDIF.
   ENDMETHOD.
   METHOD get_settings_xml.
 
@@ -115016,6 +115020,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-17T14:06:35.161Z
+* abapmerge 0.14.7 - 2022-10-17T14:14:49.862Z
 ENDINTERFACE.
 ****************************************************
