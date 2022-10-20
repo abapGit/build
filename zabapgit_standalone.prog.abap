@@ -7733,7 +7733,7 @@ CLASS zcl_abapgit_objects_files DEFINITION
     METHODS get_accessed_files
       RETURNING
         VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
-    METHODS contains
+    METHODS contains_file
       IMPORTING
         !iv_extra         TYPE clike OPTIONAL
         !iv_ext           TYPE string
@@ -19985,7 +19985,7 @@ CLASS zcl_abapgit_html_toolbar DEFINITION
         !iv_li_class   TYPE string OPTIONAL
       RETURNING
         VALUE(ro_self) TYPE REF TO zcl_abapgit_html_toolbar .
-    METHODS count
+    METHODS count_items
       RETURNING
         VALUE(rv_count) TYPE i .
     METHODS render
@@ -35915,7 +35915,7 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
   METHOD constructor.
     mv_id = iv_id.
   ENDMETHOD.
-  METHOD count.
+  METHOD count_items.
     rv_count = lines( mt_items ).
   ENDMETHOD.
   METHOD render.
@@ -75325,7 +75325,7 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
     TRY.
         li_form = cl_fp_helper=>convert_xstring_to_form( lv_xstr ).
 
-        IF zif_abapgit_object~mo_files->contains( c_layout_file_ext ) = abap_true.
+        IF zif_abapgit_object~mo_files->contains_file( c_layout_file_ext ) = abap_true.
           lv_layout = zif_abapgit_object~mo_files->read_raw( c_layout_file_ext ).
           li_form->get_layout( )->set_layout_data( lv_layout ).
         ENDIF.
@@ -102306,7 +102306,7 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
     ms_item = is_item.
     mv_path = iv_path.
   ENDMETHOD.
-  METHOD contains.
+  METHOD contains_file.
     DATA: lv_filename TYPE string.
 
     lv_filename = zcl_abapgit_filename_logic=>object_to_file(
@@ -115080,6 +115080,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-10-20T14:44:05.740Z
+* abapmerge 0.14.8 - 2022-10-20T14:46:16.081Z
 ENDINTERFACE.
 ****************************************************
