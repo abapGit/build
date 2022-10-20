@@ -113388,7 +113388,8 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
     SELECT SINGLE a~trkorr FROM e070 AS a JOIN e071 AS b ON a~trkorr = b~trkorr
       INTO rv_transport
       WHERE ( a~trstatus = 'D' OR a~trstatus = 'L' )
-      AND b~pgmid = iv_program_id AND b~object = iv_object_type AND b~obj_name = iv_object_name.
+        AND a~trfunction <> 'G'
+        AND b~pgmid = iv_program_id AND b~object = iv_object_type AND b~obj_name = iv_object_name.
 
   ENDMETHOD.
   METHOD is_object_locked_in_transport.
@@ -115080,6 +115081,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-10-20T14:46:16.081Z
+* abapmerge 0.14.8 - 2022-10-20T14:57:42.950Z
 ENDINTERFACE.
 ****************************************************
