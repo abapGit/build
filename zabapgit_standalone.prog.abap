@@ -1047,7 +1047,7 @@ CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
     ENDDO.
 
     " Set syst using generic error message
-    MESSAGE e001(00) WITH ls_msg-msgv1 ls_msg-msgv2 ls_msg-msgv3 ls_msg-msgv4 INTO sy-lisel.
+    MESSAGE e001(00) WITH ls_msg-msgv1 ls_msg-msgv2 ls_msg-msgv3 ls_msg-msgv4 INTO lv_rest.
 
     rs_msg = ls_msg.
 
@@ -33947,9 +33947,7 @@ CLASS zcl_abapgit_services_basis IMPLEMENTATION.
     ENDIF.
 
     IF zcl_abapgit_factory=>get_sap_package( iv_devclass )->exists( ) = abap_true.
-      " Package &1 already exists
-      MESSAGE e042(pak) INTO sy-msgli WITH iv_devclass.
-      zcx_abapgit_exception=>raise_t100( ).
+      zcx_abapgit_exception=>raise( |Package { iv_devclass } already exists| ).
     ENDIF.
 
   ENDMETHOD.
@@ -66388,6 +66386,7 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
   METHOD call_se93.
 
     DATA: lt_message TYPE STANDARD TABLE OF bdcmsgcoll.
+    DATA lv_msg TYPE string.
 
     FIELD-SYMBOLS: <ls_message> TYPE bdcmsgcoll.
     CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
@@ -66409,7 +66408,7 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
         TYPE <ls_message>-msgtyp
         NUMBER <ls_message>-msgnr
         WITH <ls_message>-msgv1 <ls_message>-msgv2 <ls_message>-msgv3 <ls_message>-msgv4
-        INTO sy-msgli.
+        INTO lv_msg.
       zcx_abapgit_exception=>raise_t100( ).
     ENDLOOP.
 
@@ -66695,6 +66694,7 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
   METHOD shift_param.
 
     DATA: ls_param  LIKE LINE OF ct_rsparam,
+          lv_fdpos  TYPE sy-fdpos,
           lv_length TYPE i.
 
     FIELD-SYMBOLS <lg_f> TYPE any.
@@ -66710,8 +66710,8 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
         IF ls_param-field(1) = space.
           SHIFT ls_param-field.
         ENDIF.
-        sy-fdpos = sy-fdpos + 1.
-        SHIFT cs_tstcp-param BY sy-fdpos PLACES.
+        lv_fdpos = sy-fdpos + 1.
+        SHIFT cs_tstcp-param BY lv_fdpos PLACES.
         IF cs_tstcp-param CA ';'.
           IF sy-fdpos <> 0.
             ASSIGN cs_tstcp-param(sy-fdpos) TO <lg_f>.
@@ -66720,8 +66720,8 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
               SHIFT ls_param-value.
             ENDIF.
           ENDIF.
-          sy-fdpos = sy-fdpos + 1.
-          SHIFT cs_tstcp-param BY sy-fdpos PLACES.
+          lv_fdpos = sy-fdpos + 1.
+          SHIFT cs_tstcp-param BY lv_fdpos PLACES.
           APPEND ls_param TO ct_rsparam.
         ELSE.
           lv_length = strlen( cs_tstcp-param ).
@@ -66743,6 +66743,7 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
 * see subroutine split_parameters in include LSEUKF01
 
     DATA: lv_off       TYPE i,
+          lv_fdpos     TYPE sy-fdpos,
           lv_param_beg TYPE i.
     CLEAR cs_rsstcd-s_vari.
 
@@ -66772,11 +66773,11 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
       ENDIF.
       IF cs_tstcp-param CA ' '.
       ENDIF.
-      sy-fdpos = sy-fdpos - lv_off.
-      IF sy-fdpos > 0.
+      lv_fdpos = sy-fdpos - lv_off.
+      IF lv_fdpos > 0.
         cs_rsstcd-call_tcode = cs_tstcp-param+lv_off(sy-fdpos).
-        sy-fdpos = sy-fdpos + 1 + lv_off.
-        cs_rsstcd-variant = cs_tstcp-param+sy-fdpos.
+        lv_fdpos = lv_fdpos + 1 + lv_off.
+        cs_rsstcd-variant = cs_tstcp-param+lv_fdpos.
       ENDIF.
     ELSEIF cs_tstcp-param(1) = '/'.
       cs_rsstcd-st_tcode = c_true.
@@ -66789,9 +66790,9 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
       IF cs_tstcp-param CA ' '.
       ENDIF.
       lv_param_beg = sy-fdpos + 1.
-      sy-fdpos = sy-fdpos - 2.
-      IF sy-fdpos > 0.
-        cs_rsstcd-call_tcode = cs_tstcp-param+2(sy-fdpos).
+      lv_fdpos = sy-fdpos - 2.
+      IF lv_fdpos > 0.
+        cs_rsstcd-call_tcode = cs_tstcp-param+2(lv_fdpos).
       ENDIF.
       SHIFT cs_tstcp-param BY lv_param_beg PLACES.
     ELSE.
@@ -115079,6 +115080,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.7 - 2022-10-17T19:18:17.870Z
+* abapmerge 0.14.8 - 2022-10-20T14:44:05.740Z
 ENDINTERFACE.
 ****************************************************
