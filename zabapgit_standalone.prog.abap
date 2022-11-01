@@ -89984,6 +89984,10 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
       TABLES
         line    = ls_data-lines.
 
+    tadir_insert( iv_package ).
+
+    corr_insert( iv_package ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
@@ -115097,6 +115101,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-10-31T17:24:28.288Z
+* abapmerge 0.14.8 - 2022-11-01T18:11:01.857Z
 ENDINTERFACE.
 ****************************************************
