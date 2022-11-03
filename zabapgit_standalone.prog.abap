@@ -128,6 +128,7 @@ CLASS zcl_abapgit_url DEFINITION DEFERRED.
 CLASS zcl_abapgit_time DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_map DEFINITION DEFERRED.
 CLASS zcl_abapgit_requirement_helper DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_labels DEFINITION DEFERRED.
 CLASS zcl_abapgit_progress DEFINITION DEFERRED.
 CLASS zcl_abapgit_path DEFINITION DEFERRED.
 CLASS zcl_abapgit_login_manager DEFINITION DEFERRED.
@@ -2096,6 +2097,7 @@ INTERFACE zif_abapgit_html.
     IMPORTING
       !iv_txt   TYPE string
       !iv_act   TYPE string
+      !iv_query TYPE string OPTIONAL
       !iv_typ   TYPE c DEFAULT c_action_type-sapevent
       !iv_opt   TYPE clike OPTIONAL
       !iv_class TYPE string OPTIONAL
@@ -2114,6 +2116,7 @@ INTERFACE zif_abapgit_html.
     IMPORTING
       !iv_txt       TYPE string
       !iv_act       TYPE string
+      !iv_query     TYPE string OPTIONAL
       !iv_typ       TYPE c DEFAULT zif_abapgit_html=>c_action_type-sapevent
       !iv_opt       TYPE clike OPTIONAL
       !iv_class     TYPE string OPTIONAL
@@ -2839,6 +2842,7 @@ INTERFACE zif_abapgit_definitions .
       ui_theme               TYPE string,
       hide_sapgui_hint       TYPE abap_bool,
       activate_wo_popup      TYPE abap_bool,
+      label_colors           TYPE string,
     END OF ty_s_user_settings .
   TYPES:
     ty_dokil_tt TYPE STANDARD TABLE OF dokil
@@ -3670,6 +3674,7 @@ INTERFACE zif_abapgit_persistence.
       code_inspector_check_variant TYPE sci_chkv,
       block_commit                 TYPE abap_bool,
       main_language_only           TYPE abap_bool,
+      labels                       TYPE string,
     END OF ty_local_settings.
 
   TYPES: ty_local_checksum_tt TYPE STANDARD TABLE OF ty_local_checksum WITH DEFAULT KEY.
@@ -15151,6 +15156,9 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS check_language
       RAISING
         zcx_abapgit_exception .
+    METHODS normalize_local_settings
+      CHANGING
+        cs_local_settings TYPE zif_abapgit_persistence=>ty_local_settings.
 ENDCLASS.
 CLASS zcl_abapgit_repo_checksums DEFINITION
   FINAL
@@ -16640,6 +16648,20 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
       RETURNING
         VALUE(rv_shortened) TYPE string.
 
+    CLASS-METHODS render_label_list
+      IMPORTING
+        it_labels TYPE string_table
+        io_label_colors TYPE REF TO zcl_abapgit_string_map
+        iv_clickable_action TYPE string OPTIONAL
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
+    CLASS-METHODS render_help_hint
+      IMPORTING
+        iv_text_to_wrap TYPE string
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
   PROTECTED SECTION.
 
     CLASS-METHODS render_repo_top_commit_hash
@@ -16663,6 +16685,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         !iv_program_name                  TYPE sy-repid
       RETURNING
         VALUE(rv_normalized_program_name) TYPE string .
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_component DEFINITION
   ABSTRACT
@@ -18217,6 +18240,7 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
         type                TYPE string,
         key                 TYPE zif_abapgit_persistence=>ty_value,
         name                TYPE string,
+        labels              TYPE string_table,
         url                 TYPE string,
         package             TYPE devclass,
         branch              TYPE string,
@@ -18234,14 +18258,17 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
       BEGIN OF c_action,
         select       TYPE string VALUE 'select',
         apply_filter TYPE string VALUE 'apply_filter',
+        label_filter TYPE string VALUE 'label_filter',
       END OF c_action,
+      c_label_filter_prefix TYPE string VALUE `label:`,
       c_raw_field_suffix TYPE string VALUE `_RAW` ##NO_TEXT.
 
     DATA: mv_order_descending TYPE abap_bool,
           mv_only_favorites   TYPE abap_bool,
           mv_filter           TYPE string,
-          mv_order_by         TYPE string,
-          mt_col_spec         TYPE zif_abapgit_definitions=>ty_col_spec_tt.
+          mt_all_labels       TYPE string_table,
+          mo_label_colors     TYPE REF TO zcl_abapgit_string_map,
+          mv_order_by         TYPE string.
 
     METHODS set_order_by
       IMPORTING
@@ -18299,17 +18326,12 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
         IMPORTING
           ii_html TYPE REF TO zif_abapgit_html,
 
-      apply_order_by
-        CHANGING ct_overview TYPE ty_overviews,
-
-      _add_column
+      render_header_label_list
         IMPORTING
-          iv_tech_name      TYPE string OPTIONAL
-          iv_display_name   TYPE string OPTIONAL
-          iv_css_class      TYPE string OPTIONAL
-          iv_add_tz         TYPE abap_bool OPTIONAL
-          iv_title          TYPE string OPTIONAL
-          iv_allow_order_by TYPE any OPTIONAL.
+          ii_html TYPE REF TO zif_abapgit_html,
+
+      apply_order_by
+        CHANGING ct_overview TYPE ty_overviews.
 
     METHODS prepare_overviews
       RETURNING
@@ -18330,6 +18352,16 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
     METHODS render_filter_bar
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html.
+
+    METHODS build_table_scheme
+      RETURNING
+        VALUE(rt_tab_scheme) TYPE zif_abapgit_definitions=>ty_col_spec_tt.
+
+    METHODS collect_all_labels
+      IMPORTING
+        it_overview TYPE ty_overviews
+      RETURNING
+        VALUE(rt_list) TYPE string_table.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_repo_view DEFINITION
@@ -18871,6 +18903,7 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
       BEGIN OF c_id,
         local                        TYPE string VALUE 'local',
         display_name                 TYPE string VALUE 'display_name',
+        labels                       TYPE string VALUE 'labels',
         ignore_subpackages           TYPE string VALUE 'ignore_subpackages',
         write_protected              TYPE string VALUE 'write_protected',
         only_local_objects           TYPE string VALUE 'only_local_objects',
@@ -18950,6 +18983,7 @@ CLASS zcl_abapgit_gui_page_sett_pers DEFINITION
         parallel_proc_disabled TYPE string VALUE 'parallel_proc_disabled',
         hide_sapgui_hint       TYPE string VALUE 'hide_sapgui_hint',
         activate_wo_popup      TYPE string VALUE 'activate_wo_popup',
+        label_colors           TYPE string VALUE 'label_colors',
       END OF c_id.
     CONSTANTS:
       BEGIN OF c_event,
@@ -18980,6 +19014,9 @@ CLASS zcl_abapgit_gui_page_sett_pers DEFINITION
     METHODS save_settings
       RAISING
         zcx_abapgit_exception.
+    METHODS render_repo_labels_help_hint
+      RETURNING
+        VALUE(rv_html) TYPE string.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -21023,6 +21060,92 @@ CLASS zcl_abapgit_progress DEFINITION
 
     DATA mv_cv_time_next TYPE sy-uzeit .
     DATA mv_cv_datum_next TYPE sy-datum .
+ENDCLASS.
+CLASS zcl_abapgit_repo_labels DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    TYPES:
+      BEGIN OF ty_label_color,
+        label TYPE string,
+        color TYPE string,
+      END OF ty_label_color,
+      ty_label_colors TYPE STANDARD TABLE OF ty_label_color WITH KEY label.
+
+    TYPES:
+      BEGIN OF ty_color,
+        cls TYPE string,
+        fg TYPE string,
+        bg TYPE string,
+      END OF ty_color.
+
+    CONSTANTS c_allowed_chars TYPE string VALUE `-_. a-zA-Z0-9` ##NO_TEXT.
+
+    " it is easier to allow chars, though potentially other chars can be added later if needed
+    CLASS-METHODS class_constructor.
+    CLASS-METHODS validate
+      IMPORTING
+        !iv_labels TYPE string
+      RAISING
+        zcx_abapgit_exception.
+    CLASS-METHODS split
+      IMPORTING
+        !iv_labels TYPE string
+      RETURNING
+        VALUE(rt_labels) TYPE string_table.
+    CLASS-METHODS normalize
+      IMPORTING
+        !iv_labels TYPE string
+      RETURNING
+        VALUE(rv_labels) TYPE string.
+
+    CLASS-METHODS validate_colors
+      IMPORTING
+        !iv_config TYPE string
+      RAISING
+        zcx_abapgit_exception.
+    CLASS-METHODS split_colors
+      IMPORTING
+        !iv_config TYPE string
+      RETURNING
+        VALUE(rt_label_colors) TYPE ty_label_colors.
+    CLASS-METHODS split_colors_into_map
+      IMPORTING
+        !iv_config TYPE string
+      RETURNING
+        VALUE(ro_map) TYPE REF TO zcl_abapgit_string_map.
+    CLASS-METHODS normalize_colors
+      IMPORTING
+        !iv_config TYPE string
+      RETURNING
+        VALUE(rv_config) TYPE string.
+
+    CLASS-METHODS parse_color
+      IMPORTING
+        iv_color TYPE string
+      RETURNING
+        VALUE(rs_parsed) TYPE ty_color.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    CLASS-DATA gv_regex TYPE string.
+
+    CLASS-METHODS validate_one_label_color
+      IMPORTING
+        !is_lc TYPE ty_label_color
+        !iv_index TYPE i DEFAULT 0
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS validate_rgb_color
+      IMPORTING
+        !iv_color TYPE string
+        !iv_index TYPE i DEFAULT 0
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_requirement_helper DEFINITION
   FINAL
@@ -26566,6 +26689,207 @@ CLASS zcl_abapgit_requirement_helper IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_REPO_LABELS IMPLEMENTATION.
+  METHOD class_constructor.
+    gv_regex = |^[{ c_allowed_chars }]*$|. " Must start with -
+  ENDMETHOD.
+  METHOD normalize.
+
+    DATA lt_labels TYPE string_table.
+    DATA lt_normalized TYPE string_table.
+    FIELD-SYMBOLS <lv_lab> LIKE LINE OF lt_labels.
+
+    lt_labels = split( iv_labels ).
+
+    LOOP AT lt_labels ASSIGNING <lv_lab>.
+      FIND REGEX gv_regex IN <lv_lab>.
+      IF sy-subrc = 0.
+        APPEND <lv_lab> TO lt_normalized.
+      ENDIF.
+    ENDLOOP.
+
+    SORT lt_normalized.
+    DELETE ADJACENT DUPLICATES FROM lt_normalized.
+
+    rv_labels = concat_lines_of(
+      table = lt_normalized
+      sep = `,` ).
+
+  ENDMETHOD.
+  METHOD normalize_colors.
+
+    DATA lt_colors TYPE ty_label_colors.
+    DATA lt_normalized TYPE ty_label_colors.
+    DATA lt_pairs TYPE string_table.
+    DATA lv_pair TYPE string.
+    FIELD-SYMBOLS <ls_c> LIKE LINE OF lt_colors.
+
+    lt_colors = split_colors( iv_config ).
+
+    LOOP AT lt_colors ASSIGNING <ls_c>.
+      TRY.
+          validate_one_label_color( <ls_c> ).
+          APPEND <ls_c> TO lt_normalized.
+        CATCH zcx_abapgit_exception.
+      ENDTRY.
+    ENDLOOP.
+
+    SORT lt_normalized BY label.
+    DELETE ADJACENT DUPLICATES FROM lt_normalized COMPARING label.
+
+    LOOP AT lt_normalized ASSIGNING <ls_c>.
+      lv_pair = <ls_c>-label && `:` && <ls_c>-color.
+      APPEND lv_pair TO lt_pairs.
+    ENDLOOP.
+
+    rv_config = concat_lines_of(
+      table = lt_pairs
+      sep = `,` ).
+
+  ENDMETHOD.
+  METHOD parse_color.
+
+    DATA lv_tmp TYPE string.
+
+    IF iv_color IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    IF iv_color+0(1) = '#'.
+      lv_tmp  = iv_color+1.
+      SPLIT lv_tmp AT '/' INTO rs_parsed-fg rs_parsed-bg.
+    ELSE.
+      rs_parsed-cls = iv_color.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD split.
+
+    FIELD-SYMBOLS <lv_lab> LIKE LINE OF rt_labels.
+
+    SPLIT iv_labels AT ',' INTO TABLE rt_labels.
+    LOOP AT rt_labels ASSIGNING <lv_lab>.
+      CONDENSE <lv_lab>.
+    ENDLOOP.
+    DELETE rt_labels WHERE table_line IS INITIAL.
+
+  ENDMETHOD.
+  METHOD split_colors.
+
+    DATA lt_pairs TYPE string_table.
+    DATA ls_c LIKE LINE OF rt_label_colors.
+    FIELD-SYMBOLS <lv_pair> LIKE LINE OF lt_pairs.
+
+    SPLIT iv_config AT ',' INTO TABLE lt_pairs.
+    LOOP AT lt_pairs ASSIGNING <lv_pair>.
+      CONDENSE <lv_pair>.
+      IF <lv_pair> IS NOT INITIAL.
+        SPLIT <lv_pair> AT ':' INTO ls_c-label ls_c-color.
+        CONDENSE ls_c-label.
+        CONDENSE ls_c-color.
+        APPEND ls_c TO rt_label_colors.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD split_colors_into_map.
+
+    DATA lt_colors TYPE ty_label_colors.
+    FIELD-SYMBOLS <ls_c> LIKE LINE OF lt_colors.
+
+    lt_colors = split_colors( iv_config ).
+
+    ro_map = zcl_abapgit_string_map=>create( ).
+    LOOP AT lt_colors ASSIGNING <ls_c>.
+      TRY.
+          ro_map->set(
+            iv_key = <ls_c>-label
+            iv_val = <ls_c>-color ).
+        CATCH zcx_abapgit_exception.
+      ENDTRY.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD validate.
+
+    DATA lt_labels TYPE string_table.
+    FIELD-SYMBOLS <lv_lab> LIKE LINE OF lt_labels.
+
+    lt_labels = split( iv_labels ).
+
+    LOOP AT lt_labels ASSIGNING <lv_lab>.
+      FIND REGEX gv_regex IN <lv_lab>.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Disallowed chars in label #{ sy-tabix }| ).
+      ENDIF.
+      " TODO: maybe also limit length ?
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD validate_colors.
+
+    DATA lt_colors TYPE ty_label_colors.
+    FIELD-SYMBOLS <ls_c> LIKE LINE OF lt_colors.
+
+    lt_colors = split_colors( iv_config ).
+
+    LOOP AT lt_colors ASSIGNING <ls_c>.
+      validate_one_label_color(
+        is_lc    = <ls_c>
+        iv_index = sy-tabix ).
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD validate_one_label_color.
+
+    DATA ls_parsed_color TYPE ty_color.
+
+    IF is_lc-label IS INITIAL.
+      zcx_abapgit_exception=>raise( |Label is empty in pair #{ iv_index }| ).
+    ENDIF.
+
+    IF is_lc-color IS INITIAL.
+      zcx_abapgit_exception=>raise( |Color is empty in pair #{ iv_index }| ).
+    ENDIF.
+
+    FIND REGEX gv_regex IN is_lc-label.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Disallowed chars in label in pair #{ iv_index }| ).
+    ENDIF.
+
+    ls_parsed_color = parse_color( is_lc-color ).
+    IF ls_parsed_color-cls IS NOT INITIAL.
+      FIND REGEX '^[-_A-Za-z]+$' IN ls_parsed_color-cls.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Disallowed chars in color in pair #{ iv_index }| ).
+      ENDIF.
+    ENDIF.
+    IF ls_parsed_color-fg IS NOT INITIAL.
+      validate_rgb_color( ls_parsed_color-fg ).
+    ENDIF.
+    IF ls_parsed_color-bg IS NOT INITIAL.
+      validate_rgb_color( ls_parsed_color-bg ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD validate_rgb_color.
+
+    DATA lv_len TYPE i.
+
+    IF iv_color IS NOT INITIAL.
+      FIND REGEX '^[0-9A-Fa-f]+$' IN iv_color.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Disallowed chars in color in pair #{ iv_index }| ).
+      ENDIF.
+      lv_len = strlen( iv_color ).
+      IF NOT ( lv_len = 3 OR lv_len = 6 ).
+        zcx_abapgit_exception=>raise( |Icorrect color in pair #{ iv_index }| ).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_progress IMPLEMENTATION.
   METHOD calc_pct.
 
@@ -29126,12 +29450,18 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '/* Repo overview */' ).
     lo_buf->add( '.repo-overview { ' ).
-    lo_buf->add( '  font-size: 90%;' ).
     lo_buf->add( '  padding: 0.5em 0.7em;' ).
+    lo_buf->add( '  /*font-size: 90%;*/' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview table {' ).
+    lo_buf->add( '  font-size: 90%;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo-overview-toolbar {' ).
-    lo_buf->add( '  padding: 1em;' ).
+    lo_buf->add( '  padding: 1em 1em;' ).
     lo_buf->add( '  /*margin-top: -0.5em;*/' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview-toolbar label {' ).
+    lo_buf->add( '  margin-right: 0.5em;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo-overview th {' ).
     lo_buf->add( '  text-align: left;' ).
@@ -29162,7 +29492,183 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  color: #ff721e;' ).
     lo_buf->add( '  text-decoration: none;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '.repo-overview td.labels {' ).
+    lo_buf->add( '  max-width: 18ch;' ).
+    lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( '/* Repo labels */' ).
+    lo_buf->add( '.repo-label-catalog {' ).
+    lo_buf->add( '  padding: 1em 1em;' ).
+    lo_buf->add( '  margin-top: -1em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.repo-label-catalog label {' ).
+    lo_buf->add( '  margin-right: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'ul.repo-labels {' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  list-style-type: none;' ).
+    lo_buf->add( '  padding-inline-start: 0px;' ).
+    lo_buf->add( '  padding-left: 0px;' ).
+    lo_buf->add( '  margin-block-start: 0px;' ).
+    lo_buf->add( '  margin-block-end: 0px;' ).
+    lo_buf->add( '  margin-top: 0px;' ).
+    lo_buf->add( '  margin-bottom: 0px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'ul.repo-labels li {' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  padding: 3px 5px;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  border-style: solid;' ).
+    lo_buf->add( '  border-width: 1px;' ).
+    lo_buf->add( '  margin-bottom: 2px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'ul.repo-labels li a {' ).
+    lo_buf->add( '  color: inherit;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'ul.repo-labels li:not(:last-child) { margin-right: 0.3em; }' ).
+    lo_buf->add( 'table ul.repo-labels li {' ).
+    lo_buf->add( '  font-size: 90%;' ).
+    lo_buf->add( '  padding: 2px 4px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* LABEL COLORS */' ).
+    lo_buf->add( '.rl-white {' ).
+    lo_buf->add( '  color: hsl(0, 0%, 30%);' ).
+    lo_buf->add( '  background-color: hsl(0, 0%, 100%);' ).
+    lo_buf->add( '  border-color: hsl(0, 0%, 80%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-white-b {' ).
+    lo_buf->add( '  color: hsl(214, 100%, 60%);' ).
+    lo_buf->add( '  background-color: hsl(0, 0%, 100%);' ).
+    lo_buf->add( '  border-color: hsl(214, 89%, 86%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-white-r {' ).
+    lo_buf->add( '  color: hsl(0, 100%, 41%);' ).
+    lo_buf->add( '  background-color: hsl(0, 0%, 100%);' ).
+    lo_buf->add( '  border-color: hsl(0, 100%, 85%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-grey {' ).
+    lo_buf->add( '  color: hsl(0, 0%, 100%);' ).
+    lo_buf->add( '  background-color: hsl(0, 0%, 70%);' ).
+    lo_buf->add( '  border-color: hsl(0, 0%, 60%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-dark-w {' ).
+    lo_buf->add( '  color: hsl(0, 0%, 100%);' ).
+    lo_buf->add( '  background-color: hsl(0, 0%, 25%);' ).
+    lo_buf->add( '  border-color: hsl(0, 0%, 25%);;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-dark-y {' ).
+    lo_buf->add( '  color: hsl(43, 95%, 75%);' ).
+    lo_buf->add( '  background-color: hsl(0, 0%, 25%);' ).
+    lo_buf->add( '  border-color: hsl(0, 0%, 25%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-dark-r {' ).
+    lo_buf->add( '  color: hsl(0, 100%, 74%);' ).
+    lo_buf->add( '  background-color: hsl(0, 0%, 25%);' ).
+    lo_buf->add( '  border-color: hsl(0, 0%, 25%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-dark-b {' ).
+    lo_buf->add( '  color: hsl(227, 92%, 80%);' ).
+    lo_buf->add( '  background-color: hsl(0, 0%, 25%);' ).
+    lo_buf->add( '  border-color: hsl(0, 0%, 25%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-lightblue {' ).
+    lo_buf->add( '  color: hsl(217, 80%, 25%);' ).
+    lo_buf->add( '  background-color: hsl(216, 76%, 84%);' ).
+    lo_buf->add( '  border-color: hsl(216, 76%, 73%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-darkblue {' ).
+    lo_buf->add( '  color: hsl(218, 77%, 88%);' ).
+    lo_buf->add( '  background-color: hsl(217, 66%, 32%);' ).
+    lo_buf->add( '  border-color: hsl(217, 66%, 20%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-lightgreen {' ).
+    lo_buf->add( '  color: hsl(153, 76%, 18%);' ).
+    lo_buf->add( '  background-color: hsl(152, 65%, 82%);' ).
+    lo_buf->add( '  border-color: hsl(152, 65%, 65%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-darkgreen {' ).
+    lo_buf->add( '  color: hsl(0, 0%, 100%);' ).
+    lo_buf->add( '  background-color: hsl(153, 77%, 37%);' ).
+    lo_buf->add( '  border-color: hsl(153, 77%, 30%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-lightred {' ).
+    lo_buf->add( '  color: hsl(8, 86%, 29%);' ).
+    lo_buf->add( '  background-color: hsl(8, 74%, 80%);' ).
+    lo_buf->add( '  border-color: hsl(8, 74%, 70%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-darkred {' ).
+    lo_buf->add( '  color: hsl(7, 76%, 85%);' ).
+    lo_buf->add( '  background-color: hsl(8, 77%, 29%);' ).
+    lo_buf->add( '  border-color: hsl(8, 77%, 20%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-yellow {' ).
+    lo_buf->add( '  color: hsl(44, 87%, 22%);' ).
+    lo_buf->add( '  background-color: hsl(44, 94%, 87%);' ).
+    lo_buf->add( '  border-color: hsl(44, 94%, 70%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-darkyellow {' ).
+    lo_buf->add( '  color: hsl(49, 100%, 24%);' ).
+    lo_buf->add( '  background-color: hsl(49, 100%, 64%);' ).
+    lo_buf->add( '  border-color: hsl(49, 100%, 49%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-orrange {' ).
+    lo_buf->add( '  color: hsl(0, 0%, 100%);' ).
+    lo_buf->add( '  background-color: hsl(19, 100%, 61%);' ).
+    lo_buf->add( '  border-color: hsl(19, 100%, 50%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-brown {' ).
+    lo_buf->add( '  color: hsl(33, 100%, 89%);' ).
+    lo_buf->add( '  background-color: hsl(33, 66%, 39%);' ).
+    lo_buf->add( '  border-color: hsl(33, 66%, 30%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-pink {' ).
+    lo_buf->add( '  color: hsl(340, 35%, 45%);' ).
+    lo_buf->add( '  background-color: hsl(340, 85%, 77%);' ).
+    lo_buf->add( '  border-color: hsl(340, 85%, 65%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-teal {' ).
+    lo_buf->add( '  color: hsl(0, 0%, 100%);' ).
+    lo_buf->add( '  background-color: hsl(191, 61%, 45%);' ).
+    lo_buf->add( '  border-color: hsl(191, 61%, 37%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.rl-darkviolet {' ).
+    lo_buf->add( '  color: hsl(0, 0%, 100%);' ).
+    lo_buf->add( '  background-color: hsl(258, 100%, 80%);' ).
+    lo_buf->add( '  border-color: hsl(258, 100%, 72%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* FORM FIELD HELP TOOLTIP */' ).
+    lo_buf->add( '.form-field-help-tooltip {' ).
+    lo_buf->add( '  position: relative;' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.form-field-help-tooltip .form-field-help-tooltip-text {' ).
+    lo_buf->add( '  visibility: hidden;' ).
+    lo_buf->add( '  width: 40ch;' ).
+    lo_buf->add( '  border-radius: 5px;' ).
+    lo_buf->add( '  position: absolute;' ).
+    lo_buf->add( '  z-index: 1;' ).
+    lo_buf->add( '  border: 1px solid;' ).
+    lo_buf->add( '  padding: 0.4em 0.6em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.form-field-help-tooltip .form-field-help-tooltip-text p {' ).
+    lo_buf->add( '  margin: 0px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.form-field-help-tooltip .form-field-help-tooltip-text {' ).
+    lo_buf->add( '  background-color: white;' ).
+    lo_buf->add( '  border-color: #888;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.form-field-help-tooltip:hover .form-field-help-tooltip-text {' ).
+    lo_buf->add( '  visibility: visible;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.form-field-help-tooltip code {' ).
+    lo_buf->add( '  border-radius: 5px;' ).
+    lo_buf->add( '  font-size: 90%;' ).
+    lo_buf->add( '  padding: 0.1em 0.4em;' ).
+    lo_buf->add( '  background-color: #e2e2e2;' ).
+    lo_buf->add( '  word-wrap: break-word;' ).
+    lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* Branch Overview Page */' ).
     lo_buf->add( '.gitGraph-scrollWrapper, .gitGraph-Wrapper{' ).
@@ -40295,7 +40801,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
     ri_page = zcl_abapgit_gui_page_hoc=>create(
       iv_page_title      = 'Personal Settings'
       io_page_menu       = zcl_abapgit_gui_chunk_lib=>settings_toolbar(
-                             zif_abapgit_definitions=>c_action-go_settings_personal )
+        zif_abapgit_definitions=>c_action-go_settings_personal )
       ii_child_component = lo_component ).
 
   ENDMETHOD.
@@ -40351,6 +40857,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
       iv_hint          = 'Maximum number of objects listed (0 = All)'
       iv_min           = 0
       iv_max           = 10000
+    )->textarea(
+      iv_name          = c_id-label_colors
+      iv_rows          = 3
+      iv_label         = `Repo label colors ` && render_repo_labels_help_hint( )
     )->start_group(
       iv_name          = c_id-interaction
       iv_label         = 'Interaction'
@@ -40412,6 +40922,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
     mo_form_data->set(
       iv_key = c_id-max_lines
       iv_val = |{ ms_settings-max_lines }| ).
+    mo_form_data->set(
+      iv_key = c_id-label_colors
+      iv_val = ms_settings-label_colors ).
 
     " Interaction
     mo_form_data->set(
@@ -40436,6 +40949,67 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
     mo_form_util->set_data( mo_form_data ).
 
   ENDMETHOD.
+  METHOD render_repo_labels_help_hint.
+
+    DATA lt_fragments TYPE string_table.
+    DATA lt_labels TYPE string_table.
+    DATA lv_l TYPE string.
+    DATA lo_colors TYPE REF TO zcl_abapgit_string_map.
+
+    APPEND `<p style="margin-bottom: 0.3em">` TO lt_fragments.
+    APPEND `Comma-separated list of <code>label:color</code> pairs.` TO lt_fragments.
+    APPEND ` <code>color</code> part can be either a css style (see below) or <code>#fg/bg</code> pair,`
+      TO lt_fragments.
+    APPEND ` where <code>fg</code> and <code>bg</code> are RGB color codes (3 or 6 long).` TO lt_fragments.
+    APPEND ` You can also specify just <code>fg</code> or <code>bg</code>` TO lt_fragments.
+    APPEND ` (defaults will be used for missing parts).` TO lt_fragments.
+    APPEND ` E.g. <code>utils:brown, work:#ff0000/880000, client X:#ddd, client Y:#/333</code>` TO lt_fragments.
+    APPEND `<br>Available CSS styles:` TO lt_fragments.
+    APPEND `</p>` TO lt_fragments.
+
+    APPEND `white` TO lt_labels.
+    APPEND `white-b` TO lt_labels.
+    APPEND `white-r` TO lt_labels.
+    APPEND `grey` TO lt_labels.
+    APPEND `dark-w` TO lt_labels.
+    APPEND `dark-y` TO lt_labels.
+    APPEND `dark-r` TO lt_labels.
+    APPEND `dark-b` TO lt_labels.
+    APPEND `lightblue` TO lt_labels.
+    APPEND `darkblue` TO lt_labels.
+    APPEND `lightgreen` TO lt_labels.
+    APPEND `darkgreen` TO lt_labels.
+    APPEND `lightred` TO lt_labels.
+    APPEND `darkred` TO lt_labels.
+    APPEND `yellow` TO lt_labels.
+    APPEND `darkyellow` TO lt_labels.
+    APPEND `orrange` TO lt_labels.
+    APPEND `brown` TO lt_labels.
+    APPEND `pink` TO lt_labels.
+    APPEND `teal` TO lt_labels.
+    APPEND `darkviolet` TO lt_labels.
+
+    lo_colors = zcl_abapgit_string_map=>create( ).
+    LOOP AT lt_labels INTO lv_l.
+      TRY.
+          lo_colors->set(
+            iv_key = lv_l
+            iv_val = lv_l ).
+        CATCH zcx_abapgit_exception.
+      ENDTRY.
+    ENDLOOP.
+
+    APPEND zcl_abapgit_gui_chunk_lib=>render_label_list(
+      it_labels       = lt_labels
+      io_label_colors = lo_colors ) TO lt_fragments.
+
+    APPEND
+      `<p style="margin-top: 0.3em">see also <code>rl-*</code> styles in common.css (styles, forgotten here)</p>`
+      TO lt_fragments.
+
+    rv_html = zcl_abapgit_gui_chunk_lib=>render_help_hint( concat_lines_of( table = lt_fragments ) ).
+
+  ENDMETHOD.
   METHOD save_settings.
 
     DATA li_persistence TYPE REF TO zif_abapgit_persist_settings.
@@ -40447,6 +41021,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
     ms_settings-ui_theme = mo_form_data->get( c_id-ui_theme ).
     ms_settings-icon_scaling = mo_form_data->get( c_id-icon_scaling ).
     ms_settings-max_lines = mo_form_data->get( c_id-max_lines ).
+    ms_settings-label_colors = zcl_abapgit_repo_labels=>normalize_colors( mo_form_data->get(  c_id-label_colors ) ).
 
     " Interaction
     ms_settings-activate_wo_popup = mo_form_data->get( c_id-activate_wo_popup ).
@@ -40472,7 +41047,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
   ENDMETHOD.
   METHOD validate_form.
 
+    DATA lx_error TYPE REF TO zcx_abapgit_exception.
+
     ro_validation_log = mo_form_util->validate( io_form_data ).
+
+    TRY.
+        zcl_abapgit_repo_labels=>validate_colors( io_form_data->get( c_id-label_colors ) ).
+      CATCH zcx_abapgit_exception INTO lx_error.
+        ro_validation_log->set(
+          iv_key = c_id-label_colors
+          iv_val = lx_error->get_text( ) ).
+    ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -40513,7 +41098,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -40545,8 +41130,8 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
   METHOD get_form_schema.
 
     ro_form = zcl_abapgit_html_form=>create(
-                iv_form_id   = 'repo-local-settings-form'
-                iv_help_page = 'https://docs.abapgit.org/settings-local.html' ).
+      iv_form_id   = 'repo-local-settings-form'
+      iv_help_page = 'https://docs.abapgit.org/settings-local.html' ).
 
     ro_form->start_group(
       iv_name        = c_id-local
@@ -40556,6 +41141,10 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
       iv_name        = c_id-display_name
       iv_label       = 'Display Name'
       iv_hint        = 'Name to show instead of original repo name (optional)'
+    )->text(
+      iv_name        = c_id-labels
+      iv_label       = |Labels (comma-separated, allowed chars: "{ zcl_abapgit_repo_labels=>c_allowed_chars }")|
+      iv_hint        = 'Comma-separated labels for grouping and repo organization (optional)'
     )->checkbox(
       iv_name        = c_id-write_protected
       iv_label       = 'Write Protected'
@@ -40603,6 +41192,9 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
       iv_key = c_id-display_name
       iv_val = ms_settings-display_name ).
     mo_form_data->set(
+      iv_key = c_id-labels
+      iv_val = ms_settings-labels ).
+    mo_form_data->set(
       iv_key = c_id-ignore_subpackages
       iv_val = boolc( ms_settings-ignore_subpackages = abap_true ) ) ##TYPE.
     mo_form_data->set(
@@ -40628,6 +41220,7 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
   METHOD save_settings.
 
     ms_settings-display_name                 = mo_form_data->get( c_id-display_name ).
+    ms_settings-labels                       = zcl_abapgit_repo_labels=>normalize( mo_form_data->get( c_id-labels ) ).
     ms_settings-ignore_subpackages           = mo_form_data->get( c_id-ignore_subpackages ).
     ms_settings-main_language_only           = mo_form_data->get( c_id-main_language_only ).
     ms_settings-write_protected              = mo_form_data->get( c_id-write_protected ).
@@ -40669,6 +41262,14 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
         iv_val = |If block commit is active, a check variant has to be maintained| ).
     ENDIF.
 
+    TRY.
+        zcl_abapgit_repo_labels=>validate( io_form_data->get( c_id-labels ) ).
+      CATCH zcx_abapgit_exception INTO lx_error.
+        ro_validation_log->set(
+          iv_key = c_id-labels
+          iv_val = lx_error->get_text( ) ).
+    ENDTRY.
+
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
@@ -40704,9 +41305,9 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
     ri_html->add( `<div class="repo">` ).
 
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
-                    io_repo               = mo_repo
-                    iv_show_commit        = abap_false
-                    iv_interactive_branch = abap_true ) ).
+      io_repo               = mo_repo
+      iv_show_commit        = abap_false
+      iv_interactive_branch = abap_true ) ).
 
     ri_html->add( mo_form->render(
       io_values         = mo_form_data
@@ -43094,21 +43695,78 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS kHGwlZbCwKVqbmulVBzOHKguCDENGa DEFINITION DEFERRED.
+* renamed: zcl_abapgit_gui_page_repo_over :: lcl_table_scheme
+CLASS kHGwlZbCwKVqbmulVBzOHKguCDENGa DEFINITION FINAL.
+  " TODO: move to a global class, when table is separated as a component
+  PUBLIC SECTION.
+    DATA mt_col_spec TYPE zif_abapgit_definitions=>ty_col_spec_tt READ-ONLY.
+
+    METHODS add_column
+      IMPORTING
+        iv_tech_name      TYPE string OPTIONAL
+        iv_display_name   TYPE string OPTIONAL
+        iv_css_class      TYPE string OPTIONAL
+        iv_add_tz         TYPE abap_bool OPTIONAL
+        iv_title          TYPE string OPTIONAL
+        iv_allow_order_by TYPE any OPTIONAL
+      RETURNING
+        VALUE(ro_me) TYPE REF TO kHGwlZbCwKVqbmulVBzOHKguCDENGa.
+
+ENDCLASS.
+
+CLASS kHGwlZbCwKVqbmulVBzOHKguCDENGa IMPLEMENTATION.
+
+  METHOD add_column.
+
+    FIELD-SYMBOLS <ls_col> LIKE LINE OF mt_col_spec.
+    APPEND INITIAL LINE TO mt_col_spec ASSIGNING <ls_col>.
+    <ls_col>-display_name   = iv_display_name.
+    <ls_col>-tech_name      = iv_tech_name.
+    <ls_col>-title          = iv_title.
+    <ls_col>-css_class      = iv_css_class.
+    <ls_col>-add_tz         = iv_add_tz.
+    <ls_col>-allow_order_by = iv_allow_order_by.
+
+    ro_me = me.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   METHOD apply_filter.
 
-    IF mv_filter IS NOT INITIAL.
+    DATA lv_pfxl TYPE i.
+    DATA lv_idx TYPE i.
+    DATA lv_filter_label TYPE string.
+    FIELD-SYMBOLS <ls_r> LIKE LINE OF ct_overview.
 
+    IF mv_filter IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    lv_pfxl = strlen( c_label_filter_prefix ).
+
+    IF strlen( mv_filter ) > lv_pfxl AND mv_filter+0(lv_pfxl) = c_label_filter_prefix.
+      lv_filter_label = mv_filter+lv_pfxl.
+      LOOP AT ct_overview ASSIGNING <ls_r>.
+        lv_idx = sy-tabix.
+        READ TABLE <ls_r>-labels TRANSPORTING NO FIELDS WITH KEY table_line = lv_filter_label.
+        IF sy-subrc <> 0.
+          DELETE ct_overview INDEX lv_idx.
+        ENDIF.
+      ENDLOOP.
+    ELSE. " Regular filter
       DELETE ct_overview WHERE key             NS mv_filter
-                           AND name            NS mv_filter
-                           AND url             NS mv_filter
-                           AND package         NS mv_filter
-                           AND branch          NS mv_filter
-                           AND created_by      NS mv_filter
-                           AND created_at      NS mv_filter
-                           AND deserialized_by NS mv_filter
-                           AND deserialized_at NS mv_filter.
-
+        AND name            NS mv_filter
+        AND url             NS mv_filter
+        AND package         NS mv_filter
+        AND branch          NS mv_filter
+        AND created_by      NS mv_filter
+        AND created_at      NS mv_filter
+        AND deserialized_by NS mv_filter
+        AND deserialized_at NS mv_filter.
     ENDIF.
 
   ENDMETHOD.
@@ -43142,8 +43800,93 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     SORT ct_overview BY (lt_sort).
 
   ENDMETHOD.
-  METHOD constructor.
+  METHOD build_table_scheme.
 
+    DATA lo_tab_scheme TYPE REF TO kHGwlZbCwKVqbmulVBzOHKguCDENGa.
+
+    CREATE OBJECT lo_tab_scheme.
+
+    lo_tab_scheme->add_column(
+      iv_tech_name      = 'FAVORITE'
+      iv_css_class      = 'wmin'
+      iv_allow_order_by = abap_false
+    )->add_column(
+      iv_tech_name      = 'TYPE'
+      iv_css_class      = 'wmin'
+      iv_allow_order_by = abap_false
+    )->add_column(
+      iv_tech_name      = 'NAME'
+      iv_display_name   = 'Name'
+      iv_allow_order_by = abap_true ).
+
+    IF mt_all_labels IS NOT INITIAL.
+      lo_tab_scheme->add_column(
+        iv_tech_name      = 'LABELS'
+        iv_display_name   = 'Labels'
+        iv_allow_order_by = abap_false ).
+    ENDIF.
+
+    lo_tab_scheme->add_column(
+      iv_tech_name      = 'PACKAGE'
+      iv_display_name   = 'Package'
+      iv_css_class      = 'package'
+      iv_allow_order_by = abap_true
+    )->add_column(
+      iv_tech_name      = 'URL'
+      iv_display_name   = 'Remote'
+      iv_allow_order_by = abap_true
+    )->add_column(
+      iv_tech_name      = 'BRANCH'
+      iv_display_name   = 'Branch'
+      iv_allow_order_by = abap_true
+    )->add_column(
+      iv_tech_name      = 'DESERIALIZED_BY'
+      iv_display_name   = 'Deserialized by'
+      iv_css_class      = 'ro-detail'
+      iv_allow_order_by = abap_true
+    )->add_column(
+      iv_tech_name      = 'DESERIALIZED_AT'
+      iv_display_name   = 'Deserialized at'
+      iv_css_class      = 'ro-detail'
+      iv_allow_order_by = abap_true
+    )->add_column(
+      iv_tech_name      = 'CREATED_BY'
+      iv_display_name   = 'Created by'
+      iv_css_class      = 'ro-detail'
+      iv_allow_order_by = abap_true
+    )->add_column(
+      iv_tech_name      = 'CREATED_AT'
+      iv_display_name   = 'Created at'
+      iv_css_class      = 'ro-detail'
+      iv_add_tz         = abap_true
+      iv_allow_order_by = abap_true
+    )->add_column(
+      iv_tech_name      = 'KEY'
+      iv_display_name   = 'Key'
+      iv_css_class      = 'ro-detail'
+      iv_allow_order_by = abap_true
+    )->add_column(
+      iv_tech_name      = 'GO'
+      iv_css_class      = 'ro-go wmin'
+      iv_allow_order_by = abap_false ).
+
+    rt_tab_scheme = lo_tab_scheme->mt_col_spec.
+
+  ENDMETHOD.
+  METHOD collect_all_labels.
+
+    FIELD-SYMBOLS <ls_r> LIKE LINE OF it_overview.
+
+    LOOP AT it_overview ASSIGNING <ls_r>.
+      APPEND LINES OF <ls_r>-labels TO rt_list.
+    ENDLOOP.
+
+    SORT rt_list.
+    DELETE rt_list WHERE table_line IS INITIAL.
+    DELETE ADJACENT DUPLICATES FROM rt_list.
+
+  ENDMETHOD.
+  METHOD constructor.
     super->constructor( ).
     mv_order_by = |NAME|.
     mv_only_favorites = iv_only_favorites.
@@ -43163,6 +43906,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
       ls_overview-type            = <ls_repo>->ms_data-offline.
       ls_overview-key             = <ls_repo>->ms_data-key.
       ls_overview-name            = <ls_repo>->get_name( ).
+      ls_overview-labels          = zcl_abapgit_repo_labels=>split( <ls_repo>->ms_data-local_settings-labels ).
       ls_overview-url             = <ls_repo>->ms_data-url.
       ls_overview-package         = <ls_repo>->ms_data-package.
       ls_overview-branch          = <ls_repo>->ms_data-branch_name.
@@ -43197,6 +43941,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ENDIF.
 
     rt_overviews = map_repo_list_to_overview( lt_repo_obj_list ).
+
+    " Hmmm, side effect, not ideal, but we need label list before filter applied
+    mt_all_labels = collect_all_labels( rt_overviews ).
+
     apply_order_by( CHANGING ct_overview = rt_overviews ).
     apply_filter( CHANGING ct_overview = rt_overviews ).
 
@@ -43314,7 +44062,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ri_html->add( |<form class="inline" method="post" action="sapevent:{ c_action-apply_filter }">| ).
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_text_input(
       iv_name      = |filter|
-      iv_label     = |Filter: |
+      iv_label     = |Filter:|
       iv_value     = mv_filter
       iv_autofocus = abap_true ) ).
     ri_html->add( |<input type="submit" class="hidden-submit">| ).
@@ -43345,6 +44093,22 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ii_html->add( |</div>| ).
 
   ENDMETHOD.
+  METHOD render_header_label_list.
+
+    IF mt_all_labels IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    ii_html->add( |<div class="repo-label-catalog">| ).
+    ii_html->add( '<label>Filter by label:</label>' ).
+    ii_html->add( zcl_abapgit_gui_chunk_lib=>render_label_list(
+      it_labels           = mt_all_labels
+      io_label_colors     = mo_label_colors
+      iv_clickable_action = c_action-label_filter ) ).
+    ii_html->add( |</div>| ).
+
+  ENDMETHOD.
+
   METHOD render_repo_list.
 
     ii_html->add( |<table>| ).
@@ -43399,80 +44163,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_table_header.
 
-    CLEAR mt_col_spec.
-
-    _add_column(
-      iv_tech_name      = 'FAVORITE'
-      iv_css_class      = 'wmin'
-      iv_allow_order_by = abap_false ).
-
-    _add_column(
-      iv_tech_name      = 'TYPE'
-      iv_css_class      = 'wmin'
-      iv_allow_order_by = abap_false ).
-
-    _add_column(
-      iv_tech_name      = 'NAME'
-      iv_display_name   = 'Name'
-      iv_allow_order_by = abap_true ).
-
-    _add_column(
-      iv_tech_name      = 'PACKAGE'
-      iv_display_name   = 'Package'
-      iv_css_class      = 'package'
-      iv_allow_order_by = abap_true ).
-
-    _add_column(
-      iv_tech_name      = 'URL'
-      iv_display_name   = 'Remote'
-      iv_allow_order_by = abap_true ).
-
-    _add_column(
-      iv_tech_name      = 'BRANCH'
-      iv_display_name   = 'Branch'
-      iv_allow_order_by = abap_true ).
-
-    _add_column(
-      iv_tech_name      = 'DESERIALIZED_BY'
-      iv_display_name   = 'Deserialized by'
-      iv_css_class      = 'ro-detail'
-      iv_allow_order_by = abap_true ).
-
-    _add_column(
-      iv_tech_name      = 'DESERIALIZED_AT'
-      iv_display_name   = 'Deserialized at'
-      iv_css_class      = 'ro-detail'
-      iv_allow_order_by = abap_true ).
-
-    _add_column(
-      iv_tech_name      = 'CREATED_BY'
-      iv_display_name   = 'Created by'
-      iv_css_class      = 'ro-detail'
-      iv_allow_order_by = abap_true ).
-
-    _add_column(
-      iv_tech_name      = 'CREATED_AT'
-      iv_display_name   = 'Created at'
-      iv_css_class      = 'ro-detail'
-      iv_add_tz         = abap_true
-      iv_allow_order_by = abap_true ).
-
-    _add_column(
-      iv_tech_name      = 'KEY'
-      iv_display_name   = 'Key'
-      iv_css_class      = 'ro-detail'
-      iv_allow_order_by = abap_true ).
-
-    _add_column(
-      iv_tech_name      = 'GO'
-      iv_css_class      = 'ro-go wmin'
-      iv_allow_order_by = abap_false ).
-
     ii_html->add( |<thead>| ).
     ii_html->add( |<tr>| ).
 
     ii_html->add( zcl_abapgit_gui_chunk_lib=>render_order_by_header_cells(
-      it_col_spec         = mt_col_spec
+      it_col_spec         = build_table_scheme( )
       iv_order_by         = mv_order_by
       iv_order_descending = mv_order_descending ) ).
 
@@ -43535,6 +44230,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
       ii_html->a(
         iv_txt = is_repo-name
         iv_act = |{ c_action-select }?key={ is_repo-key }| ) && lv_lock ).
+
+    " Labels
+    IF mt_all_labels IS NOT INITIAL.
+      ii_html->td(
+        iv_content = zcl_abapgit_gui_chunk_lib=>render_label_list(
+          it_labels = is_repo-labels
+          io_label_colors = mo_label_colors )
+        iv_class   = 'labels' ).
+    ENDIF.
 
     " Package
     ii_html->td( ii_content = zcl_abapgit_gui_chunk_lib=>render_package_name(
@@ -43665,6 +44369,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
         set_filter( ii_event->mt_postdata ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
+      WHEN c_action-label_filter.
+
+        IF ii_event->mv_getdata IS NOT INITIAL.
+          mv_filter = c_label_filter_prefix && ii_event->mv_getdata.
+        ELSE.
+          CLEAR mv_filter. " Unexpected request
+        ENDIF.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+
       WHEN zif_abapgit_definitions=>c_action-go_patch.
 
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_patch
@@ -43726,6 +44439,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   METHOD zif_abapgit_gui_renderable~render.
 
     DATA lt_overview TYPE ty_overviews.
+    DATA ls_settings TYPE zif_abapgit_definitions=>ty_s_user_settings.
+
+    ls_settings = zcl_abapgit_persist_factory=>get_settings( )->read( )->get_user_settings( ).
+    mo_label_colors = zcl_abapgit_repo_labels=>split_colors_into_map( ls_settings-label_colors ).
 
     lt_overview = prepare_overviews( ).
 
@@ -43735,6 +44452,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
     ri_html->add( |<div class="repo-overview">| ).
     render_header_bar( ri_html ).
+    render_header_label_list( ri_html ).
     render_repo_list(
       ii_html     = ri_html
       it_overview = lt_overview ).
@@ -43744,18 +44462,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     register_deferred_script( render_scripts( ) ).
     register_deferred_script( zcl_abapgit_gui_chunk_lib=>render_repo_palette( c_action-select ) ).
     register_hotkeys( ).
-
-  ENDMETHOD.
-  METHOD _add_column.
-
-    FIELD-SYMBOLS <ls_col> LIKE LINE OF mt_col_spec.
-    APPEND INITIAL LINE TO mt_col_spec ASSIGNING <ls_col>.
-    <ls_col>-display_name   = iv_display_name.
-    <ls_col>-tech_name      = iv_tech_name.
-    <ls_col>-title          = iv_title.
-    <ls_col>-css_class      = iv_css_class.
-    <ls_col>-add_tz         = iv_add_tz.
-    <ls_col>-allow_order_by = iv_allow_order_by.
 
   ENDMETHOD.
 ENDCLASS.
@@ -48920,6 +49626,26 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       |<form id='form_{ is_event-name }' method={ is_event-method } action='sapevent:{ is_event-name }'></form>| ).
 
   ENDMETHOD.
+  METHOD render_help_hint.
+
+    " TODO potentially move to or integrate with zcl_abapgit_html_form
+
+    DATA lt_fragments TYPE string_table.
+    DATA li_html TYPE REF TO zif_abapgit_html.
+    li_html = zcl_abapgit_html=>create( ).
+
+    APPEND `<div class="form-field-help-tooltip">` TO lt_fragments.
+    APPEND li_html->icon(
+      iv_name = 'question-circle-solid'
+      iv_class = 'blue' ) TO lt_fragments.
+    APPEND `<div class="form-field-help-tooltip-text">` TO lt_fragments.
+    APPEND iv_text_to_wrap TO lt_fragments.
+    APPEND `</div>` TO lt_fragments.
+    APPEND `</div>` TO lt_fragments.
+
+    rv_html = concat_lines_of( table = lt_fragments ).
+
+  ENDMETHOD.
   METHOD render_infopanel.
 
     DATA lv_display TYPE string.
@@ -49006,6 +49732,56 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
                   ' If this does not disappear soon,' &&
                   ' then there is a JS init error, please log an issue' ).
     ri_html->add( '</div>' ).
+  ENDMETHOD.
+  METHOD render_label_list.
+
+    DATA lt_fragments TYPE string_table.
+    DATA lv_l TYPE string.
+    DATA lv_class TYPE string.
+    DATA lv_style TYPE string.
+    DATA ls_parsed_color TYPE zcl_abapgit_repo_labels=>ty_color.
+    DATA li_html TYPE REF TO zif_abapgit_html.
+
+    IF it_labels IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    li_html = zcl_abapgit_html=>create( ).
+
+    APPEND `<ul class="repo-labels">` TO lt_fragments.
+
+    LOOP AT it_labels INTO lv_l WHERE table_line IS NOT INITIAL.
+      CLEAR lv_class.
+      CLEAR lv_style.
+      ls_parsed_color = zcl_abapgit_repo_labels=>parse_color( io_label_colors->get( lv_l ) ).
+      IF ls_parsed_color-cls IS NOT INITIAL.
+        lv_class = | class="rl-{ ls_parsed_color-cls }"|.
+      ELSEIF ls_parsed_color-fg IS NOT INITIAL OR ls_parsed_color-bg IS NOT INITIAL.
+        lv_style = ` style="`.
+        IF ls_parsed_color-fg IS NOT INITIAL.
+          lv_style = lv_style && |color:#{ ls_parsed_color-fg };|.
+        ENDIF.
+        IF ls_parsed_color-bg IS NOT INITIAL.
+          lv_style = lv_style && |background-color:#{ ls_parsed_color-bg };|.
+          lv_style = lv_style && |border-color:#{ ls_parsed_color-bg };|.
+        ENDIF.
+        lv_style = lv_style && `"`.
+      ENDIF.
+
+      IF iv_clickable_action IS NOT INITIAL.
+        lv_l = li_html->a(
+          iv_txt = lv_l
+          iv_act = |{ iv_clickable_action }|
+          iv_query = lv_l ).
+      ENDIF.
+      lv_l = |<li{ lv_class }{ lv_style }>{ lv_l }</li>|.
+      APPEND lv_l TO lt_fragments.
+    ENDLOOP.
+
+    APPEND `</ul>` TO lt_fragments.
+
+    rv_html = concat_lines_of( table = lt_fragments ).
+
   ENDMETHOD.
   METHOD render_news.
 
@@ -51434,6 +52210,7 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
           lv_href  TYPE string,
           lv_click TYPE string,
           lv_id    TYPE string,
+          lv_act   TYPE string,
           lv_style TYPE string,
           lv_title TYPE string.
 
@@ -51453,14 +52230,21 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
       lv_class = | class="{ lv_class }"|.
     ENDIF.
 
-    lv_href  = ' href="#"'. " Default, dummy
+    lv_href = ' href="#"'. " Default, dummy
+    lv_act  = iv_act.
     IF ( iv_act IS NOT INITIAL OR iv_typ = zif_abapgit_html=>c_action_type-dummy )
         AND iv_opt NA zif_abapgit_html=>c_html_opt-crossout.
       CASE iv_typ.
         WHEN zif_abapgit_html=>c_action_type-url.
-          lv_href  = | href="{ iv_act }"|.
+          IF iv_query IS NOT INITIAL.
+            lv_act = lv_act && `?` && iv_query.
+          ENDIF.
+          lv_href  = | href="{ lv_act }"|.
         WHEN zif_abapgit_html=>c_action_type-sapevent.
-          lv_href  = | href="sapevent:{ iv_act }"|.
+          IF iv_query IS NOT INITIAL.
+            lv_act = lv_act && `?` && iv_query.
+          ENDIF.
+          lv_href  = | href="sapevent:{ lv_act }"|.
         WHEN zif_abapgit_html=>c_action_type-onclick.
           lv_href  = ' href="#"'.
           lv_click = | onclick="{ iv_act }"|.
@@ -51520,6 +52304,7 @@ CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
     zif_abapgit_html~add( zif_abapgit_html~a(
       iv_txt   = iv_txt
       iv_act   = iv_act
+      iv_query = iv_query
       iv_typ   = iv_typ
       iv_opt   = iv_opt
       iv_class = iv_class
@@ -55462,7 +56247,7 @@ CLASS ZCL_ABAPGIT_REPO_CHECKSUMS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -55668,6 +56453,13 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD normalize_local_settings.
+
+    cs_local_settings-labels = zcl_abapgit_repo_labels=>normalize( cs_local_settings-labels ).
+
+    " TODO: more validation and normalization ?
+
+  ENDMETHOD.
   METHOD notify_listener.
 
     DATA ls_meta_slug TYPE zif_abapgit_persistence=>ty_repo_xml.
@@ -55796,6 +56588,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     IF is_local_settings IS SUPPLIED.
       ms_data-local_settings = is_local_settings.
       ls_mask-local_settings = abap_true.
+      normalize_local_settings( CHANGING cs_local_settings = ms_data-local_settings ).
     ENDIF.
 
     IF iv_deserialized_at IS SUPPLIED OR iv_deserialized_by IS SUPPLIED.
@@ -115104,6 +115897,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-02T13:37:41.211Z
+* abapmerge 0.14.8 - 2022-11-03T08:04:37.028Z
 ENDINTERFACE.
 ****************************************************
