@@ -7351,6 +7351,7 @@ CLASS zcl_abapgit_folder_logic DEFINITION
 
     METHODS get_parent
       IMPORTING
+        !iv_top          TYPE devclass
         !iv_package      TYPE devclass
       RETURNING
         VALUE(rv_parent) TYPE devclass
@@ -7366,6 +7367,7 @@ CLASS zcl_abapgit_folder_logic DEFINITION
     TYPES:
       ty_devclass_info_tt TYPE SORTED TABLE OF ty_devclass_info
         WITH UNIQUE KEY devclass .
+    DATA mt_top_subpackages TYPE ty_devclass_info_tt .
     DATA mt_parent TYPE ty_devclass_info_tt .
 ENDCLASS.
 CLASS zcl_abapgit_gui_jumper DEFINITION
@@ -33725,7 +33727,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   METHOD check_package.
 
     DATA:
@@ -34005,6 +34007,14 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     <ls_column>-name = 'OBJ_NAME'.
     APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
     <ls_column>-name = 'DEVCLASS'.
+    APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
+    <ls_column>-name = 'ICON'.
+    <ls_column>-text = 'Action'.
+    <ls_column>-show_icon = abap_true.
+    <ls_column>-length = 5.
+    APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
+    <ls_column>-name = 'TEXT'.
+    <ls_column>-text = 'Description'.
 
     li_popups = zcl_abapgit_ui_factory=>get_popups( ).
     li_popups->popup_to_select_from_list(
@@ -103503,6 +103513,9 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
         ls_overwrite-obj_type = <ls_result>-obj_type.
         ls_overwrite-obj_name = <ls_result>-obj_name.
         ls_overwrite-devclass = ls_tadir-devclass.
+        ls_overwrite-action   = zif_abapgit_objects=>c_deserialize_action-overwrite.
+        ls_overwrite-icon     = icon_change.
+        ls_overwrite-text     = 'Overwrite local object'.
         INSERT ls_overwrite INTO TABLE lt_overwrite_unique.
       ENDIF.
 
@@ -104309,6 +104322,16 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
   METHOD get_parent.
     DATA: ls_parent LIKE LINE OF mt_parent.
 
+    " Check that package is included in the TOP package hierarchy
+    IF mt_top_subpackages IS INITIAL.
+      mt_top_subpackages = zcl_abapgit_factory=>get_sap_package( iv_top )->list_subpackages( ).
+    ENDIF.
+
+    READ TABLE mt_top_subpackages TRANSPORTING NO FIELDS WITH KEY devclass = iv_package.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
     "Determine Parent Package
     READ TABLE mt_parent INTO ls_parent
       WITH TABLE KEY devclass = iv_package.
@@ -104332,7 +104355,9 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
     IF iv_top = iv_package.
       rv_path = io_dot->get_starting_folder( ).
     ELSE.
-      lv_parentcl = get_parent( iv_package ).
+      lv_parentcl = get_parent(
+        iv_top     = iv_top
+        iv_package = iv_package ).
 
       " If the parent package can not be determined, we return an initial path and handle
       " it outside of this class (in zcl_abapgit_file_status)
@@ -104853,6 +104878,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
 
     DATA:
       lv_path         TYPE string,
+      lv_object       TYPE string,
       lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
 
     FIELD-SYMBOLS <ls_result> LIKE LINE OF it_results.
@@ -104867,12 +104893,12 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
         io_dot     = io_dot
         iv_package = <ls_result>-package ).
 
-      IF lv_path <> <ls_result>-path.
-        ii_log->add( iv_msg = |Package and path do not match for object {
-                       <ls_result>-obj_type } { <ls_result>-obj_name }|
-                     iv_type = 'W' ).
-      ELSEIF lv_path IS INITIAL.
-        zcx_abapgit_exception=>raise( |Error determining parent package of package { <ls_result>-package }| ).
+      lv_object = |{ <ls_result>-obj_type } { <ls_result>-obj_name }|.
+
+      IF lv_path IS INITIAL.
+        ii_log->add_error( |{ lv_object } already exists outside of { iv_top } package hierarchy| ).
+      ELSEIF lv_path <> <ls_result>-path.
+        ii_log->add_warning( |Package and path do not match for object { lv_object }| ).
       ENDIF.
 
     ENDLOOP.
@@ -115897,6 +115923,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-04T12:36:21.244Z
+* abapmerge 0.14.8 - 2022-11-04T12:57:17.047Z
 ENDINTERFACE.
 ****************************************************
