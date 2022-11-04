@@ -10159,7 +10159,9 @@ CLASS zcl_abapgit_object_docv DEFINITION
     METHODS constructor
       IMPORTING
         !is_item     TYPE zif_abapgit_definitions=>ty_item
-        !iv_language TYPE spras.
+        !iv_language TYPE spras
+      RAISING
+        zcx_abapgit_exception.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -90720,18 +90722,29 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
     DATA: lv_prefix    TYPE namespace,
           lv_bare_name TYPE progname.
 
-    super->constructor( is_item = is_item
+    super->constructor( is_item     = is_item
                         iv_language = iv_language ).
 
-    CALL FUNCTION 'RS_NAME_SPLIT_NAMESPACE'
-      EXPORTING
-        name_with_namespace    = ms_item-obj_name
-      IMPORTING
-        namespace              = lv_prefix
-        name_without_namespace = lv_bare_name.
+    IF ms_item-obj_name(2) <> 'DT'. " IN, MO, UO, UP
+      mv_id         = ms_item-obj_name(2).
+      mv_doc_object = ms_item-obj_name+2.
+    ELSE. " DT
+      CALL FUNCTION 'RS_NAME_SPLIT_NAMESPACE'
+        EXPORTING
+          name_with_namespace    = ms_item-obj_name
+        IMPORTING
+          namespace              = lv_prefix
+          name_without_namespace = lv_bare_name
+        EXCEPTIONS
+          delimiter_error        = 1
+          OTHERS                 = 2.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Error determining namespace for { ms_item-obj_type } { ms_item-obj_name }| ).
+      ENDIF.
 
-    mv_id         = lv_bare_name(2).
-    mv_doc_object = |{ lv_prefix }{ lv_bare_name+2(*) }|.
+      mv_id         = lv_bare_name(2).
+      mv_doc_object = |{ lv_prefix }{ lv_bare_name+2 }|.
+    ENDIF.
 
   ENDMETHOD.
   METHOD read.
@@ -115923,6 +115936,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-04T12:57:17.047Z
+* abapmerge 0.14.8 - 2022-11-04T16:35:33.303Z
 ENDINTERFACE.
 ****************************************************
