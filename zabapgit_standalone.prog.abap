@@ -15860,7 +15860,7 @@ CLASS zcl_abapgit_syntax_xml DEFINITION
         "for XML tags, we will use a submatch
         " main pattern includes quoted strings so we can ignore < and > in attr values
         xml_tag  TYPE string VALUE '(?:"[^"]*")|(?:''[^'']*'')|([<>])', "#EC NOTEXT
-        attr     TYPE string VALUE '(?:^|\s)[-a-z:_0-9]+\s*(?==)', "#EC NOTEXT
+        attr     TYPE string VALUE '(?:^|\s)[-a-z:_0-9]+\s*(?==\s*["|''])', "#EC NOTEXT
         attr_val TYPE string VALUE '("[^"]*")|(''[^'']*'')', "#EC NOTEXT
         " comments <!-- ... -->
         comment  TYPE string VALUE '[\<]!--.*--[\>]|[\<]!--|--[\>]', "#EC NOTEXT
@@ -53214,7 +53214,7 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SYNTAX_XML IMPLEMENTATION.
+CLASS zcl_abapgit_syntax_xml IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -115897,6 +115897,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-03T08:04:37.028Z
+* abapmerge 0.14.8 - 2022-11-04T12:36:21.244Z
 ENDINTERFACE.
 ****************************************************
