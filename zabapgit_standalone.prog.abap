@@ -4015,9 +4015,7 @@ INTERFACE zif_abapgit_repo .
       VALUE(rv_key) TYPE zif_abapgit_persistence=>ty_value .
   METHODS get_name
     RETURNING
-      VALUE(rv_name) TYPE string
-    RAISING
-      zcx_abapgit_exception .
+      VALUE(rv_name) TYPE string.
   METHODS is_offline
     RETURNING
       VALUE(rv_offline) TYPE abap_bool .
@@ -15350,7 +15348,7 @@ CLASS zcl_abapgit_repo_offline DEFINITION
       RAISING
         zcx_abapgit_exception .
 
-    METHODS get_name
+    METHODS zif_abapgit_repo~get_name
         REDEFINITION .
     METHODS has_remote_source
         REDEFINITION .
@@ -15392,9 +15390,9 @@ CLASS zcl_abapgit_repo_online DEFINITION
     ALIASES get_switched_origin
       FOR zif_abapgit_repo_online~get_switched_origin.
 
-    METHODS get_files_remote
+    METHODS zif_abapgit_repo~get_files_remote
         REDEFINITION .
-    METHODS get_name
+    METHODS zif_abapgit_repo~get_name
         REDEFINITION .
     METHODS has_remote_source
         REDEFINITION .
@@ -55091,8 +55089,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
-
+CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   METHOD fetch_remote.
 
     DATA: li_progress TYPE REF TO zif_abapgit_progress,
@@ -55119,19 +55116,6 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     set_objects( ls_pull-objects ).
     mv_current_commit = ls_pull-commit.
 
-  ENDMETHOD.
-  METHOD get_files_remote.
-    fetch_remote( ).
-    rt_files = super->get_files_remote(
-      ii_obj_filter   = ii_obj_filter
-      iv_ignore_files = iv_ignore_files ).
-  ENDMETHOD.
-  METHOD get_name.
-    rv_name = super->get_name( ).
-    IF rv_name IS INITIAL.
-      rv_name = zcl_abapgit_url=>name( ms_data-url ).
-      rv_name = cl_http_utility=>unescape_url( rv_name ).
-    ENDIF.
   ENDMETHOD.
   METHOD get_objects.
     fetch_remote( ).
@@ -55225,6 +55209,9 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo_online~get_selected_commit.
     rv_selected_commit = ms_data-selected_commit.
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_online~get_switched_origin.
+    rv_switched_origin = ms_data-switched_origin.
   ENDMETHOD.
   METHOD zif_abapgit_repo_online~get_url.
     rv_url = ms_data-url.
@@ -55337,20 +55324,26 @@ CLASS ZCL_ABAPGIT_REPO_ONLINE IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_repo_online~get_switched_origin.
-    rv_switched_origin = ms_data-switched_origin.
+  METHOD zif_abapgit_repo~get_files_remote.
+    fetch_remote( ).
+    rt_files = super->get_files_remote(
+      ii_obj_filter   = ii_obj_filter
+      iv_ignore_files = iv_ignore_files ).
+  ENDMETHOD.
+  METHOD zif_abapgit_repo~get_name.
+    rv_name = super->get_name( ).
+    IF rv_name IS INITIAL.
+      TRY.
+          rv_name = zcl_abapgit_url=>name( ms_data-url ).
+          rv_name = cl_http_utility=>unescape_url( rv_name ).
+        CATCH zcx_abapgit_exception.
+          rv_name = 'New online repo'. "unlikely fallback
+      ENDTRY.
+    ENDIF.
   ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_repo_offline IMPLEMENTATION.
-  METHOD get_name.
-    rv_name = super->get_name( ).
-
-    IF rv_name IS INITIAL.
-      rv_name = ms_data-url.
-    ENDIF.
-  ENDMETHOD.
   METHOD has_remote_source.
     rv_yes = boolc( lines( mt_remote ) > 0 ).
   ENDMETHOD.
@@ -55372,6 +55365,13 @@ CLASS zcl_abapgit_repo_offline IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_name.
     set( iv_url = iv_url ).
+  ENDMETHOD.
+  METHOD zif_abapgit_repo~get_name.
+    rv_name = super->get_name( ).
+
+    IF rv_name IS INITIAL.
+      rv_name = ms_data-url.
+    ENDIF.
   ENDMETHOD.
 ENDCLASS.
 
@@ -115936,6 +115936,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-04T16:35:33.303Z
+* abapmerge 0.14.8 - 2022-11-06T15:58:07.769Z
 ENDINTERFACE.
 ****************************************************
