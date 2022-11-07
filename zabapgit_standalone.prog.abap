@@ -44,6 +44,7 @@ INTERFACE zif_abapgit_services_git DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_html_viewer DEFERRED.
 INTERFACE zif_abapgit_html_form DEFERRED.
+INTERFACE zif_abapgit_gui_menu_provider DEFERRED.
 INTERFACE zif_abapgit_gui_jumper DEFERRED.
 INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_html DEFERRED.
@@ -2296,6 +2297,16 @@ INTERFACE zif_abapgit_frontend_services.
   METHODS is_webgui
     RETURNING
       VALUE(rv_is_webgui) TYPE abap_bool.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_gui_menu_provider .
+
+  METHODS get_menu
+    RETURNING
+      VALUE(ro_toolbar) TYPE REF TO zcl_abapgit_html_toolbar
+    RAISING
+      zcx_abapgit_exception.
 
 ENDINTERFACE.
 
@@ -16781,6 +16792,7 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
         page_layout TYPE string,
         page_title TYPE string,
         page_menu  TYPE REF TO zcl_abapgit_html_toolbar,
+        page_menu_provider TYPE REF TO zif_abapgit_gui_menu_provider,
       END OF  ty_control .
 
     DATA ms_control TYPE ty_control .
@@ -16810,7 +16822,9 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS title
       RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     METHODS footer
       IMPORTING
         !iv_time       TYPE ty_time
@@ -17840,6 +17854,7 @@ CLASS zcl_abapgit_gui_page_hoc DEFINITION
         !ii_child_component TYPE REF TO zif_abapgit_gui_renderable
         !iv_page_title      TYPE string
         !io_page_menu       TYPE REF TO zcl_abapgit_html_toolbar OPTIONAL
+        !ii_page_menu_provider TYPE REF TO zif_abapgit_gui_menu_provider OPTIONAL
       RETURNING
         VALUE(ri_page_wrap) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
@@ -45767,7 +45782,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MAIN IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_hoc IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_HOC IMPLEMENTATION.
   METHOD create.
 
     DATA lo_page TYPE REF TO zcl_abapgit_gui_page_hoc.
@@ -45775,6 +45790,7 @@ CLASS zcl_abapgit_gui_page_hoc IMPLEMENTATION.
     CREATE OBJECT lo_page.
     lo_page->ms_control-page_title = iv_page_title.
     lo_page->ms_control-page_menu  = io_page_menu.
+    lo_page->ms_control-page_menu_provider = ii_page_menu_provider.
     lo_page->mi_child = ii_child_component.
 
     ri_page_wrap = lo_page.
@@ -48893,7 +48909,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -49049,6 +49065,13 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   ENDMETHOD.
   METHOD title.
 
+    DATA lo_page_menu LIKE ms_control-page_menu.
+
+    lo_page_menu = ms_control-page_menu.
+    IF lo_page_menu IS NOT BOUND AND ms_control-page_menu_provider IS BOUND.
+      lo_page_menu = ms_control-page_menu_provider->get_menu( ).
+    ENDIF.
+
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( '<div id="header">' ).
@@ -49060,9 +49083,9 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 
     ri_html->add( |<div class="page-title"><span class="spacer">&#x25BA;</span>{ ms_control-page_title }</div>| ).
 
-    IF ms_control-page_menu IS BOUND.
+    IF lo_page_menu IS BOUND.
       ri_html->add( '<div class="float-right">' ).
-      ri_html->add( ms_control-page_menu->render( iv_right = abap_true ) ).
+      ri_html->add( lo_page_menu->render( iv_right = abap_true ) ).
       ri_html->add( '</div>' ).
     ENDIF.
 
@@ -115936,6 +115959,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-06T15:58:07.769Z
+* abapmerge 0.14.8 - 2022-11-07T16:32:33.854Z
 ENDINTERFACE.
 ****************************************************
