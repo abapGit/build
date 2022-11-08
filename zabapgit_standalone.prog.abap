@@ -33358,6 +33358,30 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      });' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '' ).
+    lo_buf->add( '  // labels' ).
+    lo_buf->add( '  [].slice.call(document.querySelectorAll("a[href*=''sapevent:label'']"))' ).
+    lo_buf->add( '    .forEach(function(anchor){' ).
+    lo_buf->add( '      items.push({' ).
+    lo_buf->add( '        action: function(){' ).
+    lo_buf->add( '          anchor.click();' ).
+    lo_buf->add( '        },' ).
+    lo_buf->add( '        title: "Label: " + anchor.text' ).
+    lo_buf->add( '      });' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // command links' ).
+    lo_buf->add( '  [].slice.call(document.querySelectorAll("a.command"))' ).
+    lo_buf->add( '    .filter(function(anchor){' ).
+    lo_buf->add( '      return !!anchor.text;' ).
+    lo_buf->add( '    }).forEach(function(anchor){' ).
+    lo_buf->add( '      items.push({' ).
+    lo_buf->add( '        action: function(){' ).
+    lo_buf->add( '          anchor.click();' ).
+    lo_buf->add( '        },' ).
+    lo_buf->add( '        title: anchor.text' ).
+    lo_buf->add( '      });' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  return items;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -44102,11 +44126,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ri_html->add( '<span class="toolbar-light pad-sides">' ).
     ri_html->add( ri_html->a(
       iv_txt   = |<i id="icon-filter-favorite" class="icon icon-check { lv_icon_class }"></i> Only Favorites|
+      iv_class = 'command'
       iv_act   = |{ zif_abapgit_definitions=>c_action-toggle_favorites }| ) ).
     ri_html->add( ri_html->a(
-      iv_txt = '<i id="icon-filter-detail" class="icon icon-check"></i> Detail'
-      iv_act = |gHelper.toggleRepoListDetail()|
-      iv_typ = zif_abapgit_html=>c_action_type-onclick ) ).
+      iv_txt   = '<i id="icon-filter-detail" class="icon icon-check"></i> Detail'
+      iv_act   = |gHelper.toggleRepoListDetail()|
+      iv_class = 'command'
+      iv_typ   = zif_abapgit_html=>c_action_type-onclick ) ).
     ri_html->add( '</span>' ).
 
   ENDMETHOD.
@@ -115959,6 +115985,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-07T16:32:33.854Z
+* abapmerge 0.14.8 - 2022-11-08T09:01:12.348Z
 ENDINTERFACE.
 ****************************************************
