@@ -1998,6 +1998,9 @@ INTERFACE zif_abapgit_gui_hotkey_ctl.
       VALUE(rt_registered_hotkeys) TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr
     RAISING
       zcx_abapgit_exception.
+  METHODS set_visible
+    IMPORTING
+      iv_visible TYPE abap_bool.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_html_processor .
@@ -3025,6 +3028,7 @@ INTERFACE zif_abapgit_definitions .
       documentation                 TYPE string VALUE 'documentation',
       changelog                     TYPE string VALUE 'changelog',
       clipboard                     TYPE string VALUE 'clipboard',
+      show_hotkeys                  TYPE string VALUE 'show_hotkeys',
     END OF c_action.
   CONSTANTS c_spagpa_param_repo_key TYPE c LENGTH 20 VALUE 'REPO_KEY' ##NO_TEXT.
   CONSTANTS c_spagpa_param_package TYPE c LENGTH 20 VALUE 'PACKAGE' ##NO_TEXT.
@@ -16757,7 +16761,8 @@ CLASS zcl_abapgit_gui_hotkey_ctl DEFINITION
 
     DATA:
       mt_hotkeys       TYPE zif_abapgit_gui_hotkeys=>ty_hotkeys_with_descr,
-      ms_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings.
+      ms_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings,
+      mv_visible       TYPE abap_bool.
     CLASS-DATA gv_hint_was_shown TYPE abap_bool .
 
     METHODS render_scripts
@@ -37899,7 +37904,11 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-changelog.                       " abapGit full changelog
         zcl_abapgit_services_abapgit=>open_abapgit_changelog( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
-
+      WHEN zif_abapgit_definitions=>c_action-show_hotkeys.                    " show hotkeys
+        zcl_abapgit_ui_factory=>get_gui(
+                             )->zif_abapgit_gui_services~get_hotkeys_ctl(
+                             )->set_visible( abap_true ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
     ENDCASE.
 
   ENDMETHOD.
@@ -49333,14 +49342,14 @@ CLASS zcl_abapgit_gui_hotkey_ctl IMPLEMENTATION.
 
     lv_hint = |Close window with upper right corner 'X'|.
     IF lv_hotkey IS NOT INITIAL.
-      lv_hint = lv_hint && | or press '{ <ls_hotkey>-hotkey }' again|.
+      lv_hint = lv_hint && | or press '{ <ls_hotkey>-hotkey }'|.
     ENDIF.
 
     ri_html = zcl_abapgit_gui_chunk_lib=>render_infopanel(
       iv_div_id     = 'hotkeys'
       iv_title      = 'Hotkeys'
       iv_hint       = lv_hint
-      iv_hide       = abap_true
+      iv_hide       = boolc( mv_visible = abap_false )
       iv_scrollable = abap_false
       io_content    = ri_html ).
 
@@ -49350,7 +49359,17 @@ CLASS zcl_abapgit_gui_hotkey_ctl IMPLEMENTATION.
         && |</div>| ).
     ENDIF.
 
+    " Always reset visibility here. Closing of the popup has to be done by the
+    " user and is handeled in JS.
+    mv_visible = abap_false.
+
   ENDMETHOD.
+  METHOD zif_abapgit_gui_hotkey_ctl~set_visible.
+
+    mv_visible = iv_visible.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
@@ -49466,7 +49485,10 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
       iv_act = zif_abapgit_definitions=>c_action-go_explore
     )->add(
       iv_txt = 'Changelog'
-      iv_act = zif_abapgit_definitions=>c_action-changelog ).
+      iv_act = zif_abapgit_definitions=>c_action-changelog
+    )->add(
+      iv_txt = 'Hotkeys'
+      iv_act = zif_abapgit_definitions=>c_action-show_hotkeys ).
 
   ENDMETHOD.
   METHOD normalize_program_name.
@@ -115985,6 +116007,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-08T09:01:12.348Z
+* abapmerge 0.14.8 - 2022-11-08T15:53:36.794Z
 ENDINTERFACE.
 ****************************************************
