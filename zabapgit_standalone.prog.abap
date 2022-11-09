@@ -416,6 +416,7 @@ CLASS zcl_abapgit_file_status DEFINITION DEFERRED.
 CLASS zcl_abapgit_file_deserialize DEFINITION DEFERRED.
 CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_smbc DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_ront DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_evtb DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_common_aff DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_chkv DEFINITION DEFERRED.
@@ -9522,6 +9523,16 @@ CLASS zcl_abapgit_object_evtb DEFINITION
   PRIVATE SECTION.
     CONSTANTS:
     co_table_name TYPE tabname VALUE 'EVTB_HEADER'.
+ENDCLASS.
+CLASS zcl_abapgit_object_ront DEFINITION
+  INHERITING FROM zcl_abapgit_object_common_aff
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    METHODS zif_abapgit_object~changed_by REDEFINITION.
+
+  PRIVATE SECTION.
+    CONSTANTS co_table_name TYPE tabname VALUE 'RONT_HEADER'.
 ENDCLASS.
 CLASS zcl_abapgit_object_smbc DEFINITION
   INHERITING FROM zcl_abapgit_object_common_aff
@@ -105879,6 +105890,31 @@ CLASS ZCL_ABAPGIT_OBJECT_SMBC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_object_ront IMPLEMENTATION.
+  METHOD zif_abapgit_object~changed_by.
+    DATA: lv_user  TYPE string,
+          lx_error TYPE REF TO cx_root.
+
+    TRY.
+
+        SELECT SINGLE changed_by INTO lv_user
+            FROM (co_table_name)
+            WHERE ront_name = ms_item-obj_name AND version = 'I'.
+
+        IF lv_user IS INITIAL.
+          SELECT SINGLE changed_by INTO lv_user
+            FROM (co_table_name)
+            WHERE ront_name = ms_item-obj_name AND version = 'A'.
+        ENDIF.
+
+        rv_user = lv_user.
+
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
+    ENDTRY.
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_object_evtb IMPLEMENTATION.
 
   METHOD zif_abapgit_object~changed_by.
@@ -116007,6 +116043,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-08T15:53:36.794Z
+* abapmerge 0.14.8 - 2022-11-09T16:12:40.368Z
 ENDINTERFACE.
 ****************************************************
