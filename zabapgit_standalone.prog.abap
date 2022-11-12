@@ -33372,40 +33372,25 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      });' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  // links inside forms' ).
-    lo_buf->add( '  [].slice.call(document.querySelectorAll("form a"))' ).
+    lo_buf->add( '  // others:' ).
+    lo_buf->add( '  // - links inside forms' ).
+    lo_buf->add( '  // - label links' ).
+    lo_buf->add( '  // - command links' ).
+    lo_buf->add( '  [].slice.call(document.querySelectorAll("form a, a.command"))' ).
     lo_buf->add( '    .filter(function(anchor){' ).
-    lo_buf->add( '      return !!anchor.title;' ).
+    lo_buf->add( '      return !!anchor.title || !!anchor.text;' ).
     lo_buf->add( '    }).forEach(function(anchor){' ).
     lo_buf->add( '      items.push({' ).
     lo_buf->add( '        action: function(){' ).
     lo_buf->add( '          anchor.click();' ).
     lo_buf->add( '        },' ).
-    lo_buf->add( '        title: anchor.title' ).
-    lo_buf->add( '      });' ).
-    lo_buf->add( '    });' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  // labels' ).
-    lo_buf->add( '  [].slice.call(document.querySelectorAll("a[href*=''sapevent:label'']"))' ).
-    lo_buf->add( '    .forEach(function(anchor){' ).
-    lo_buf->add( '      items.push({' ).
-    lo_buf->add( '        action: function(){' ).
-    lo_buf->add( '          anchor.click();' ).
-    lo_buf->add( '        },' ).
-    lo_buf->add( '        title: "Label: " + anchor.text' ).
-    lo_buf->add( '      });' ).
-    lo_buf->add( '    });' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  // command links' ).
-    lo_buf->add( '  [].slice.call(document.querySelectorAll("a.command"))' ).
-    lo_buf->add( '    .filter(function(anchor){' ).
-    lo_buf->add( '      return !!anchor.text;' ).
-    lo_buf->add( '    }).forEach(function(anchor){' ).
-    lo_buf->add( '      items.push({' ).
-    lo_buf->add( '        action: function(){' ).
-    lo_buf->add( '          anchor.click();' ).
-    lo_buf->add( '        },' ).
-    lo_buf->add( '        title: anchor.text' ).
+    lo_buf->add( '        title: (function(){' ).
+    lo_buf->add( '          var result = anchor.title + anchor.text;' ).
+    lo_buf->add( '          if (anchor.href.includes("label")) {' ).
+    lo_buf->add( '            result = "Label: " + result;' ).
+    lo_buf->add( '          }' ).
+    lo_buf->add( '          return result;' ).
+    lo_buf->add( '        })()' ).
     lo_buf->add( '      });' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '' ).
@@ -49892,6 +49877,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
         lv_l = li_html->a(
           iv_txt = lv_l
           iv_act = |{ iv_clickable_action }|
+          iv_class = 'command'
           iv_query = lv_l ).
       ENDIF.
       lv_l = |<li{ lv_class }{ lv_style }>{ lv_l }</li>|.
@@ -116096,6 +116082,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-12T15:55:12.785Z
+* abapmerge 0.14.8 - 2022-11-12T15:57:50.031Z
 ENDINTERFACE.
 ****************************************************
