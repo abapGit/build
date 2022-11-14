@@ -23910,7 +23910,8 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD set_default_link_hint_key.
-    set_link_hint_key( |f| ).
+    " Since #5859 'f' is used for "focus filter", we use 't' as the new default
+    set_link_hint_key( |t| ).
   ENDMETHOD.
   METHOD set_experimental_features.
     ms_settings-experimental_features = iv_run.
@@ -26760,7 +26761,7 @@ CLASS ZCL_ABAPGIT_REPO_LABELS IMPLEMENTATION.
 
     rv_labels = concat_lines_of(
       table = lt_normalized
-      sep = `,` ).
+      sep = `, ` ).
 
   ENDMETHOD.
   METHOD normalize_colors.
@@ -26791,7 +26792,7 @@ CLASS ZCL_ABAPGIT_REPO_LABELS IMPLEMENTATION.
 
     rv_config = concat_lines_of(
       table = lt_pairs
-      sep = `,` ).
+      sep = `, ` ).
 
   ENDMETHOD.
   METHOD parse_color.
@@ -26824,10 +26825,16 @@ CLASS ZCL_ABAPGIT_REPO_LABELS IMPLEMENTATION.
   METHOD split_colors.
 
     DATA lt_pairs TYPE string_table.
+    DATA lv_clean_config LIKE iv_config.
     DATA ls_c LIKE LINE OF rt_label_colors.
     FIELD-SYMBOLS <lv_pair> LIKE LINE OF lt_pairs.
 
-    SPLIT iv_config AT ',' INTO TABLE lt_pairs.
+    lv_clean_config = replace(
+      val = iv_config
+      sub = cl_abap_char_utilities=>newline
+      with = ` ` ). " text area ends with LF
+
+    SPLIT lv_clean_config AT ',' INTO TABLE lt_pairs.
     LOOP AT lt_pairs ASSIGNING <lv_pair>.
       CONDENSE <lv_pair>.
       IF <lv_pair> IS NOT INITIAL.
@@ -30063,6 +30070,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  --theme-container-background-color: #f2f2f2;' ).
     lo_buf->add( '  --theme-container-border-color: lightgrey;' ).
     lo_buf->add( '  --theme-table-background-color: white;' ).
+    lo_buf->add( '  --theme-table-head-background-color: #edf2f9;' ).
     lo_buf->add( '  --theme-table-border-color: #ddd;' ).
     lo_buf->add( '  --theme-table-cell-border-color: #eee;' ).
     lo_buf->add( '' ).
@@ -30422,7 +30430,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/* Repo overview */' ).
     lo_buf->add( '' ).
     lo_buf->add( '.repo-overview { background-color: var(--theme-container-background-color); }' ).
-    lo_buf->add( '.repo-overview table { ' ).
+    lo_buf->add( '.repo-overview table {' ).
     lo_buf->add( '  background-color: var(--theme-table-background-color);' ).
     lo_buf->add( '  border-color: var(--theme-table-border-color);' ).
     lo_buf->add( '}' ).
@@ -30430,7 +30438,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  color: var(--theme-link-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo-overview thead tr {' ).
-    lo_buf->add( '  background-color: #edf2f9;' ).
+    lo_buf->add( '  background-color: var(--theme-table-head-background-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo-overview thead tr,' ).
     lo_buf->add( '.repo-overview tfoot tr {' ).
@@ -30677,6 +30685,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  --theme-greyscale-light: #CCCCCC;' ).
     lo_buf->add( '  --theme-greyscale-lighter: #E5E5E5;' ).
     lo_buf->add( '  --theme-list-hover-background-color: black;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  --theme-table-background-color: #333333;' ).
+    lo_buf->add( '  --theme-table-head-background-color: #202020;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* GLOBALS */' ).
@@ -31204,7 +31215,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  return style.sheet;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function RepoOverViewHelper() {' ).
+    lo_buf->add( 'function RepoOverViewHelper(opts) {' ).
+    lo_buf->add( '  if (opts && opts.focusFilterKey) {' ).
+    lo_buf->add( '    this.focusFilterKey = opts.focusFilterKey;' ).
+    lo_buf->add( '  }' ).
     lo_buf->add( '  this.setHooks();' ).
     lo_buf->add( '  this.pageId = "RepoOverViewHelperState"; // constant is OK for this case' ).
     lo_buf->add( '  this.isDetailsDisplayed = false;' ).
@@ -31240,6 +31254,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    if (document.activeElement.id === "filter") {' ).
     lo_buf->add( '      return;' ).
     lo_buf->add( '    }' ).
+    lo_buf->add( '    if (self.focusFilterKey && event.key === self.focusFilterKey) {' ).
+    lo_buf->add( '      var filterInput = document.getElementById("filter");' ).
+    lo_buf->add( '      if (filterInput) filterInput.focus();' ).
+    lo_buf->add( '      event.preventDefault();' ).
+    lo_buf->add( '      return;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '' ).
     lo_buf->add( '    var keycode = event.keyCode;' ).
     lo_buf->add( '    var rows = Array.prototype.slice.call(self.getVisibleRows());' ).
     lo_buf->add( '    var selected = document.querySelector(".repo-overview tr.selected");' ).
@@ -31416,9 +31437,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.formAction      = params.formAction;' ).
     lo_buf->add( '  this.patchAction     = params.patchAction;' ).
     lo_buf->add( '  this.user            = params.user;' ).
+    lo_buf->add( '  this.ids             = params.ids;' ).
     lo_buf->add( '  this.selectedCount   = 0;' ).
     lo_buf->add( '  this.filteredCount   = 0;' ).
     lo_buf->add( '  this.lastFilterValue = "";' ).
+    lo_buf->add( '  this.focusFilterKey  = params.focusFilterKey;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // DOM nodes' ).
     lo_buf->add( '  this.dom = {' ).
@@ -31456,7 +31479,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.setHooks();' ).
     lo_buf->add( '  if (this.user) this.injectFilterMe();' ).
     lo_buf->add( '  Hotkeys.addHotkeyToHelpSheet("^Enter", "Commit");' ).
-    lo_buf->add( '  this.dom.objectSearch.focus();' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'StageHelper.prototype.findCounters = function() {' ).
@@ -31495,6 +31517,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.dom.objectSearch.onkeypress   = this.onFilter.bind(this);' ).
     lo_buf->add( '  window.onbeforeunload              = this.onPageUnload.bind(this);' ).
     lo_buf->add( '  window.onload                      = this.onPageLoad.bind(this);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var self = this;' ).
+    lo_buf->add( '  document.addEventListener("keypress", function(event) {' ).
+    lo_buf->add( '    if (document.activeElement.id !== self.ids.objectSearch' ).
+    lo_buf->add( '      && self.focusFilterKey && event.key === self.focusFilterKey) {' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '      self.dom.objectSearch.focus();' ).
+    lo_buf->add( '      event.preventDefault();' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Detect column index' ).
@@ -38921,7 +38954,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD build_menu.
 
     CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
@@ -39422,6 +39455,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     ri_html->add( |  user:            "{ to_lower( sy-uname ) }",| ).
     ri_html->add( '  formAction:      "stage_commit",' ).
     ri_html->add( |  patchAction:     "{ zif_abapgit_definitions=>c_action-go_patch }",| ).
+    ri_html->add( '  focusFilterKey:  "f",' ).
 
     ri_html->add( '  ids: {' ).
     ri_html->add( '    stageTab:          "stageTab",' ).
@@ -39618,6 +39652,12 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     ls_hotkey_action-description  = |Refresh|.
     ls_hotkey_action-action       = c_action-stage_refresh.
     ls_hotkey_action-hotkey       = |r|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    " registered/handled in js
+    ls_hotkey_action-description = |Focus filter|.
+    ls_hotkey_action-action = `#`.
+    ls_hotkey_action-hotkey = |f|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
@@ -44148,8 +44188,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_text_input(
       iv_name      = |filter|
       iv_label     = |Filter:|
-      iv_value     = mv_filter
-      iv_autofocus = abap_true ) ).
+      iv_value     = mv_filter ) ).
     ri_html->add( |<input type="submit" class="hidden-submit">| ).
     ri_html->add( |</form>| ).
 
@@ -44195,7 +44234,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ii_html->add( |</div>| ).
 
   ENDMETHOD.
-
   METHOD render_repo_list.
 
     ii_html->add( |<table>| ).
@@ -44214,8 +44252,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
-    ri_html->add( 'setInitialFocus("filter");' ).
-    ri_html->add( 'var gHelper = new RepoOverViewHelper();' ).
+    ri_html->add( 'var gHelper = new RepoOverViewHelper({ focusFilterKey: "f" });' ).
 
   ENDMETHOD.
   METHOD render_table_body.
@@ -44405,6 +44442,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD set_order_by.
+    IF mv_order_by <> iv_order_by.
+      set_order_direction( abap_false ). " Reset ordering
+    ENDIF.
     mv_order_by = iv_order_by.
   ENDMETHOD.
   METHOD set_order_direction.
@@ -44434,7 +44474,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-change_order_by.
 
         set_order_by( ii_event->query( )->get( 'ORDERBY' ) ).
-        set_order_direction( abap_false ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN zif_abapgit_definitions=>c_action-toggle_favorites.
@@ -44520,6 +44559,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ls_hotkey_action-description = |Open Repository|.
     ls_hotkey_action-action = `###`.
     ls_hotkey_action-hotkey = |Enter|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description = |Focus filter|.
+    ls_hotkey_action-action = `####`.
+    ls_hotkey_action-hotkey = |f|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
@@ -116089,6 +116133,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-14T07:58:56.159Z
+* abapmerge 0.14.8 - 2022-11-14T15:14:41.153Z
 ENDINTERFACE.
 ****************************************************
