@@ -5531,6 +5531,9 @@ CLASS zcl_abapgit_data_factory DEFINITION
     CLASS-METHODS get_deserializer
       RETURNING
         VALUE(ri_deserializer) TYPE REF TO zif_abapgit_data_deserializer .
+    CLASS-METHODS get_config
+      RETURNING
+        VALUE(ri_config) TYPE REF TO zif_abapgit_data_config .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -113215,6 +113218,9 @@ CLASS ZCL_ABAPGIT_DATA_INJECTOR IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_DATA_FACTORY IMPLEMENTATION.
+  METHOD get_config.
+    CREATE OBJECT ri_config TYPE zcl_abapgit_data_config.
+  ENDMETHOD.
   METHOD get_deserializer.
 
     IF gi_deserializer IS INITIAL.
@@ -113352,11 +113358,12 @@ CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
 * this method does not persist any changes to the database
 
     DATA lt_configs TYPE zif_abapgit_data_config=>ty_config_tt.
-    DATA ls_config LIKE LINE OF lt_configs.
-    DATA lr_data  TYPE REF TO data.
-    DATA ls_file LIKE LINE OF it_files.
-    DATA ls_result LIKE LINE OF rt_result.
+    DATA ls_config  LIKE LINE OF lt_configs.
+    DATA lr_data    TYPE REF TO data.
+    DATA ls_file    LIKE LINE OF it_files.
+    DATA ls_result  LIKE LINE OF rt_result.
 
+    ASSERT ii_config IS NOT INITIAL.
     lt_configs = ii_config->get_configs( ).
 
     LOOP AT lt_configs INTO ls_config.
@@ -116082,6 +116089,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-12T15:57:50.031Z
+* abapmerge 0.14.8 - 2022-11-14T07:58:56.159Z
 ENDINTERFACE.
 ****************************************************
