@@ -68113,6 +68113,10 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
     ls_objh-objectname = ms_item-obj_name(lv_type_pos).
     ls_objh-objecttype = ms_item-obj_name+lv_type_pos.
 
+    IF ls_objh-objecttype = 'L'.
+      zcx_abapgit_exception=>raise( |Use transaction SOBJ to delete transport objects { ls_objh-objectname }| ).
+    ENDIF.
+
     CALL FUNCTION 'OBJ_GENERATE'
       EXPORTING
         iv_objectname         = ls_objh-objectname
@@ -68126,7 +68130,7 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
         object_enqueue_failed = 5
         OTHERS                = 6.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from OBJ_GENERATE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     delete_extra( ls_objh-objectname ).
@@ -116133,6 +116137,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-17T12:55:24.096Z
+* abapmerge 0.14.8 - 2022-11-17T15:20:14.520Z
 ENDINTERFACE.
 ****************************************************
