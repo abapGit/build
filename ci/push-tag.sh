@@ -23,7 +23,7 @@ PUSH_URL=$(echo "$REPO_URL" | sed -Ene "s#(https://)#\1$GITHUB_API_KEY@#p")
 
 git tag $TAG || exit 1
 
-echo "Existing tag list:"
+echo "New tag list:"
 git tag
 
 # git push $PUSH_URL $TAG || exit 1
