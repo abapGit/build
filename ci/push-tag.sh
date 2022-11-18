@@ -20,6 +20,7 @@ echo "Repo URL: $REPO_URL"
 
 PUSH_URL=$(echo "$REPO_URL" | sed -Ene "s#(https://)#\1$GITHUB_API_KEY@#p")
 # e.g. https://$GITHUB_API_KEY@github.com/larshp/abapGit.git
+echo "Push URL: $PUSH_URL"
 
 git tag $TAG || exit 1
 
