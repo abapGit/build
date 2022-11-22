@@ -5472,7 +5472,7 @@ CLASS zcl_abapgit_data_config DEFINITION
       IMPORTING
         !is_config     TYPE zif_abapgit_data_config=>ty_config
       RETURNING
-        VALUE(rv_json) TYPE string
+        VALUE(rv_json) TYPE xstring
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -113450,7 +113450,7 @@ CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
+CLASS zcl_abapgit_data_config IMPLEMENTATION.
   METHOD dump.
 
     DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
@@ -116147,6 +116147,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-22T10:16:32.531Z
+* abapmerge 0.14.8 - 2022-11-22T17:18:04.090Z
 ENDINTERFACE.
 ****************************************************
