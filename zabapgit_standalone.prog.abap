@@ -28623,9 +28623,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  padding-left: 0.25em;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( 'div#footer .sponsor a { font-size: smaller; }' ).
     lo_buf->add( 'div#footer .logo { font-size: large }' ).
     lo_buf->add( 'div#footer {' ).
-    lo_buf->add( '  padding:          0.5em 1em;' ).
+    lo_buf->add( '  padding:          0.5em 0.5em;' ).
     lo_buf->add( '  border-top:       3px double;' ).
     lo_buf->add( '}' ).
     lo_buf->add( 'div#footer .version {' ).
@@ -28637,7 +28638,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  text-align: right;' ).
     lo_buf->add( '  padding-right: 0.5em;' ).
     lo_buf->add( '  font-size: smaller;' ).
-    lo_buf->add( '  font-family: monospace;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '#debug-output p {' ).
     lo_buf->add( '  margin-top: 0em;' ).
@@ -29490,7 +29490,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* Repo overview */' ).
-    lo_buf->add( '.repo-overview { ' ).
+    lo_buf->add( '.repo-overview {' ).
     lo_buf->add( '  padding: 0.5em 0.7em;' ).
     lo_buf->add( '  /*font-size: 90%;*/' ).
     lo_buf->add( '}' ).
@@ -29522,14 +29522,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  color: #5e8dc9 !important;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo-overview td,' ).
-    lo_buf->add( '.repo-overview th { ' ).
+    lo_buf->add( '.repo-overview th {' ).
     lo_buf->add( '  padding: 6px 6px; /* maybe use height ? */' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo-overview .ro-detail { display: none; }' ).
     lo_buf->add( '.repo-overview .ro-go a {' ).
     lo_buf->add( '  padding: 0px 0.15em;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '.repo-overview .ro-go a:hover { ' ).
+    lo_buf->add( '.repo-overview .ro-go a:hover {' ).
     lo_buf->add( '  color: #ff721e;' ).
     lo_buf->add( '  text-decoration: none;' ).
     lo_buf->add( '}' ).
@@ -30104,6 +30104,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.blue         { color: #5e8dc9    !important; }' ).
     lo_buf->add( '.red          { color: red        !important; }' ).
     lo_buf->add( '.white        { color: white      !important; }' ).
+    lo_buf->add( '.pink         { color: pink       !important; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* Floating buttons and color sets */' ).
     lo_buf->add( '.blue-set {' ).
@@ -49012,7 +49013,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -49034,7 +49035,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ri_html->add( '<div id="footer">' ).
     ri_html->add( '<table class="w100"><tr>' ).
 
-    ri_html->add( '<td class="w40"></td>' ).  " spacer
+    ri_html->add( '<td class="w40 sponsor">' ).
+    ri_html->add( ri_html->icon( iv_name = 'heart-regular/pink'
+                                 iv_hint = 'Sponsor us' ) ).
+    ri_html->add_a( iv_act   = 'https://abapgit.org/sponsor.html'
+                    iv_typ   = zif_abapgit_html=>c_action_type-url
+                    iv_txt   = 'Sponsor us' ).
+    ri_html->add( '</td>' ).
 
     ri_html->add( '<td class="center">' ).
     ri_html->add( '<div class="logo">' ).
@@ -116118,6 +116125,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-22T18:14:57.211Z
+* abapmerge 0.14.8 - 2022-11-22T19:55:39.830Z
 ENDINTERFACE.
 ****************************************************
