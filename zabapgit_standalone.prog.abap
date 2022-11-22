@@ -2951,6 +2951,7 @@ INTERFACE zif_abapgit_definitions .
       file       TYPE ty_chmod VALUE '100644',
       executable TYPE ty_chmod VALUE '100755',
       dir        TYPE ty_chmod VALUE '40000 ',
+      submodule  TYPE ty_chmod VALUE '160000',
     END OF c_chmod .
   CONSTANTS c_crlf TYPE c LENGTH 2 VALUE cl_abap_char_utilities=>cr_lf ##NO_TEXT.
   CONSTANTS c_newline TYPE c LENGTH 1 VALUE cl_abap_char_utilities=>newline ##NO_TEXT.
@@ -111781,7 +111782,8 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
     LOOP AT lt_nodes ASSIGNING <ls_node>.
       CASE <ls_node>-chmod.
         WHEN zif_abapgit_definitions=>c_chmod-file
-            OR zif_abapgit_definitions=>c_chmod-executable.
+            OR zif_abapgit_definitions=>c_chmod-executable
+            OR zif_abapgit_definitions=>c_chmod-submodule.
           APPEND INITIAL LINE TO rt_expanded ASSIGNING <ls_exp>.
           <ls_exp>-path  = iv_base.
           <ls_exp>-name  = <ls_node>-name.
@@ -112133,7 +112135,8 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
       ls_node-chmod = lv_chmod.
       IF ls_node-chmod <> zif_abapgit_definitions=>c_chmod-dir
           AND ls_node-chmod <> zif_abapgit_definitions=>c_chmod-file
-          AND ls_node-chmod <> zif_abapgit_definitions=>c_chmod-executable.
+          AND ls_node-chmod <> zif_abapgit_definitions=>c_chmod-executable
+          AND ls_node-chmod <> zif_abapgit_definitions=>c_chmod-submodule.
         zcx_abapgit_exception=>raise( |Unknown chmod| ).
       ENDIF.
 
@@ -116125,6 +116128,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-22T19:55:39.830Z
+* abapmerge 0.14.8 - 2022-11-22T20:01:48.614Z
 ENDINTERFACE.
 ****************************************************
