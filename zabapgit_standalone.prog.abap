@@ -26074,8 +26074,8 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
 
     DATA: li_ostream       TYPE REF TO if_ixml_ostream,
           li_renderer      TYPE REF TO if_ixml_renderer,
-          lv_mark          TYPE string,
           li_streamfactory TYPE REF TO if_ixml_stream_factory.
+
     li_streamfactory = mi_ixml->create_stream_factory( ).
 
     li_ostream = li_streamfactory->create_ostream_cstring( rv_xml ).
@@ -26086,16 +26086,7 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
 
     li_renderer->render( ).
 
-    "unicode systems always add the byte order mark to the xml, while non-unicode does not
-    "this code will always add the byte order mark if it is not in the xml
-    TRY.
-        lv_mark = zcl_abapgit_convert=>xstring_to_string_utf8( cl_abap_char_utilities=>byte_order_mark_utf8 ).
-      CATCH zcx_abapgit_exception ##NO_HANDLER.
-        ASSERT 0 = 1.
-    ENDTRY.
-    IF rv_xml(1) <> lv_mark.
-      CONCATENATE lv_mark rv_xml INTO rv_xml.
-    ENDIF.
+    " handling of BOM moved to zcl_abapgit_convert=>string_to_xstring_utf8_bom
 
   ENDMETHOD.
 ENDCLASS.
@@ -28101,8 +28092,10 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
         ENDIF.
 
         go_convert_out->convert(
-          EXPORTING data = iv_string
-          IMPORTING buffer = rv_xstring ).
+          EXPORTING
+            data   = iv_string
+          IMPORTING
+            buffer = rv_xstring ).
 
       CATCH cx_parameter_invalid_range
             cx_sy_codepage_converter_init
@@ -28114,21 +28107,15 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
   ENDMETHOD.
   METHOD string_to_xstring_utf8_bom.
 
-    DATA: lv_hex     TYPE x LENGTH 1 VALUE '23',
-          lv_hex_bom TYPE x LENGTH 3 VALUE 'EFBBBF'.
+    IF iv_string IS INITIAL.
+      RETURN.
+    ENDIF.
 
     rv_xstring = string_to_xstring_utf8( iv_string ).
 
-    "unicode systems always add the byte order mark to the xml, while non-unicode does not
-    "in class ZCL_ABAPGIT_XML~TO_XML byte order mark was added to XML as #
-    "In non-unicode systems zcl_abapgit_convert=>xstring_to_string_utf8( cl_abap_char_utilities=>byte_order_mark_utf8 )
-    "has result # as HEX 23 and not HEX EFBBBF.
-    "So we have to remove 23 first and add EFBBBF after to serialized string
-    IF rv_xstring(3) <> cl_abap_char_utilities=>byte_order_mark_utf8
-    AND rv_xstring(1) = lv_hex.
-      REPLACE FIRST OCCURRENCE
-        OF lv_hex IN rv_xstring WITH lv_hex_bom IN BYTE MODE.
-      ASSERT sy-subrc = 0.
+    " Add UTF-8 BOM
+    IF xstrlen( rv_xstring ) < 3 OR rv_xstring(3) <> cl_abap_char_utilities=>byte_order_mark_utf8.
+      rv_xstring = cl_abap_char_utilities=>byte_order_mark_utf8 && rv_xstring.
     ENDIF.
 
   ENDMETHOD.
@@ -57222,6 +57209,9 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   METHOD get_starting_folder.
     rv_path = ms_data-starting_folder.
   ENDMETHOD.
+  METHOD get_version_constant.
+    rv_version_constant = ms_data-version_constant.
+  ENDMETHOD.
   METHOD is_ignored.
 
     DATA: lv_name     TYPE string,
@@ -57270,21 +57260,9 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize.
 
-    DATA: lv_xml  TYPE string,
-          lv_mark TYPE string.
+    DATA lv_xml TYPE string.
 
     lv_xml = to_xml( ms_data ).
-
-    "unicode systems always add the byte order mark to the xml, while non-unicode does not
-    "this code will always add the byte order mark if it is not in the xml
-    TRY.
-        lv_mark = zcl_abapgit_convert=>xstring_to_string_utf8( cl_abap_char_utilities=>byte_order_mark_utf8 ).
-      CATCH zcx_abapgit_exception ##NO_HANDLER.
-* In non-unicode systems, the byte order mark throws an error
-    ENDTRY.
-    IF lv_xml(1) <> lv_mark.
-      CONCATENATE lv_mark lv_xml INTO lv_xml.
-    ENDIF.
 
     rv_xstr = zcl_abapgit_convert=>string_to_xstring_utf8_bom( lv_xml ).
 
@@ -57301,15 +57279,9 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   METHOD set_starting_folder.
     ms_data-starting_folder = iv_path.
   ENDMETHOD.
-
-  METHOD get_version_constant.
-    rv_version_constant = ms_data-version_constant.
-  ENDMETHOD.
-
   METHOD set_version_constant.
     ms_data-version_constant = iv_version_constant.
   ENDMETHOD.
-
   METHOD to_file.
     rs_file-path     = zif_abapgit_definitions=>c_root_dir.
     rs_file-filename = zif_abapgit_definitions=>c_dot_abapgit.
@@ -57332,7 +57304,6 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
     ASSERT sy-subrc = 0.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
@@ -116147,6 +116118,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-22T17:18:04.090Z
+* abapmerge 0.14.8 - 2022-11-22T18:14:57.211Z
 ENDINTERFACE.
 ****************************************************
