@@ -2595,9 +2595,9 @@ INTERFACE zif_abapgit_definitions .
     END OF ty_comment .
   TYPES:
     BEGIN OF ty_item_signature,
-      obj_type  TYPE tadir-object,
-      obj_name  TYPE tadir-obj_name,
-      devclass  TYPE devclass,
+      obj_type TYPE tadir-object,
+      obj_name TYPE tadir-obj_name,
+      devclass TYPE devclass,
     END OF ty_item_signature .
   TYPES:
     BEGIN OF ty_item.
@@ -3030,6 +3030,8 @@ INTERFACE zif_abapgit_definitions .
       direction                     TYPE string VALUE 'direction',
       documentation                 TYPE string VALUE 'documentation',
       changelog                     TYPE string VALUE 'changelog',
+      homepage                      TYPE string VALUE 'homepage',
+      sponsor                       TYPE string VALUE 'sponsor',
       clipboard                     TYPE string VALUE 'clipboard',
       show_hotkeys                  TYPE string VALUE 'show_hotkeys',
     END OF c_action.
@@ -20366,6 +20368,8 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
     CONSTANTS c_changelog_path TYPE string VALUE '/blob/main/changelog.txt' ##NO_TEXT.
 
     CLASS-METHODS open_abapgit_homepage
+      IMPORTING
+        iv_page TYPE string OPTIONAL
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS open_abapgit_wikipage
@@ -34556,7 +34560,7 @@ CLASS zcl_abapgit_services_basis IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
+CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   METHOD check_sapgui.
 
     CONSTANTS:
@@ -34593,6 +34597,20 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
       li_user_persistence->set_settings( ls_settings ).
     ENDIF.
 
+  ENDMETHOD.
+  METHOD get_abapgit_tcode.
+    CONSTANTS: lc_report_tcode_hex TYPE x VALUE '80'.
+    DATA: lt_tcodes TYPE STANDARD TABLE OF tcode.
+
+    SELECT tcode
+      FROM tstc
+      INTO TABLE lt_tcodes
+      WHERE pgmna = sy-cprog
+        AND cinfo = lc_report_tcode_hex.
+
+    IF lines( lt_tcodes ) > 0.
+      READ TABLE lt_tcodes INDEX 1 INTO rv_tcode.
+    ENDIF.
   ENDMETHOD.
   METHOD get_package_from_adt.
 
@@ -34660,7 +34678,7 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
     open_url_in_browser( |{ c_abapgit_repo }{ c_changelog_path }| ).
   ENDMETHOD.
   METHOD open_abapgit_homepage.
-    open_url_in_browser( c_abapgit_homepage ).
+    open_url_in_browser( |{ c_abapgit_homepage }/{ iv_page }| ).
   ENDMETHOD.
   METHOD open_abapgit_wikipage.
     open_url_in_browser( c_abapgit_wikipage ).
@@ -34764,20 +34782,6 @@ CLASS ZCL_ABAPGIT_SERVICES_ABAPGIT IMPLEMENTATION.
       zcl_abapgit_persistence_user=>get_instance( )->set_repo_show( lo_repo->get_key( ) ).
     ENDIF.
 
-  ENDMETHOD.
-  METHOD get_abapgit_tcode.
-    CONSTANTS: lc_report_tcode_hex TYPE x VALUE '80'.
-    DATA: lt_tcodes TYPE STANDARD TABLE OF tcode.
-
-    SELECT tcode
-      FROM tstc
-      INTO TABLE lt_tcodes
-      WHERE pgmna = sy-cprog
-        AND cinfo = lc_report_tcode_hex.
-
-    IF lines( lt_tcodes ) > 0.
-      READ TABLE lt_tcodes INDEX 1 INTO rv_tcode.
-    ENDIF.
   ENDMETHOD.
 ENDCLASS.
 
@@ -37945,6 +37949,12 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-changelog.                       " abapGit full changelog
         zcl_abapgit_services_abapgit=>open_abapgit_changelog( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+      WHEN zif_abapgit_definitions=>c_action-homepage.                        " abapGit homepage
+        zcl_abapgit_services_abapgit=>open_abapgit_homepage( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+      WHEN zif_abapgit_definitions=>c_action-sponsor.                         " abapGit sponsor us
+        zcl_abapgit_services_abapgit=>open_abapgit_homepage( 'sponsor.html' ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-show_hotkeys.                    " show hotkeys
         zcl_abapgit_ui_factory=>get_gui(
@@ -49028,27 +49038,29 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true.
-      lv_version_detail = ` (Standalone Version)`.
+      lv_version_detail = ` - Standalone Version`.
     ELSE.
-      lv_version_detail = ` (Developer Version)`.
+      lv_version_detail = ` - Developer Version`.
     ENDIF.
 
     ri_html->add( '<div id="footer">' ).
     ri_html->add( '<table class="w100"><tr>' ).
 
     ri_html->add( '<td class="w40 sponsor">' ).
-    ri_html->add( ri_html->icon( iv_name = 'heart-regular/pink'
-                                 iv_hint = 'Sponsor us' ) ).
-    ri_html->add_a( iv_act   = 'https://abapgit.org/sponsor.html'
-                    iv_typ   = zif_abapgit_html=>c_action_type-url
-                    iv_txt   = 'Sponsor us' ).
+    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-sponsor
+                    iv_txt = ri_html->icon( iv_name = 'heart-regular/pink'
+                                            iv_hint = 'Sponsor us' ) ).
+    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-sponsor
+                    iv_txt = 'Sponsor us' ).
     ri_html->add( '</td>' ).
 
     ri_html->add( '<td class="center">' ).
     ri_html->add( '<div class="logo">' ).
-    ri_html->add( ri_html->icon( 'git-alt' ) ).
-    ri_html->add( ri_html->icon( iv_name = 'abapgit'
-                                 iv_hint = |{ iv_time } sec| ) ).
+    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-homepage
+                    iv_txt = ri_html->icon( 'git-alt' ) ).
+    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-homepage
+                    iv_txt = ri_html->icon( iv_name = 'abapgit'
+                                            iv_hint = |{ iv_time } sec| ) ).
     ri_html->add( '</div>' ).
     ri_html->add( |<div class="version">{ zif_abapgit_version=>c_abap_version }{ lv_version_detail }</div>| ).
     ri_html->add( '</td>' ).
@@ -49188,8 +49200,10 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ri_html->add( '<div id="header">' ).
 
     ri_html->add( '<div class="logo">' ).
-    ri_html->add( ri_html->icon( 'git-alt' ) ).
-    ri_html->add( ri_html->icon( 'abapgit' ) ).
+    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-abapgit_home
+                    iv_txt = ri_html->icon( 'git-alt' ) ).
+    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-abapgit_home
+                    iv_txt = ri_html->icon( 'abapgit' ) ).
     ri_html->add( '</div>' ).
 
     ri_html->add( |<div class="page-title"><span class="spacer">&#x25BA;</span>{ ms_control-page_title }</div>| ).
@@ -116128,6 +116142,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-22T20:01:48.614Z
+* abapmerge 0.14.8 - 2022-11-25T13:34:30.649Z
 ENDINTERFACE.
 ****************************************************
