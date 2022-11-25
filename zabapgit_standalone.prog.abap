@@ -31247,7 +31247,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    if (document.activeElement.id === "filter") {' ).
     lo_buf->add( '      return;' ).
     lo_buf->add( '    }' ).
-    lo_buf->add( '    if (self.focusFilterKey && event.key === self.focusFilterKey) {' ).
+    lo_buf->add( '    if (self.focusFilterKey && event.key === self.focusFilterKey && !CommandPalette.isVisible()) {' ).
     lo_buf->add( '      var filterInput = document.getElementById("filter");' ).
     lo_buf->add( '      if (filterInput) filterInput.focus();' ).
     lo_buf->add( '      event.preventDefault();' ).
@@ -31514,7 +31514,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  var self = this;' ).
     lo_buf->add( '  document.addEventListener("keypress", function(event) {' ).
     lo_buf->add( '    if (document.activeElement.id !== self.ids.objectSearch' ).
-    lo_buf->add( '      && self.focusFilterKey && event.key === self.focusFilterKey) {' ).
+    lo_buf->add( '      && self.focusFilterKey && event.key === self.focusFilterKey' ).
+    lo_buf->add( '      && !CommandPalette.isVisible()) {' ).
     lo_buf->add( '' ).
     lo_buf->add( '      self.dom.objectSearch.focus();' ).
     lo_buf->add( '      event.preventDefault();' ).
@@ -33317,6 +33318,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  } else {' ).
     lo_buf->add( '    submitSapeventForm(null, cmd.action);' ).
     lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Is any command palette visible?' ).
+    lo_buf->add( 'CommandPalette.isVisible = function(){' ).
+    lo_buf->add( '  return CommandPalette.instances.reduce(function(result, instance){ return result || instance.elements.palette.style.display !== "none" }, false);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* COMMAND ENUMERATORS */' ).
@@ -116142,6 +116148,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-25T13:34:30.649Z
+* abapmerge 0.14.8 - 2022-11-25T13:42:58.833Z
 ENDINTERFACE.
 ****************************************************
