@@ -49189,7 +49189,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     IF mo_settings->get_link_hints_enabled( ) = abap_true AND lv_link_hint_key IS NOT INITIAL.
 
       ii_html->add( |activateLinkHints("{ lv_link_hint_key }");| ).
-      ii_html->add( |setInitialFocusWithQuerySelector('a span', true);| ).
+      ii_html->add( |setInitialFocusWithQuerySelector('#header', false);| ).
       ii_html->add( |enableArrowListNavigation();| ).
 
     ENDIF.
@@ -116165,6 +116165,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-27T08:24:34.499Z
+* abapmerge 0.14.8 - 2022-11-27T13:37:24.487Z
 ENDINTERFACE.
 ****************************************************
