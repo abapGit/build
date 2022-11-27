@@ -2472,6 +2472,7 @@ INTERFACE zif_abapgit_services_repo .
       branch_name        TYPE string,
       display_name       TYPE string,
       folder_logic       TYPE string,
+      labels             TYPE string,
       ignore_subpackages TYPE abap_bool,
       main_lang_only     TYPE abap_bool,
     END OF ty_repo_params .
@@ -4229,6 +4230,7 @@ INTERFACE zif_abapgit_repo_srv .
       !iv_url            TYPE string
       !iv_package        TYPE devclass
       !iv_folder_logic   TYPE string DEFAULT zif_abapgit_dot_abapgit=>c_folder_logic-full
+      !iv_labels         TYPE string OPTIONAL
       !iv_main_lang_only TYPE abap_bool DEFAULT abap_false
     RETURNING
       VALUE(ri_repo)     TYPE REF TO zif_abapgit_repo
@@ -4241,6 +4243,7 @@ INTERFACE zif_abapgit_repo_srv .
       !iv_display_name   TYPE string OPTIONAL
       !iv_package        TYPE devclass
       !iv_folder_logic   TYPE string DEFAULT zif_abapgit_dot_abapgit=>c_folder_logic-prefix
+      !iv_labels         TYPE string OPTIONAL
       !iv_ign_subpkg     TYPE abap_bool DEFAULT abap_false
       !iv_main_lang_only TYPE abap_bool DEFAULT abap_false
     RETURNING
@@ -17051,6 +17054,7 @@ CLASS zcl_abapgit_gui_page_addofflin DEFINITION
         url            TYPE string VALUE 'url',
         package        TYPE string VALUE 'package',
         folder_logic   TYPE string VALUE 'folder_logic',
+        labels         TYPE string VALUE 'labels',
         main_lang_only TYPE string VALUE 'main_lang_only',
       END OF c_id .
 
@@ -17108,6 +17112,7 @@ CLASS zcl_abapgit_gui_page_addonline DEFINITION
         package            TYPE string VALUE 'package',
         branch_name        TYPE string VALUE 'branch_name',
         display_name       TYPE string VALUE 'display_name',
+        labels             TYPE string VALUE 'labels',
         folder_logic       TYPE string VALUE 'folder_logic',
         ignore_subpackages TYPE string VALUE 'ignore_subpackages',
         main_lang_only     TYPE string VALUE 'main_lang_only',
@@ -33934,6 +33939,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       iv_url            = is_repo_params-url
       iv_package        = is_repo_params-package
       iv_folder_logic   = is_repo_params-folder_logic
+      iv_labels         = is_repo_params-labels
       iv_main_lang_only = is_repo_params-main_lang_only ).
 
     " Make sure there're no leftovers from previous repos
@@ -33957,6 +33963,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       iv_package        = is_repo_params-package
       iv_display_name   = is_repo_params-display_name
       iv_folder_logic   = is_repo_params-folder_logic
+      iv_labels         = is_repo_params-labels
       iv_ign_subpkg     = is_repo_params-ignore_subpackages
       iv_main_lang_only = is_repo_params-main_lang_only ).
 
@@ -48653,7 +48660,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -48717,6 +48724,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
       iv_name        = c_id-display_name
       iv_label       = 'Display Name'
       iv_hint        = 'Name to show instead of original repository name (optional)'
+    )->text(
+      iv_name        = c_id-labels
+      iv_label       = |Labels (comma-separated, allowed chars: "{ zcl_abapgit_repo_labels=>c_allowed_chars }")|
+      iv_hint        = 'Comma-separated labels for grouping and repo organization (optional)'
     )->checkbox(
       iv_name        = c_id-ignore_subpackages
       iv_label       = 'Ignore Subpackages'
@@ -48868,7 +48879,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -48920,6 +48931,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
     )->option(
       iv_label       = 'Mixed'
       iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-mixed
+    )->text(
+      iv_name        = c_id-labels
+      iv_label       = |Labels (comma-separated, allowed chars: "{ zcl_abapgit_repo_labels=>c_allowed_chars }")|
+      iv_hint        = 'Comma-separated labels for grouping and repo organization (optional)'
     )->checkbox(
       iv_name        = c_id-main_lang_only
       iv_label       = 'Serialize Main Language Only'
@@ -55104,6 +55119,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     lo_repo ?= instantiate_and_add( ls_repo ).
 
     ls_repo-local_settings-main_language_only = iv_main_lang_only.
+    ls_repo-local_settings-labels = iv_labels.
     lo_repo->set_local_settings( ls_repo-local_settings ).
     lo_repo->check_and_create_package( iv_package ).
 
@@ -55158,6 +55174,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       ls_repo-local_settings-ignore_subpackages = iv_ign_subpkg.
     ENDIF.
     ls_repo-local_settings-main_language_only = iv_main_lang_only.
+    ls_repo-local_settings-labels = iv_labels.
     lo_repo->set_local_settings( ls_repo-local_settings ).
 
     lo_repo->refresh( ).
@@ -116148,6 +116165,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-25T13:42:58.833Z
+* abapmerge 0.14.8 - 2022-11-27T08:24:34.499Z
 ENDINTERFACE.
 ****************************************************
