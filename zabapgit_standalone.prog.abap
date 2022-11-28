@@ -31071,9 +31071,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  stdout.innerHTML = stdout.innerHTML + wrapped;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '// Use a pre-created form or create a hidden form' ).
+    lo_buf->add( '// Use a supplied form, a pre-created form or create a hidden form' ).
     lo_buf->add( '// and submit with sapevent' ).
-    lo_buf->add( 'function submitSapeventForm(params, action, method) {' ).
+    lo_buf->add( 'function submitSapeventForm(params, action, method, form) {' ).
     lo_buf->add( '' ).
     lo_buf->add( '  function getSapeventPrefix() {' ).
     lo_buf->add( '    if (document.querySelector(''a[href*="file:///SAPEVENT:"]''))  {' ).
@@ -31084,16 +31084,16 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var stub_form_id = "form_" + action;' ).
-    lo_buf->add( '  var form = document.getElementById(stub_form_id);' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if (form === null) {' ).
-    lo_buf->add( '    form = document.createElement("form");' ).
-    lo_buf->add( '    form.setAttribute("method", method || "post");' ).
-    lo_buf->add( '    if (/sapevent/i.test(action)){' ).
-    lo_buf->add( '      form.setAttribute("action", action);' ).
-    lo_buf->add( '    } else {' ).
-    lo_buf->add( '      form.setAttribute("action", getSapeventPrefix() + "SAPEVENT:" + action);' ).
-    lo_buf->add( '    }' ).
+    lo_buf->add( '  form = form' ).
+    lo_buf->add( '      || document.getElementById(stub_form_id)' ).
+    lo_buf->add( '      || document.createElement("form");' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  form.setAttribute("method", method || "post");' ).
+    lo_buf->add( '  if (/sapevent/i.test(action)){' ).
+    lo_buf->add( '    form.setAttribute("action", action);' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    form.setAttribute("action", getSapeventPrefix() + "SAPEVENT:" + action);' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  for(var key in params) {' ).
@@ -31104,7 +31104,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    form.appendChild(hiddenField);' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if (form.id !== stub_form_id) {' ).
+    lo_buf->add( '  var formExistsInDOM = form.id && Boolean(document.querySelector("#" + form.id));' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (form.id !== stub_form_id && !formExistsInDOM) {' ).
     lo_buf->add( '    document.body.appendChild(form);' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
@@ -33399,13 +33401,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    .forEach(function(input){' ).
     lo_buf->add( '      items.push({' ).
     lo_buf->add( '        action: function(){' ).
-    lo_buf->add( '          if ([].slice.call(input.classList).indexOf("main") !== -1){' ).
-    lo_buf->add( '            var parentForm = input.parentNode.parentNode.parentNode;' ).
-    lo_buf->add( '            if (parentForm.nodeName === "FORM"){' ).
-    lo_buf->add( '              parentForm.submit();' ).
-    lo_buf->add( '            }' ).
+    lo_buf->add( '          if (input.form.action.includes(input.formAction)){' ).
+    lo_buf->add( '            input.form.submit();' ).
     lo_buf->add( '          } else {' ).
-    lo_buf->add( '            submitSapeventForm({}, input.formAction, "post");' ).
+    lo_buf->add( '            submitSapeventForm({}, input.formAction, "post", input.form);' ).
     lo_buf->add( '          }' ).
     lo_buf->add( '        },' ).
     lo_buf->add( '        title: input.value + " " + input.title.replace(/\[.*\]/,"")' ).
@@ -116165,6 +116164,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-27T13:37:24.487Z
+* abapmerge 0.14.8 - 2022-11-28T22:07:20.688Z
 ENDINTERFACE.
 ****************************************************
