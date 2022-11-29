@@ -33409,6 +33409,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      });' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '' ).
+    lo_buf->add( '  // radio buttons' ).
+    lo_buf->add( '  [].slice.call(document.querySelectorAll("input[type=''radio'']"))' ).
+    lo_buf->add( '    .forEach(function(input){' ).
+    lo_buf->add( '      items.push({' ).
+    lo_buf->add( '        action: function(){' ).
+    lo_buf->add( '          input.click();' ).
+    lo_buf->add( '        },' ).
+    lo_buf->add( '        title: document.querySelector("label[for=''" + input.id + "'']").textContent' ).
+    lo_buf->add( '      });' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  // others:' ).
     lo_buf->add( '  // - links inside forms' ).
     lo_buf->add( '  // - label links' ).
@@ -116156,6 +116167,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-29T13:50:35.559Z
+* abapmerge 0.14.8 - 2022-11-29T13:54:29.812Z
 ENDINTERFACE.
 ****************************************************
