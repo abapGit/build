@@ -33424,7 +33424,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // - links inside forms' ).
     lo_buf->add( '  // - label links' ).
     lo_buf->add( '  // - command links' ).
-    lo_buf->add( '  [].slice.call(document.querySelectorAll("form a, a.command"))' ).
+    lo_buf->add( '  // - other header links' ).
+    lo_buf->add( '  [].slice.call(document.querySelectorAll("form a, a.command, #header a"))' ).
     lo_buf->add( '    .filter(function(anchor){' ).
     lo_buf->add( '      return !!anchor.title || !!anchor.text;' ).
     lo_buf->add( '    }).forEach(function(anchor){' ).
@@ -116178,6 +116179,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-29T15:42:14.644Z
+* abapmerge 0.14.8 - 2022-11-29T21:31:59.008Z
 ENDINTERFACE.
 ****************************************************
