@@ -4192,7 +4192,13 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_repo_srv .
   TYPES:
-    ty_repo_list TYPE STANDARD TABLE OF REF TO zif_abapgit_repo WITH DEFAULT KEY .
+    ty_repo_list TYPE STANDARD TABLE OF REF TO zif_abapgit_repo WITH DEFAULT KEY,
+
+    BEGIN OF ty_label,
+      label TYPE string,
+    END OF ty_label,
+    ty_labels TYPE STANDARD TABLE OF ty_label WITH NON-UNIQUE DEFAULT KEY
+                   WITH NON-UNIQUE SORTED KEY key_label COMPONENTS label.
 
   METHODS init.
   METHODS delete
@@ -4288,6 +4294,12 @@ INTERFACE zif_abapgit_repo_srv .
       !ev_reason TYPE string
     RAISING
       zcx_abapgit_exception .
+  METHODS get_label_list
+    RETURNING
+      VALUE(rt_labels) TYPE ty_labels
+    RAISING
+      zcx_abapgit_exception.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_jumper.
@@ -4329,7 +4341,8 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_popups .
   TYPES:
-    ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY .
+    ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY,
+    ty_rows    TYPE SORTED TABLE OF i WITH UNIQUE KEY table_line.
 
   CONSTANTS c_new_branch_label TYPE string VALUE '+ create new ...' ##NO_TEXT.
 
@@ -4425,6 +4438,7 @@ INTERFACE zif_abapgit_popups .
       !iv_selection_mode     TYPE salv_de_constant DEFAULT if_salv_c_selection_mode=>multiple
       !iv_select_column_text TYPE csequence DEFAULT space
       !it_columns_to_display TYPE zif_abapgit_definitions=>ty_alv_column_tt
+      !it_preselected_rows   TYPE ty_rows OPTIONAL
     EXPORTING
       VALUE(et_list)         TYPE STANDARD TABLE
     RAISING
@@ -4453,6 +4467,11 @@ INTERFACE zif_abapgit_popups .
   METHODS popup_select_wb_tc_tr_and_tsk
     RETURNING VALUE(rt_r_trkorr) TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt
     RAISING   zcx_abapgit_exception.
+  METHODS popup_to_select_labels
+    IMPORTING iv_labels        TYPE string OPTIONAL
+    RETURNING VALUE(rv_labels) TYPE string
+    RAISING   zcx_abapgit_exception.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_services_git.
@@ -17062,6 +17081,7 @@ CLASS zcl_abapgit_gui_page_addofflin DEFINITION
       BEGIN OF c_event,
         go_back          TYPE string VALUE 'go-back',
         choose_package   TYPE string VALUE 'choose-package',
+        choose_labels    TYPE string VALUE 'choose-labels',
         create_package   TYPE string VALUE 'create-package',
         add_offline_repo TYPE string VALUE 'add-repo-offline',
       END OF c_event .
@@ -17082,6 +17102,11 @@ CLASS zcl_abapgit_gui_page_addofflin DEFINITION
     METHODS get_form_schema
       RETURNING
         VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form .
+
+    METHODS choose_labels
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_addonline DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -17124,6 +17149,7 @@ CLASS zcl_abapgit_gui_page_addonline DEFINITION
         choose_package  TYPE string VALUE 'choose-package',
         create_package  TYPE string VALUE 'create-package',
         choose_branch   TYPE string VALUE 'choose-branch',
+        choose_labels   TYPE string VALUE 'choose-labels',
         add_online_repo TYPE string VALUE 'add-repo-online',
       END OF c_event.
 
@@ -17143,6 +17169,11 @@ CLASS zcl_abapgit_gui_page_addonline DEFINITION
     METHODS get_form_schema
       RETURNING
         VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form.
+
+    METHODS choose_labels
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_abapgit_gui_page.
   PUBLIC SECTION.
@@ -18967,7 +18998,8 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
       END OF c_id .
     CONSTANTS:
       BEGIN OF c_event,
-        save TYPE string VALUE 'save',
+        save          TYPE string VALUE 'save',
+        choose_labels TYPE string VALUE 'choose-labels',
       END OF c_event .
 
     DATA mo_form TYPE REF TO zcl_abapgit_html_form .
@@ -18996,6 +19028,10 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
     METHODS save_settings
       RAISING
         zcx_abapgit_exception .
+    METHODS choose_labels
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_sett_pers DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -20322,16 +20358,16 @@ CLASS zcl_abapgit_popups DEFINITION
       EXPORTING
         !et_list TYPE INDEX TABLE .
     METHODS on_select_list_link_click
-      FOR EVENT link_click OF cl_salv_events_table
+        FOR EVENT link_click OF cl_salv_events_table
       IMPORTING
         !row
         !column .
     METHODS on_select_list_function_click
-      FOR EVENT added_function OF cl_salv_events_table
+        FOR EVENT added_function OF cl_salv_events_table
       IMPORTING
         !e_salv_function .
     METHODS on_double_click
-      FOR EVENT double_click OF cl_salv_events_table
+        FOR EVENT double_click OF cl_salv_events_table
       IMPORTING
         !row
         !column .
@@ -35637,7 +35673,10 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
           lo_table_header TYPE REF TO cl_salv_form_text.
 
     FIELD-SYMBOLS: <lt_table>             TYPE STANDARD TABLE,
-                   <ls_column_to_display> TYPE zif_abapgit_definitions=>ty_alv_column.
+                   <ls_column_to_display> TYPE zif_abapgit_definitions=>ty_alv_column,
+                   <lv_row>               TYPE i,
+                   <ls_line>              TYPE any,
+                   <lv_selected>          TYPE data.
 
     CLEAR: et_list.
 
@@ -35645,6 +35684,23 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
     ASSIGN mr_table->* TO <lt_table>.
     ASSERT sy-subrc = 0.
+
+    LOOP AT it_preselected_rows ASSIGNING <lv_row>.
+
+      READ TABLE <lt_table> INDEX <lv_row> ASSIGNING <ls_line>.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Preselected row { <lv_row> } doesn't exist| ).
+      ENDIF.
+
+      ASSIGN
+        COMPONENT c_fieldname_selected
+        OF STRUCTURE <ls_line>
+        TO <lv_selected>.
+      ASSERT sy-subrc = 0.
+
+      <lv_selected> = abap_true.
+
+    ENDLOOP.
 
     ms_position = center(
       iv_width  = iv_end_column - iv_start_column
@@ -35928,6 +35984,86 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_popups~popup_to_select_labels.
+
+    DATA:
+      lt_all_labels         TYPE zif_abapgit_repo_srv=>ty_labels,
+      ls_label              LIKE LINE OF lt_all_labels,
+      lt_current_labels     TYPE string_table,
+      lt_selected_labels    LIKE lt_all_labels,
+      lt_columns_to_display TYPE zif_abapgit_definitions=>ty_alv_column_tt,
+      lt_preselected_rows   TYPE zif_abapgit_popups=>ty_rows,
+      ls_columns_to_display LIKE LINE OF lt_columns_to_display,
+      lv_save_tabix         TYPE i,
+      li_popup              TYPE REF TO zif_abapgit_popups.
+
+    FIELD-SYMBOLS: <lv_label>         TYPE zif_abapgit_repo_srv=>ty_label,
+                   <lv_current_label> TYPE LINE OF string_table.
+
+    lt_current_labels = zcl_abapgit_repo_labels=>split( iv_labels ).
+
+    lt_all_labels = zcl_abapgit_repo_srv=>get_instance( )->get_label_list( ).
+
+    " Add labels which are not saved yet
+    LOOP AT lt_current_labels ASSIGNING <lv_current_label>.
+
+      READ TABLE lt_all_labels TRANSPORTING NO FIELDS
+                               WITH KEY key_label
+                               COMPONENTS label = <lv_current_label>.
+      IF sy-subrc <> 0.
+        ls_label-label = <lv_current_label>.
+        INSERT ls_label INTO TABLE lt_all_labels.
+      ENDIF.
+
+    ENDLOOP.
+
+    IF lines( lt_all_labels ) = 0.
+      zcx_abapgit_exception=>raise( |No labels maintained yet| ).
+    ENDIF.
+
+    SORT lt_all_labels.
+    DELETE ADJACENT DUPLICATES FROM lt_all_labels.
+
+    " Preselect current labels
+    LOOP AT lt_all_labels ASSIGNING <lv_label>.
+
+      lv_save_tabix = sy-tabix.
+
+      READ TABLE lt_current_labels TRANSPORTING NO FIELDS
+                                   WITH KEY table_line = <lv_label>-label.
+      IF sy-subrc = 0.
+        INSERT lv_save_tabix INTO TABLE lt_preselected_rows.
+      ENDIF.
+
+    ENDLOOP.
+
+    ls_columns_to_display-name = 'LABEL'.
+    ls_columns_to_display-text = 'Label'.
+    INSERT ls_columns_to_display INTO TABLE lt_columns_to_display.
+
+    li_popup = zcl_abapgit_ui_factory=>get_popups( ).
+    li_popup->popup_to_select_from_list(
+      EXPORTING
+        iv_header_text        = 'Select labels'
+        iv_select_column_text = 'Add label'
+        it_list               = lt_all_labels
+        iv_selection_mode     = if_salv_c_selection_mode=>multiple
+        it_columns_to_display = lt_columns_to_display
+        it_preselected_rows   = lt_preselected_rows
+        iv_start_column       = 15
+        iv_end_column         = 55
+      IMPORTING
+        et_list               = lt_selected_labels ).
+
+    LOOP AT lt_selected_labels ASSIGNING <lv_label>.
+      IF rv_labels IS NOT INITIAL.
+        rv_labels = rv_labels && ','.
+      ENDIF.
+      rv_labels = rv_labels && <lv_label>-label.
+    ENDLOOP.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_password_dialog IMPLEMENTATION.
@@ -41237,7 +41373,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -41282,6 +41418,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
       iv_hint        = 'Name to show instead of original repo name (optional)'
     )->text(
       iv_name        = c_id-labels
+      iv_side_action = c_event-choose_labels
       iv_label       = |Labels (comma-separated, allowed chars: "{ zcl_abapgit_repo_labels=>c_allowed_chars }")|
       iv_hint        = 'Comma-separated labels for grouping and repo organization (optional)'
     )->checkbox(
@@ -41418,6 +41555,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-go_back.
         rs_handled-state = mo_form_util->exit( mo_form_data ).
 
+      WHEN c_event-choose_labels.
+
+        choose_labels( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+
       WHEN c_event-save.
         " Validate form entries before saving
         mo_validation_log = validate_form( mo_form_data ).
@@ -41455,6 +41597,22 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
     ri_html->add( `</div>` ).
 
   ENDMETHOD.
+  METHOD choose_labels.
+
+    DATA:
+      lv_old_labels TYPE string,
+      lv_new_labels TYPE string.
+
+    lv_old_labels = mo_form_data->get( c_id-labels ).
+
+    lv_new_labels = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_labels( lv_old_labels ).
+
+    mo_form_data->set(
+      iv_key = c_id-labels
+      iv_val = lv_new_labels ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
@@ -48740,6 +48898,7 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
       iv_hint        = 'Name to show instead of original repository name (optional)'
     )->text(
       iv_name        = c_id-labels
+      iv_side_action = c_event-choose_labels
       iv_label       = |Labels (comma-separated, allowed chars: "{ zcl_abapgit_repo_labels=>c_allowed_chars }")|
       iv_hint        = 'Comma-separated labels for grouping and repo organization (optional)'
     )->checkbox(
@@ -48797,6 +48956,14 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
         iv_key = c_id-folder_logic
         iv_val = |Invalid folder logic { io_form_data->get( c_id-folder_logic ) }| ).
     ENDIF.
+
+    TRY.
+        zcl_abapgit_repo_labels=>validate( io_form_data->get( c_id-labels ) ).
+      CATCH zcx_abapgit_exception INTO lx_err.
+        ro_validation_log->set(
+          iv_key = c_id-labels
+          iv_val = lx_err->get_text( ) ).
+    ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -48861,6 +49028,11 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
           rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
         ENDIF.
 
+      WHEN c_event-choose_labels.
+
+        choose_labels( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+
       WHEN c_event-add_online_repo.
 
         mo_validation_log = validate_form( mo_form_data ).
@@ -48891,6 +49063,22 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
       io_validation_log = mo_validation_log ) ).
     ri_html->add( '</div>' ).
   ENDMETHOD.
+  METHOD choose_labels.
+
+    DATA:
+      lv_old_labels TYPE string,
+      lv_new_labels TYPE string.
+
+    lv_old_labels = mo_form_data->get( c_id-labels ).
+
+    lv_new_labels = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_labels( lv_old_labels ).
+
+    mo_form_data->set(
+      iv_key = c_id-labels
+      iv_val = lv_new_labels ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
@@ -48947,6 +49135,7 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
       iv_value       = zif_abapgit_dot_abapgit=>c_folder_logic-mixed
     )->text(
       iv_name        = c_id-labels
+      iv_side_action = c_event-choose_labels
       iv_label       = |Labels (comma-separated, allowed chars: "{ zcl_abapgit_repo_labels=>c_allowed_chars }")|
       iv_hint        = 'Comma-separated labels for grouping and repo organization (optional)'
     )->checkbox(
@@ -48989,6 +49178,14 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
         iv_val = |Invalid folder logic { io_form_data->get( c_id-folder_logic ) }| ).
     ENDIF.
 
+    TRY.
+        zcl_abapgit_repo_labels=>validate( io_form_data->get( c_id-labels ) ).
+      CATCH zcx_abapgit_exception INTO lx_err.
+        ro_validation_log->set(
+          iv_key = c_id-labels
+          iv_val = lx_err->get_text( ) ).
+    ENDTRY.
+
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
@@ -49026,6 +49223,11 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
           rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
         ENDIF.
 
+      WHEN c_event-choose_labels.
+
+        choose_labels( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+
       WHEN c_event-add_offline_repo.
 
         mo_validation_log = validate_form( mo_form_data ).
@@ -49057,6 +49259,22 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
     ri_html->add( '</div>' ).
 
   ENDMETHOD.
+  METHOD choose_labels.
+
+    DATA:
+      lv_old_labels TYPE string,
+      lv_new_labels TYPE string.
+
+    lv_old_labels = mo_form_data->get( c_id-labels ).
+
+    lv_new_labels = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_labels( lv_old_labels ).
+
+    mo_form_data->set(
+      iv_key = c_id-labels
+      iv_val = lv_new_labels ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page IMPLEMENTATION.
@@ -55286,6 +55504,37 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_repo_srv~get_label_list.
+
+    DATA:
+      lt_repo           TYPE zif_abapgit_repo_srv=>ty_repo_list,
+      ls_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings,
+      lt_labels         TYPE string_table,
+      ls_label          LIKE LINE OF rt_labels.
+
+    FIELD-SYMBOLS:
+      <ls_repo>  TYPE REF TO zif_abapgit_repo,
+      <lv_label> TYPE LINE OF string_table.
+
+    lt_repo = zif_abapgit_repo_srv~list( ).
+
+    LOOP AT lt_repo ASSIGNING <ls_repo>.
+
+      ls_local_settings = <ls_repo>->get_local_settings( ).
+      lt_labels = zcl_abapgit_repo_labels=>split( ls_local_settings-labels ).
+
+      LOOP AT lt_labels ASSIGNING <lv_label>.
+        ls_label-label = <lv_label>.
+        INSERT ls_label INTO TABLE rt_labels.
+      ENDLOOP.
+
+    ENDLOOP.
+
+    SORT rt_labels.
+    DELETE ADJACENT DUPLICATES FROM rt_labels.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_repo_online IMPLEMENTATION.
@@ -116179,6 +116428,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-29T21:31:59.008Z
+* abapmerge 0.14.8 - 2022-11-30T17:30:43.090Z
 ENDINTERFACE.
 ****************************************************
