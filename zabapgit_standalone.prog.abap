@@ -32987,7 +32987,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '  var aRefresh = document.querySelectorAll("[id*=" + REFRESH_PREFIX + "]");' ).
     lo_buf->add( '  [].forEach.call( aRefresh, function(el) {' ).
-    lo_buf->add( '    el.addEventListener("click", memoizeScrollPosition(this.submitPatch.bind(this, el.id)).bind(this));' ).
+    lo_buf->add( '    el.addEventListener("click", memorizeScrollPosition(this.submitPatch.bind(this, el.id)).bind(this));' ).
     lo_buf->add( '  }.bind(this));' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // for hotkeys' ).
@@ -32995,11 +32995,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    this.submitPatch(this.ACTION.PATCH_STAGE);' ).
     lo_buf->add( '  }.bind(this);' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  window.refreshLocal = memoizeScrollPosition(function(){' ).
+    lo_buf->add( '  window.refreshLocal = memorizeScrollPosition(function(){' ).
     lo_buf->add( '    this.submitPatch(this.ACTION.REFRESH_LOCAL);' ).
     lo_buf->add( '  }.bind(this));' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  window.refreshAll = memoizeScrollPosition(function(){' ).
+    lo_buf->add( '  window.refreshAll = memorizeScrollPosition(function(){' ).
     lo_buf->add( '    this.submitPatch(this.ACTION.REFRESH_ALL);' ).
     lo_buf->add( '  }.bind(this));' ).
     lo_buf->add( '' ).
@@ -33500,12 +33500,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/* Save Scroll Position for Diff/Patch Page */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function saveScrollPosition(){' ).
-    lo_buf->add( '  if (!window.sessionStorage) { return }' ).
+    lo_buf->add( '  // Not supported by Java GUI' ).
+    lo_buf->add( '  try { if (!window.sessionStorage) { return } }' ).
+    lo_buf->add( '  catch(err) { return }' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  window.sessionStorage.setItem("scrollTop", document.querySelector("html").scrollTop);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function restoreScrollPosition(){' ).
-    lo_buf->add( '  if (!window.sessionStorage) { return }' ).
+    lo_buf->add( '  // Not supported by Java GUI' ).
+    lo_buf->add( '  try { if (!window.sessionStorage) { return } }' ).
+    lo_buf->add( '  catch(err) { return }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var scrollTop = window.sessionStorage.getItem("scrollTop");' ).
     lo_buf->add( '  if (scrollTop) {' ).
@@ -33514,7 +33519,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  window.sessionStorage.setItem("scrollTop", 0);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function memoizeScrollPosition(fn){' ).
+    lo_buf->add( 'function memorizeScrollPosition(fn){' ).
     lo_buf->add( '  return function(){' ).
     lo_buf->add( '    saveScrollPosition();' ).
     lo_buf->add( '    return fn.call(this, fn.args);' ).
@@ -116427,6 +116432,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-01T08:04:35.221Z
+* abapmerge 0.14.8 - 2022-12-01T14:28:35.927Z
 ENDINTERFACE.
 ****************************************************
