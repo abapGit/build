@@ -41666,6 +41666,8 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
   ENDMETHOD.
   METHOD format_timestamp.
 
+    DATA lv_temp TYPE c LENGTH 30.
+
     IF iv_timestamp IS INITIAL.
       rv_timestamp = 'n/a'.
       RETURN.
@@ -41675,7 +41677,9 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
       EXPORTING
         input  = iv_timestamp
       IMPORTING
-        output = rv_timestamp.
+        output = lv_temp.
+
+    rv_timestamp = lv_temp.
 
   ENDMETHOD.
   METHOD format_user.
@@ -116432,6 +116436,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-01T17:14:35.780Z
+* abapmerge 0.14.8 - 2022-12-01T21:30:45.173Z
 ENDINTERFACE.
 ****************************************************
