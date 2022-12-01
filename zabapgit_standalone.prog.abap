@@ -98670,9 +98670,9 @@ CLASS zcl_abapgit_oo_serializer IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_abap_old.
 * for old ABAP AS versions
-    DATA: lo_source TYPE REF TO cl_oo_source.
+    DATA: lo_source TYPE REF TO object.
 
-    CREATE OBJECT lo_source
+    CREATE OBJECT lo_source TYPE ('CL_OO_SOURCE')
       EXPORTING
         clskey             = is_clskey
       EXCEPTIONS
@@ -98682,8 +98682,12 @@ CLASS zcl_abapgit_oo_serializer IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    lo_source->read( 'A' ).
-    rt_source = lo_source->get_old_source( ).
+    CALL METHOD lo_source->('READ')
+      EXPORTING
+        version = 'A'.
+    CALL METHOD lo_source->('GET_OLD_SOURCE')
+      RECEIVING
+        old_source = rt_source.
     remove_signatures( CHANGING ct_source = rt_source ).
 
   ENDMETHOD.
@@ -115595,10 +115599,10 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD add_interface_source_classic.
-    DATA: lo_source      TYPE REF TO cl_oo_source,
+    DATA: lo_source      TYPE REF TO object,
           lt_source_code TYPE zif_abapgit_definitions=>ty_string_tt.
 
-    CREATE OBJECT lo_source
+    CREATE OBJECT lo_source TYPE ('CL_OO_SOURCE')
       EXPORTING
         clskey             = is_clskey
       EXCEPTIONS
@@ -115609,11 +115613,17 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
     ENDIF.
 
     TRY.
-        lo_source->access_permission( seok_access_modify ).
+        CALL METHOD lo_source->('ACCESS_PERMISSION')
+          EXPORTING
+            access_mode = seok_access_modify.
         lt_source_code = get_interface_source( ).
-        lo_source->set_source( lt_source_code ).
-        lo_source->save( ).
-        lo_source->access_permission( seok_access_free ).
+        CALL METHOD lo_source->('SET_SOURCE')
+          EXPORTING
+            i_source = lt_source_code.
+        CALL METHOD lo_source->('SAVE').
+        CALL METHOD lo_source->('ACCESS_PERMISSION')
+          EXPORTING
+            access_mode = seok_access_free.
       CATCH cx_oo_access_permission.
         zcx_abapgit_exception=>raise( 'permission error' ).
       CATCH cx_oo_source_save_failure.
@@ -116436,6 +116446,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-01T21:30:45.173Z
+* abapmerge 0.14.8 - 2022-12-01T21:33:46.306Z
 ENDINTERFACE.
 ****************************************************
