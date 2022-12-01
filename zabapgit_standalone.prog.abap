@@ -5591,7 +5591,7 @@ CLASS zcl_abapgit_data_serializer DEFINITION
 
   PRIVATE SECTION.
 
-    CONSTANTS c_max_records TYPE i VALUE 10000 ##NO_TEXT.
+    CONSTANTS c_max_records TYPE i VALUE 20000 ##NO_TEXT.
 
     METHODS convert_itab_to_json
       IMPORTING
@@ -116428,6 +116428,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-11-30T17:30:43.090Z
+* abapmerge 0.14.8 - 2022-12-01T07:45:35.664Z
 ENDINTERFACE.
 ****************************************************
