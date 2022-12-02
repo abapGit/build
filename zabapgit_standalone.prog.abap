@@ -33466,7 +33466,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // - label links' ).
     lo_buf->add( '  // - command links' ).
     lo_buf->add( '  // - other header links' ).
-    lo_buf->add( '  [].slice.call(document.querySelectorAll("form a, a.command, #header a"))' ).
+    lo_buf->add( '  [].slice.call(document.querySelectorAll("form a, a.command, #header ul:not([id*=''toolbar'']) a"))' ).
     lo_buf->add( '    .filter(function(anchor){' ).
     lo_buf->add( '      return !!anchor.title || !!anchor.text;' ).
     lo_buf->add( '    }).forEach(function(anchor){' ).
@@ -116476,6 +116476,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-02T16:16:15.140Z
+* abapmerge 0.14.8 - 2022-12-02T16:24:16.942Z
 ENDINTERFACE.
 ****************************************************
