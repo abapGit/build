@@ -4471,6 +4471,10 @@ INTERFACE zif_abapgit_popups .
     IMPORTING iv_labels        TYPE string OPTIONAL
     RETURNING VALUE(rv_labels) TYPE string
     RAISING   zcx_abapgit_exception.
+  METHODS choose_code_insp_check_variant
+    RETURNING VALUE(rv_check_variant) TYPE sci_chkv
+    RAISING
+      zcx_abapgit_exception.
 
 ENDINTERFACE.
 
@@ -18995,8 +18999,9 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
       END OF c_id .
     CONSTANTS:
       BEGIN OF c_event,
-        save          TYPE string VALUE 'save',
-        choose_labels TYPE string VALUE 'choose-labels',
+        save                 TYPE string VALUE 'save',
+        choose_labels        TYPE string VALUE 'choose-labels',
+        choose_check_variant TYPE string VALUE 'choose_check_variant',
       END OF c_event .
 
     DATA mo_form TYPE REF TO zcl_abapgit_html_form .
@@ -19026,6 +19031,9 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS choose_labels
+      RAISING
+        zcx_abapgit_exception.
+    METHODS choose_check_variant
       RAISING
         zcx_abapgit_exception.
 
@@ -36065,6 +36073,36 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD zif_abapgit_popups~choose_code_insp_check_variant.
+
+    DATA: lt_return TYPE STANDARD TABLE OF ddshretval.
+
+    FIELD-SYMBOLS: <ls_return> LIKE LINE OF lt_return.
+
+    CALL FUNCTION 'F4IF_FIELD_VALUE_REQUEST'
+      EXPORTING
+        tabname           = 'SCI_DYNP'
+        fieldname         = 'CHKV'
+      TABLES
+        return_tab        = lt_return
+      EXCEPTIONS
+        field_not_found   = 1
+        no_help_for_field = 2
+        inconsistent_help = 3
+        no_values_found   = 4
+        OTHERS            = 5.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    READ TABLE lt_return ASSIGNING <ls_return>
+                         WITH KEY retfield = 'SCI_DYNP-CHKV'.
+    IF sy-subrc = 0.
+      rv_check_variant = <ls_return>-fieldval.
+    ENDIF.
+
+  ENDMETHOD.
 
 ENDCLASS.
 
@@ -41445,6 +41483,7 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
       iv_hint        = 'Code Inspector check performed to run from menu and before commit'
     )->text(
       iv_name        = c_id-code_inspector_check_variant
+      iv_side_action = c_event-choose_check_variant
       iv_label       = 'Code Inspector Check Variant'
       iv_hint        = 'Global check variant for Code Inspector or ABAP Test Cockpit'
     )->checkbox(
@@ -41561,6 +41600,10 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
 
         choose_labels( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN c_event-choose_check_variant.
+
+        choose_check_variant( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN c_event-save.
         " Validate form entries before saving
@@ -41612,6 +41655,19 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
     mo_form_data->set(
       iv_key = c_id-labels
       iv_val = lv_new_labels ).
+
+  ENDMETHOD.
+  METHOD choose_check_variant.
+
+    DATA: lv_check_variant TYPE sci_chkv.
+
+    lv_check_variant = zcl_abapgit_ui_factory=>get_popups( )->choose_code_insp_check_variant( ).
+
+    IF lv_check_variant IS NOT INITIAL.
+      mo_form_data->set(
+        iv_key = c_id-code_inspector_check_variant
+        iv_val = lv_check_variant ).
+    ENDIF.
 
   ENDMETHOD.
 
@@ -48606,34 +48662,11 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
   METHOD ask_user_for_check_variant.
 
-    DATA: lt_return TYPE STANDARD TABLE OF ddshretval.
+    rv_check_variant = zcl_abapgit_ui_factory=>get_popups( )->choose_code_insp_check_variant( ).
 
-    FIELD-SYMBOLS: <ls_return> LIKE LINE OF lt_return.
-
-    CALL FUNCTION 'F4IF_FIELD_VALUE_REQUEST'
-      EXPORTING
-        tabname           = 'SCI_DYNP'
-        fieldname         = 'CHKV'
-      TABLES
-        return_tab        = lt_return
-      EXCEPTIONS
-        field_not_found   = 1
-        no_help_for_field = 2
-        inconsistent_help = 3
-        no_values_found   = 4
-        OTHERS            = 5.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-    READ TABLE lt_return ASSIGNING <ls_return>
-                         WITH KEY retfield = 'SCI_DYNP-CHKV'.
-    IF sy-subrc <> 0.
+    IF rv_check_variant IS INITIAL.
       zcx_abapgit_exception=>raise( |Please select a check variant.| ).
     ENDIF.
-
-    rv_check_variant = <ls_return>-fieldval.
 
   ENDMETHOD.
   METHOD build_menu.
@@ -116443,6 +116476,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-02T16:04:23.667Z
+* abapmerge 0.14.8 - 2022-12-02T16:16:15.140Z
 ENDINTERFACE.
 ****************************************************
