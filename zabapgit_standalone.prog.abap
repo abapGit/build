@@ -3034,6 +3034,7 @@ INTERFACE zif_abapgit_definitions .
       homepage                      TYPE string VALUE 'homepage',
       sponsor                       TYPE string VALUE 'sponsor',
       clipboard                     TYPE string VALUE 'clipboard',
+      yank_to_clipboard             TYPE string VALUE 'yank_to_clipboard',
       show_hotkeys                  TYPE string VALUE 'show_hotkeys',
     END OF c_action.
   CONSTANTS c_spagpa_param_repo_key TYPE c LENGTH 20 VALUE 'REPO_KEY' ##NO_TEXT.
@@ -32369,6 +32370,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.pendingPath       = ""; // already typed code prefix' ).
     lo_buf->add( '  this.hintsMap          = this.deployHintContainers();' ).
     lo_buf->add( '  this.activatedDropdown = null;' ).
+    lo_buf->add( '  this.yankModeActive    = false;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'LinkHints.prototype.getHintStartValue = function(targetsCount){' ).
@@ -32455,10 +32457,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
+    lo_buf->add( '  if (event.key === "y") {' ).
+    lo_buf->add( '    this.yankModeActive = !this.yankModeActive;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  if (event.key === this.linkHintHotKey && Hotkeys.isHotkeyCallPossible()) {' ).
     lo_buf->add( '' ).
     lo_buf->add( '    // on user hide hints, close an opened dropdown too' ).
     lo_buf->add( '    if (this.areHintsDisplayed && this.activatedDropdown) this.closeActivatedDropdown();' ).
+    lo_buf->add( '    if (this.areHintsDisplayed) this.yankModeActive = false;' ).
     lo_buf->add( '' ).
     lo_buf->add( '    this.pendingPath = "";' ).
     lo_buf->add( '    this.displayHints(!this.areHintsDisplayed);' ).
@@ -32469,10 +32476,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    this.pendingPath += event.key;' ).
     lo_buf->add( '    var hint = this.hintsMap[this.pendingPath];' ).
     lo_buf->add( '' ).
-    lo_buf->add( '    if (hint) { // we are there, we have a fully specified tooltip. Let''s activate it' ).
+    lo_buf->add( '    if (hint) { // we are there, we have a fully specified tooltip. Let''s activate or yank it' ).
     lo_buf->add( '      this.displayHints(false);' ).
     lo_buf->add( '      event.preventDefault();' ).
-    lo_buf->add( '      this.hintActivate(hint);' ).
+    lo_buf->add( '      if (this.yankModeActive) {' ).
+    lo_buf->add( '        submitSapeventForm({ clipboard : hint.parent.firstChild.textContent },"yank_to_clipboard");' ).
+    lo_buf->add( '        this.yankModeActive = false;' ).
+    lo_buf->add( '      } else {' ).
+    lo_buf->add( '        this.hintActivate(hint);' ).
+    lo_buf->add( '      }' ).
     lo_buf->add( '    } else {' ).
     lo_buf->add( '      // we are not there yet, but let''s filter the link so that only' ).
     lo_buf->add( '      // the partially matched are shown' ).
@@ -38437,6 +38449,12 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         APPEND lv_clip_content TO lt_clipboard.
         zcl_abapgit_ui_factory=>get_frontend_services( )->clipboard_export( lt_clipboard ).
         MESSAGE 'Successfully exported URL to Clipboard.' TYPE 'S'.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+      WHEN zif_abapgit_definitions=>c_action-yank_to_clipboard.
+        lv_clip_content = ii_event->form_data( )->get( 'CLIPBOARD' ).
+        APPEND lv_clip_content TO lt_clipboard.
+        zcl_abapgit_ui_factory=>get_frontend_services( )->clipboard_export( lt_clipboard ).
+        MESSAGE 'Successfully exported to Clipboard.' TYPE 'S'.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
     ENDCASE.
 
@@ -49714,6 +49732,10 @@ CLASS zcl_abapgit_gui_hotkey_ctl IMPLEMENTATION.
       ri_html->add( |<li>|
          && |<span class="key-id">{ ls_user_settings-link_hint_key }</span>|
          && |<span class="key-descr">Link Hints</span>|
+         && |</li>| ).
+      ri_html->add( |<li>|
+         && |<span class="key-id">y{ ls_user_settings-link_hint_key }</span>|
+         && |<span class="key-descr">Copy Link Text</span>|
          && |</li>| ).
     ENDIF.
 
@@ -116458,6 +116480,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-06T14:03:40.649Z
+* abapmerge 0.14.8 - 2022-12-06T14:52:33.036Z
 ENDINTERFACE.
 ****************************************************
