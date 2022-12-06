@@ -47067,6 +47067,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
           lv_tabix       TYPE syst-tabix.
 
     FIELD-SYMBOLS <ls_diff> LIKE LINE OF lt_diffs.
+    FIELD-SYMBOLS <ls_diff_line> LIKE LINE OF lt_diffs.
 
     lo_highlighter = zcl_abapgit_syntax_factory=>create( iv_filename     = is_diff-filename
                                                          iv_hidden_chars = ms_view-hidden_chars ).
@@ -47091,7 +47092,12 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
       ENDIF.
 
       IF lv_insert_nav = abap_true. " Insert separator line with navigation
-        ri_html->add( render_beacon( is_diff_line = <ls_diff>
+        " Get line where diff really starts
+        READ TABLE lt_diffs ASSIGNING <ls_diff_line> INDEX lv_tabix + 8.
+        IF sy-subrc <> 0.
+          <ls_diff_line> = <ls_diff>.
+        ENDIF.
+        ri_html->add( render_beacon( is_diff_line = <ls_diff_line>
                                      is_diff = is_diff ) ).
         lv_insert_nav = abap_false.
       ENDIF.
@@ -116480,6 +116486,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-06T14:52:33.036Z
+* abapmerge 0.14.8 - 2022-12-06T21:45:14.622Z
 ENDINTERFACE.
 ****************************************************
