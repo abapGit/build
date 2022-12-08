@@ -3697,6 +3697,7 @@ INTERFACE zif_abapgit_persistence.
       block_commit                 TYPE abap_bool,
       main_language_only           TYPE abap_bool,
       labels                       TYPE string,
+      transport_request            TYPE trkorr,
     END OF ty_local_settings.
 
   TYPES: ty_local_checksum_tt TYPE STANDARD TABLE OF ty_local_checksum WITH DEFAULT KEY.
@@ -4446,8 +4447,9 @@ INTERFACE zif_abapgit_popups .
       zcx_abapgit_exception .
   METHODS popup_transport_request
     IMPORTING
-      !is_transport_type        TYPE zif_abapgit_definitions=>ty_transport_type
+      !is_transport_type        TYPE zif_abapgit_definitions=>ty_transport_type OPTIONAL
       !iv_use_default_transport TYPE abap_bool DEFAULT abap_false
+      PREFERRED PARAMETER is_transport_type
     RETURNING
       VALUE(rv_transport)       TYPE trkorr
     RAISING
@@ -4791,9 +4793,15 @@ INTERFACE zif_abapgit_exit .
       !ct_files   TYPE zif_abapgit_definitions=>ty_files_item_tt.
   METHODS adjust_display_filename
     IMPORTING
-      !iv_filename       TYPE string
+      iv_filename        TYPE string
     RETURNING
       VALUE(rv_filename) TYPE string.
+  METHODS determine_transport_request
+    IMPORTING
+      io_repo              TYPE REF TO zcl_abapgit_repo
+      iv_transport_type    TYPE zif_abapgit_definitions=>ty_transport_type
+    CHANGING
+      cv_transport_request TYPE trkorr.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_merge .
@@ -5386,6 +5394,12 @@ CLASS zcl_abapgit_transport DEFINITION
         VALUE(rs_request) TYPE trwbo_request
       RAISING
         zcx_abapgit_exception .
+
+    CLASS-METHODS validate_transport_request
+      IMPORTING
+        iv_transport_request TYPE trkorr
+      RAISING
+        zcx_abapgit_exception.
 
   PROTECTED SECTION.
 
@@ -7670,6 +7684,7 @@ CLASS zcl_abapgit_objects_check DEFINITION
         VALUE(rs_checks) TYPE zif_abapgit_definitions=>ty_deserialize_checks
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS class_constructor.
     CLASS-METHODS checks_adjust
       IMPORTING
         !io_repo    TYPE REF TO zcl_abapgit_repo
@@ -7681,6 +7696,7 @@ CLASS zcl_abapgit_objects_check DEFINITION
   PROTECTED SECTION.
 
   PRIVATE SECTION.
+    CLASS-DATA: gi_exit TYPE REF TO zif_abapgit_exit.
 
     CLASS-METHODS warning_overwrite_adjust
       IMPORTING
@@ -7710,6 +7726,12 @@ CLASS zcl_abapgit_objects_check DEFINITION
         VALUE(rt_overwrite) TYPE zif_abapgit_definitions=>ty_overwrite_tt
       RAISING
         zcx_abapgit_exception.
+    CLASS-METHODS determine_transport_request
+      IMPORTING
+        io_repo                     TYPE REF TO zcl_abapgit_repo
+        iv_transport_type           TYPE zif_abapgit_definitions=>ty_transport_type
+      RETURNING
+        VALUE(rv_transport_request) TYPE trkorr.
 ENDCLASS.
 CLASS zcl_abapgit_objects_files DEFINITION
   CREATE PUBLIC .
@@ -18990,6 +19012,7 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
       BEGIN OF c_id,
         local                        TYPE string VALUE 'local',
         display_name                 TYPE string VALUE 'display_name',
+        transport_request            TYPE string VALUE 'transport_request',
         labels                       TYPE string VALUE 'labels',
         ignore_subpackages           TYPE string VALUE 'ignore_subpackages',
         write_protected              TYPE string VALUE 'write_protected',
@@ -19001,9 +19024,10 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
       END OF c_id .
     CONSTANTS:
       BEGIN OF c_event,
-        save                 TYPE string VALUE 'save',
-        choose_labels        TYPE string VALUE 'choose-labels',
-        choose_check_variant TYPE string VALUE 'choose_check_variant',
+        save                     TYPE string VALUE 'save',
+        choose_transport_request TYPE string VALUE 'choose_transport_request',
+        choose_labels            TYPE string VALUE 'choose-labels',
+        choose_check_variant     TYPE string VALUE 'choose_check_variant',
       END OF c_event .
 
     DATA mo_form TYPE REF TO zcl_abapgit_html_form .
@@ -19036,6 +19060,9 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
       RAISING
         zcx_abapgit_exception.
     METHODS choose_check_variant
+      RAISING
+        zcx_abapgit_exception.
+    METHODS choose_transport_request
       RAISING
         zcx_abapgit_exception.
 
@@ -25368,6 +25395,22 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_exit~determine_transport_request.
+
+    IF gi_exit IS NOT INITIAL.
+      TRY.
+          gi_exit->determine_transport_request(
+            EXPORTING
+              io_repo              = io_repo
+              iv_transport_type    = iv_transport_type
+            CHANGING
+              cv_transport_request = cv_transport_request ).
+        CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+      ENDTRY.
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_environment IMPLEMENTATION.
@@ -34088,7 +34131,8 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       zcl_abapgit_apack_helper=>dependencies_popup( lt_dependencies ).
     ENDIF.
 
-    IF cs_checks-transport-required = abap_true.
+    IF  cs_checks-transport-required = abap_true
+    AND cs_checks-transport-transport IS INITIAL.
       cs_checks-transport-transport = zcl_abapgit_ui_factory=>get_popups( )->popup_transport_request(
         is_transport_type = cs_checks-transport-type ).
     ENDIF.
@@ -41469,6 +41513,10 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_form_schema.
 
+    DATA: li_package TYPE REF TO zif_abapgit_sap_package.
+
+    li_package = zcl_abapgit_factory=>get_sap_package( mo_repo->get_package( ) ).
+
     ro_form = zcl_abapgit_html_form=>create(
       iv_form_id   = 'repo-local-settings-form'
       iv_help_page = 'https://docs.abapgit.org/settings-local.html' ).
@@ -41480,8 +41528,17 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
     )->text(
       iv_name        = c_id-display_name
       iv_label       = 'Display Name'
-      iv_hint        = 'Name to show instead of original repo name (optional)'
-    )->text(
+      iv_hint        = 'Name to show instead of original repo name (optional)' ).
+
+    IF li_package->are_changes_recorded_in_tr_req( ) = abap_true.
+      ro_form->text(
+        iv_name        = c_id-transport_request
+        iv_side_action = c_event-choose_transport_request
+        iv_label       = |Transport request|
+        iv_hint        = 'Transport request; All changes are recorded therein and no transport popup appears|' ).
+    ENDIF.
+
+    ro_form->text(
       iv_name        = c_id-labels
       iv_side_action = c_event-choose_labels
       iv_label       = |Labels (comma-separated, allowed chars: "{ zcl_abapgit_repo_labels=>c_allowed_chars }")|
@@ -41534,6 +41591,9 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
       iv_key = c_id-display_name
       iv_val = ms_settings-display_name ).
     mo_form_data->set(
+      iv_key = c_id-transport_request
+      iv_val = ms_settings-transport_request ).
+    mo_form_data->set(
       iv_key = c_id-labels
       iv_val = ms_settings-labels ).
     mo_form_data->set(
@@ -41562,6 +41622,7 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
   METHOD save_settings.
 
     ms_settings-display_name                 = mo_form_data->get( c_id-display_name ).
+    ms_settings-transport_request            = mo_form_data->get( c_id-transport_request ).
     ms_settings-labels                       = zcl_abapgit_repo_labels=>normalize( mo_form_data->get( c_id-labels ) ).
     ms_settings-ignore_subpackages           = mo_form_data->get( c_id-ignore_subpackages ).
     ms_settings-main_language_only           = mo_form_data->get( c_id-main_language_only ).
@@ -41582,10 +41643,22 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
   METHOD validate_form.
 
     DATA:
-      lx_error         TYPE REF TO zcx_abapgit_exception,
-      lv_check_variant TYPE sci_chkv.
+      lx_error             TYPE REF TO zcx_abapgit_exception,
+      lv_transport_request TYPE trkorr,
+      lv_check_variant     TYPE sci_chkv.
 
     ro_validation_log = mo_form_util->validate( io_form_data ).
+
+    lv_transport_request = io_form_data->get( c_id-transport_request ).
+    IF lv_transport_request IS NOT INITIAL.
+      TRY.
+          zcl_abapgit_transport=>validate_transport_request( lv_transport_request ).
+        CATCH zcx_abapgit_exception INTO lx_error.
+          ro_validation_log->set(
+            iv_key = c_id-transport_request
+            iv_val = lx_error->get_text( ) ).
+      ENDTRY.
+    ENDIF.
 
     lv_check_variant = to_upper( io_form_data->get( c_id-code_inspector_check_variant ) ).
     IF lv_check_variant IS NOT INITIAL.
@@ -41620,6 +41693,11 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-go_back.
         rs_handled-state = mo_form_util->exit( mo_form_data ).
+
+      WHEN c_event-choose_transport_request.
+
+        choose_transport_request( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN c_event-choose_labels.
 
@@ -41692,6 +41770,19 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
       mo_form_data->set(
         iv_key = c_id-code_inspector_check_variant
         iv_val = lv_check_variant ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD choose_transport_request.
+
+    DATA: lv_transport_request TYPE trkorr.
+
+    lv_transport_request = zcl_abapgit_ui_factory=>get_popups( )->popup_transport_request( ).
+
+    IF lv_transport_request IS NOT INITIAL.
+      mo_form_data->set(
+          iv_key = c_id-transport_request
+          iv_val = lv_transport_request ).
     ENDIF.
 
   ENDMETHOD.
@@ -103803,6 +103894,12 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_objects_check IMPLEMENTATION.
+
+  METHOD class_constructor.
+
+    gi_exit = zcl_abapgit_exit=>get_instance( ).
+
+  ENDMETHOD.
   METHOD checks_adjust.
 
     warning_overwrite_adjust(
@@ -103838,6 +103935,9 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
       rs_checks-transport-required = li_package->are_changes_recorded_in_tr_req( ).
       IF NOT rs_checks-transport-required IS INITIAL.
         rs_checks-transport-type = li_package->get_transport_type( ).
+        rs_checks-transport-transport = determine_transport_request(
+                                            io_repo           = io_repo
+                                            iv_transport_type = rs_checks-transport-type ).
       ENDIF.
     ENDIF.
 
@@ -104026,6 +104126,21 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
     rt_overwrite = lt_overwrite_unique.
 
   ENDMETHOD.
+  METHOD determine_transport_request.
+
+    " Use transport from repo settings if maintained, or determine via user exit.
+    " If transport keeps empty here, it'll requested later via popup.
+    rv_transport_request = io_repo->get_local_settings( )-transport_request.
+
+    gi_exit->determine_transport_request(
+      EXPORTING
+        io_repo              = io_repo
+        iv_transport_type    = iv_transport_type
+      CHANGING
+        cv_transport_request = rv_transport_request ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
@@ -114544,6 +114659,34 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
     lt_requests = read_requests( it_transport_headers ).
     rt_tadir = resolve( lt_requests ).
   ENDMETHOD.
+  METHOD validate_transport_request.
+
+    CONSTANTS:
+      BEGIN OF c_tr_status,
+        modifiable                   TYPE trstatus VALUE 'D',
+        modifiable_protected         TYPE trstatus VALUE 'L',
+        release_started              TYPE trstatus VALUE 'O',
+        released                     TYPE trstatus VALUE 'R',
+        released_with_import_protect TYPE trstatus VALUE 'N', " Released (with Import Protection for Repaired Objects)
+      END OF c_tr_status.
+
+    DATA:
+      ls_trkorr  TYPE trwbo_request_header,
+      ls_request TYPE trwbo_request,
+      lv_text    TYPE string.
+
+    ls_trkorr-trkorr = iv_transport_request.
+
+    ls_request = read( ls_trkorr ).
+
+    IF  ls_request-h-trstatus <> c_tr_status-modifiable
+    AND ls_request-h-trstatus <> c_tr_status-modifiable_protected.
+      " Task/request &1 has already been released
+      MESSAGE e064(tk) WITH iv_transport_request INTO lv_text.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zip.
 
     DATA: lt_requests       TYPE trwbo_requests,
@@ -116486,6 +116629,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-06T21:45:14.622Z
+* abapmerge 0.14.8 - 2022-12-08T13:46:04.137Z
 ENDINTERFACE.
 ****************************************************
