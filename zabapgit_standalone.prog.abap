@@ -4190,6 +4190,9 @@ INTERFACE zif_abapgit_repo_online .
       !iv_from TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
     RAISING
       zcx_abapgit_exception .
+  METHODS check_for_valid_branch
+    RAISING
+      zcx_abapgit_exception .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_repo_srv .
@@ -18662,6 +18665,10 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
           PREFERRED PARAMETER iv_authorization
       RETURNING
         VALUE(rv_crossout) LIKE zif_abapgit_html=>c_html_opt-crossout.
+
+    METHODS check_branch
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_run_bckg DEFINITION
@@ -43395,6 +43402,16 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       iv_act = c_actions-toggle_folders ).
 
   ENDMETHOD.
+  METHOD check_branch.
+
+    DATA lo_repo TYPE REF TO zif_abapgit_repo_online.
+
+    IF mo_repo->is_offline( ) = abap_false.
+      lo_repo ?= mo_repo.
+      lo_repo->check_for_valid_branch( ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD constructor.
 
     DATA: lo_settings         TYPE REF TO zcl_abapgit_settings,
@@ -43602,6 +43619,8 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     TRY.
         " Reinit, for the case of type change
         mo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
+
+        check_branch( ).
 
         mv_are_changes_recorded_in_tr = zcl_abapgit_factory=>get_sap_package( mo_repo->get_package( )
           )->are_changes_recorded_in_tr_req( ).
@@ -55764,6 +55783,37 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_objects.
     mt_objects = it_objects.
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_online~check_for_valid_branch.
+
+    DATA:
+      lo_branch_list TYPE REF TO zcl_abapgit_git_branch_list,
+      lv_branch      TYPE string,
+      lv_head        TYPE string,
+      lv_msg         TYPE string.
+
+    lv_branch = get_selected_branch( ).
+
+    IF lv_branch IS NOT INITIAL.
+      lo_branch_list = zcl_abapgit_git_transport=>branches( get_url( ) ).
+
+      TRY.
+          lo_branch_list->find_by_name( lv_branch ).
+        CATCH zcx_abapgit_exception.
+          " branch does not exist, fallback to head
+          lv_head = lo_branch_list->get_head_symref( ).
+          IF lo_branch_list->get_type( lv_branch ) = zif_abapgit_definitions=>c_git_branch_type-branch.
+            lv_msg = 'Branch'.
+          ELSE.
+            lv_msg = 'Tag'.
+          ENDIF.
+          lv_msg = |{ lv_msg } { lo_branch_list->get_display_name( lv_branch ) } does not exist.|
+                && | Switched to { lo_branch_list->get_display_name( lv_head ) }|.
+          MESSAGE lv_msg TYPE 'S'.
+          select_branch( lv_head ).
+      ENDTRY.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_repo_online~create_branch.
 
@@ -116629,6 +116679,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-08T21:23:44.866Z
+* abapmerge 0.14.8 - 2022-12-09T20:05:12.616Z
 ENDINTERFACE.
 ****************************************************
