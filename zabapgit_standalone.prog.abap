@@ -6362,6 +6362,13 @@ CLASS zcl_abapgit_git_url DEFINITION
         VALUE(rv_url) TYPE string
       RAISING
         zcx_abapgit_exception .
+
+    METHODS validate_url
+      IMPORTING
+        !iv_url TYPE string
+      RAISING
+        zcx_abapgit_exception.
+
   PROTECTED SECTION.
 
     METHODS get_default_commit_display_url
@@ -40882,6 +40889,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     DATA:
       lx_error                 TYPE REF TO zcx_abapgit_exception,
       lo_branch_list           TYPE REF TO zcl_abapgit_git_branch_list,
+      lo_url                   TYPE REF TO zcl_abapgit_git_url,
       lv_offline               TYPE abap_bool,
       lv_head_type             TYPE ty_head_type,
       lv_branch                TYPE ty_remote_settings-branch,
@@ -40909,6 +40917,10 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
           zcl_abapgit_url=>name(
             iv_url      = lv_url
             iv_validate = abap_true ).
+
+          " Provider-specific URL check
+          CREATE OBJECT lo_url.
+          lo_url->validate_url( lv_url ).
         CATCH zcx_abapgit_exception INTO lx_error.
           ro_validation_log->set(
             iv_key = c_id-url
@@ -49011,6 +49023,21 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
+  METHOD choose_labels.
+
+    DATA:
+      lv_old_labels TYPE string,
+      lv_new_labels TYPE string.
+
+    lv_old_labels = mo_form_data->get( c_id-labels ).
+
+    lv_new_labels = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_labels( lv_old_labels ).
+
+    mo_form_data->set(
+      iv_key = c_id-labels
+      iv_val = lv_new_labels ).
+
+  ENDMETHOD.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -49101,13 +49128,21 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
   ENDMETHOD.
   METHOD validate_form.
 
-    DATA lx_err TYPE REF TO zcx_abapgit_exception.
+    DATA:
+      lv_url TYPE string,
+      lo_url TYPE REF TO zcl_abapgit_git_url,
+      lx_err TYPE REF TO zcx_abapgit_exception.
 
     ro_validation_log = mo_form_util->validate( io_form_data ).
 
-    IF io_form_data->get( c_id-url ) IS NOT INITIAL.
+    lv_url = io_form_data->get( c_id-url ).
+    IF lv_url IS NOT INITIAL.
       TRY.
-          zcl_abapgit_repo_srv=>get_instance( )->validate_url( io_form_data->get( c_id-url ) ).
+          zcl_abapgit_repo_srv=>get_instance( )->validate_url( lv_url ).
+
+          " Provider-specific URL check
+          CREATE OBJECT lo_url.
+          lo_url->validate_url( lv_url ).
         CATCH zcx_abapgit_exception INTO lx_err.
           ro_validation_log->set(
             iv_key = c_id-url
@@ -49241,22 +49276,6 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
       io_validation_log = mo_validation_log ) ).
     ri_html->add( '</div>' ).
   ENDMETHOD.
-  METHOD choose_labels.
-
-    DATA:
-      lv_old_labels TYPE string,
-      lv_new_labels TYPE string.
-
-    lv_old_labels = mo_form_data->get( c_id-labels ).
-
-    lv_new_labels = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_labels( lv_old_labels ).
-
-    mo_form_data->set(
-      iv_key = c_id-labels
-      iv_val = lv_new_labels ).
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
@@ -111311,7 +111330,7 @@ CLASS ZCL_ABAPGIT_PR_ENUM_GITHUB IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GIT_URL IMPLEMENTATION.
+CLASS zcl_abapgit_git_url IMPLEMENTATION.
   METHOD get_commit_display_url.
 
     DATA li_exit TYPE REF TO zif_abapgit_exit.
@@ -111358,6 +111377,26 @@ CLASS ZCL_ABAPGIT_GIT_URL IMPLEMENTATION.
           REPLACE REGEX '\.git$' IN rv_commit_url WITH space.
           rv_commit_url = rv_commit_url && |/-/commit/| && iv_hash.
       ENDCASE.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD validate_url.
+
+    DATA lv_provider TYPE string.
+
+    lv_provider = zcl_abapgit_url=>host( to_lower( iv_url ) ).
+
+    " Provider-specific check for URLs that don't work
+    IF lv_provider CS 'gitlab.com'.
+      FIND REGEX '\.git$' IN iv_url IGNORING CASE.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'Repo URL for GitLab must end in ".git"' ).
+      ENDIF.
+    ELSEIF lv_provider CS 'dev.azure.com'.
+      FIND REGEX '\.git$' IN iv_url IGNORING CASE.
+      IF sy-subrc = 0.
+        zcx_abapgit_exception=>raise( 'Repo URL for Azure DevOps must not end in ".git"' ).
+      ENDIF.
     ENDIF.
 
   ENDMETHOD.
@@ -116679,6 +116718,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-12T14:17:48.912Z
+* abapmerge 0.14.8 - 2022-12-12T15:23:08.350Z
 ENDINTERFACE.
 ****************************************************
