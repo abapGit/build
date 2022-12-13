@@ -30966,6 +30966,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.dialog li.dialog-commands input[type="submit"] {' ).
     lo_buf->add( '  border-color: #ccc;' ).
     lo_buf->add( '  background-color: var(--theme-greyscale-dark);' ).
+    lo_buf->add( '  color: #fff;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog li.dialog-commands input[type="submit"].main {' ).
     lo_buf->add( '  background-color: #64a8ff;' ).
@@ -30989,7 +30990,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  background-color: var(--theme-greyscale-dark);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog .radio-container input[type="radio"] + label {' ).
-    lo_buf->add( '  color: #808080;' ).
+    lo_buf->add( '  color: #fff;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog .radio-container input[type="radio"]:checked + label {' ).
     lo_buf->add( '  background-color: #64a8ff;' ).
@@ -31007,13 +31008,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  color: var(--theme-primary-font-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog input:read-only {' ).
-    lo_buf->add( '  background-color: var(--theme-greyscale-medium);' ).
-    lo_buf->add( '  color: var(--theme-greyscale-dark);' ).
+    lo_buf->add( '  background-color: var(--theme-greyscale-dark);' ).
+    lo_buf->add( '  color: var(--theme-greyscale-medium);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '/* for IE */' ).
     lo_buf->add( '.dialog input[readonly] {' ).
-    lo_buf->add( '  background-color: var(--theme-greyscale-medium);' ).
-    lo_buf->add( '  color: var(--theme-greyscale-dark);' ).
+    lo_buf->add( '  background-color: var(--theme-greyscale-dark);' ).
+    lo_buf->add( '  color: var(--theme-greyscale-medium);' ).
     lo_buf->add( '}' ).
     lo_asset_man->register_asset(
       iv_url       = 'css/theme-dark.css'
@@ -116721,6 +116722,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-13T15:31:19.904Z
+* abapmerge 0.14.8 - 2022-12-13T16:33:46.338Z
 ENDINTERFACE.
 ****************************************************
