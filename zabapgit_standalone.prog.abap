@@ -71066,6 +71066,8 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
         style    = lv_style
         language = '*'.
 
+    corr_insert( iv_package ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -71082,6 +71084,8 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
         tabs         = ls_style-tabs.
 
     tadir_insert( iv_package ).
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -77989,6 +77993,8 @@ CLASS zcl_abapgit_object_saxx_super IMPLEMENTATION.
       CATCH cx_swb_exception.
         zcx_abapgit_exception=>raise( |Error occured while deleting { ms_item-obj_type }| ).
     ENDTRY.
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -91432,6 +91438,8 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -116722,6 +116730,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-13T16:33:46.338Z
+* abapmerge 0.14.8 - 2022-12-13T23:03:41.001Z
 ENDINTERFACE.
 ****************************************************
