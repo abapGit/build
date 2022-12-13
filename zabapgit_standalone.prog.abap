@@ -44148,7 +44148,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
     ls_hotkey_action-ui_component = 'Repo'.
 
-    ls_hotkey_action-description   = |Stage Changes|.
+    ls_hotkey_action-description   = |Stage|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_stage.
     ls_hotkey_action-hotkey = |s|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
@@ -44171,6 +44171,11 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ls_hotkey_action-description   = |Pull|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-git_pull.
     ls_hotkey_action-hotkey = |p|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description = |Patch|.
+    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_patch.
+    ls_hotkey_action-hotkey = |a|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
     ls_hotkey_action-description   = |Diff|.
@@ -44240,7 +44245,7 @@ CLASS kHGwlZbCwKVqbmulVBzOHKguCDENGa IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   METHOD apply_filter.
 
     DATA lv_pfxl TYPE i.
@@ -44943,7 +44948,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
 
     ls_hotkey_action-description = |Patch|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_patch.
-    ls_hotkey_action-hotkey = |p|.
+    ls_hotkey_action-hotkey = |a|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
     " registered/handled in js
@@ -44962,7 +44967,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
     ls_hotkey_action-hotkey = |Enter|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
-    ls_hotkey_action-description = |Focus filter|.
+    ls_hotkey_action-description = |Focus Filter|.
     ls_hotkey_action-action = `####`.
     ls_hotkey_action-hotkey = |f|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
@@ -47407,7 +47412,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     ri_html->add( 'var gGoJumpPalette = new CommandPalette(enumerateJumpAllFiles, {' ).
     ri_html->add( '  toggleKey: "F2",' ).
-    ri_html->add( '  hotkeyDescription: "Jump to file ..."' ).
+    ri_html->add( '  hotkeyDescription: "Jump to File ..."' ).
     ri_html->add( '});' ).
 
     " Feature for selecting ABAP code by column and copy to clipboard
@@ -49756,7 +49761,6 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_hotkey_ctl IMPLEMENTATION.
-
   METHOD constructor.
 
     super->constructor( ).
@@ -49801,7 +49805,7 @@ CLASS zcl_abapgit_gui_hotkey_ctl IMPLEMENTATION.
 
     ls_hotkey-ui_component = 'Hotkeys'.
     ls_hotkey-action       = c_showhotkeys_action.
-    ls_hotkey-description  = 'Show hotkeys help'.
+    ls_hotkey-description  = 'Show Hotkeys Help'.
     ls_hotkey-hotkey       = '?'.
     INSERT ls_hotkey INTO TABLE rt_hotkey_actions.
 
@@ -49832,6 +49836,11 @@ CLASS zcl_abapgit_gui_hotkey_ctl IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_hotkey_ctl~reset.
     CLEAR mt_hotkeys.
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_hotkey_ctl~set_visible.
+
+    mv_visible = iv_visible.
+
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
@@ -49908,12 +49917,6 @@ CLASS zcl_abapgit_gui_hotkey_ctl IMPLEMENTATION.
     mv_visible = abap_false.
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_hotkey_ctl~set_visible.
-
-    mv_visible = iv_visible.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
@@ -49947,7 +49950,7 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
+CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD advanced_submenu.
 
     DATA lv_supports_ie_devtools TYPE abap_bool.
@@ -50641,7 +50644,7 @@ CLASS ZCL_ABAPGIT_GUI_CHUNK_LIB IMPLEMENTATION.
     ri_html->add( |var gGoRepoPalette = new CommandPalette(createRepoCatalogEnumerator(repoCatalog, "{
       iv_action }"), \{| ).
     ri_html->add( '  toggleKey: "F2",' ).
-    ri_html->add( '  hotkeyDescription: "Go to repo ..."' ).
+    ri_html->add( '  hotkeyDescription: "Go to Repository ..."' ).
     ri_html->add( '});' ).
 
   ENDMETHOD.
@@ -116718,6 +116721,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-13T14:19:46.379Z
+* abapmerge 0.14.8 - 2022-12-13T15:31:19.904Z
 ENDINTERFACE.
 ****************************************************
