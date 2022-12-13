@@ -47217,10 +47217,10 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
         " Get line where diff really starts
         READ TABLE lt_diffs ASSIGNING <ls_diff_line> INDEX lv_tabix + 8.
         IF sy-subrc <> 0.
-          <ls_diff_line> = <ls_diff>.
+          ASSIGN <ls_diff_line> TO <ls_diff>.
         ENDIF.
         ri_html->add( render_beacon( is_diff_line = <ls_diff_line>
-                                     is_diff = is_diff ) ).
+                                     is_diff      = is_diff ) ).
         lv_insert_nav = abap_false.
       ENDIF.
 
@@ -116718,6 +116718,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-12T15:23:08.350Z
+* abapmerge 0.14.8 - 2022-12-13T14:19:46.379Z
 ENDINTERFACE.
 ****************************************************
