@@ -107394,7 +107394,6 @@ CLASS ZCL_ABAPGIT_JSON_HANDLER IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_aff_registry IMPLEMENTATION.
-
   METHOD constructor.
     IF io_settings IS SUPPLIED.
       mo_settings = io_settings.
@@ -107402,7 +107401,24 @@ CLASS zcl_abapgit_aff_registry IMPLEMENTATION.
       mo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
     ENDIF.
   ENDMETHOD.
+  METHOD initialize_registry_table.
+    register( iv_obj_type = 'CHKC' ).
+    register( iv_obj_type = 'CHKO' ).
+    register( iv_obj_type = 'CHKV' ).
+    register( iv_obj_type = 'EVTB' ).
+    register( iv_obj_type     = 'INTF'
+              iv_experimental = abap_true ).
+    register( iv_obj_type = 'SMBC' ).
+    register( iv_obj_type = 'NONT' ).
+    register( iv_obj_type = 'RONT' ).
+  ENDMETHOD.
+  METHOD register.
+    DATA ls_registry_entry TYPE ty_registry_entry.
 
+    ls_registry_entry-obj_type = iv_obj_type.
+    ls_registry_entry-experimental = iv_experimental.
+    INSERT ls_registry_entry INTO TABLE gt_registry.
+  ENDMETHOD.
   METHOD zif_abapgit_aff_registry~is_supported_object_type.
 
     DATA ls_registry_entry TYPE ty_registry_entry.
@@ -107420,25 +107436,6 @@ CLASS zcl_abapgit_aff_registry IMPLEMENTATION.
       rv_result = abap_false.
     ENDIF.
   ENDMETHOD.
-
-  METHOD initialize_registry_table.
-    register( iv_obj_type = 'CHKC' ).
-    register( iv_obj_type = 'CHKO' ).
-    register( iv_obj_type = 'CHKV' ).
-    register( iv_obj_type = 'EVTB' ).
-    register( iv_obj_type     = 'INTF'
-              iv_experimental = abap_true ).
-    register( iv_obj_type = 'SMBC' ).
-  ENDMETHOD.
-
-  METHOD register.
-    DATA ls_registry_entry TYPE ty_registry_entry.
-
-    ls_registry_entry-obj_type = iv_obj_type.
-    ls_registry_entry-experimental = iv_experimental.
-    INSERT ls_registry_entry INTO TABLE gt_registry.
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_ajson_utilities IMPLEMENTATION.
@@ -116730,6 +116727,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-13T23:03:41.001Z
+* abapmerge 0.14.8 - 2022-12-14T14:56:52.984Z
 ENDINTERFACE.
 ****************************************************
