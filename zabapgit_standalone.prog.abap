@@ -58536,7 +58536,11 @@ CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
 
     DATA lv_data LIKE iv_data.
 
-    lv_data = validate_and_unprettify_xml( iv_data ).
+    IF iv_data CS '<?xml'.
+      lv_data = validate_and_unprettify_xml( iv_data ).
+    ELSE.
+      lv_data = iv_data.
+    ENDIF.
 
     lock( iv_type  = iv_type
           iv_value = iv_value ).
@@ -116712,6 +116716,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-14T18:11:31.716Z
+* abapmerge 0.14.8 - 2022-12-14T21:10:52.891Z
 ENDINTERFACE.
 ****************************************************
