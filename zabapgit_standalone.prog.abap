@@ -105904,7 +105904,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_FILE_DESERIALIZE IMPLEMENTATION.
+CLASS zcl_abapgit_file_deserialize IMPLEMENTATION.
   METHOD filter_files_to_deserialize.
 
     DATA lt_objects LIKE rt_results.
@@ -106098,7 +106098,7 @@ CLASS ZCL_ABAPGIT_FILE_DESERIALIZE IMPLEMENTATION.
           DELETE lt_requires WHERE obj_type <> 'ENHO'.
         WHEN 'ENHO'.
           lt_requires = lt_items.
-          DELETE lt_requires WHERE obj_type <> 'ENSC'.
+          DELETE lt_requires WHERE obj_type <> 'ENSC' AND obj_type <> 'ENHS'.
         WHEN 'ENSC'.
           lt_requires = lt_items.
           DELETE lt_requires WHERE obj_type <> 'ENHS'.
@@ -116716,6 +116716,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-14T21:10:52.891Z
+* abapmerge 0.14.8 - 2022-12-15T02:19:17.052Z
 ENDINTERFACE.
 ****************************************************
