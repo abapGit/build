@@ -4397,6 +4397,7 @@ INTERFACE zif_abapgit_repo_srv .
       !iv_package        TYPE devclass
       !iv_folder_logic   TYPE string DEFAULT zif_abapgit_dot_abapgit=>c_folder_logic-full
       !iv_labels         TYPE string OPTIONAL
+      !iv_ign_subpkg     TYPE abap_bool DEFAULT abap_false
       !iv_main_lang_only TYPE abap_bool DEFAULT abap_false
     RETURNING
       VALUE(ri_repo)     TYPE REF TO zif_abapgit_repo
@@ -17817,11 +17818,12 @@ CLASS zcl_abapgit_gui_page_addofflin DEFINITION
 
     CONSTANTS:
       BEGIN OF c_id,
-        url            TYPE string VALUE 'url',
-        package        TYPE string VALUE 'package',
-        folder_logic   TYPE string VALUE 'folder_logic',
-        labels         TYPE string VALUE 'labels',
-        main_lang_only TYPE string VALUE 'main_lang_only',
+        url                TYPE string VALUE 'url',
+        package            TYPE string VALUE 'package',
+        folder_logic       TYPE string VALUE 'folder_logic',
+        labels             TYPE string VALUE 'labels',
+        ignore_subpackages TYPE string VALUE 'ignore_subpackages',
+        main_lang_only     TYPE string VALUE 'main_lang_only',
       END OF c_id .
 
     CONSTANTS:
@@ -47290,6 +47292,21 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
+  METHOD choose_labels.
+
+    DATA:
+      lv_old_labels TYPE string,
+      lv_new_labels TYPE string.
+
+    lv_old_labels = mo_form_data->get( c_id-labels ).
+
+    lv_new_labels = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_labels( lv_old_labels ).
+
+    mo_form_data->set(
+      iv_key = c_id-labels
+      iv_val = lv_new_labels ).
+
+  ENDMETHOD.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -47347,6 +47364,10 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
       iv_label       = |Labels (comma-separated, allowed chars: "{ zcl_abapgit_repo_labels=>c_allowed_chars }")|
       iv_hint        = 'Comma-separated labels for grouping and repo organization (optional)'
     )->checkbox(
+      iv_name        = c_id-ignore_subpackages
+      iv_label       = 'Ignore Subpackages'
+      iv_hint        = 'Synchronize root package only'
+    )->checkbox(
       iv_name        = c_id-main_lang_only
       iv_label       = 'Serialize Main Language Only'
       iv_hint        = 'Ignore translations, serialize just main language'
@@ -47370,7 +47391,9 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
 
     IF io_form_data->get( c_id-package ) IS NOT INITIAL.
       TRY.
-          zcl_abapgit_repo_srv=>get_instance( )->validate_package( |{ io_form_data->get( c_id-package ) }| ).
+          zcl_abapgit_repo_srv=>get_instance( )->validate_package(
+            iv_package    = |{ io_form_data->get( c_id-package ) }|
+            iv_ign_subpkg = |{ io_form_data->get( c_id-ignore_subpackages ) }| ).
         CATCH zcx_abapgit_exception INTO lx_err.
           ro_validation_log->set(
             iv_key = c_id-package
@@ -47467,22 +47490,6 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
     ri_html->add( '</div>' ).
 
   ENDMETHOD.
-  METHOD choose_labels.
-
-    DATA:
-      lv_old_labels TYPE string,
-      lv_new_labels TYPE string.
-
-    lv_old_labels = mo_form_data->get( c_id-labels ).
-
-    lv_new_labels = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_labels( lv_old_labels ).
-
-    mo_form_data->set(
-      iv_key = c_id-labels
-      iv_val = lv_new_labels ).
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page IMPLEMENTATION.
@@ -54470,6 +54477,36 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     zcx_abapgit_exception=>raise( |Repository not found in database. Key: REPO, { iv_key }| ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_repo_srv~get_label_list.
+
+    DATA:
+      lt_repo           TYPE zif_abapgit_repo_srv=>ty_repo_list,
+      ls_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings,
+      lt_labels         TYPE string_table,
+      ls_label          LIKE LINE OF rt_labels.
+
+    FIELD-SYMBOLS:
+      <ls_repo>  TYPE REF TO zif_abapgit_repo,
+      <lv_label> TYPE LINE OF string_table.
+
+    lt_repo = zif_abapgit_repo_srv~list( ).
+
+    LOOP AT lt_repo ASSIGNING <ls_repo>.
+
+      ls_local_settings = <ls_repo>->get_local_settings( ).
+      lt_labels = zcl_abapgit_repo_labels=>split( ls_local_settings-labels ).
+
+      LOOP AT lt_labels ASSIGNING <lv_label>.
+        ls_label-label = <lv_label>.
+        INSERT ls_label INTO TABLE rt_labels.
+      ENDLOOP.
+
+    ENDLOOP.
+
+    SORT rt_labels.
+    DELETE ADJACENT DUPLICATES FROM rt_labels.
+
+  ENDMETHOD.
   METHOD zif_abapgit_repo_srv~get_repo_from_package.
 
     DATA:
@@ -54613,7 +54650,9 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
     ENDIF.
 
-    zif_abapgit_repo_srv~validate_package( iv_package ).
+    zif_abapgit_repo_srv~validate_package(
+      iv_package    = iv_package
+      iv_ign_subpkg = iv_ign_subpkg ).
 
     IF iv_url IS INITIAL.
       zcx_abapgit_exception=>raise( 'Missing display name for repo' ).
@@ -54637,8 +54676,12 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
     lo_repo ?= instantiate_and_add( ls_repo ).
 
+    IF ls_repo-local_settings-ignore_subpackages <> iv_ign_subpkg.
+      ls_repo-local_settings-ignore_subpackages = iv_ign_subpkg.
+    ENDIF.
     ls_repo-local_settings-main_language_only = iv_main_lang_only.
     ls_repo-local_settings-labels = iv_labels.
+
     lo_repo->set_local_settings( ls_repo-local_settings ).
     lo_repo->check_and_create_package( iv_package ).
 
@@ -54662,8 +54705,9 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
     ENDIF.
 
-    zif_abapgit_repo_srv~validate_package( iv_package    = iv_package
-                      iv_ign_subpkg = iv_ign_subpkg ).
+    zif_abapgit_repo_srv~validate_package(
+      iv_package    = iv_package
+      iv_ign_subpkg = iv_ign_subpkg ).
 
     zif_abapgit_repo_srv~validate_url( lv_url ).
 
@@ -54681,6 +54725,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       iv_package      = iv_package
       iv_offline      = abap_false
       is_dot_abapgit  = ls_dot_abapgit ).
+
     TRY.
         ls_repo = zcl_abapgit_persist_factory=>get_repo( )->read( lv_key ).
       CATCH zcx_abapgit_not_found.
@@ -54694,8 +54739,8 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     ENDIF.
     ls_repo-local_settings-main_language_only = iv_main_lang_only.
     ls_repo-local_settings-labels = iv_labels.
-    lo_repo->set_local_settings( ls_repo-local_settings ).
 
+    lo_repo->set_local_settings( ls_repo-local_settings ).
     lo_repo->refresh( ).
     lo_repo->find_remote_dot_abapgit( ).
     lo_repo->check_and_create_package( iv_package ).
@@ -54791,37 +54836,6 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_repo_srv~get_label_list.
-
-    DATA:
-      lt_repo           TYPE zif_abapgit_repo_srv=>ty_repo_list,
-      ls_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings,
-      lt_labels         TYPE string_table,
-      ls_label          LIKE LINE OF rt_labels.
-
-    FIELD-SYMBOLS:
-      <ls_repo>  TYPE REF TO zif_abapgit_repo,
-      <lv_label> TYPE LINE OF string_table.
-
-    lt_repo = zif_abapgit_repo_srv~list( ).
-
-    LOOP AT lt_repo ASSIGNING <ls_repo>.
-
-      ls_local_settings = <ls_repo>->get_local_settings( ).
-      lt_labels = zcl_abapgit_repo_labels=>split( ls_local_settings-labels ).
-
-      LOOP AT lt_labels ASSIGNING <lv_label>.
-        ls_label-label = <lv_label>.
-        INSERT ls_label INTO TABLE rt_labels.
-      ENDLOOP.
-
-    ENDLOOP.
-
-    SORT rt_labels.
-    DELETE ADJACENT DUPLICATES FROM rt_labels.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_repo_online IMPLEMENTATION.
@@ -55403,8 +55417,10 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_repo_item> LIKE LINE OF rt_repo_items,
                    <ls_tadir>     LIKE LINE OF lt_tadir.
     lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
-      iv_package = mo_repo->get_package( )
-      io_dot     = mo_repo->get_dot_abapgit( ) ).
+      iv_package            = mo_repo->get_package( )
+      iv_ignore_subpackages = mo_repo->get_local_settings( )-ignore_subpackages
+      iv_only_local_objects = mo_repo->get_local_settings( )-only_local_objects
+      io_dot                = mo_repo->get_dot_abapgit( ) ).
 
     LOOP AT lt_tadir ASSIGNING <ls_tadir>.
       APPEND INITIAL LINE TO rt_repo_items ASSIGNING <ls_repo_item>.
@@ -116738,6 +116754,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-15T17:22:42.750Z
+* abapmerge 0.14.8 - 2022-12-15T17:44:39.162Z
 ENDINTERFACE.
 ****************************************************
