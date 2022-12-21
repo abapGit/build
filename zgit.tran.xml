@@ -17,7 +17,7 @@
    <TSTCT>
     <SPRSL>E</SPRSL>
     <TCODE>ZGIT</TCODE>
-    <TTEXT>abapGit</TTEXT>
+    <TTEXT>abapGit (standalone)</TTEXT>
    </TSTCT>
   </asx:values>
  </asx:abap>
