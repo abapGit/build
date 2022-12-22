@@ -3167,9 +3167,10 @@ INTERFACE zif_abapgit_data_config .
     ty_data_type TYPE c LENGTH 4 .
   TYPES:
     BEGIN OF ty_config,
-      type  TYPE ty_data_type,
-      name  TYPE tadir-obj_name,
-      where TYPE string_table,
+      type         TYPE ty_data_type,
+      name         TYPE tadir-obj_name,
+      skip_initial TYPE abap_bool,
+      where        TYPE string_table,
     END OF ty_config .
   TYPES:
     ty_config_tt TYPE SORTED TABLE OF ty_config WITH UNIQUE KEY type name .
@@ -5617,9 +5618,10 @@ CLASS zcl_abapgit_data_serializer DEFINITION
 
     METHODS convert_itab_to_json
       IMPORTING
-        !ir_data       TYPE REF TO data
+        !ir_data         TYPE REF TO data
+        !iv_skip_initial TYPE abap_bool
       RETURNING
-        VALUE(rv_data) TYPE xstring
+        VALUE(rv_data)   TYPE xstring
       RAISING
         zcx_abapgit_exception .
     METHODS read_database_table
@@ -18177,8 +18179,9 @@ CLASS zcl_abapgit_gui_page_data DEFINITION
 
     CONSTANTS:
       BEGIN OF c_id,
-        table TYPE string VALUE 'table',
-        where TYPE string VALUE 'where',
+        table        TYPE string VALUE 'table',
+        where        TYPE string VALUE 'where',
+        skip_initial TYPE string VALUE 'skip_initial',
       END OF c_id .
 
     DATA mi_config TYPE REF TO zif_abapgit_data_config .
@@ -45991,6 +45994,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
 
     ls_config-type = zif_abapgit_data_config=>c_data_type-tabu.
     ls_config-name = to_upper( lo_map->get( c_id-table ) ).
+    ls_config-skip_initial = lo_map->get( c_id-skip_initial ).
     ls_config-where = build_where( lo_map ).
 
     mi_config->add_config( ls_config ).
@@ -46018,6 +46022,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
 
     ls_config-type = zif_abapgit_data_config=>c_data_type-tabu.
     ls_config-name = to_upper( lo_map->get( c_id-table ) ).
+    ls_config-skip_initial = lo_map->has( to_upper( c_id-skip_initial ) ).
     ls_config-where = build_where( lo_map ).
 
     mi_config->update_config( ls_config ).
@@ -46036,10 +46041,16 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
       iv_label    = 'Table'
       iv_name     = c_id-table
       iv_required = abap_true ).
+
+    lo_form->checkbox(
+      iv_label = 'Skip initial values'
+      iv_name  = c_id-skip_initial ).
+
     lo_form->textarea(
       iv_label       = 'Where'
       iv_placeholder = 'Conditions separated by newline'
       iv_name        = c_id-where ).
+
     lo_form->command(
       iv_label       = 'Add'
       iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
@@ -46079,6 +46090,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
         iv_label    = 'Table'
         iv_name     = c_id-table
         iv_readonly = abap_true ).
+
+      lo_form_data->set(
+        iv_key = c_id-skip_initial
+        iv_val = ls_config-skip_initial ).
+      lo_form->checkbox(
+        iv_label = 'Skip initial values'
+        iv_name  = c_id-skip_initial ).
 
       lo_form_data->set(
         iv_key = c_id-where
@@ -113725,9 +113743,9 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
   METHOD convert_itab_to_json.
 
-    DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
+    DATA lo_ajson  TYPE REF TO zcl_abapgit_ajson.
     DATA lv_string TYPE string.
-    DATA lx_ajson TYPE REF TO zcx_abapgit_ajson_error.
+    DATA lx_ajson  TYPE REF TO zcx_abapgit_ajson_error.
 
     FIELD-SYMBOLS <lg_tab> TYPE ANY TABLE.
 
@@ -113739,6 +113757,13 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
         lo_ajson->set(
           iv_path = '/'
           iv_val = <lg_tab> ).
+
+        IF iv_skip_initial = abap_true.
+          lo_ajson = zcl_abapgit_ajson=>create_from(
+            ii_source_json = lo_ajson
+            ii_filter = zcl_abapgit_ajson_filter_lib=>create_empty_filter( ) ).
+        ENDIF.
+
         lv_string = lo_ajson->stringify( 2 ).
       CATCH zcx_abapgit_ajson_error INTO lx_ajson.
         zcx_abapgit_exception=>raise( lx_ajson->get_text( ) ).
@@ -113797,7 +113822,9 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
         it_where = ls_config-where ).
 
       ls_file-filename = zcl_abapgit_data_utils=>build_filename( ls_config ).
-      ls_file-data = convert_itab_to_json( lr_data ).
+      ls_file-data = convert_itab_to_json(
+        ir_data         = lr_data
+        iv_skip_initial = ls_config-skip_initial ).
       ls_file-sha1 = zcl_abapgit_hash=>sha1_blob( ls_file-data ).
       APPEND ls_file TO rt_files.
     ENDLOOP.
@@ -113989,7 +114016,7 @@ CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_data_config IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
   METHOD dump.
 
     DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
@@ -116720,6 +116747,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-22T15:31:44.855Z
+* abapmerge 0.14.8 - 2022-12-22T15:34:20.816Z
 ENDINTERFACE.
 ****************************************************
