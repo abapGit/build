@@ -2991,7 +2991,6 @@ INTERFACE zif_abapgit_definitions .
       performance_test              TYPE string VALUE 'performance_test',
       ie_devtools                   TYPE string VALUE 'ie_devtools',
       git_pull                      TYPE string VALUE 'git_pull',
-      git_reset                     TYPE string VALUE 'git_reset',
       git_branch_create             TYPE string VALUE 'git_branch_create',
       git_branch_switch             TYPE string VALUE 'git_branch_switch',
       git_branch_delete             TYPE string VALUE 'git_branch_delete',
@@ -20746,11 +20745,6 @@ CLASS zcl_abapgit_services_git DEFINITION
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
       RAISING
         zcx_abapgit_exception.
-    CLASS-METHODS reset
-      IMPORTING
-        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
-      RAISING
-        zcx_abapgit_exception.
     CLASS-METHODS create_branch
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
@@ -20842,8 +20836,7 @@ CLASS zcl_abapgit_services_repo DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS gui_deserialize
       IMPORTING
-        !io_repo      TYPE REF TO zcl_abapgit_repo
-        !iv_reset_all TYPE abap_bool DEFAULT abap_false
+        !io_repo TYPE REF TO zcl_abapgit_repo
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -20858,10 +20851,9 @@ CLASS zcl_abapgit_services_repo DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS popup_decisions
       IMPORTING
-        !io_repo      TYPE REF TO zcl_abapgit_repo
-        !iv_reset_all TYPE abap_bool
+        !io_repo   TYPE REF TO zcl_abapgit_repo
       CHANGING
-        !cs_checks    TYPE zif_abapgit_definitions=>ty_deserialize_checks
+        !cs_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
       RAISING
         zcx_abapgit_cancel
         zcx_abapgit_exception .
@@ -34604,10 +34596,9 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     TRY.
         popup_decisions(
           EXPORTING
-            io_repo      = io_repo
-            iv_reset_all = iv_reset_all
+            io_repo   = io_repo
           CHANGING
-            cs_checks    = ls_checks ).
+            cs_checks = ls_checks ).
 
       CATCH zcx_abapgit_cancel.
         RETURN.
@@ -34694,11 +34685,13 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
 
     lt_decision = cs_checks-overwrite.
 
-    " For regular pull, some objects are automatically handled (see below)
-    IF iv_reset_all IS INITIAL.
-      DELETE lt_decision
-        WHERE action = zif_abapgit_objects=>c_deserialize_action-add
-           OR action = zif_abapgit_objects=>c_deserialize_action-update.
+    " Only if all objects are new/added (like an initial pull),
+    " the objects are handled automatically (see below)
+    LOOP AT lt_decision TRANSPORTING NO FIELDS WHERE action <> zif_abapgit_objects=>c_deserialize_action-add.
+      EXIT.
+    ENDLOOP.
+    IF sy-subrc <> 0.
+      CLEAR lt_decision.
     ENDIF.
 
     " Ask user what to do
@@ -34730,7 +34723,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       IF sy-subrc = 0.
         <ls_overwrite>-decision = <ls_decision>-decision.
       ELSE.
-        " If user was not asked (regular pull), deny deletions and confirm other changes (add and update)
+        " If user was not asked, deny deletions and confirm other changes (add and update)
         CASE <ls_overwrite>-action.
           WHEN zif_abapgit_objects=>c_deserialize_action-delete
             OR zif_abapgit_objects=>c_deserialize_action-delete_add.
@@ -35150,21 +35143,6 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
     lo_repo->refresh( ).
 
     zcl_abapgit_services_repo=>gui_deserialize( lo_repo ).
-
-  ENDMETHOD.
-  METHOD reset.
-
-    DATA lo_repo TYPE REF TO zcl_abapgit_repo.
-
-    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    IF lo_repo->get_local_settings( )-write_protected = abap_true.
-      zcx_abapgit_exception=>raise( 'Cannot pull. Local code is write-protected in repo settings' ).
-    ENDIF.
-
-    zcl_abapgit_services_repo=>gui_deserialize(
-      io_repo      = lo_repo
-      iv_reset_all = abap_true ).
 
   ENDMETHOD.
   METHOD switch_branch.
@@ -35810,9 +35788,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-git_pull.                      " GIT Pull
         zcl_abapgit_services_git=>pull( lv_key ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN zif_abapgit_definitions=>c_action-git_reset.                     " GIT Reset
-        zcl_abapgit_services_git=>reset( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-git_branch_create.             " GIT Create new branch
         zcl_abapgit_services_git=>create_branch( lv_key ).
@@ -40533,12 +40508,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     CREATE OBJECT ro_advanced_dropdown.
 
-    IF mo_repo_aggregated_state->is_unchanged( ) = abap_false. " In case of asyncronicities
-      ro_advanced_dropdown->add( iv_txt = 'Selective Pull'
-                                 iv_act = |{ zif_abapgit_definitions=>c_action-git_reset }?key={ mv_key }|
-                                 iv_opt = get_crossout( iv_protected = abap_true ) ).
-    ENDIF.
-
     IF mo_repo->is_offline( ) = abap_false. " Online ?
       ro_advanced_dropdown->add(
         iv_txt = 'Transport to Branch'
@@ -40682,14 +40651,11 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     IF mo_repo->is_offline( ) = abap_false.
       " online repo
 
-      IF mo_repo_aggregated_state->remote( ) IS NOT INITIAL
-         OR mo_repo_aggregated_state->is_reassigned( ) = abap_true. " Something new at remote
+      IF mo_repo_aggregated_state->is_unchanged( ) = abap_false. " Any changes
         ro_toolbar->add( iv_txt = 'Pull'
                          iv_act = |{ zif_abapgit_definitions=>c_action-git_pull }?key={ mv_key }|
                          iv_opt = get_crossout( iv_protected = abap_true
                                                 iv_strong    = abap_true ) ).
-      ENDIF.
-      IF mo_repo_aggregated_state->is_unchanged( ) = abap_false. " Any changes
         ro_toolbar->add( iv_txt = 'Stage'
                          iv_act = |{ zif_abapgit_definitions=>c_action-go_stage }?key={ mv_key }|
                          iv_opt = zif_abapgit_html=>c_html_opt-strong ).
@@ -41889,7 +41855,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     lo_toolbar->add(
       iv_txt      = |Pull|
-      iv_act      = |{ zif_abapgit_definitions=>c_action-git_reset }{ lc_dummy_key }|
+      iv_act      = |{ zif_abapgit_definitions=>c_action-git_pull }{ lc_dummy_key }|
       iv_class    = |{ lc_action_class } { lc_online_class }|
       iv_li_class = |{ lc_action_class }| ).
 
@@ -42350,7 +42316,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
     ls_hotkey_action-description   = |Pull|.
-    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-git_reset.
+    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-git_pull.
     ls_hotkey_action-hotkey = |p|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
@@ -116754,6 +116720,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-16T14:45:24.425Z
+* abapmerge 0.14.8 - 2022-12-22T15:31:44.855Z
 ENDINTERFACE.
 ****************************************************
