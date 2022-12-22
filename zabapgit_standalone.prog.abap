@@ -67952,6 +67952,10 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_COMPAR IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_found> TYPE rsfindlst.
 
+    IF iv_object_name IS INITIAL.
+      RETURN.
+    ENDIF.
+
     lt_scope = it_scope.
 
     lv_findstring = iv_object_name.
@@ -116747,6 +116751,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-22T15:34:20.816Z
+* abapmerge 0.14.8 - 2022-12-22T15:47:13.694Z
 ENDINTERFACE.
 ****************************************************
