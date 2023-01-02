@@ -113729,7 +113729,16 @@ CLASS zcl_abapgit_data_utils IMPLEMENTATION.
 
         " Get primary key to ensure unique entries
         IF lo_data->is_ddic_type( ) = abap_true.
-          lt_fields = lo_data->get_ddic_field_list( ).
+          lo_data->get_ddic_field_list(
+            RECEIVING
+              p_field_list             = lt_fields
+            EXCEPTIONS
+              not_found                = 1
+              no_ddic_type             = 2
+              OTHERS                   = 3 ).
+          IF sy-subrc <> 0.
+            zcx_abapgit_exception=>raise( |Table { iv_name } not found for data serialization| ).
+          ENDIF.
 
           APPEND INITIAL LINE TO lt_keys ASSIGNING <ls_key>.
           <ls_key>-access_kind = cl_abap_tabledescr=>tablekind_sorted.
@@ -113856,14 +113865,20 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
       ASSERT ls_config-type = zif_abapgit_data_config=>c_data_type-tabu. " todo
       ASSERT ls_config-name IS NOT INITIAL.
 
-      lr_data = read_database_table(
-        iv_name  = ls_config-name
-        it_where = ls_config-where ).
+      TRY.
+          lr_data = read_database_table(
+                      iv_name  = ls_config-name
+                      it_where = ls_config-where ).
+
+          ls_file-data = convert_itab_to_json(
+            ir_data         = lr_data
+            iv_skip_initial = ls_config-skip_initial ).
+
+        CATCH zcx_abapgit_exception.
+          " DB table might not yet exist
+      ENDTRY.
 
       ls_file-filename = zcl_abapgit_data_utils=>build_filename( ls_config ).
-      ls_file-data = convert_itab_to_json(
-        ir_data         = lr_data
-        iv_skip_initial = ls_config-skip_initial ).
       ls_file-sha1 = zcl_abapgit_hash=>sha1_blob( ls_file-data ).
       APPEND ls_file TO rt_files.
     ENDLOOP.
@@ -116786,6 +116801,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2022-12-28T08:36:13.736Z
+* abapmerge 0.14.8 - 2023-01-02T09:22:29.592Z
 ENDINTERFACE.
 ****************************************************
