@@ -510,11 +510,14 @@ public section.
     importing
       !IV_MSG type STRING
       !IV_LOCATION type STRING optional
+      !IS_NODE type ANY optional
     raising
       zcx_abapgit_ajson_error .
-  methods set_location
+  methods SET_LOCATION
     importing
-      iv_location type string.
+      !IV_LOCATION type STRING optional
+      !IS_NODE type ANY optional
+    preferred parameter IV_LOCATION .
 protected section.
 private section.
   types:
@@ -526,7 +529,7 @@ private section.
     end of ty_message_parts.
 ENDCLASS.
 CLASS zcx_abapgit_ajson_error IMPLEMENTATION.
-method CONSTRUCTOR.
+  method CONSTRUCTOR.
 CALL METHOD SUPER->CONSTRUCTOR
 EXPORTING
 PREVIOUS = PREVIOUS
@@ -544,51 +547,51 @@ if textid is initial.
 else.
   IF_T100_MESSAGE~T100KEY = TEXTID.
 endif.
-endmethod.
+  endmethod.
 method raise.
 
-  data ls_msg type ty_message_parts.
-  data lv_tmp type string.
+  data lx type ref to zcx_abapgit_ajson_error.
 
-  if iv_location is initial.
-    lv_tmp = iv_msg.
-  else.
-    lv_tmp = iv_msg && | @{ iv_location }|.
-  endif.
-  ls_msg = lv_tmp.
-
-  raise exception type zcx_abapgit_ajson_error
-    exporting
-      textid   = zcx_ajson_error
-      message  = iv_msg
-      location = iv_location
-      a1       = ls_msg-a1
-      a2       = ls_msg-a2
-      a3       = ls_msg-a3
-      a4       = ls_msg-a4.
+  create object lx exporting message = iv_msg.
+  lx->set_location(
+    iv_location = iv_location
+    is_node     = is_node ).
+  raise exception lx.
 
 endmethod.
-
 method set_location.
 
   data ls_msg type ty_message_parts.
+  data lv_location type string.
   data lv_tmp type string.
+  field-symbols <path> type string.
+  field-symbols <name> type string.
 
-  if iv_location is initial.
-    lv_tmp = message.
-  else.
-    lv_tmp = message && | @{ iv_location }|.
+  if iv_location is not initial.
+    lv_location = iv_location.
+  elseif is_node is not initial.
+    assign component 'PATH' of structure is_node to <path>.
+    assign component 'NAME' of structure is_node to <name>.
+    if <path> is assigned and <name> is assigned.
+      lv_location = <path> && <name>.
+    endif.
   endif.
+
+  if lv_location is not initial.
+    lv_tmp = message && | @{ lv_location }|.
+  else.
+    lv_tmp = message.
+  endif.
+
   ls_msg = lv_tmp.
 
-  location = iv_location.
+  location = lv_location.
   a1       = ls_msg-a1.
   a2       = ls_msg-a2.
   a3       = ls_msg-a3.
   a4       = ls_msg-a4.
 
 endmethod.
-
 ENDCLASS.
 
 "! abapGit general error
@@ -1290,6 +1293,27 @@ INTERFACE zif_abapgit_ajson.
 
   DATA mt_json_tree TYPE ty_nodes_ts READ-ONLY.
 
+  " CLONING
+  METHODS clone
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
+    RAISING
+      zcx_abapgit_ajson_error.
+  METHODS filter
+    IMPORTING
+      ii_filter TYPE REF TO zif_abapgit_ajson_filter
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
+    RAISING
+      zcx_abapgit_ajson_error.
+  METHODS map
+    IMPORTING
+      ii_mapper TYPE REF TO zif_abapgit_ajson_mapping
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
+    RAISING
+      zcx_abapgit_ajson_error.
+
   " METHODS
 
   METHODS freeze.
@@ -1403,6 +1427,14 @@ INTERFACE zif_abapgit_ajson.
       iv_val TYPE any
       iv_ignore_empty TYPE abap_bool DEFAULT abap_true
       iv_node_type TYPE string OPTIONAL
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
+    RAISING
+      zcx_abapgit_ajson_error.
+
+  METHODS setx
+    IMPORTING
+      iv_param TYPE string
     RETURNING
       VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
     RAISING
@@ -1523,7 +1555,7 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_ajson_mapping.
 
   TYPES:
-    BEGIN OF ty_mapping_field,
+    BEGIN OF ty_mapping_field, " deprecated, will be removed
       abap TYPE string,
       json TYPE string,
     END OF ty_mapping_field,
@@ -1531,19 +1563,36 @@ INTERFACE zif_abapgit_ajson_mapping.
       WITH UNIQUE SORTED KEY abap COMPONENTS abap
       WITH UNIQUE SORTED KEY json COMPONENTS json.
 
-  METHODS to_abap
+  TYPES:
+    BEGIN OF ty_rename,
+      from TYPE string,
+      to TYPE string,
+    END OF ty_rename,
+    tty_rename_map TYPE STANDARD TABLE OF ty_rename
+      WITH UNIQUE SORTED KEY by_name COMPONENTS from.
+
+  TYPES:
+    ty_table_of TYPE STANDARD TABLE OF REF TO zif_abapgit_ajson_mapping.
+
+  METHODS to_abap " deprecated, will be removed
     IMPORTING
       !iv_path         TYPE string
       !iv_name         TYPE string
     RETURNING
       VALUE(rv_result) TYPE string.
 
-  METHODS to_json
+  METHODS to_json " deprecated, will be removed
     IMPORTING
       !iv_path         TYPE string
       !iv_name         TYPE string
     RETURNING
       VALUE(rv_result) TYPE string.
+
+  METHODS rename_node
+    IMPORTING
+      !is_node TYPE zif_abapgit_ajson=>ty_node
+    CHANGING
+      !cv_name TYPE zif_abapgit_ajson=>ty_node-name.
 
 ENDINTERFACE.
 
@@ -6893,7 +6942,7 @@ CLASS zcl_abapgit_code_inspector DEFINITION
         !ct_list TYPE scit_alvlist .
 ENDCLASS.
 CLASS zcl_abapgit_ajson DEFINITION
-  CREATE PRIVATE .
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
 
@@ -6917,6 +6966,7 @@ CLASS zcl_abapgit_ajson DEFINITION
     ALIASES:
       clear FOR zif_abapgit_ajson~clear,
       set FOR zif_abapgit_ajson~set,
+      setx FOR zif_abapgit_ajson~setx,
       set_boolean FOR zif_abapgit_ajson~set_boolean,
       set_string FOR zif_abapgit_ajson~set_string,
       set_integer FOR zif_abapgit_ajson~set_integer,
@@ -6927,6 +6977,11 @@ CLASS zcl_abapgit_ajson DEFINITION
       touch_array FOR zif_abapgit_ajson~touch_array,
       push FOR zif_abapgit_ajson~push,
       stringify FOR zif_abapgit_ajson~stringify.
+
+    ALIASES:
+      clone FOR zif_abapgit_ajson~clone,
+      filter FOR zif_abapgit_ajson~filter,
+      map FOR zif_abapgit_ajson~map.
 
     ALIASES:
       mt_json_tree FOR zif_abapgit_ajson~mt_json_tree,
@@ -6944,33 +6999,44 @@ CLASS zcl_abapgit_ajson DEFINITION
       RAISING
         zcx_abapgit_ajson_error .
 
-    CLASS-METHODS create_empty
+    CLASS-METHODS create_empty " Might be deprecated, prefer using new( ) or create object
       IMPORTING
         !ii_custom_mapping TYPE REF TO zif_abapgit_ajson_mapping OPTIONAL
+        iv_keep_item_order TYPE abap_bool DEFAULT abap_false
+        iv_format_datetime TYPE abap_bool DEFAULT abap_true
       RETURNING
         VALUE(ro_instance) TYPE REF TO zcl_abapgit_ajson.
 
     " Experimental ! May change
-    CLASS-METHODS create_from
+    CLASS-METHODS create_from " TODO, rename to 'from' ?
       IMPORTING
         !ii_source_json TYPE REF TO zif_abapgit_ajson
-        !ii_filter TYPE REF TO zif_abapgit_ajson_filter OPTIONAL
+        !ii_filter TYPE REF TO zif_abapgit_ajson_filter OPTIONAL " Might be deprecated, use filter() instead
+        !ii_mapper TYPE REF TO zif_abapgit_ajson_mapping OPTIONAL " Might be deprecated, use map() instead
       RETURNING
         VALUE(ro_instance) TYPE REF TO zcl_abapgit_ajson
       RAISING
         zcx_abapgit_ajson_error .
 
-    METHODS constructor.
+    METHODS constructor
+      IMPORTING
+        iv_keep_item_order TYPE abap_bool DEFAULT abap_false
+        iv_format_datetime TYPE abap_bool DEFAULT abap_true.
+    CLASS-METHODS new
+      IMPORTING
+        iv_keep_item_order TYPE abap_bool DEFAULT abap_false
+        iv_format_datetime TYPE abap_bool DEFAULT abap_true
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO zcl_abapgit_ajson.
 
   PROTECTED SECTION.
 
   PRIVATE SECTION.
 
-    DATA mv_read_only TYPE abap_bool.
-    DATA mi_custom_mapping TYPE REF TO zif_abapgit_ajson_mapping.
-    DATA mv_keep_item_order TYPE abap_bool.
-    DATA mv_format_datetime TYPE abap_bool.
-    " TODO restructure into zif_ajson=>ty_opts
+    CLASS-DATA go_float_regex TYPE REF TO cl_abap_regex.
+
+    DATA ms_opts TYPE zif_abapgit_ajson=>ty_opts.
+    DATA mi_custom_mapping TYPE REF TO zif_abapgit_ajson_mapping. " DEPRECATED, will be removed
 
     METHODS get_item
       IMPORTING
@@ -7026,18 +7092,19 @@ CLASS zcl_abapgit_ajson_filter_lib DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
+CLASS kHGwlpuwVGRXmbkWZJMoWRsLzEdjUi DEFINITION DEFERRED.
+CLASS kHGwlpuwVGRXmbkWZJMorCLylKulMM DEFINITION DEFERRED.
+CLASS kHGwlpuwVGRXmbkWZJMooAlevhaDMg DEFINITION DEFERRED.
 CLASS kHGwlpuwVGRXmbkWZJMoYWDnXPYsQA DEFINITION DEFERRED.
 CLASS kHGwlpuwVGRXmbkWZJMoIaLFAtEmIg DEFINITION DEFERRED.
 CLASS kHGwlpuwVGRXmbkWZJMoayhtkOTSGN DEFINITION DEFERRED.
+CLASS kHGwlpuwVGRXmbkWZJMocwrelrEIET DEFINITION DEFERRED.
 CLASS kHGwlpuwVGRXmbkWZJMoTFhfUGDgXz DEFINITION DEFERRED.
 * renamed: zcl_abapgit_ajson_mapping :: lcl_mapping_fields
 CLASS kHGwlpuwVGRXmbkWZJMoTFhfUGDgXz DEFINITION.
 
   PUBLIC SECTION.
     INTERFACES zif_abapgit_ajson_mapping.
-
-    ALIASES to_abap FOR zif_abapgit_ajson_mapping~to_abap.
-    ALIASES to_json FOR zif_abapgit_ajson_mapping~to_json.
 
     METHODS constructor
       IMPORTING
@@ -7049,6 +7116,26 @@ CLASS kHGwlpuwVGRXmbkWZJMoTFhfUGDgXz DEFINITION.
     DATA mt_mapping_fields TYPE zif_abapgit_ajson_mapping~ty_mapping_fields.
 
 ENDCLASS.
+
+* renamed: zcl_abapgit_ajson_mapping :: lcl_rename
+CLASS kHGwlpuwVGRXmbkWZJMocwrelrEIET DEFINITION.
+
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_ajson_mapping.
+
+    METHODS constructor
+      IMPORTING
+        it_rename_map TYPE zif_abapgit_ajson_mapping~tty_rename_map
+        iv_rename_by TYPE i.
+
+  PROTECTED SECTION.
+
+  PRIVATE SECTION.
+    DATA mt_rename_map TYPE zif_abapgit_ajson_mapping~tty_rename_map.
+    DATA mv_rename_by TYPE i.
+
+ENDCLASS.
+
 * renamed: zcl_abapgit_ajson_mapping :: lcl_mapping_to_upper
 CLASS kHGwlpuwVGRXmbkWZJMoayhtkOTSGN DEFINITION.
 
@@ -7100,12 +7187,55 @@ CLASS kHGwlpuwVGRXmbkWZJMoYWDnXPYsQA DEFINITION.
 
 ENDCLASS.
 
+* renamed: zcl_abapgit_ajson_mapping :: lcl_compound_mapper
+CLASS kHGwlpuwVGRXmbkWZJMooAlevhaDMg DEFINITION.
+
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_ajson_mapping.
+
+    METHODS constructor
+      IMPORTING
+        it_queue TYPE zif_abapgit_ajson_mapping=>ty_table_of.
+
+  PROTECTED SECTION.
+
+  PRIVATE SECTION.
+    DATA mt_queue TYPE zif_abapgit_ajson_mapping=>ty_table_of.
+
+ENDCLASS.
+
+* renamed: zcl_abapgit_ajson_mapping :: lcl_to_snake
+CLASS kHGwlpuwVGRXmbkWZJMorCLylKulMM DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_ajson_mapping.
+ENDCLASS.
+
+* renamed: zcl_abapgit_ajson_mapping :: lcl_to_camel
+CLASS kHGwlpuwVGRXmbkWZJMoWRsLzEdjUi DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_ajson_mapping.
+    METHODS constructor
+      IMPORTING
+        iv_first_json_upper TYPE abap_bool.
+  PRIVATE SECTION.
+    DATA mv_first_json_upper TYPE abap_bool.
+ENDCLASS.
+
 CLASS zcl_abapgit_ajson_mapping DEFINITION
   FINAL
   CREATE PUBLIC.
 
   PUBLIC SECTION.
-    CLASS-METHODS create_camel_case
+
+    CONSTANTS:
+      BEGIN OF rename_by,
+        attr_name TYPE i VALUE 0,
+        full_path TYPE i VALUE 1,
+        pattern TYPE i VALUE 2,
+        " regex type i value 3, " TODO add if needed in future
+      END OF rename_by.
+
+    CLASS-METHODS create_camel_case " DEPRECATED
       IMPORTING
         it_mapping_fields   TYPE zif_abapgit_ajson_mapping=>ty_mapping_fields OPTIONAL
         iv_first_json_upper TYPE abap_bool DEFAULT abap_true
@@ -7124,9 +7254,35 @@ CLASS zcl_abapgit_ajson_mapping DEFINITION
       RETURNING
         VALUE(ri_mapping) TYPE REF TO zif_abapgit_ajson_mapping.
 
-    CLASS-METHODS create_field_mapping
+    CLASS-METHODS create_field_mapping " DEPRECATED
       IMPORTING
         it_mapping_fields TYPE zif_abapgit_ajson_mapping=>ty_mapping_fields
+      RETURNING
+        VALUE(ri_mapping) TYPE REF TO zif_abapgit_ajson_mapping.
+
+    CLASS-METHODS create_rename
+      IMPORTING
+        it_rename_map TYPE zif_abapgit_ajson_mapping=>tty_rename_map
+        iv_rename_by TYPE i DEFAULT rename_by-attr_name
+      RETURNING
+        VALUE(ri_mapping) TYPE REF TO zif_abapgit_ajson_mapping.
+
+    CLASS-METHODS create_compound_mapper
+      IMPORTING
+        ii_mapper1 TYPE REF TO zif_abapgit_ajson_mapping OPTIONAL
+        ii_mapper2 TYPE REF TO zif_abapgit_ajson_mapping OPTIONAL
+        ii_mapper3 TYPE REF TO zif_abapgit_ajson_mapping OPTIONAL
+        it_more TYPE zif_abapgit_ajson_mapping=>ty_table_of OPTIONAL
+      RETURNING
+        VALUE(ri_mapping) TYPE REF TO zif_abapgit_ajson_mapping.
+
+    CLASS-METHODS create_to_snake_case
+      RETURNING
+        VALUE(ri_mapping) TYPE REF TO zif_abapgit_ajson_mapping.
+
+    CLASS-METHODS create_to_camel_case
+      IMPORTING
+        iv_first_json_upper TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(ri_mapping) TYPE REF TO zif_abapgit_ajson_mapping.
 
@@ -106544,7 +106700,7 @@ CLASS kHGwlbVxgSjWYXcuzxmbrHxeswZCbe IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_JSON_HANDLER IMPLEMENTATION.
+CLASS zcl_abapgit_json_handler IMPLEMENTATION.
   METHOD deserialize.
     DATA lv_json    TYPE string.
     DATA lo_ajson   TYPE REF TO zcl_abapgit_ajson.
@@ -106674,7 +106830,7 @@ CLASS ZCL_ABAPGIT_JSON_HANDLER IMPLEMENTATION.
 
     lo_mapping = zcl_abapgit_ajson_mapping=>create_camel_case( iv_first_json_upper = abap_false ).
 
-    lo_ajson = zcl_abapgit_ajson=>create_empty( lo_mapping ).
+    lo_ajson = zcl_abapgit_ajson=>create_empty( ii_custom_mapping = lo_mapping ).
 
     lo_ajson->keep_item_order( ).
     lo_ajson->set(
@@ -107029,7 +107185,7 @@ CLASS zcl_abapgit_ajson_utilities IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS kHGwlpuwVGRXmbkWZJMoTFhfUGDgXz IMPLEMENTATION.
+CLASS kHGwlpuwVGRXmbkWZJMoTFhfUGDgXz IMPLEMENTATION. "DEPRECATED
   METHOD constructor.
 
     DATA ls_mapping_field LIKE LINE OF mt_mapping_fields.
@@ -107065,7 +107221,60 @@ CLASS kHGwlpuwVGRXmbkWZJMoTFhfUGDgXz IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~rename_node.
+
+  ENDMETHOD.
+
 ENDCLASS.
+
+CLASS kHGwlpuwVGRXmbkWZJMocwrelrEIET IMPLEMENTATION.
+
+  METHOD constructor.
+    mt_rename_map = it_rename_map.
+    mv_rename_by = iv_rename_by.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~to_abap.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~to_json.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~rename_node.
+
+    DATA lv_full_path TYPE string.
+    DATA lv_pair_found TYPE abap_bool.
+    FIELD-SYMBOLS <r> LIKE LINE OF mt_rename_map.
+
+    CASE mv_rename_by.
+      WHEN zcl_abapgit_ajson_mapping=>rename_by-attr_name.
+        READ TABLE mt_rename_map ASSIGNING <r> WITH TABLE KEY by_name COMPONENTS from = cv_name.
+        lv_pair_found = boolc( sy-subrc = 0 ).
+      WHEN zcl_abapgit_ajson_mapping=>rename_by-full_path.
+        lv_full_path = is_node-path && cv_name.
+        READ TABLE mt_rename_map ASSIGNING <r> WITH TABLE KEY by_name COMPONENTS from = lv_full_path.
+        lv_pair_found = boolc( sy-subrc = 0 ).
+      WHEN zcl_abapgit_ajson_mapping=>rename_by-pattern.
+        lv_full_path = is_node-path && cv_name.
+        LOOP AT mt_rename_map ASSIGNING <r>.
+          IF lv_full_path CP <r>-from.
+            lv_pair_found = abap_true.
+            EXIT.
+          ENDIF.
+        ENDLOOP.
+      WHEN OTHERS.
+        lv_pair_found = abap_false. " No rename
+    ENDCASE.
+
+    IF lv_pair_found = abap_true.
+      cv_name = <r>-to.
+    ENDIF.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
 CLASS kHGwlpuwVGRXmbkWZJMoayhtkOTSGN IMPLEMENTATION.
   METHOD constructor.
 
@@ -107090,6 +107299,13 @@ CLASS kHGwlpuwVGRXmbkWZJMoayhtkOTSGN IMPLEMENTATION.
     rv_result = to_upper( iv_name ).
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~rename_node.
+
+    cv_name = to_upper( cv_name ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 CLASS kHGwlpuwVGRXmbkWZJMoIaLFAtEmIg IMPLEMENTATION.
   METHOD constructor.
@@ -107115,8 +107331,15 @@ CLASS kHGwlpuwVGRXmbkWZJMoIaLFAtEmIg IMPLEMENTATION.
     rv_result = to_lower( iv_name ).
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~rename_node.
+
+    cv_name = to_lower( cv_name ).
+
+  ENDMETHOD.
+
 ENDCLASS.
-CLASS kHGwlpuwVGRXmbkWZJMoYWDnXPYsQA IMPLEMENTATION.
+CLASS kHGwlpuwVGRXmbkWZJMoYWDnXPYsQA IMPLEMENTATION. "DEPRECATED
   METHOD constructor.
 
     mi_mapping_fields   = zcl_abapgit_ajson_mapping=>create_field_mapping( it_mapping_fields ).
@@ -107173,6 +107396,107 @@ CLASS kHGwlpuwVGRXmbkWZJMoYWDnXPYsQA IMPLEMENTATION.
     REPLACE ALL OCCURRENCES OF `*` IN rv_result WITH `_`.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~rename_node.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS kHGwlpuwVGRXmbkWZJMooAlevhaDMg IMPLEMENTATION.
+
+  METHOD constructor.
+    mt_queue = it_queue.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~rename_node.
+
+    DATA ls_node LIKE is_node.
+    DATA li_mapper LIKE LINE OF mt_queue.
+
+    ls_node = is_node.
+
+    LOOP AT mt_queue INTO li_mapper.
+      li_mapper->rename_node(
+        EXPORTING
+          is_node = ls_node
+        CHANGING
+          cv_name = cv_name ).
+      ls_node-name = cv_name.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~to_abap.
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~to_json.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS kHGwlpuwVGRXmbkWZJMorCLylKulMM IMPLEMENTATION.
+
+  METHOD zif_abapgit_ajson_mapping~rename_node.
+
+    REPLACE ALL OCCURRENCES OF REGEX `([a-z])([A-Z])` IN cv_name WITH `$1_$2`.
+    cv_name = to_lower( cv_name ).
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~to_abap.
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~to_json.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS kHGwlpuwVGRXmbkWZJMoWRsLzEdjUi IMPLEMENTATION.
+
+  METHOD constructor.
+    mv_first_json_upper = iv_first_json_upper.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~rename_node.
+
+    TYPES lty_token TYPE c LENGTH 255.
+    CONSTANTS lc_forced_underscore_marker TYPE c LENGTH 1 VALUE cl_abap_char_utilities=>horizontal_tab.
+
+    DATA lt_tokens TYPE STANDARD TABLE OF lty_token.
+    DATA lv_from TYPE i.
+    FIELD-SYMBOLS <token> LIKE LINE OF lt_tokens.
+
+    IF mv_first_json_upper = abap_true.
+      lv_from = 1.
+    ELSE.
+      lv_from = 2.
+    ENDIF.
+    REPLACE ALL OCCURRENCES OF `__` IN cv_name WITH lc_forced_underscore_marker. " Force underscore
+
+    SPLIT cv_name AT `_` INTO TABLE lt_tokens.
+    DELETE lt_tokens WHERE table_line IS INITIAL.
+    LOOP AT lt_tokens ASSIGNING <token> FROM lv_from.
+      TRANSLATE <token>+0(1) TO UPPER CASE.
+    ENDLOOP.
+
+    CONCATENATE LINES OF lt_tokens INTO cv_name.
+    REPLACE ALL OCCURRENCES OF lc_forced_underscore_marker IN cv_name WITH `_`.
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~to_abap.
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_ajson_mapping~to_json.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_ajson_mapping IMPLEMENTATION.
@@ -107198,6 +107522,23 @@ CLASS zcl_abapgit_ajson_mapping IMPLEMENTATION.
         it_mapping_fields = it_mapping_fields.
 
   ENDMETHOD.
+
+  METHOD create_compound_mapper.
+
+    DATA lt_queue TYPE zif_abapgit_ajson_mapping=>ty_table_of.
+
+    APPEND ii_mapper1 TO lt_queue.
+    APPEND ii_mapper2 TO lt_queue.
+    APPEND ii_mapper3 TO lt_queue.
+    APPEND LINES OF it_more TO lt_queue.
+    DELETE lt_queue WHERE table_line IS INITIAL.
+
+    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMooAlevhaDMg
+      EXPORTING
+        it_queue = lt_queue.
+
+  ENDMETHOD.
+
   METHOD create_upper_case.
 
     CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMoayhtkOTSGN
@@ -107205,6 +107546,30 @@ CLASS zcl_abapgit_ajson_mapping IMPLEMENTATION.
         it_mapping_fields = it_mapping_fields.
 
   ENDMETHOD.
+
+  METHOD create_rename.
+
+    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMocwrelrEIET
+      EXPORTING
+        it_rename_map = it_rename_map
+        iv_rename_by = iv_rename_by.
+
+  ENDMETHOD.
+
+  METHOD create_to_snake_case.
+
+    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMorCLylKulMM.
+
+  ENDMETHOD.
+
+  METHOD create_to_camel_case.
+
+    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMoWRsLzEdjUi
+      EXPORTING
+        iv_first_json_upper = iv_first_json_upper.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS kHGwlqZELdDwrxoEPdVyarIhEaaLQd DEFINITION DEFERRED.
@@ -107376,7 +107741,10 @@ CLASS zcl_abapgit_ajson_filter_lib IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS kHGwlMWhQrsNKkKXALnpucOpllUiAS DEFINITION DEFERRED.
+CLASS kHGwlMWhQrsNKkKXALnphFTcRDbOtm DEFINITION DEFERRED.
 CLASS kHGwlMWhQrsNKkKXALnplwblMIpVBS DEFINITION DEFERRED.
+INTERFACE iUFTsMWhQrsNKkKXALnptzVIYRIbuu DEFERRED.
 CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz DEFINITION DEFERRED.
 CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI DEFINITION DEFERRED.
 CLASS kHGwlMWhQrsNKkKXALnpFgyFungUrS DEFINITION DEFERRED.
@@ -108458,8 +108826,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz DEFINITION FINAL.
         is_prefix          TYPE zif_abapgit_ajson=>ty_path_name OPTIONAL
         iv_array_index     TYPE i DEFAULT 0
         ii_custom_mapping  TYPE REF TO zif_abapgit_ajson_mapping OPTIONAL
-        iv_keep_item_order TYPE abap_bool DEFAULT abap_false
-        iv_format_datetime TYPE abap_bool DEFAULT abap_false
+        is_opts            TYPE zif_abapgit_ajson=>ty_opts OPTIONAL
         iv_item_order      TYPE i DEFAULT 0
       RETURNING
         VALUE(rt_nodes)   TYPE zif_abapgit_ajson=>ty_nodes_tt
@@ -108473,8 +108840,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz DEFINITION FINAL.
         is_prefix          TYPE zif_abapgit_ajson=>ty_path_name OPTIONAL
         iv_array_index     TYPE i DEFAULT 0
         ii_custom_mapping  TYPE REF TO zif_abapgit_ajson_mapping OPTIONAL
-        iv_keep_item_order TYPE abap_bool DEFAULT abap_false
-        iv_format_datetime TYPE abap_bool DEFAULT abap_false
+        is_opts            TYPE zif_abapgit_ajson=>ty_opts OPTIONAL
         iv_item_order      TYPE i DEFAULT 0
       RETURNING
         VALUE(rt_nodes)   TYPE zif_abapgit_ajson=>ty_nodes_tt
@@ -108611,8 +108977,8 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
 
     CREATE OBJECT lo_converter.
     lo_converter->mi_custom_mapping  = ii_custom_mapping.
-    lo_converter->mv_keep_item_order = iv_keep_item_order.
-    lo_converter->mv_format_datetime = iv_format_datetime.
+    lo_converter->mv_keep_item_order = is_opts-keep_item_order.
+    lo_converter->mv_format_datetime = is_opts-format_datetime.
 
     lo_converter->convert_any(
       EXPORTING
@@ -109008,8 +109374,8 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
 
     CREATE OBJECT lo_converter.
     lo_converter->mi_custom_mapping  = ii_custom_mapping.
-    lo_converter->mv_keep_item_order = iv_keep_item_order.
-    lo_converter->mv_format_datetime = iv_format_datetime.
+    lo_converter->mv_keep_item_order = is_opts-keep_item_order.
+    lo_converter->mv_format_datetime = is_opts-format_datetime.
 
     lo_converter->insert_value_with_type(
       EXPORTING
@@ -109075,20 +109441,36 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
 ENDCLASS.
 
 **********************************************************************
+* MUTATOR INTERFACE
+**********************************************************************
+
+* renamed: zcl_abapgit_ajson :: lif_mutator_runner
+INTERFACE iUFTsMWhQrsNKkKXALnptzVIYRIbuu.
+  METHODS run
+    IMPORTING
+      it_source_tree TYPE zif_abapgit_ajson=>ty_nodes_ts
+    EXPORTING
+      et_dest_tree TYPE zif_abapgit_ajson=>ty_nodes_ts
+    RAISING
+      zcx_abapgit_ajson_error.
+ENDINTERFACE.
+
+**********************************************************************
 * FILTER RUNNER
 **********************************************************************
 
 * renamed: zcl_abapgit_ajson :: lcl_filter_runner
 CLASS kHGwlMWhQrsNKkKXALnplwblMIpVBS DEFINITION FINAL.
   PUBLIC SECTION.
-    METHODS run
+    INTERFACES iUFTsMWhQrsNKkKXALnptzVIYRIbuu.
+    CLASS-METHODS new
       IMPORTING
         ii_filter TYPE REF TO zif_abapgit_ajson_filter
-        it_source_tree TYPE zif_abapgit_ajson=>ty_nodes_ts
-      CHANGING
-        ct_dest_tree TYPE zif_abapgit_ajson=>ty_nodes_ts
-      RAISING
-        zcx_abapgit_ajson_error.
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO kHGwlMWhQrsNKkKXALnplwblMIpVBS.
+    METHODS constructor
+      IMPORTING
+        ii_filter TYPE REF TO zif_abapgit_ajson_filter.
 
   PRIVATE SECTION.
     DATA mi_filter TYPE REF TO zif_abapgit_ajson_filter.
@@ -109107,14 +109489,20 @@ ENDCLASS.
 
 CLASS kHGwlMWhQrsNKkKXALnplwblMIpVBS IMPLEMENTATION.
 
-  METHOD run.
+  METHOD new.
+    CREATE OBJECT ro_instance EXPORTING ii_filter = ii_filter.
+  ENDMETHOD.
 
+  METHOD constructor.
     ASSERT ii_filter IS BOUND.
     mi_filter = ii_filter.
-    CLEAR ct_dest_tree.
+  ENDMETHOD.
 
+  METHOD iUFTsMWhQrsNKkKXALnptzVIYRIbuu~run.
+
+    CLEAR et_dest_tree.
     GET REFERENCE OF it_source_tree INTO mr_source_tree.
-    GET REFERENCE OF ct_dest_tree INTO mr_dest_tree.
+    GET REFERENCE OF et_dest_tree INTO mr_dest_tree.
 
     walk( iv_path = '' ).
 
@@ -109175,42 +109563,231 @@ CLASS kHGwlMWhQrsNKkKXALnplwblMIpVBS IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_ajson IMPLEMENTATION.
+**********************************************************************
+* MAPPER RUNNER
+**********************************************************************
 
-  METHOD zif_abapgit_ajson~opts.
-    rs_opts-read_only       = mv_read_only.
-    rs_opts-format_datetime = mv_format_datetime.
-    rs_opts-keep_item_order = mv_keep_item_order.
+* renamed: zcl_abapgit_ajson :: lcl_mapper_runner
+CLASS kHGwlMWhQrsNKkKXALnphFTcRDbOtm DEFINITION FINAL.
+  PUBLIC SECTION.
+    INTERFACES iUFTsMWhQrsNKkKXALnptzVIYRIbuu.
+    CLASS-METHODS new
+      IMPORTING
+        ii_mapper TYPE REF TO zif_abapgit_ajson_mapping
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO kHGwlMWhQrsNKkKXALnphFTcRDbOtm.
+    METHODS constructor
+      IMPORTING
+        ii_mapper TYPE REF TO zif_abapgit_ajson_mapping.
+
+  PRIVATE SECTION.
+    DATA mi_mapper TYPE REF TO zif_abapgit_ajson_mapping.
+    DATA mr_source_tree TYPE REF TO zif_abapgit_ajson=>ty_nodes_ts.
+    DATA mr_dest_tree TYPE REF TO zif_abapgit_ajson=>ty_nodes_ts.
+
+    METHODS process_deep_node
+      IMPORTING
+        iv_path         TYPE string
+        iv_renamed_path TYPE string
+        iv_node_type    TYPE zif_abapgit_ajson=>ty_node-type
+      RAISING
+        zcx_abapgit_ajson_error.
+
+ENDCLASS.
+
+CLASS kHGwlMWhQrsNKkKXALnphFTcRDbOtm IMPLEMENTATION.
+
+  METHOD new.
+    CREATE OBJECT ro_instance EXPORTING ii_mapper = ii_mapper.
   ENDMETHOD.
 
   METHOD constructor.
-    format_datetime( abap_true ).
+    ASSERT ii_mapper IS BOUND.
+    mi_mapper = ii_mapper.
+  ENDMETHOD.
+
+  METHOD iUFTsMWhQrsNKkKXALnptzVIYRIbuu~run.
+
+    FIELD-SYMBOLS <root> LIKE LINE OF it_source_tree.
+
+    READ TABLE it_source_tree WITH KEY path = `` name = `` ASSIGNING <root>.
+    IF sy-subrc <> 0 OR NOT ( <root>-type = zif_abapgit_ajson=>node_type-array OR <root>-type = zif_abapgit_ajson=>node_type-object ).
+      " empty or one-value-only tree
+      et_dest_tree = it_source_tree.
+      RETURN.
+    ENDIF.
+
+    CLEAR et_dest_tree.
+    GET REFERENCE OF it_source_tree INTO mr_source_tree.
+    GET REFERENCE OF et_dest_tree INTO mr_dest_tree.
+    INSERT <root> INTO TABLE et_dest_tree.
+
+    process_deep_node(
+      iv_path         = `/`
+      iv_renamed_path = `/`
+      iv_node_type    = <root>-type ).
+
+  ENDMETHOD.
+
+  METHOD process_deep_node.
+    FIELD-SYMBOLS <item> LIKE LINE OF mr_source_tree->*.
+    DATA ls_renamed_node LIKE <item>.
+
+    LOOP AT mr_source_tree->* ASSIGNING <item> WHERE path = iv_path.
+      ls_renamed_node = <item>.
+      IF iv_node_type <> zif_abapgit_ajson=>node_type-array.
+        " don't rename array item names -> they are numeric index
+        mi_mapper->rename_node(
+          EXPORTING
+            is_node = <item>
+          CHANGING
+            cv_name = ls_renamed_node-name ).
+        IF ls_renamed_node-name IS INITIAL.
+          zcx_abapgit_ajson_error=>raise(
+            iv_msg  = 'Renamed node name cannot be empty'
+            is_node = <item> ).
+        ENDIF.
+      ENDIF.
+      ls_renamed_node-path = iv_renamed_path.
+
+      INSERT ls_renamed_node INTO TABLE mr_dest_tree->*.
+      IF sy-subrc <> 0. " = 4 ?
+        zcx_abapgit_ajson_error=>raise(
+          iv_msg  = 'Renamed node has a duplicate'
+          is_node = ls_renamed_node ).
+      ENDIF.
+
+      " maybe also catch CX_SY_ITAB_DUPLICATE_KEY but secondary keys are not changed here, so not for now
+
+      IF <item>-type = zif_abapgit_ajson=>node_type-array OR <item>-type = zif_abapgit_ajson=>node_type-object.
+        process_deep_node(
+          iv_path         = iv_path && <item>-name && `/`
+          iv_renamed_path = iv_renamed_path && ls_renamed_node-name && `/`
+          iv_node_type    = <item>-type ).
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+**********************************************************************
+* MUTATOR QUEUE
+**********************************************************************
+
+* renamed: zcl_abapgit_ajson :: lcl_mutator_queue
+CLASS kHGwlMWhQrsNKkKXALnpucOpllUiAS DEFINITION FINAL.
+  PUBLIC SECTION.
+    INTERFACES iUFTsMWhQrsNKkKXALnptzVIYRIbuu.
+    CLASS-METHODS new
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO kHGwlMWhQrsNKkKXALnpucOpllUiAS.
+    METHODS add
+      IMPORTING
+        ii_mutator TYPE REF TO iUFTsMWhQrsNKkKXALnptzVIYRIbuu
+      RETURNING
+        VALUE(ro_self) TYPE REF TO kHGwlMWhQrsNKkKXALnpucOpllUiAS.
+
+  PRIVATE SECTION.
+    DATA mt_queue TYPE STANDARD TABLE OF REF TO iUFTsMWhQrsNKkKXALnptzVIYRIbuu.
+
+ENDCLASS.
+
+CLASS kHGwlMWhQrsNKkKXALnpucOpllUiAS IMPLEMENTATION.
+
+  METHOD add.
+    IF ii_mutator IS BOUND.
+      APPEND ii_mutator TO mt_queue.
+    ENDIF.
+    ro_self = me.
+  ENDMETHOD.
+
+  METHOD new.
+    CREATE OBJECT ro_instance.
+  ENDMETHOD.
+
+  METHOD iUFTsMWhQrsNKkKXALnptzVIYRIbuu~run.
+
+    DATA li_mutator TYPE REF TO iUFTsMWhQrsNKkKXALnptzVIYRIbuu.
+    DATA lv_qsize TYPE i.
+    FIELD-SYMBOLS <from> LIKE it_source_tree.
+    FIELD-SYMBOLS <to> LIKE it_source_tree.
+    DATA lr_buf TYPE REF TO zif_abapgit_ajson=>ty_nodes_ts.
+
+    lv_qsize = lines( mt_queue ).
+
+    IF lv_qsize = 0.
+      et_dest_tree = it_source_tree.
+      RETURN.
+    ENDIF.
+
+    LOOP AT mt_queue INTO li_mutator.
+      IF sy-tabix = 1.
+        ASSIGN it_source_tree TO <from>.
+      ELSE.
+        ASSIGN lr_buf->* TO <from>.
+      ENDIF.
+
+      IF sy-tabix = lv_qsize.
+        ASSIGN et_dest_tree TO <to>.
+      ELSE.
+        CREATE DATA lr_buf.
+        ASSIGN lr_buf->* TO <to>.
+      ENDIF.
+
+      li_mutator->run(
+        EXPORTING
+          it_source_tree = <from>
+        IMPORTING
+          et_dest_tree = <to> ).
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS zcl_abapgit_ajson IMPLEMENTATION.
+  METHOD constructor.
+    ms_opts-keep_item_order = iv_keep_item_order.
+    format_datetime( iv_format_datetime ).
   ENDMETHOD.
   METHOD create_empty.
-    CREATE OBJECT ro_instance.
+    CREATE OBJECT ro_instance
+      EXPORTING
+        iv_format_datetime = iv_format_datetime
+        iv_keep_item_order = iv_keep_item_order.
     ro_instance->mi_custom_mapping = ii_custom_mapping.
   ENDMETHOD.
   METHOD create_from.
 
-    DATA lo_filter_runner TYPE REF TO kHGwlMWhQrsNKkKXALnplwblMIpVBS.
+    DATA lo_mutator_queue TYPE REF TO kHGwlMWhQrsNKkKXALnpucOpllUiAS.
 
     IF ii_source_json IS NOT BOUND.
       zcx_abapgit_ajson_error=>raise( 'Source not bound' ).
     ENDIF.
 
-    CREATE OBJECT ro_instance.
+    CREATE OBJECT ro_instance
+      EXPORTING
+        iv_format_datetime = ii_source_json->opts( )-format_datetime
+        iv_keep_item_order = ii_source_json->opts( )-keep_item_order.
 
-    IF ii_filter IS BOUND.
-      CREATE OBJECT lo_filter_runner.
-      lo_filter_runner->run(
-        EXPORTING
-          ii_filter = ii_filter
-          it_source_tree = ii_source_json->mt_json_tree
-        CHANGING
-          ct_dest_tree = ro_instance->mt_json_tree ).
-    ELSE.
+    IF ii_filter IS NOT BOUND AND ii_mapper IS NOT BOUND.
       ro_instance->mt_json_tree = ii_source_json->mt_json_tree.
-      " Copy keep order and custom mapping ???
+    ELSE.
+      CREATE OBJECT lo_mutator_queue.
+      IF ii_mapper IS BOUND.
+        " Mapping goes first. But maybe it should be a freely definable queue of processors ?
+        lo_mutator_queue->add( kHGwlMWhQrsNKkKXALnphFTcRDbOtm=>new( ii_mapper ) ).
+      ENDIF.
+      IF ii_filter IS BOUND.
+        lo_mutator_queue->add( kHGwlMWhQrsNKkKXALnplwblMIpVBS=>new( ii_filter ) ).
+      ENDIF.
+      lo_mutator_queue->iUFTsMWhQrsNKkKXALnptzVIYRIbuu~run(
+        EXPORTING
+          it_source_tree = ii_source_json->mt_json_tree
+        IMPORTING
+          et_dest_tree = ro_instance->mt_json_tree ).
     ENDIF.
 
   ENDMETHOD.
@@ -109260,6 +109837,12 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       GET REFERENCE OF <item> INTO rv_item.
     ENDIF.
 
+  ENDMETHOD.
+  METHOD new.
+    CREATE OBJECT ro_instance
+      EXPORTING
+        iv_format_datetime = iv_format_datetime
+        iv_keep_item_order = iv_keep_item_order.
   ENDMETHOD.
   METHOD parse.
 
@@ -109316,7 +109899,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD read_only_watchdog.
-    IF mv_read_only = abap_true.
+    IF ms_opts-read_only = abap_true.
       zcx_abapgit_ajson_error=>raise( 'This json instance is read only' ).
     ENDIF.
   ENDMETHOD.
@@ -109363,6 +109946,9 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     CLEAR mt_json_tree.
 
   ENDMETHOD.
+  METHOD zif_abapgit_ajson~clone.
+    ri_json = create_from( me ).
+  ENDMETHOD.
   METHOD zif_abapgit_ajson~delete.
 
     read_only_watchdog( ).
@@ -109380,12 +109966,17 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   METHOD zif_abapgit_ajson~exists.
     rv_exists = boolc( get_item( iv_path ) IS NOT INITIAL ).
   ENDMETHOD.
+  METHOD zif_abapgit_ajson~filter.
+    ri_json = create_from(
+      ii_source_json = me
+      ii_filter      = ii_filter ).
+  ENDMETHOD.
   METHOD zif_abapgit_ajson~format_datetime.
-    mv_format_datetime = iv_use_iso.
+    ms_opts-format_datetime = iv_use_iso.
     ri_json = me.
   ENDMETHOD.
   METHOD zif_abapgit_ajson~freeze.
-    mv_read_only = abap_true.
+    ms_opts-read_only = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_ajson~get.
 
@@ -109486,8 +110077,13 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     rv_yes = boolc( lines( mt_json_tree ) = 0 ).
   ENDMETHOD.
   METHOD zif_abapgit_ajson~keep_item_order.
-    mv_keep_item_order = abap_true.
+    ms_opts-keep_item_order = abap_true.
     ri_json = me.
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson~map.
+    ri_json = create_from(
+      ii_source_json = me
+      ii_mapper      = ii_mapper ).
   ENDMETHOD.
   METHOD zif_abapgit_ajson~members.
 
@@ -109500,6 +110096,9 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       APPEND <item>-name TO rt_members.
     ENDLOOP.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson~opts.
+    rs_opts = ms_opts.
   ENDMETHOD.
   METHOD zif_abapgit_ajson~push.
 
@@ -109527,7 +110126,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ls_new_path-name = |{ lv_new_index }|.
 
     lt_new_nodes = kHGwlMWhQrsNKkKXALnpeJqampzabz=>convert(
-      iv_keep_item_order = mv_keep_item_order
+      is_opts            = ms_opts
       iv_data   = iv_val
       is_prefix = ls_new_path ).
     READ TABLE lt_new_nodes INDEX 1 REFERENCE INTO lr_new_node. " assume first record is the array item - not ideal !
@@ -109565,16 +110164,14 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     IF ls_split_path IS INITIAL. " Assign root, exceptional processing
       IF iv_node_type IS NOT INITIAL.
         mt_json_tree = kHGwlMWhQrsNKkKXALnpeJqampzabz=>insert_with_type(
-          iv_format_datetime = mv_format_datetime
-          iv_keep_item_order = mv_keep_item_order
+          is_opts            = ms_opts
           iv_data            = iv_val
           iv_type            = iv_node_type
           is_prefix          = ls_split_path
           ii_custom_mapping  = mi_custom_mapping ).
       ELSE.
         mt_json_tree = kHGwlMWhQrsNKkKXALnpeJqampzabz=>convert(
-          iv_format_datetime = mv_format_datetime
-          iv_keep_item_order = mv_keep_item_order
+          is_opts            = ms_opts
           iv_data            = iv_val
           is_prefix          = ls_split_path
           ii_custom_mapping  = mi_custom_mapping ).
@@ -109604,8 +110201,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
 
     IF iv_node_type IS NOT INITIAL.
       lt_new_nodes = kHGwlMWhQrsNKkKXALnpeJqampzabz=>insert_with_type(
-        iv_format_datetime = mv_format_datetime
-        iv_keep_item_order = mv_keep_item_order
+        is_opts            = ms_opts
         iv_item_order      = ls_deleted_node-order
         iv_data            = iv_val
         iv_type            = iv_node_type
@@ -109614,8 +110210,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
         ii_custom_mapping  = mi_custom_mapping ).
     ELSE.
       lt_new_nodes = kHGwlMWhQrsNKkKXALnpeJqampzabz=>convert(
-        iv_format_datetime = mv_format_datetime
-        iv_keep_item_order = mv_keep_item_order
+        is_opts            = ms_opts
         iv_item_order      = ls_deleted_node-order
         iv_data            = iv_val
         iv_array_index     = lv_array_index
@@ -109628,6 +110223,72 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       lr_parent->children = lr_parent->children + 1.
       INSERT LINES OF lt_new_nodes INTO TABLE mt_json_tree.
     ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson~setx.
+
+    DATA lv_path TYPE string.
+    DATA lv_val TYPE string.
+    DATA lv_int TYPE i.
+    DATA lv_dec TYPE decfloat34.
+    DATA lv_last TYPE i.
+
+    IF iv_param IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    SPLIT iv_param AT ':' INTO lv_path lv_val.
+    CONDENSE lv_path.
+    CONDENSE lv_val.
+
+    IF lv_val IS INITIAL.
+      RETURN. " Hmm ? or empty string ? or null ?
+    ENDIF.
+
+    IF go_float_regex IS NOT BOUND.
+      CREATE OBJECT go_float_regex EXPORTING pattern = '^([1-9][0-9]*|0)\.[0-9]+$'.
+      " expects fractional, because ints are detected separately
+    ENDIF.
+
+    IF lv_val = 'null'.
+      zif_abapgit_ajson~set_null( lv_path ).
+    ELSEIF lv_val = 'true'.
+      zif_abapgit_ajson~set_boolean(
+        iv_path = lv_path
+        iv_val  = abap_true ).
+    ELSEIF lv_val = 'false'.
+      zif_abapgit_ajson~set_boolean(
+        iv_path = lv_path
+        iv_val  = abap_false ).
+    ELSEIF lv_val CO '0123456789'.
+      lv_int = lv_val.
+      zif_abapgit_ajson~set_integer(
+        iv_path = lv_path
+        iv_val  = lv_int ).
+    ELSEIF lv_val CO '0123456789.' AND go_float_regex->create_matcher( text = lv_val )->match( ) = abap_true.
+      lv_dec = lv_val.
+      zif_abapgit_ajson~set(
+        iv_path = lv_path
+        iv_val  = lv_dec ).
+    ELSEIF lv_val+0(1) = '{' OR lv_val+0(1) = '['.
+      "Expect object/array, but no further checks, parser will catch errors
+      zif_abapgit_ajson~set(
+        iv_path = lv_path
+        iv_val  = parse( lv_val ) ).
+    ELSE. " string
+      lv_last = strlen( lv_val ) - 1.
+      IF lv_val+0(1) = '"' AND lv_val+lv_last(1) = '"'.
+        lv_val = substring(
+          val = lv_val
+          off = 1
+          len = lv_last - 1 ).
+      ENDIF.
+      zif_abapgit_ajson~set_string(
+        iv_path = lv_path
+        iv_val  = lv_val ).
+    ENDIF.
+
+    ri_json = me.
 
   ENDMETHOD.
   METHOD zif_abapgit_ajson~set_boolean.
@@ -109735,7 +110396,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
 
     rv_json = kHGwlMWhQrsNKkKXALnpFgyFungUrS=>stringify(
       it_json_tree       = mt_json_tree
-      iv_keep_item_order = mv_keep_item_order
+      iv_keep_item_order = ms_opts-keep_item_order
       iv_indent          = iv_indent ).
 
   ENDMETHOD.
@@ -109777,7 +110438,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       ls_new_node-name = ls_split_path-name.
       ls_new_node-type = zif_abapgit_ajson=>node_type-array.
 
-      IF mv_keep_item_order = abap_true AND ls_deleted_node IS NOT INITIAL.
+      IF ms_opts-keep_item_order = abap_true AND ls_deleted_node IS NOT INITIAL.
         ls_new_node-order = ls_deleted_node-order.
       ENDIF.
 
@@ -116801,6 +117462,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-02T09:22:29.592Z
+* abapmerge 0.14.8 - 2023-01-03T13:48:37.348Z
 ENDINTERFACE.
 ****************************************************
