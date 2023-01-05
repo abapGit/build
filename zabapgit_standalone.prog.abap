@@ -28085,6 +28085,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  z-index: 1;' ).
     lo_buf->add( '  padding: 0;' ).
     lo_buf->add( '  box-shadow: 1px 1px 3px 0px #bbb;' ).
+    lo_buf->add( '  max-height: 700px;' ).
+    lo_buf->add( '  overflow: auto;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '.nav-container ul ul li {' ).
@@ -117468,6 +117470,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-03T14:01:43.066Z
+* abapmerge 0.14.8 - 2023-01-05T19:53:49.310Z
 ENDINTERFACE.
 ****************************************************
