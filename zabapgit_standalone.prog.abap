@@ -52596,8 +52596,10 @@ CLASS zcl_abapgit_syntax_xml IMPLEMENTATION.
 
     super->constructor( ).
 
-    " Initialize instances of regular expressions
+    " Reset indicator for multi-line comments
+    CLEAR gv_comment.
 
+    " Initialize instances of regular expressions
     add_rule( iv_regex    = c_regex-xml_tag
               iv_token    = c_token-xml_tag
               iv_style    = c_css-xml_tag
@@ -52824,7 +52826,7 @@ CLASS zcl_abapgit_syntax_json IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SYNTAX_JS IMPLEMENTATION.
+CLASS zcl_abapgit_syntax_js IMPLEMENTATION.
   METHOD class_constructor.
 
     init_keywords( ).
@@ -52834,8 +52836,10 @@ CLASS ZCL_ABAPGIT_SYNTAX_JS IMPLEMENTATION.
 
     super->constructor( ).
 
-    " Initialize instances of regular expression
+    " Reset indicator for multi-line comments
+    CLEAR gv_comment.
 
+    " Initialize instances of regular expression
     add_rule( iv_regex = c_regex-keyword
               iv_token = c_token-keyword
               iv_style = c_css-keyword ).
@@ -53273,7 +53277,7 @@ CLASS zcl_abapgit_syntax_factory IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SYNTAX_CSS IMPLEMENTATION.
+CLASS zcl_abapgit_syntax_css IMPLEMENTATION.
   METHOD class_constructor.
 
     init_keywords( ).
@@ -53283,8 +53287,10 @@ CLASS ZCL_ABAPGIT_SYNTAX_CSS IMPLEMENTATION.
 
     super->constructor( ).
 
-    " Initialize instances of regular expression
+    " Reset indicator for multi-line comments
+    CLEAR gv_comment.
 
+    " Initialize instances of regular expression
     add_rule( iv_regex = c_regex-keyword
               iv_token = c_token-keyword
               iv_style = c_css-keyword ).
@@ -117470,6 +117476,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-05T19:53:49.310Z
+* abapmerge 0.14.8 - 2023-01-06T07:29:27.215Z
 ENDINTERFACE.
 ****************************************************
