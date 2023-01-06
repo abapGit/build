@@ -2719,9 +2719,8 @@ INTERFACE zif_abapgit_definitions .
     END OF ty_delete_checks .
   TYPES:
     BEGIN OF ty_metadata,
-      class        TYPE string,
-      version      TYPE string,
-      delete_tadir TYPE abap_bool,
+      class   TYPE string,
+      version TYPE string,
     END OF ty_metadata .
   TYPES:
     BEGIN OF ty_repo_file,
@@ -9893,6 +9892,9 @@ CLASS zcl_abapgit_objects_super DEFINITION
         !iv_package TYPE devclass
       RAISING
         zcx_abapgit_exception .
+    METHODS tadir_delete
+      RAISING
+        zcx_abapgit_exception .
     METHODS exists_a_lock_entry_for
       IMPORTING
         !iv_lock_object               TYPE string
@@ -13147,9 +13149,6 @@ CLASS zcl_abapgit_object_srvd DEFINITION INHERITING FROM zcl_abapgit_objects_sup
         VALUE(ro_object_data_merged) TYPE REF TO if_wb_object_data_model
       RAISING
         zcx_abapgit_exception .
-    METHODS is_delete_tadir
-      RETURNING
-        VALUE(rv_delete_tadir) TYPE abap_bool .
 ENDCLASS.
 CLASS zcl_abapgit_object_ssfo DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -14320,7 +14319,8 @@ CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM 
   PRIVATE SECTION.
     DATA: mo_plugin TYPE REF TO object.
 
-    " Metadata with late_deser to stay compatible with old bridge
+    " Metadata flags (late_deser, delete_tadir, and ddic) are not required by abapGit anymore
+    " We keep them to stay compatible with old bridge implementation
     TYPES:
       BEGIN OF ty_metadata,
         class        TYPE string,
@@ -45386,7 +45386,6 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
       ls_metadata = li_object->get_metadata( ).
 
       rv_html = rv_html && |<td>{ ls_metadata-version }</td>|.
-      rv_html = rv_html && |<td class="center">{ ls_metadata-delete_tadir }</td>|.
 
       lt_steps = li_object->get_deserialize_steps( ).
 
@@ -58547,6 +58546,46 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
     EXPORT tasknr FROM iv_transport TO MEMORY ID 'EUT'.
 
   ENDMETHOD.
+  METHOD tadir_delete.
+
+    CALL FUNCTION 'TR_TADIR_INTERFACE'
+      EXPORTING
+        wi_delete_tadir_entry          = abap_true
+        wi_tadir_pgmid                 = 'R3TR'
+        wi_tadir_object                = ms_item-obj_type
+        wi_tadir_obj_name              = ms_item-obj_name
+        wi_test_modus                  = abap_false
+      EXCEPTIONS
+        tadir_entry_not_existing       = 1
+        tadir_entry_ill_type           = 2
+        no_systemname                  = 3
+        no_systemtype                  = 4
+        original_system_conflict       = 5
+        object_reserved_for_devclass   = 6
+        object_exists_global           = 7
+        object_exists_local            = 8
+        object_is_distributed          = 9
+        obj_specification_not_unique   = 10
+        no_authorization_to_delete     = 11
+        devclass_not_existing          = 12
+        simultanious_set_remove_repair = 13
+        order_missing                  = 14
+        no_modification_of_head_syst   = 15
+        pgmid_object_not_allowed       = 16
+        masterlanguage_not_specified   = 17
+        devclass_not_specified         = 18
+        specify_owner_unique           = 19
+        loc_priv_objs_no_repair        = 20
+        gtadir_not_reached             = 21
+        object_locked_for_order        = 22
+        change_of_class_not_allowed    = 23
+        no_change_from_sap_to_tmp      = 24
+        OTHERS                         = 25.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD tadir_insert.
 
     CALL FUNCTION 'TR_TADIR_INTERFACE'
@@ -59506,6 +59545,18 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD apply_clear_logic.
+    IF mo_field_rules IS BOUND.
+      mo_field_rules->apply_clear_logic( EXPORTING iv_table = |{ iv_table }|
+                                         CHANGING  ct_data  = ct_data ).
+    ENDIF.
+  ENDMETHOD.
+  METHOD apply_fill_logic.
+    IF mo_field_rules IS BOUND.
+      mo_field_rules->apply_fill_logic( EXPORTING iv_table = |{ iv_table }|
+                                        CHANGING  ct_data  = ct_data ).
+    ENDIF.
+  ENDMETHOD.
   METHOD before_export.
 
     DATA: lt_cts_object_entry TYPE STANDARD TABLE OF e071 WITH DEFAULT KEY,
@@ -60005,20 +60056,6 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
-  METHOD apply_clear_logic.
-    IF mo_field_rules IS BOUND.
-      mo_field_rules->apply_clear_logic( EXPORTING iv_table = |{ iv_table }|
-                                         CHANGING  ct_data  = ct_data ).
-    ENDIF.
-  ENDMETHOD.
-  METHOD apply_fill_logic.
-    IF mo_field_rules IS BOUND.
-      mo_field_rules->apply_fill_logic( EXPORTING iv_table = |{ iv_table }|
-                                        CHANGING  ct_data  = ct_data ).
-    ENDIF.
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
@@ -60537,27 +60574,6 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     li_obj->delete( iv_package   = iv_package
                     iv_transport = iv_transport ).
-
-    IF li_obj->get_metadata( )-delete_tadir = abap_true.
-
-      CALL FUNCTION 'TR_TADIR_INTERFACE'
-        EXPORTING
-          wi_delete_tadir_entry = abap_true
-          wi_tadir_pgmid        = 'R3TR'
-          wi_tadir_object       = is_item-obj_type
-          wi_tadir_obj_name     = is_item-obj_name
-          wi_test_modus         = abap_false
-        EXCEPTIONS
-          OTHERS                = 1 ##FM_SUBRC_OK.
-
-      " We deliberately ignore the subrc, because throwing an exception would
-      " break the deletion of lots of object types. On the other hand we have
-      " to catch the exceptions because otherwise messages would directly be issued
-      " by the function module and change the control flow. Thus breaking the
-      " deletion of TOBJ and other object types.
-      " TODO: This is not very clean and has to be improved in the future. See PR 2741.
-
-    ENDIF.
 
   ENDMETHOD.
   METHOD deserialize.
@@ -63361,14 +63377,7 @@ CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
-    DATA ls_meta_data TYPE zif_abapgit_definitions=>ty_metadata.
-
-    ls_meta_data = get_metadata( ).
-    ls_meta_data-delete_tadir = abap_true.
-
-    rs_metadata = ls_meta_data.
-
+    rs_metadata = get_metadata( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = abap_true.
@@ -64463,9 +64472,8 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD get_metadata.
-    rs_metadata              = super->get_metadata( ).
-    rs_metadata-version      = 'v2.0.0'. " Serialization v2, separate data file
-    rs_metadata-delete_tadir = abap_true.
+    rs_metadata         = super->get_metadata( ).
+    rs_metadata-version = 'v2.0.0'. " Serialization v2, separate data file
   ENDMETHOD.
   METHOD normalize_params.
 
@@ -64674,7 +64682,6 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -65358,7 +65365,6 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
 
@@ -66659,6 +66665,8 @@ CLASS zcl_abapgit_object_ucsa IMPLEMENTATION.
         zcx_abapgit_exception=>raise( lv_text ).
     ENDTRY.
 
+    tadir_delete( ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -66734,10 +66742,7 @@ CLASS zcl_abapgit_object_ucsa IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -67905,6 +67910,7 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
 
     CALL FUNCTION 'OBJ_GENERATE'
       EXPORTING
+        iv_korrnum            = iv_transport
         iv_objectname         = ls_objh-objectname
         iv_objecttype         = ls_objh-objecttype
         iv_maint_mode         = 'D'
@@ -67943,6 +67949,7 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
 
     CALL FUNCTION 'OBJ_GENERATE'
       EXPORTING
+        iv_korrnum            = iv_transport
         iv_objectname         = ls_objh-objectname
         iv_objecttype         = ls_objh-objecttype
         iv_maint_mode         = 'I'
@@ -68018,7 +68025,6 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -69985,7 +69991,6 @@ CLASS zcl_abapgit_object_sush IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -70224,7 +70229,6 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -70302,10 +70306,7 @@ CLASS zcl_abapgit_object_sucu IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -70404,7 +70405,6 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -70768,7 +70768,6 @@ CLASS zcl_abapgit_object_ssst IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -71112,7 +71111,6 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
 
@@ -71420,9 +71418,6 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
     ro_object_operator = mo_object_operator.
 
   ENDMETHOD.
-  METHOD is_delete_tadir.
-    rv_delete_tadir = abap_true.
-  ENDMETHOD.
   METHOD merge_object_data.
 
     DATA:
@@ -71522,6 +71517,7 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
       CATCH cx_root INTO lx_error.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -71655,8 +71651,7 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-    rs_metadata              = get_metadata( ).
-    rs_metadata-delete_tadir = is_delete_tadir( ).
+    rs_metadata = get_metadata( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -72068,7 +72063,6 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -72274,7 +72268,6 @@ CLASS zcl_abapgit_object_srfc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -72465,8 +72458,6 @@ CLASS zcl_abapgit_object_sqsc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -72866,10 +72857,7 @@ CLASS zcl_abapgit_object_sppf IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -72948,7 +72936,6 @@ CLASS zcl_abapgit_object_splo IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -73286,7 +73273,7 @@ CLASS zcl_abapgit_object_sots IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SOBJ IMPLEMENTATION.
+CLASS zcl_abapgit_object_sobj IMPLEMENTATION.
   METHOD get_field_rules.
 
     ri_rules = zcl_abapgit_field_rules=>create( ).
@@ -73446,10 +73433,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SOBJ IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -73762,7 +73746,6 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -76236,6 +76219,8 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error deleting SFBS' ).
     ENDIF.
 
+    tadir_delete( ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -76318,7 +76303,6 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -76425,6 +76409,8 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error deleting SFBF' ).
     ENDIF.
 
+    tadir_delete( ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -76520,7 +76506,6 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -77374,7 +77359,6 @@ CLASS zcl_abapgit_object_saxx_super IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -77836,10 +77820,7 @@ CLASS zcl_abapgit_object_prag IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -78501,7 +78482,6 @@ CLASS zcl_abapgit_object_pers IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -80064,11 +80044,7 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA:
-      lv_object       TYPE string,
-      lv_object_class TYPE string,
-      lv_transp_pkg   TYPE abap_bool,
-      lv_dummy        TYPE string.
+    DATA lv_dummy TYPE string.
 
     CONSTANTS: lc_actvt TYPE c LENGTH 2 VALUE `06`.
     DATA: lo_persist     TYPE REF TO object,
@@ -80094,36 +80070,9 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
       CATCH cx_swb_exception.
         zcx_abapgit_exception=>raise( |Error when deleting OAuth2 Profile { lv_profile_key }.| ).
     ENDTRY.
-    "collect change in transport
-    lv_transp_pkg = zcl_abapgit_factory=>get_sap_package( iv_package )->are_changes_recorded_in_tr_req( ).
-    IF lv_transp_pkg = abap_true.
 
-      lv_object_class = ms_item-obj_type.
-      lv_object       = ms_item-obj_name.
+    corr_insert( iv_package ).
 
-      CALL FUNCTION 'RS_CORR_INSERT'
-        EXPORTING
-          object              = lv_object
-          object_class        = lv_object_class
-          master_language     = mv_language
-          global_lock         = abap_true
-          mode                = 'D'
-          suppress_dialog     = abap_true
-        EXCEPTIONS
-          cancelled           = 1
-          permission_failure  = 2
-          unknown_objectclass = 3
-          OTHERS              = 4.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise_t100(
-            iv_msgid              = sy-msgid
-            iv_msgno              = sy-msgno
-            iv_msgv1              = sy-msgv1
-            iv_msgv2              = sy-msgv2
-            iv_msgv3              = sy-msgv3
-            iv_msgv4              = sy-msgv4 ).
-      ENDIF.
-    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -80180,7 +80129,6 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -81268,10 +81216,7 @@ CLASS zcl_abapgit_object_jobd IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -81423,10 +81368,7 @@ CLASS zcl_abapgit_object_iwvb IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -81521,10 +81463,7 @@ CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -81570,7 +81509,7 @@ CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_IWSG IMPLEMENTATION.
+CLASS zcl_abapgit_object_iwsg IMPLEMENTATION.
   METHOD get_field_rules.
 
     ro_result = zcl_abapgit_field_rules=>create( ).
@@ -81634,10 +81573,7 @@ CLASS ZCL_ABAPGIT_OBJECT_IWSG IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -81657,6 +81593,25 @@ CLASS ZCL_ABAPGIT_OBJECT_IWSG IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_iwpr IMPLEMENTATION.
+  METHOD get_field_rules.
+    ro_result = zcl_abapgit_field_rules=>create( ).
+    ro_result->add(
+      iv_table     = '/IWBEP/I_SBD_GA'
+      iv_field     = 'CREATION_USER_ID'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWBEP/I_SBD_GA'
+      iv_field     = 'CREATION_TIME'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp
+    )->add(
+      iv_table     = '/IWBEP/I_SBD_GA'
+      iv_field     = 'LAST_CHG_USER_ID'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWBEP/I_SBD_GA'
+      iv_field     = 'LAST_CHG_TIME'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp ).
+  ENDMETHOD.
   METHOD get_generic.
 
     CREATE OBJECT ro_generic
@@ -81693,10 +81648,7 @@ CLASS zcl_abapgit_object_iwpr IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -81720,30 +81672,28 @@ CLASS zcl_abapgit_object_iwpr IMPLEMENTATION.
     get_generic( )->serialize( io_xml ).
 
   ENDMETHOD.
-
-  METHOD get_field_rules.
-    ro_result = zcl_abapgit_field_rules=>create( ).
-    ro_result->add(
-      iv_table     = '/IWBEP/I_SBD_GA'
-      iv_field     = 'CREATION_USER_ID'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
-    )->add(
-      iv_table     = '/IWBEP/I_SBD_GA'
-      iv_field     = 'CREATION_TIME'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp
-    )->add(
-      iv_table     = '/IWBEP/I_SBD_GA'
-      iv_field     = 'LAST_CHG_USER_ID'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
-    )->add(
-      iv_table     = '/IWBEP/I_SBD_GA'
-      iv_field     = 'LAST_CHG_TIME'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp ).
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_iwom IMPLEMENTATION.
+  METHOD get_field_rules.
+    ro_result = zcl_abapgit_field_rules=>create( ).
+    ro_result->add(
+      iv_table     = '/IWFND/I_MED_OHD'
+      iv_field     = 'CREATED_BY'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWFND/I_MED_OHD'
+      iv_field     = 'CREATED_TIMESTMP'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp
+    )->add(
+      iv_table     = '/IWFND/I_MED_OHD'
+      iv_field     = 'CHANGED_BY'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = '/IWFND/I_MED_OHD'
+      iv_field     = 'CHANGED_TIMESTMP'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp ).
+  ENDMETHOD.
   METHOD get_generic.
 
     CREATE OBJECT ro_generic
@@ -81780,10 +81730,7 @@ CLASS zcl_abapgit_object_iwom IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -81800,27 +81747,6 @@ CLASS zcl_abapgit_object_iwom IMPLEMENTATION.
     get_generic( )->serialize( io_xml ).
 
   ENDMETHOD.
-
-  METHOD get_field_rules.
-    ro_result = zcl_abapgit_field_rules=>create( ).
-    ro_result->add(
-      iv_table     = '/IWFND/I_MED_OHD'
-      iv_field     = 'CREATED_BY'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
-    )->add(
-      iv_table     = '/IWFND/I_MED_OHD'
-      iv_field     = 'CREATED_TIMESTMP'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp
-    )->add(
-      iv_table     = '/IWFND/I_MED_OHD'
-      iv_field     = 'CHANGED_BY'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
-    )->add(
-      iv_table     = '/IWFND/I_MED_OHD'
-      iv_field     = 'CHANGED_TIMESTMP'
-      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-timestamp ).
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_iwmo IMPLEMENTATION.
@@ -81891,10 +81817,7 @@ CLASS zcl_abapgit_object_iwmo IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -81996,13 +81919,8 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
              objnm TYPE c LENGTH 30.
     TYPES END OF ty_iobj.
 
-    DATA: lt_iobjname     TYPE STANDARD TABLE OF ty_iobj,
-          lv_subrc        TYPE sy-subrc,
-          lv_object       TYPE string,
-          lv_object_class TYPE string,
-          lv_transp_pkg   TYPE abap_bool.
-
-    lv_transp_pkg = zcl_abapgit_factory=>get_sap_package( iv_package )->are_changes_recorded_in_tr_req( ).
+    DATA: lt_iobjname TYPE STANDARD TABLE OF ty_iobj,
+          lv_subrc    TYPE sy-subrc.
 
     APPEND ms_item-obj_name TO lt_iobjname.
 
@@ -82016,29 +81934,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error when deleting InfoObject { ms_item-obj_name }| ).
     ENDIF.
 
-    IF lv_transp_pkg = abap_true.
-
-      lv_object_class = ms_item-obj_type.
-      lv_object       = ms_item-obj_name.
-
-      CALL FUNCTION 'RS_CORR_INSERT'
-        EXPORTING
-          object              = lv_object
-          object_class        = lv_object_class
-          master_language     = mv_language
-          global_lock         = abap_true
-          mode                = 'D'
-          suppress_dialog     = abap_true
-        EXCEPTIONS
-          cancelled           = 1
-          permission_failure  = 2
-          unknown_objectclass = 3
-          OTHERS              = 4.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise_t100( ).
-      ENDIF.
-
-    ENDIF.
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -82213,7 +82109,6 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
 
@@ -85227,10 +85122,7 @@ CLASS zcl_abapgit_object_g4bs IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -85332,10 +85224,7 @@ CLASS zcl_abapgit_object_g4ba IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -86544,7 +86433,6 @@ CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -86799,10 +86687,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -87542,7 +87427,6 @@ CLASS zcl_abapgit_object_fdt0 IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
 
@@ -89730,7 +89614,6 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -89918,7 +89801,6 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
     rs_metadata-version = 'v2.0.0'.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
@@ -90240,7 +90122,6 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -90765,7 +90646,6 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -92054,7 +91934,6 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -92457,7 +92336,6 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -92710,7 +92588,6 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -93002,7 +92879,6 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = abap_true.
@@ -93154,7 +93030,6 @@ CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = abap_true.
@@ -93266,6 +93141,8 @@ CLASS zcl_abapgit_object_cmpt IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error deleting CMPT { ms_item-obj_name }| ).
     ENDIF.
 
+    tadir_delete( ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
@@ -93341,10 +93218,7 @@ CLASS zcl_abapgit_object_cmpt IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -95302,7 +95176,6 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -95533,7 +95406,7 @@ CLASS zcl_abapgit_object_avas IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_AVAR IMPLEMENTATION.
+CLASS zcl_abapgit_object_avar IMPLEMENTATION.
   METHOD create_object.
 
     DATA: lv_name TYPE aab_var_name.
@@ -95670,7 +95543,6 @@ CLASS ZCL_ABAPGIT_OBJECT_AVAR IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -95807,7 +95679,6 @@ CLASS zcl_abapgit_object_auth IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -95886,10 +95757,7 @@ CLASS zcl_abapgit_object_asfc IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
-
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -96383,7 +96251,6 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
-    rs_metadata-delete_tadir = abap_true.
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -117476,6 +117343,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-06T07:29:27.215Z
+* abapmerge 0.14.8 - 2023-01-06T14:57:02.223Z
 ENDINTERFACE.
 ****************************************************
