@@ -5861,7 +5861,7 @@ CLASS zcl_abapgit_git_commit DEFINITION
     CLASS-METHODS get_by_branch
       IMPORTING
         !iv_branch_name       TYPE string
-        !iv_repo_url          TYPE zif_abapgit_persistence=>ty_repo-url
+        !iv_repo_url          TYPE string
         !iv_deepen_level      TYPE i
         !iv_sorted            TYPE abap_bool DEFAULT abap_true
       RETURNING
@@ -5871,7 +5871,7 @@ CLASS zcl_abapgit_git_commit DEFINITION
     CLASS-METHODS get_by_commit
       IMPORTING
         !iv_commit_hash   TYPE zif_abapgit_definitions=>ty_sha1
-        !iv_repo_url      TYPE zif_abapgit_persistence=>ty_repo-url
+        !iv_repo_url      TYPE string
         !iv_deepen_level  TYPE i
       RETURNING
         VALUE(rt_commits) TYPE zif_abapgit_definitions=>ty_commit_tt
@@ -117343,6 +117343,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-06T14:57:02.223Z
+* abapmerge 0.14.8 - 2023-01-06T17:38:41.909Z
 ENDINTERFACE.
 ****************************************************
