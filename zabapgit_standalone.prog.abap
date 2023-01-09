@@ -110114,6 +110114,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     DATA lv_last TYPE i.
 
     IF iv_param IS INITIAL.
+      ri_json = me.
       RETURN.
     ENDIF.
 
@@ -110122,6 +110123,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     CONDENSE lv_val.
 
     IF lv_val IS INITIAL.
+      ri_json = me.
       RETURN. " Hmm ? or empty string ? or null ?
     ENDIF.
 
@@ -117342,6 +117344,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-08T21:02:39.730Z
+* abapmerge 0.14.8 - 2023-01-09T17:14:22.870Z
 ENDINTERFACE.
 ****************************************************
