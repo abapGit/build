@@ -34739,7 +34739,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
                                    is_checks = ls_checks
                                    ii_log    = ii_log ).
 
-      io_repo->refresh( ).
+      io_repo->refresh( iv_drop_log = abap_false ).
     ENDIF.
 
   ENDMETHOD.
@@ -117344,6 +117344,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-09T17:14:22.870Z
+* abapmerge 0.14.8 - 2023-01-10T18:22:40.988Z
 ENDINTERFACE.
 ****************************************************
