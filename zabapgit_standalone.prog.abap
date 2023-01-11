@@ -26749,6 +26749,10 @@ CLASS zcl_abapgit_diff IMPLEMENTATION.
           ls_diff-result = zif_abapgit_definitions=>c_diff-update.
         ELSEIF <ls_delta>-flag1 = '' AND <ls_delta>-flag2 = ''.
           ls_diff-result = zif_abapgit_definitions=>c_diff-unchanged.
+        ELSEIF <ls_delta>-flag1 = '' AND <ls_delta>-flag2 = 'E'. " ignore comment
+          ls_diff-result = zif_abapgit_definitions=>c_diff-unchanged.
+        ELSEIF <ls_delta>-flag1 = 'E' AND <ls_delta>-flag2 = ''. " ignore comment
+          ls_diff-result = zif_abapgit_definitions=>c_diff-unchanged.
         ELSE.
           ASSERT 0 = 1. " unknown comparison result
         ENDIF.
@@ -117317,6 +117321,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-11T07:45:28.226Z
+* abapmerge 0.14.8 - 2023-01-11T17:46:57.072Z
 ENDINTERFACE.
 ****************************************************
