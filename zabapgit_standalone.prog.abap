@@ -27387,6 +27387,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* MODIFIERS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.emphasis     { font-weight: bold !important; }' ).
     lo_buf->add( '.crossout     { text-decoration: line-through !important; }' ).
     lo_buf->add( '.right        { text-align:right; }' ).
@@ -27444,6 +27445,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* PANELS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.panel {' ).
     lo_buf->add( '  border-radius: 3px;' ).
     lo_buf->add( '  padding: 0.5em 0.5em;' ).
@@ -27460,6 +27462,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* STRUCTURE DIVS, HEADER & FOOTER */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div#header {' ).
     lo_buf->add( '  padding:          0.5em 0.5em;' ).
     lo_buf->add( '  border-bottom:    3px double;' ).
@@ -27517,6 +27520,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'div.log .icon { padding-right: 6px; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* REPOSITORY */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.repo {' ).
     lo_buf->add( '  padding: 0.5em 1em 0.5em 1em;' ).
     lo_buf->add( '  position: relative;' ).
@@ -27551,6 +27555,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* ABAPGIT OBJECTS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'span.branch,' ).
     lo_buf->add( 'span.user-box,' ).
     lo_buf->add( 'span.package-box,' ).
@@ -27563,6 +27568,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* MISC AND REFACTOR */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.hidden-submit {' ).
     lo_buf->add( '  border: 0 none;' ).
     lo_buf->add( '  height: 0;' ).
@@ -27573,8 +27579,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  overflow: hidden;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '' ).
     lo_buf->add( '/* STATE BLOCK COMMON*/' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'span.state-block {' ).
     lo_buf->add( '  margin-left: 1em;' ).
     lo_buf->add( '  font-family: Consolas, "Lucida Console", Courier, monospace;' ).
@@ -27591,8 +27597,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border-style: solid;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '' ).
     lo_buf->add( '/* REPOSITORY TABLE*/' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.repo_container {' ).
     lo_buf->add( '  position: relative;' ).
     lo_buf->add( '}' ).
@@ -27672,7 +27678,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  background-image: linear-gradient(rgba(0, 0, 0, 0.075), rgba(0, 0, 0, 0.075));' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '' ).
     lo_buf->add( '/* STAGE */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'th.stage-status { width: 30px; }' ).
@@ -27719,6 +27724,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.stage_tab tbody tr:last-child td { padding-bottom: 0.5em; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* COMMIT */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.form-container {' ).
     lo_buf->add( '  padding: 1em 1em;' ).
     lo_buf->add( '}' ).
@@ -27750,6 +27756,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'form.aligned-form span.cell { display: table-cell; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* SETTINGS STYLES */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.settings_container {' ).
     lo_buf->add( '  padding: 0.5em 0.5em 1em;' ).
     lo_buf->add( '  font-size: 10pt;' ).
@@ -27764,11 +27771,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  padding-right: 1em;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'table.settings-package-requirements {' ).
-    lo_buf->add( '  /*max-width: 300px;*/' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
     lo_buf->add( '/* DIFF */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.diff {' ).
     lo_buf->add( '  padding: 0.7em' ).
     lo_buf->add( '}' ).
@@ -27809,6 +27813,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DIFF TABLE */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'table.diff_tab {' ).
     lo_buf->add( '  font-family: Consolas, Courier, monospace;' ).
     lo_buf->add( '  font-size: 10pt;' ).
@@ -27928,6 +27933,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DEBUG INFO STYLES */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.debug_container {' ).
     lo_buf->add( '  padding: 0.5em;' ).
     lo_buf->add( '  font-size: 10pt;' ).
@@ -27939,6 +27945,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DB ENTRIES */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.db_list {' ).
     lo_buf->add( '  padding: 0.5em;' ).
     lo_buf->add( '  overflow-x: auto;' ).
@@ -27990,8 +27997,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  display: none;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '' ).
     lo_buf->add( '/* DB ENTRY DISPLAY */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.db_entry {' ).
     lo_buf->add( '  padding: 0.5em;' ).
     lo_buf->add( '}' ).
@@ -28037,9 +28044,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'div.tutorial h2 { font-size: 14pt;}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* MENU */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/* Special credits to example at https://codepen.io/philhoyt/pen/ujHzd */' ).
-    lo_buf->add( '/* container div, aligned left,' ).
-    lo_buf->add( '   but with .float-right modifier alignes right */' ).
+    lo_buf->add( '/* container div, aligned left, but with .float-right modifier alignes right */' ).
     lo_buf->add( '' ).
     lo_buf->add( '.nav-container ul {' ).
     lo_buf->add( '  list-style: none;' ).
@@ -28060,7 +28067,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* clearfix https://css-tricks.com/snippets/css/clear-fix/ */' ).
-    lo_buf->add( '.nav-container:after { clear: both; display: block; content: ""; }' ).
+    lo_buf->add( '.nav-container:after {' ).
+    lo_buf->add( '  clear: both;' ).
+    lo_buf->add( '  display: block;' ).
+    lo_buf->add( '  content: "";' ).
+    lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* submenues align to left or right border of the active item' ).
     lo_buf->add( '   depending on .float-right modifier */' ).
@@ -28158,7 +28169,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '.nav-container ul ul li.separator:first-child { border-top: none; }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* News Announcement */' ).
+    lo_buf->add( '/* NEWS ANNOUNCEMENT */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'div.info-panel {' ).
     lo_buf->add( '  position: absolute;' ).
@@ -28229,7 +28240,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'div.info-panel .update { border:  1px solid; }' ).
     lo_buf->add( 'div.info-panel div.info-list td { padding-right: 1em }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* Error message Panel */' ).
+    lo_buf->add( '/* ERROR MESSAGE PANEL */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'div.message-panel {' ).
     lo_buf->add( '  z-index: 99;' ).
@@ -28273,14 +28284,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  display: block;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* Tooltip text */' ).
+    lo_buf->add( '/* TOOLTIP TEXT */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.link-hint {' ).
     lo_buf->add( '    line-height: 1em;' ).
     lo_buf->add( '    text-align: center;' ).
     lo_buf->add( '    padding: 5px 15px;' ).
     lo_buf->add( '    border-radius: 4px;' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '    /* Position the tooltip text */' ).
     lo_buf->add( '    position: absolute;' ).
     lo_buf->add( '    z-index: 1;' ).
     lo_buf->add( '    margin-top: -30px;' ).
@@ -28313,6 +28323,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* HOTKEYS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'ul.hotkeys {' ).
     lo_buf->add( '  list-style-type: none;' ).
     lo_buf->add( '  padding: 0;' ).
@@ -28355,14 +28366,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/* Repo overview */' ).
     lo_buf->add( '.repo-overview {' ).
     lo_buf->add( '  padding: 0.5em 0.7em;' ).
-    lo_buf->add( '  /*font-size: 90%;*/' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo-overview table {' ).
     lo_buf->add( '  font-size: 90%;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo-overview-toolbar {' ).
     lo_buf->add( '  padding: 1em 1em;' ).
-    lo_buf->add( '  /*margin-top: -0.5em;*/' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.repo-overview-toolbar label {' ).
     lo_buf->add( '  margin-right: 0.5em;' ).
@@ -28400,7 +28409,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  max-width: 18ch;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* Repo labels */' ).
+    lo_buf->add( '/* REPO LABELS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.repo-label-catalog {' ).
     lo_buf->add( '  padding: 1em 1em;' ).
     lo_buf->add( '  margin-top: -1em;' ).
@@ -28436,6 +28446,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* LABEL COLORS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.rl-white {' ).
     lo_buf->add( '  color: hsl(0, 0%, 30%);' ).
     lo_buf->add( '  background-color: hsl(0, 0%, 100%);' ).
@@ -28543,6 +28554,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* FORM FIELD HELP TOOLTIP */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.form-field-help-tooltip {' ).
     lo_buf->add( '  position: relative;' ).
     lo_buf->add( '  display: inline-block;' ).
@@ -28574,26 +28586,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  word-wrap: break-word;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* Branch Overview Page */' ).
-    lo_buf->add( '.gitGraph-scrollWrapper, .gitGraph-Wrapper{' ).
-    lo_buf->add( '  overflow-y: hidden;' ).
-    lo_buf->add( '}' ).
+    lo_buf->add( '/* CODE INSPECTOR */' ).
     lo_buf->add( '' ).
-    lo_buf->add( '.gitGraph-scrollWrapper{' ).
-    lo_buf->add( '  overflow-x: auto;' ).
-    lo_buf->add( '  height: 20px;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '.gitGraph-Wrapper{' ).
-    lo_buf->add( '  overflow-x: hidden;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '.gitGraph-HTopScroller {' ).
-    lo_buf->add( '  width:1000px;' ).
-    lo_buf->add( '  height: 20px;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '/* code inspector */' ).
     lo_buf->add( '.ci-head { padding: 0.5em 1em; }' ).
     lo_buf->add( '.ci-head .package-name span { margin-left: 0.3em; }' ).
     lo_buf->add( '.ci-variant { font-weight: bold; }' ).
@@ -28610,7 +28604,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.ci-result li:first-child { margin-top: 0px; }' ).
     lo_buf->add( '.ci-result li > span { display: block; }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* Floating buttons */' ).
+    lo_buf->add( '/* FLOATING BUTTONS */' ).
     lo_buf->add( '' ).
     lo_buf->add( '.floating-button {' ).
     lo_buf->add( '  position: fixed;' ).
@@ -28624,7 +28618,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  cursor: pointer;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* Command palette */' ).
+    lo_buf->add( '/* COMMAND PALETTE */' ).
     lo_buf->add( '' ).
     lo_buf->add( '.cmd-palette {' ).
     lo_buf->add( '  position: absolute;' ).
@@ -28834,7 +28828,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border-right: none;' ).
     lo_buf->add( '  border-left: none;' ).
     lo_buf->add( '  border-bottom: none;' ).
-    lo_buf->add( '  border-radius: 6px; /* doesn''t work in IE ? */' ).
+    lo_buf->add( '  border-radius: 6px; /* does not work in IE ? */' ).
     lo_buf->add( '  padding-bottom: 1em;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog fieldset:first-child {' ).
@@ -28901,7 +28895,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.toolbar-light a:first-child {' ).
     lo_buf->add( '  padding-left: 0;' ).
     lo_buf->add( '  border-left: none;' ).
-    lo_buf->add( '}' ).
+    lo_buf->add( '}' ).
     lo_asset_man->register_asset(
       iv_url       = 'css/common.css'
       iv_type      = 'text/css'
@@ -28939,6 +28933,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* GLOBALS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'body {' ).
     lo_buf->add( '  background-color: var(--theme-background-color);' ).
     lo_buf->add( '  font-family: var(--theme-primary-font);' ).
@@ -28955,6 +28950,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'input:focus, textarea:focus { border-color: #8cadd9; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* COLOR PALETTE */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.grey         { color: var(--theme-greyscale-lighter) !important; }' ).
     lo_buf->add( '.grey70       { color: var(--theme-greyscale-medium)  !important; }' ).
     lo_buf->add( '.grey80       { color: var(--theme-greyscale-light)   !important; }' ).
@@ -28969,7 +28965,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.white        { color: white      !important; }' ).
     lo_buf->add( '.pink         { color: pink       !important; }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* Floating buttons and color sets */' ).
+    lo_buf->add( '/* FLOATING BUTTONS AND COLOR SETS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.blue-set {' ).
     lo_buf->add( '  border-color: #abc3e3;' ).
     lo_buf->add( '  color: #5e8dc9;' ).
@@ -28982,6 +28979,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* ABAPGIT OBJECTS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'span.user-box {' ).
     lo_buf->add( '  border-color: #c2d4ea;' ).
     lo_buf->add( '  background-color: #d9e4f2;' ).
@@ -28998,6 +28996,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '/* PANELS */' ).
     lo_buf->add( '/* TODO: add warning and error colors */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.panel.success {' ).
     lo_buf->add( '  color: #589a58 !important;' ).
     lo_buf->add( '  background-color: #c5eac5;' ).
@@ -29010,6 +29009,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'div.dummydiv { background-color: var(--theme-container-background-color); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* STRUCTURE DIVS, HEADER & FOOTER */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div#header {' ).
     lo_buf->add( '  background-color: var(--theme-background-color);' ).
     lo_buf->add( '  border-bottom-color: var(--theme-container-border-color);' ).
@@ -29019,12 +29019,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'div#footer { border-top-color: var(--theme-container-border-color); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* ERROR LOG */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.log {' ).
     lo_buf->add( '  background-color: #fee6e6;' ).
     lo_buf->add( '  border-color: #fdcece;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* REPOSITORY */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.repo { background-color: var(--theme-container-background-color); }' ).
     lo_buf->add( '.repo_name span.name { color: #333; }' ).
     lo_buf->add( '.repo_name span.url  { color: var(--theme-primary-font-color-reduced); }' ).
@@ -29054,6 +29056,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* REPOSITORY TABLE*/' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'table.repo_tab {' ).
     lo_buf->add( '  border-color: var(--theme-table-border-color);' ).
     lo_buf->add( '  background-color: var(--theme-table-background-color);' ).
@@ -29075,34 +29078,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.repo_tab tr.modified    { background-color: #fbf7e9; }' ).
     lo_buf->add( '.repo_tab td.current_dir { color: var(--theme-primary-font-color-reduced); }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/*.repo_tab td.cmd span.state-block span { border-color: #000; }*/' ).
-    lo_buf->add( '/*.repo_tab td.cmd span.state-block span.added {' ).
-    lo_buf->add( '  background-color: #69ad74;' ).
-    lo_buf->add( '  border-color: #579e64;' ).
-    lo_buf->add( '  color: white;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.repo_tab td.cmd span.state-block span.changed {' ).
-    lo_buf->add( '  background-color: #e0c150;' ).
-    lo_buf->add( '  border-color: #d4af25;' ).
-    lo_buf->add( '  color: white;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.repo_tab td.cmd span.state-block span.mixed {' ).
-    lo_buf->add( '  background-color: #e0c150;' ).
-    lo_buf->add( '  border-color: #579e64;' ).
-    lo_buf->add( '  color: #69ad74;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.repo_tab td.cmd span.state-block span.deleted {' ).
-    lo_buf->add( '  background-color: #c76861;' ).
-    lo_buf->add( '  border-color: #b8605a;' ).
-    lo_buf->add( '  color: white;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.repo_tab td.cmd span.state-block span.none {' ).
-    lo_buf->add( '  background-color: #e8e8e8;' ).
-    lo_buf->add( '  border-color: #dbdbdb;' ).
-    lo_buf->add( '  color: #c8c8c8;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '*/' ).
     lo_buf->add( '/* STAGE */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.stage_tab {' ).
     lo_buf->add( '  border-color: #ddd;' ).
     lo_buf->add( '  background-color: #fff;' ).
@@ -29128,17 +29105,20 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* COMMIT */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.form-container { background-color: #F8F8F8; }' ).
     lo_buf->add( 'form.aligned-form label { color: var(--theme-greyscale-medium); }' ).
     lo_buf->add( 'form.aligned-form span.sub-title { color: var(--theme-greyscale-medium); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* SETTINGS STYLES */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.settings_container {' ).
     lo_buf->add( '  color: #444;' ).
     lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DIFF */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.diff { background-color: var(--theme-container-background-color); }' ).
     lo_buf->add( 'span.diff_name { color: grey; }' ).
     lo_buf->add( 'span.diff_name strong { color: #333; }' ).
@@ -29164,40 +29144,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border-top-color: #ddd;' ).
     lo_buf->add( '  border-bottom-color: #ddd;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '/*div.diff_head span.state-block span {' ).
-    lo_buf->add( '  border-color: #000;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'div.diff_head span.state-block span.added {' ).
-    lo_buf->add( '  background-color: #69ad74;' ).
-    lo_buf->add( '  border-color: #579e64;' ).
-    lo_buf->add( '  color: white;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'div.diff_head span.state-block span.changed {' ).
-    lo_buf->add( '  background-color: #e0c150;' ).
-    lo_buf->add( '  border-color: #d4af25;' ).
-    lo_buf->add( '  color: white;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'div.diff_head span.state-block span.mixed {' ).
-    lo_buf->add( '  background-color: #e0c150;' ).
-    lo_buf->add( '  border-color: #579e64;' ).
-    lo_buf->add( '  color: #69ad74;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'div.diff_head span.state-block span.deleted {' ).
-    lo_buf->add( '  background-color: #c76861;' ).
-    lo_buf->add( '  border-color: #b8605a;' ).
-    lo_buf->add( '  color: white;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'div.diff_head span.state-block span.none {' ).
-    lo_buf->add( '  background-color: #e8e8e8;' ).
-    lo_buf->add( '  border-color: #dbdbdb;' ).
-    lo_buf->add( '  color: #c8c8c8;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '*/' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* STATE BLOCK COLORS */' ).
-    lo_buf->add( '/*span.state-block span {' ).
-    lo_buf->add( '  border-color: #000;' ).
-    lo_buf->add( '}*/' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'span.state-block span.added {' ).
     lo_buf->add( '  background-color: #69ad74;' ).
     lo_buf->add( '  border-color: #579e64;' ).
@@ -29224,8 +29173,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  color: #c8c8c8;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '' ).
     lo_buf->add( '/* DIFF TABLE */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'table.diff_tab td,' ).
     lo_buf->add( 'table.diff_tab th {' ).
     lo_buf->add( '  color: #444;' ).
@@ -29251,16 +29200,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border-right-color: var(--theme-table-cell-border-color);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* STYLES for Syntax Highlighting */' ).
-    lo_buf->add( '/* abap */' ).
+    lo_buf->add( '/* STYLES FOR SYNTAX HIGHLIGHTING */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* ABAP */' ).
     lo_buf->add( '.syntax-hl span.keyword  { color: #0a69ce; }' ).
     lo_buf->add( '.syntax-hl span.text     { color: #48ce4f; }' ).
     lo_buf->add( '.syntax-hl span.comment  { color: var(--theme-greyscale-dark); font-style: italic; }' ).
-    lo_buf->add( '/* xml+html */' ).
+    lo_buf->add( '/* XML+HTML */' ).
     lo_buf->add( '.syntax-hl span.xml_tag  { color: #457ce3; }' ).
     lo_buf->add( '.syntax-hl span.attr     { color: #b777fb; }' ).
     lo_buf->add( '.syntax-hl span.attr_val { color: #7a02f9; }' ).
-    lo_buf->add( '/* css+js */' ).
+    lo_buf->add( '/* CSS+JS */' ).
     lo_buf->add( '.syntax-hl span.properties   { color:#0a69ce; }' ).
     lo_buf->add( '.syntax-hl span.values       { color:blue; }' ).
     lo_buf->add( '.syntax-hl span.units        { color:maroon; }' ).
@@ -29273,6 +29223,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.syntax-hl span.variables    { color:purple; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DEBUG INFO STYLES */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.debug_container {' ).
     lo_buf->add( '  color: #444;' ).
     lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
@@ -29301,6 +29252,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.repo-overview tbody tr.selected { background-color: hsla(214, 50%, 75%, 0.33); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DB ENTRIES */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.db_list { background-color: #fff; }' ).
     lo_buf->add( 'table.db_tab td      { color: #333; }' ).
     lo_buf->add( 'table.db_tab td.data { color: #888; }' ).
@@ -29323,6 +29275,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'table.db_tab a.remote_repo:hover { color: var(--theme-link-color); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DB ENTRY DISPLAY */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.db_entry {' ).
     lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
     lo_buf->add( '}' ).
@@ -29337,18 +29290,19 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'table.tag td.label { background-color: #b3c1cc; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* TUTORIAL */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.tutorial { background-color: var(--theme-container-background-color); }' ).
     lo_buf->add( 'div.tutorial hr { border-color: var(--theme-greyscale-light); }' ).
     lo_buf->add( 'div.tutorial h1, h2 { color: #404040; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* MENU */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.nav-container ul li:hover { background-color: #fff; }' ).
     lo_buf->add( '.nav-container ul ul li:hover { background-color: #f6f6f6; }' ).
     lo_buf->add( '.nav-container > ul > li:hover > a { background-color: #ffffff80; }' ).
     lo_buf->add( '.nav-container ul ul { background-color: #fff; }' ).
     lo_buf->add( '.nav-container.corner > ul > li:hover > a { background-color: inherit; }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* Toolbar separator style */' ).
     lo_buf->add( '.nav-container ul ul li.separator {' ).
     lo_buf->add( '  color: var(--theme-greyscale-medium);' ).
     lo_buf->add( '  border-bottom-color: #eee;' ).
@@ -29356,7 +29310,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '.nav-container ul ul li.separator:hover { background-color: inherit; }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* News Announcement */' ).
+    lo_buf->add( '/* NEWS ANNOUNCEMENT */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.info-panel { background-color: white; }' ).
     lo_buf->add( 'div.info-panel div.info-hint { color: var(--theme-greyscale-light); }' ).
     lo_buf->add( 'div.info-panel div.info-title {' ).
@@ -29375,12 +29330,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  background-color: #f5c538;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* Tooltips text */' ).
+    lo_buf->add( '/* TOOLTIPS TEXT */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.link-hint { color: var(--theme-primary-font-color); }' ).
     lo_buf->add( '.link-hint { background-color: var(--theme-linkhint-background) }' ).
     lo_buf->add( '.link-hint::after { border-top-color: var(--theme-linkhint-background) }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* HOTKEYS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'ul.hotkeys span.key-id {' ).
     lo_buf->add( '  background-color: #f0f0f0;' ).
     lo_buf->add( '  border-color: #dcdcdc;' ).
@@ -29391,7 +29348,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  background-color: #fff;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* code inspector */' ).
+    lo_buf->add( '/* CODE INSPECTOR */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.ci-head { background-color: var(--theme-container-background-color); }' ).
     lo_buf->add( '.ci-head .package-name span { color: grey; }' ).
     lo_buf->add( '.ci-variant   { color: #444; }' ).
@@ -29401,16 +29359,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.ci-result li.ci-warning { border-left-color: #ecd227; }' ).
     lo_buf->add( '.ci-result li.ci-info    { border-left-color: #acacac; }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* Command palette */' ).
+    lo_buf->add( '/* COMMAND PALETTE */' ).
     lo_buf->add( '' ).
     lo_buf->add( '.cmd-palette {' ).
     lo_buf->add( '  border-color: #ccc;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '' ).
     lo_buf->add( '.cmd-palette li.selected {' ).
     lo_buf->add( '  background-color: hsla(214, 50%, 90%, 1);' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '' ).
     lo_buf->add( '.cmd-palette mark {' ).
     lo_buf->add( '  color: white;' ).
     lo_buf->add( '  background-color: #79a0d2;' ).
@@ -29542,6 +29498,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* GLOBALS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'body {' ).
     lo_buf->add( '  background-color: var(--theme-background-color);' ).
     lo_buf->add( '  color: var(--theme-primary-font-color);' ).
@@ -29554,9 +29511,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'a:hover { color: var(--theme-link-color-hover); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* HEADER */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '#header a, #header a:visited { color: var(--theme-link-color); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* MENU */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div#toc .favorites a { opacity: 1; }' ).
     lo_buf->add( '.nav-container ul a:hover { text-decoration: underline; }' ).
     lo_buf->add( '.nav-container ul ul { background-color: #555555; }' ).
@@ -29568,6 +29527,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* ABAPGIT OBJECTS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'span.user-box {' ).
     lo_buf->add( '  background-color: #4c6782;' ).
     lo_buf->add( '  border-color: #7491b2;' ).
@@ -29583,6 +29543,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* PANELS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '#debug-output { color: var(--theme-greyscale-dark); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* abapGit logo in header and footer */' ).
@@ -29591,9 +29552,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* TUTORIAL */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.tutorial h1, h2 { color: var(--theme-primary-font-color); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* REPOSITORY */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.repo { background-color: var(--theme-container-background-color); }' ).
     lo_buf->add( '.repo_name span.name { color: var(--theme-primary-font-color-reduced); }' ).
     lo_buf->add( '.repo_name span.url  { color: var(--theme-greyscale-medium); }' ).
@@ -29606,6 +29569,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* REPOSITORY TABLE */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.repo_tab td { color: var(--theme-primary-font-color); }' ).
     lo_buf->add( '.repo_tab tr.unsupported { background-color: #555; }' ).
     lo_buf->add( '.repo_tab tr.modified { background-color: #555; }' ).
@@ -29620,6 +29584,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* STAGE */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.stage_tab {' ).
     lo_buf->add( '  border-color: var(--theme-greyscale-dark);' ).
     lo_buf->add( '  background-color: var(--theme-background-color);' ).
@@ -29643,33 +29608,37 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.stage_tab th { background-color: var(--theme-container-background-color); }' ).
     lo_buf->add( '.stage_tab tr:hover {background-color: var(--theme-list-hover-background-color) !important;}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '' ).
     lo_buf->add( '/* COMMIT */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.form-container { background-color: var(--theme-background-color); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* SETTINGS STYLES */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.settings_container { color: var(--theme-primary-font-color); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DIFF */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.diff_ins { background-color: #352; }' ).
     lo_buf->add( '.diff_del { background-color: #411; }' ).
     lo_buf->add( '.diff_upd { background-color: #551; }' ).
     lo_buf->add( 'div.diff_content { background-color: var(--theme-background-color); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DIFF TABLE */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'table.diff_tab td,th { color: #fff; }' ).
     lo_buf->add( 'table.diff_tab thead.nav_line { background-color: var(--theme-container-background-color); }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* STYLES for Syntax Highlighting */' ).
-    lo_buf->add( '/* abap */' ).
+    lo_buf->add( '/* STYLES FOR SYNTAX HIGHLIGHTING */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* ABAP */' ).
     lo_buf->add( '.syntax-hl span.keyword  { color: #4af; }' ).
     lo_buf->add( '.syntax-hl span.text     { color: #8f8; }' ).
     lo_buf->add( '.syntax-hl span.comment  { color: #999; }' ).
-    lo_buf->add( '/* xml+html */' ).
+    lo_buf->add( '/* XML+HTML */' ).
     lo_buf->add( '.syntax-hl span.xml_tag  { color: #659cff; }' ).
     lo_buf->add( '.syntax-hl span.attr     { color: #bab2f9; }' ).
     lo_buf->add( '.syntax-hl span.attr_val { color: #b777fb; }' ).
-    lo_buf->add( '/* css+js */' ).
+    lo_buf->add( '/* CSS+JS */' ).
     lo_buf->add( '.syntax-hl span.properties   { color:#0a69ce; }' ).
     lo_buf->add( '.syntax-hl span.values       { color:blue; }' ).
     lo_buf->add( '.syntax-hl span.units        { color:maroon; }' ).
@@ -29682,9 +29651,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.syntax-hl span.variables    { color:purple; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DEBUG INFO STYLES */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.debug_container#debug_info { color: var(--theme-primary-font-color); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DB ENTRIES */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.db_list { background-color: var(--theme-container-background-color); }' ).
     lo_buf->add( 'table.db_tab td      { color: var(--theme-primary-font-color); }' ).
     lo_buf->add( 'table.db_tab td.data { opacity: 0.5; }' ).
@@ -29699,11 +29670,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* ERROR LOGS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'div.log { color: var(--theme-greyscale-dark); }' ).
     lo_buf->add( '.close-btn, .message-panel, .message-panel-commands a { color: var(--theme-greyscale-dark); }' ).
     lo_buf->add( '.message-panel-commands a:hover { color: var(--theme-greyscale-dark); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* DIALOGS */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.dialog {' ).
     lo_buf->add( '  color: var(--theme-primary-font-color-reduced);' ).
     lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
@@ -29764,7 +29737,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.dialog input[readonly] {' ).
     lo_buf->add( '  background-color: var(--theme-greyscale-dark);' ).
     lo_buf->add( '  color: var(--theme-greyscale-medium);' ).
-    lo_buf->add( '}' ).
+    lo_buf->add( '}' ).
     lo_asset_man->register_asset(
       iv_url       = 'css/theme-dark.css'
       iv_type      = 'text/css'
@@ -117344,6 +117317,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-10T18:22:40.988Z
+* abapmerge 0.14.8 - 2023-01-11T07:45:28.226Z
 ENDINTERFACE.
 ****************************************************
