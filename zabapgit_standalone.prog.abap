@@ -98225,6 +98225,10 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
                       iv_clsname    = <lv_clsname>
                       it_attributes = it_attributes ).
 
+    " Hardcode STATE (#2612)
+    ls_properties = cg_properties.
+    ls_properties-state = seoc_state_implemented.
+
     TRY.
         CALL FUNCTION 'SEO_INTERFACE_CREATE_COMPLETE'
           EXPORTING
@@ -98233,7 +98237,7 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
             version         = seoc_version_active
             suppress_dialog = abap_true " Parameter missing in 702
           CHANGING
-            interface       = cg_properties
+            interface       = ls_properties
             attributes      = lt_vseoattrib
           EXCEPTIONS
             existing        = 1
@@ -98250,7 +98254,7 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
             overwrite       = abap_true
             version         = seoc_version_active
           CHANGING
-            interface       = cg_properties
+            interface       = ls_properties
             attributes      = lt_vseoattrib
           EXCEPTIONS
             existing        = 1
@@ -98349,6 +98353,7 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
     ENDIF.
 
     CLEAR:
+      " TODO 2023-08-01: Clear rs_interface_properties-state (#2612)
       rs_interface_properties-uuid,
       rs_interface_properties-author,
       rs_interface_properties-createdon,
@@ -98698,6 +98703,10 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
                       iv_clsname    = <lv_clsname>
                       it_attributes = it_attributes ).
 
+    " Hardcode STATE (#2612)
+    ls_properties = cg_properties.
+    ls_properties-state = seoc_state_implemented.
+
     TRY.
         CALL FUNCTION 'SEO_CLASS_CREATE_COMPLETE'
           EXPORTING
@@ -98706,7 +98715,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
             version         = seoc_version_active
             suppress_dialog = abap_true " Parameter missing in 702
           CHANGING
-            class           = cg_properties
+            class           = ls_properties
             attributes      = lt_vseoattrib
           EXCEPTIONS
             existing        = 1
@@ -98723,7 +98732,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
             overwrite       = abap_true
             version         = seoc_version_active
           CHANGING
-            class           = cg_properties
+            class           = ls_properties
             attributes      = lt_vseoattrib
           EXCEPTIONS
             existing        = 1
@@ -98928,6 +98937,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
     ENDIF.
 
     CLEAR:
+      " TODO 2023-08-01: Clear rs_class_properties-state (#2612)
       rs_class_properties-uuid,
       rs_class_properties-author,
       rs_class_properties-createdon,
@@ -117394,6 +117404,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-12T09:57:57.648Z
+* abapmerge 0.14.8 - 2023-01-12T10:37:40.063Z
 ENDINTERFACE.
 ****************************************************
