@@ -45326,7 +45326,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
 
     rv_html = rv_html && |<table border="1px"><thead><tr>|.
     rv_html = rv_html && |<td>Object</td><td>Description</td><td>Class</td><td>Version</td>|.
-    rv_html = rv_html && |<td class="center">Delete TADIR</td><td>Steps</td>|.
+    rv_html = rv_html && |<td>Steps</td>|.
     rv_html = rv_html && |</tr></thead><tbody>|.
 
     LOOP AT lt_types INTO lv_type.
@@ -45374,6 +45374,18 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
 
       CLEAR lv_list.
       LOOP AT lt_steps INTO lv_step.
+        CASE lv_step.
+          WHEN zif_abapgit_object=>gc_step_id-early.
+            lv_step = |<i>{ lv_step } (1)</i>|.
+          WHEN zif_abapgit_object=>gc_step_id-ddic.
+            lv_step = |<strong>{ lv_step } (2)</strong>|.
+          WHEN zif_abapgit_object=>gc_step_id-abap.
+            lv_step = |{ lv_step } (3)|.
+          WHEN zif_abapgit_object=>gc_step_id-late.
+            lv_step = |<i>{ lv_step } (4)</i>|.
+          WHEN OTHERS.
+            ASSERT 1 = 2.
+        ENDCASE.
         IF lv_list IS INITIAL.
           lv_list = lv_step.
         ELSE.
@@ -117392,6 +117404,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-12T14:15:25.699Z
+* abapmerge 0.14.8 - 2023-01-13T10:27:35.437Z
 ENDINTERFACE.
 ****************************************************
