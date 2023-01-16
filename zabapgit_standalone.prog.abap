@@ -60485,7 +60485,17 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
 
+    IF it_tadir IS INITIAL.
+      RETURN.
+    ENDIF.
+
     lt_tadir = it_tadir.
+
+    IF lines( lt_tadir ) = 1.
+      ii_log->add_info( |>>> Deleting 1 object| ).
+    ELSE.
+      ii_log->add_info( |>>> Deleting { lines( lt_tadir ) } objects| ).
+    ENDIF.
 
     IF is_checks-transport-required = abap_true.
       zcl_abapgit_default_transport=>get_instance( )->set( is_checks-transport-transport ).
@@ -60529,11 +60539,15 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
             " make sure to save object deletions
             COMMIT WORK.
+
+            ii_log->add_info( iv_msg  = |Object { ls_item-obj_type } { ls_item-obj_name } deleted|
+                              is_item = ls_item ).
+
           CATCH zcx_abapgit_exception INTO lx_error.
             IF ii_log IS BOUND.
               ii_log->add_exception( ix_exc  = lx_error
                                      is_item = ls_item ).
-              ii_log->add_error( iv_msg = |Deletion of object { ls_item-obj_name } failed|
+              ii_log->add_error( iv_msg  = |Deletion of object { ls_item-obj_name } failed|
                                  is_item = ls_item ).
             ENDIF.
         ENDTRY.
@@ -60610,6 +60624,10 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
       io_repo = io_repo
       ii_log = ii_log ).
 
+    IF lt_results IS INITIAL.
+      RETURN.
+    ENDIF.
+
     zcl_abapgit_objects_check=>checks_adjust(
       EXPORTING
         io_repo    = io_repo
@@ -60624,7 +60642,11 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     check_objects_locked( iv_language = io_repo->get_dot_abapgit( )->get_main_language( )
                           it_items    = lt_items ).
 
-    ii_log->add_success( |Prepare Deserialize| ).
+    IF lines( lt_items ) = 1.
+      ii_log->add_info( |>>> Deserializing 1 object| ).
+    ELSE.
+      ii_log->add_info( |>>> Deserializing { lines( lt_items ) } objects| ).
+    ENDIF.
 
     lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
     LOOP AT lt_results ASSIGNING <ls_result>.
@@ -60759,7 +60781,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_obj> LIKE LINE OF is_step-objects.
     zcl_abapgit_objects_activation=>clear( ).
 
-    ii_log->add_success( |Step { is_step-order } - { is_step-descr }| ).
+    ii_log->add_success( |>> Step { is_step-order } - { is_step-descr }| ).
 
     li_progress = zcl_abapgit_progress=>get_instance( lines( is_step-objects ) ).
 
@@ -103868,6 +103890,13 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
 
       lv_logname = |ABAPGIT_{ sy-datum }_{ sy-uzeit }|.
 
+      IF lines( lt_gentab ) = 1.
+        ii_log->add_info( |> Mass activating 1 DDIC object| ).
+      ELSE.
+        ii_log->add_info( |> Mass activating { lines( lt_gentab ) } DDIC objects| ).
+      ENDIF.
+      ii_log->add_info( |Log name: { lv_logname }| ).
+
       CALL FUNCTION 'DD_MASS_ACT_C3'
         EXPORTING
           ddmode         = 'O'         " activate changes in Original System
@@ -103955,6 +103984,15 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
       ENDIF.
 
       lv_no_ui = boolc( lv_popup = abap_false ).
+
+      IF iv_ddic = abap_true.
+        lv_msg = |(with DDIC)|.
+      ENDIF.
+      IF lines( gt_objects ) = 1.
+        ii_log->add_info( |> Activating 1 object { lv_msg }| ).
+      ELSE.
+        ii_log->add_info( |> Activating { lines( gt_objects ) } objects { lv_msg }| ).
+      ENDIF.
 
       TRY.
           CALL FUNCTION 'RS_WORKING_OBJECTS_ACTIVATE'
@@ -104048,6 +104086,8 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
       IF strlen( <ls_message>-object_text ) > 5.
         ls_item-obj_type = <ls_message>-object_text(4).
         ls_item-obj_name = <ls_message>-object_text+5(*).
+      ELSE.
+        ls_item-obj_name = <ls_message>-show_req->object_name.
       ENDIF.
       LOOP AT <ls_message>-mtext ASSIGNING <lv_msg>.
         ii_log->add_error(
@@ -104090,6 +104130,8 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
       ii_log->add( iv_msg  = <ls_line>-line
                    iv_type = <ls_line>-severity ).
     ENDLOOP.
+
+    ii_log->add_info( |View complete activation log in program RSPUTPRT (type D, log name { iv_logname })| ).
 
   ENDMETHOD.
   METHOD add_item.
@@ -117404,6 +117446,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-13T10:27:35.437Z
+* abapmerge 0.14.8 - 2023-01-16T11:59:51.728Z
 ENDINTERFACE.
 ****************************************************
