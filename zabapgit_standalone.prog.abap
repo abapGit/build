@@ -35042,7 +35042,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
 
     COMMIT WORK.
 
-    IF ri_log IS BOUND AND ri_log->count( ) > 0.
+    IF ri_log IS BOUND AND ri_log->get_status( ) = zif_abapgit_log=>c_status-error.
       zcl_abapgit_log_viewer=>show_log( ri_log ).
       RETURN.
     ENDIF.
@@ -117475,6 +117475,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-16T12:14:35.594Z
+* abapmerge 0.14.8 - 2023-01-16T13:33:47.103Z
 ENDINTERFACE.
 ****************************************************
