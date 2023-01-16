@@ -3021,6 +3021,7 @@ INTERFACE zif_abapgit_definitions .
       repo_background               TYPE string VALUE 'repo_background',
       repo_infos                    TYPE string VALUE 'repo_infos',
       repo_purge                    TYPE string VALUE 'repo_purge',
+      repo_activate_objects         TYPE string VALUE 'activate_objects',
       repo_newonline                TYPE string VALUE 'repo_newonline',
       repo_newoffline               TYPE string VALUE 'repo_newoffline',
       repo_add_all_obj_to_trans_req TYPE string VALUE 'repo_add_all_obj_to_trans_req',
@@ -21015,6 +21016,13 @@ CLASS zcl_abapgit_services_repo DEFINITION
         !io_repo TYPE REF TO zcl_abapgit_repo
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS activate_objects
+      IMPORTING
+        !iv_key       TYPE zif_abapgit_persistence=>ty_repo-key
+      RETURNING
+        VALUE(ri_log) TYPE REF TO zif_abapgit_log
+      RAISING
+        zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -34672,6 +34680,59 @@ CLASS zcl_abapgit_free_sel_dialog IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_services_repo IMPLEMENTATION.
+  METHOD activate_objects.
+
+    DATA:
+      lo_repo       TYPE REF TO zcl_abapgit_repo,
+      lo_browser    TYPE REF TO zcl_abapgit_repo_content_list,
+      lt_repo_items TYPE zif_abapgit_definitions=>ty_repo_item_tt,
+      lv_count      TYPE i,
+      lv_message    TYPE string.
+
+    FIELD-SYMBOLS <ls_item> LIKE LINE OF lt_repo_items.
+
+    lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+
+    CREATE OBJECT lo_browser
+      EXPORTING
+        io_repo = lo_repo.
+
+    lt_repo_items = lo_browser->list( '/' ).
+
+    ri_log = lo_repo->create_new_log( 'Activation Log' ).
+
+    " Add all inactive objects to activation queue
+    zcl_abapgit_objects_activation=>clear( ).
+
+    LOOP AT lt_repo_items ASSIGNING <ls_item> WHERE inactive = abap_true.
+      zcl_abapgit_objects_activation=>add(
+        iv_type = <ls_item>-obj_type
+        iv_name = <ls_item>-obj_name ).
+      lv_count = lv_count + 1.
+    ENDLOOP.
+
+    IF lv_count = 0.
+      MESSAGE 'No inactive objects found' TYPE 'S'.
+      RETURN.
+    ENDIF.
+
+    " Activate DDIC + non-DDIC
+    zcl_abapgit_objects_activation=>activate(
+      iv_ddic = abap_true
+      ii_log  = ri_log ).
+
+    zcl_abapgit_objects_activation=>activate(
+      iv_ddic = abap_false
+      ii_log  = ri_log ).
+
+    IF ri_log->get_status( ) <> zif_abapgit_log=>c_status-error.
+      lv_message = |Successfully activated { lv_count } objects|.
+      MESSAGE lv_message TYPE 'S'.
+    ENDIF.
+
+    lo_repo->refresh( iv_drop_log = abap_false ).
+
+  ENDMETHOD.
   METHOD check_package.
 
     DATA:
@@ -36084,6 +36145,9 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         zcl_abapgit_services_repo=>remove( lv_key ).
         CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_main EXPORTING iv_only_favorites = abap_true.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
+      WHEN zif_abapgit_definitions=>c_action-repo_activate_objects.           " Repo activate objects
+        zcl_abapgit_services_repo=>activate_objects( lv_key ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_newonline.                  " New offline repo
         rs_handled-page  = zcl_abapgit_gui_page_addonline=>create( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
@@ -40651,6 +40715,9 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
   METHOD build_advanced_dropdown.
 
     CREATE OBJECT ro_advanced_dropdown.
+
+    ro_advanced_dropdown->add( iv_txt = 'Activate Objects'
+                               iv_act = |{ zif_abapgit_definitions=>c_action-repo_activate_objects }?key={ mv_key }| ).
 
     IF mo_repo->is_offline( ) = abap_false. " Online ?
       ro_advanced_dropdown->add(
@@ -117459,6 +117526,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-16T16:41:29.179Z
+* abapmerge 0.14.8 - 2023-01-16T16:43:31.276Z
 ENDINTERFACE.
 ****************************************************
