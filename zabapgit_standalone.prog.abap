@@ -79165,7 +79165,6 @@ CLASS kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
-
   METHOD constructor.
 
     super->constructor( is_item     = is_item
@@ -79177,17 +79176,30 @@ CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
     mv_objid = ms_item-obj_name.  "Todo: Obsolete
 
   ENDMETHOD.
-  METHOD zif_abapgit_object~serialize.
+  METHOD extract_container.
 
-    DATA li_task TYPE REF TO iUFTsvrpxwdUTiJUSNzxoTkdegmNBa.
+    DATA li_stream TYPE REF TO if_ixml_ostream.
+    DATA li_container_element TYPE REF TO if_ixml_element.
+    DATA li_document TYPE REF TO if_ixml_document.
 
-    li_task = kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ=>load( mv_objid ).
-    li_task->clear_origin_data( ).
-    io_xml->add( iv_name = 'PDTS'
-                 ig_data = li_task->get_definition( ) ).
+    li_document = io_xml->get_raw( ).
 
-    io_xml->add_xml( iv_name = 'CONTAINER'
-                     ii_xml  = get_container_xml( li_task ) ).
+    li_container_element = li_document->find_from_name_ns( 'CONTAINER' ).
+
+    IF li_container_element IS BOUND.
+
+      li_document = cl_ixml=>create( )->create_document( ).
+
+      li_stream = cl_ixml=>create( )->create_stream_factory( )->create_ostream_xstring( rv_result ).
+
+      li_document->append_child( li_container_element ).
+
+      cl_ixml=>create( )->create_renderer(
+          document = li_document
+          ostream  = li_stream
+      )->render( ).
+
+    ENDIF.
 
   ENDMETHOD.
   METHOD get_container_xml.
@@ -79285,35 +79297,22 @@ CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
     li_task->change_terminating_events( ).
     li_task->change_text( ).
 
-    li_task->save( iv_package ).
-
     tadir_insert( iv_package ).
 
+    li_task->save( iv_package ).
+
   ENDMETHOD.
-  METHOD extract_container.
+  METHOD zif_abapgit_object~serialize.
 
-    DATA li_stream TYPE REF TO if_ixml_ostream.
-    DATA li_container_element TYPE REF TO if_ixml_element.
-    DATA li_document TYPE REF TO if_ixml_document.
+    DATA li_task TYPE REF TO iUFTsvrpxwdUTiJUSNzxoTkdegmNBa.
 
-    li_document = io_xml->get_raw( ).
+    li_task = kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ=>load( mv_objid ).
+    li_task->clear_origin_data( ).
+    io_xml->add( iv_name = 'PDTS'
+                 ig_data = li_task->get_definition( ) ).
 
-    li_container_element = li_document->find_from_name_ns( 'CONTAINER' ).
-
-    IF li_container_element IS BOUND.
-
-      li_document = cl_ixml=>create( )->create_document( ).
-
-      li_stream = cl_ixml=>create( )->create_stream_factory( )->create_ostream_xstring( rv_result ).
-
-      li_document->append_child( li_container_element ).
-
-      cl_ixml=>create( )->create_renderer(
-          document = li_document
-          ostream  = li_stream
-      )->render( ).
-
-    ENDIF.
+    io_xml->add_xml( iv_name = 'CONTAINER'
+                     ii_xml  = get_container_xml( li_task ) ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -117691,6 +117690,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-18T18:59:37.974Z
+* abapmerge 0.14.8 - 2023-01-18T19:40:43.936Z
 ENDINTERFACE.
 ****************************************************
