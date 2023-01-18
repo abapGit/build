@@ -105911,6 +105911,9 @@ CLASS zcl_abapgit_dependencies IMPLEMENTATION.
           <ls_tadir>-korrnum = '171000'.
         WHEN 'IEXT'.
           <ls_tadir>-korrnum = '150000'.
+        WHEN 'SAPC'.
+          " SAPC after SICF
+          <ls_tadir>-korrnum = '140000'.
         WHEN 'PINF'.
           " PINF before exposed objects
           <ls_tadir>-korrnum = '130000'.
@@ -117688,6 +117691,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-17T10:25:54.610Z
+* abapmerge 0.14.8 - 2023-01-18T18:59:37.974Z
 ENDINTERFACE.
 ****************************************************
