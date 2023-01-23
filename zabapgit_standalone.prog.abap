@@ -68084,7 +68084,7 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
     IF sy-subrc <> 0.
 * TOBJ has to be saved/generated after the DDIC tables have been
 * activated - fixed with late deserialization
-      zcx_abapgit_exception=>raise( 'error from OBJ_GENERATE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     CALL FUNCTION 'OBJ_SET_IMPORTABLE'
@@ -68099,7 +68099,7 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
         object_enqueue_failed = 4
         OTHERS                = 5.
     IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from OBJ_SET_IMPORTABLE' ).
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
 * fm OBJ_GENERATE takes the defaults from the DDIC object
@@ -117690,6 +117690,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-18T19:40:43.936Z
+* abapmerge 0.14.8 - 2023-01-23T10:29:15.255Z
 ENDINTERFACE.
 ****************************************************
