@@ -617,6 +617,9 @@ CLASS zcx_abapgit_exception DEFINITION
         what_to_do      TYPE string VALUE `&WHAT_TO_DO&`,
         sys_admin       TYPE string VALUE `&SYS_ADMIN&`,
       END OF c_section_token .
+
+    CLASS-DATA null TYPE string.
+
     DATA msgv1 TYPE symsgv READ-ONLY .
     DATA msgv2 TYPE symsgv READ-ONLY .
     DATA msgv3 TYPE symsgv READ-ONLY .
@@ -725,7 +728,7 @@ CLASS zcx_abapgit_exception DEFINITION
       RETURNING
         VALUE(rv_result) TYPE string.
 ENDCLASS.
-CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
+CLASS zcx_abapgit_exception IMPLEMENTATION.
   METHOD constructor ##ADT_SUPPRESS_GENERATION.
 
     super->constructor( previous = previous ).
@@ -1054,7 +1057,7 @@ CLASS ZCX_ABAPGIT_EXCEPTION IMPLEMENTATION.
     ENDDO.
 
     " Set syst using generic error message
-    MESSAGE e001(00) WITH ls_msg-msgv1 ls_msg-msgv2 ls_msg-msgv3 ls_msg-msgv4 INTO lv_rest.
+    MESSAGE e001(00) WITH ls_msg-msgv1 ls_msg-msgv2 ls_msg-msgv3 ls_msg-msgv4 INTO null.
 
     rs_msg = ls_msg.
 
@@ -61509,8 +61512,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
           lv_concname     TYPE rsdxx-objname,
           ls_transp_key   TYPE trkey,
           ls_e071         TYPE e071,
-          lv_clm_corrnum  TYPE e070-trkorr,
-          lv_message      TYPE string.
+          lv_clm_corrnum  TYPE e070-trkorr.
 
     CONCATENATE mv_name '-' mv_id INTO lv_concname.
     ls_enqueue-objtype = c_objtype_extension_index.
@@ -61544,7 +61546,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
 
     IF sy-subrc <> 0.
       " & was not deleted (correction entry not possible or canceled)
-      MESSAGE s015(e2) WITH lv_concname INTO lv_message.
+      MESSAGE s015(e2) WITH lv_concname INTO zcx_abapgit_exception=>null.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
@@ -61588,7 +61590,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
 
     IF sy-subrc <> 0.
       " Internal error & in & (contact person in charge)
-      MESSAGE i008(e2) WITH 'DD_DD_TO_E071' 'RS_DD_INDX_DELETE' INTO lv_message.
+      MESSAGE i008(e2) WITH 'DD_DD_TO_E071' 'RS_DD_INDX_DELETE' INTO zcx_abapgit_exception=>null.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
@@ -69592,7 +69594,6 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
 
     DATA:
       lv_act_head            TYPE activ_auth,
-      lv_dummy               TYPE string,
       lo_suso                TYPE REF TO object,
       lv_failed              TYPE abap_bool,
       lv_suso_collect_in_cts TYPE i,
@@ -69628,7 +69629,7 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
 
       IF lv_failed = abap_true.
         " Object & does not exist; choose an existing object
-        MESSAGE s111(01) WITH mv_objectname INTO lv_dummy.
+        MESSAGE s111(01) WITH mv_objectname INTO zcx_abapgit_exception=>null.
         zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
@@ -70547,7 +70548,7 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_STVI IMPLEMENTATION.
+CLASS zcl_abapgit_object_stvi IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: lv_transaction_variant TYPE utcvariant.
@@ -70587,8 +70588,6 @@ CLASS ZCL_ABAPGIT_OBJECT_STVI IMPLEMENTATION.
 
     DATA: ls_transaction_variant TYPE ty_transaction_variant.
 
-    DATA: lv_text TYPE natxt.
-
     io_xml->read(
       EXPORTING
         iv_name = 'STVI'
@@ -70601,7 +70600,7 @@ CLASS ZCL_ABAPGIT_OBJECT_STVI IMPLEMENTATION.
       EXCEPTIONS
         OTHERS    = 01.
     IF sy-subrc <> 0.
-      MESSAGE e413(ms) WITH ls_transaction_variant-shdtvciu-tcvariant INTO lv_text.
+      MESSAGE e413(ms) WITH ls_transaction_variant-shdtvciu-tcvariant INTO zcx_abapgit_exception=>null.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
@@ -76752,8 +76751,6 @@ CLASS zcl_abapgit_object_scvi IMPLEMENTATION.
 
     DATA: ls_screen_variant TYPE ty_screen_variant.
 
-    DATA: lv_text TYPE natxt.
-
     io_xml->read(
       EXPORTING
         iv_name = 'SCVI'
@@ -76766,7 +76763,7 @@ CLASS zcl_abapgit_object_scvi IMPLEMENTATION.
       EXCEPTIONS
         OTHERS    = 01.
     IF sy-subrc <> 0.
-      MESSAGE e413(ms) WITH ls_screen_variant-shdsvci-scvariant INTO lv_text.
+      MESSAGE e413(ms) WITH ls_screen_variant-shdsvci-scvariant INTO zcx_abapgit_exception=>null.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
@@ -80172,9 +80169,8 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA lv_dummy TYPE string.
-
     CONSTANTS: lc_actvt TYPE c LENGTH 2 VALUE `06`.
+
     DATA: lo_persist     TYPE REF TO object,
           lv_profile_key TYPE seu_objkey.
 
@@ -80182,7 +80178,7 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
     AUTHORITY-CHECK OBJECT 'S_OA2C_ADM'
       ID 'ACTVT'     FIELD lc_actvt.
     IF sy-subrc <> 0.
-      MESSAGE e463(01) WITH mv_profile INTO lv_dummy.
+      MESSAGE e463(01) WITH mv_profile INTO zcx_abapgit_exception=>null.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
@@ -95827,34 +95823,33 @@ CLASS zcl_abapgit_object_auth IMPLEMENTATION.
 
     DATA:
       lt_objlst TYPE susr_t_xuobject,
-      lo_auth   TYPE REF TO cl_auth_tools,
-      lv_dummy  TYPE string.
+      lo_auth   TYPE REF TO cl_auth_tools.
 
     " authority check
     CREATE OBJECT lo_auth.
     IF lo_auth->authority_check_suso( actvt     = '06'
                                       fieldname = mv_fieldname ) <> 0.
-      MESSAGE e463(01) WITH mv_fieldname INTO lv_dummy.
+      MESSAGE e463(01) WITH mv_fieldname INTO zcx_abapgit_exception=>null.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     " if field is used check
     lt_objlst = lo_auth->suso_where_used_afield( mv_fieldname ).
     IF lt_objlst IS NOT INITIAL.
-      MESSAGE i453(01) WITH mv_fieldname INTO lv_dummy.
+      MESSAGE i453(01) WITH mv_fieldname INTO zcx_abapgit_exception=>null.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     " collect fieldname into a transport task
     IF lo_auth->add_afield_to_trkorr( mv_fieldname ) <> 0.
       "no transport -> no deletion
-      MESSAGE e507(0m) INTO lv_dummy.
+      MESSAGE e507(0m) INTO zcx_abapgit_exception=>null.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     DELETE FROM authx WHERE fieldname = mv_fieldname.
     IF sy-subrc <> 0.
-      MESSAGE e507(0m) INTO lv_dummy.
+      MESSAGE e507(0m) INTO zcx_abapgit_exception=>null.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
@@ -106183,6 +106178,16 @@ CLASS zcl_abapgit_object_evtb IMPLEMENTATION.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
+  METHOD get_additional_extensions.
+    RETURN.
+  ENDMETHOD.
+  METHOD is_file_empty.
+
+    CALL METHOD io_object_json_file->('IF_AFF_FILE~IS_DELETION')
+      RECEIVING
+        result = rv_is_empty.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
     DATA: lr_intf_aff_obj    TYPE REF TO data,
@@ -106542,7 +106547,6 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
           lv_name                  TYPE c LENGTH 120,
           lv_file_name             TYPE string,
           lo_file_name_mapper      TYPE REF TO object,
-          lv_dummy                 TYPE string,
           ls_additional_extensions TYPE ty_extension_mapper_pairs,
           lv_file_as_xstring       TYPE xstring.
 
@@ -106639,7 +106643,7 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
 
         " avoid to serialize empty content (object was never activated, exists inactive only).
         IF is_file_empty( lo_object_json_file ) = abap_true.
-          MESSAGE s821(eu) WITH lv_name INTO lv_dummy.
+          MESSAGE s821(eu) WITH lv_name INTO zcx_abapgit_exception=>null.
           zcx_abapgit_exception=>raise_t100( ).
         ENDIF.
 
@@ -106682,18 +106686,6 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD is_file_empty.
-
-    CALL METHOD io_object_json_file->('IF_AFF_FILE~IS_DELETION')
-      RECEIVING
-        result = rv_is_empty.
-
-  ENDMETHOD.
-
-  METHOD get_additional_extensions.
-    RETURN.
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_OBJECT_CHKV IMPLEMENTATION.
@@ -115404,7 +115396,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_2_BRANCH IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
+CLASS zcl_abapgit_transport IMPLEMENTATION.
   METHOD add_all_objects_to_trans_req.
 
     DATA:
@@ -115686,8 +115678,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
 
     DATA:
       ls_trkorr  TYPE trwbo_request_header,
-      ls_request TYPE trwbo_request,
-      lv_text    TYPE string.
+      ls_request TYPE trwbo_request.
 
     ls_trkorr-trkorr = iv_transport_request.
 
@@ -115696,7 +115687,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
     IF  ls_request-h-trstatus <> c_tr_status-modifiable
     AND ls_request-h-trstatus <> c_tr_status-modifiable_protected.
       " Task/request &1 has already been released
-      MESSAGE e064(tk) WITH iv_transport_request INTO lv_text.
+      MESSAGE e064(tk) WITH iv_transport_request INTO zcx_abapgit_exception=>null.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
@@ -117643,6 +117634,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-24T09:17:03.583Z
+* abapmerge 0.14.8 - 2023-01-25T08:57:11.591Z
 ENDINTERFACE.
 ****************************************************
