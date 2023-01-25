@@ -60585,10 +60585,12 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     lt_tadir = it_tadir.
 
-    IF lines( lt_tadir ) = 1.
-      ii_log->add_info( |>>> Deleting 1 object| ).
-    ELSE.
-      ii_log->add_info( |>>> Deleting { lines( lt_tadir ) } objects| ).
+    IF ii_log IS BOUND.
+      IF lines( lt_tadir ) = 1.
+        ii_log->add_info( |>>> Deleting 1 object| ).
+      ELSE.
+        ii_log->add_info( |>>> Deleting { lines( lt_tadir ) } objects| ).
+      ENDIF.
     ENDIF.
 
     IF is_checks-transport-required = abap_true.
@@ -60634,8 +60636,10 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
             " make sure to save object deletions
             COMMIT WORK.
 
-            ii_log->add_info( iv_msg  = |Object { ls_item-obj_type } { ls_item-obj_name } deleted|
-                              is_item = ls_item ).
+            IF ii_log IS BOUND.
+              ii_log->add_info( iv_msg  = |Object { ls_item-obj_type } { ls_item-obj_name } deleted|
+                                is_item = ls_item ).
+            ENDIF.
 
           CATCH zcx_abapgit_exception INTO lx_error.
             IF ii_log IS BOUND.
@@ -117634,6 +117638,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-25T09:38:45.664Z
+* abapmerge 0.14.8 - 2023-01-25T19:42:05.801Z
 ENDINTERFACE.
 ****************************************************
