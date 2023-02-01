@@ -3954,6 +3954,15 @@ INTERFACE zif_abapgit_exit .
       iv_transport_type    TYPE zif_abapgit_definitions=>ty_transport_type
     CHANGING
       cv_transport_request TYPE trkorr.
+
+  METHODS validate_before_push
+    IMPORTING
+      !is_comment     TYPE zif_abapgit_definitions=>ty_comment
+      !io_stage       TYPE REF TO zcl_abapgit_stage
+      !io_repo        TYPE REF TO zcl_abapgit_repo_online
+    RAISING
+      zcx_abapgit_exception .
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_persist_repo .
@@ -6272,10 +6281,11 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS create_lightweight_tag
       IMPORTING
-        !is_tag TYPE zif_abapgit_definitions=>ty_git_tag
-        !iv_url TYPE string
+        is_tag TYPE zif_abapgit_definitions=>ty_git_tag
+        iv_url TYPE string
       RAISING
         zcx_abapgit_exception .
+
 ENDCLASS.
 CLASS zcl_abapgit_git_tag DEFINITION
   CREATE PUBLIC .
@@ -35381,8 +35391,8 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
     li_user = zcl_abapgit_persistence_user=>get_instance( ).
     li_user->set_repo_git_user_name( iv_url      = io_repo->get_url( )
                                      iv_username = is_commit-committer_name ).
-    li_user->set_repo_git_user_email( iv_url     = io_repo->get_url( )
-                                      iv_email   = is_commit-committer_email ).
+    li_user->set_repo_git_user_email( iv_url   = io_repo->get_url( )
+                                      iv_email = is_commit-committer_email ).
 
     IF is_commit-committer_name IS INITIAL.
       zcx_abapgit_exception=>raise( 'Commit: Committer name empty' ).
@@ -35404,6 +35414,11 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       CONCATENATE ls_comment-comment '' is_commit-body
         INTO ls_comment-comment SEPARATED BY zif_abapgit_definitions=>c_newline.
     ENDIF.
+
+    zcl_abapgit_exit=>get_instance(  )->validate_before_push(
+      is_comment = ls_comment
+      io_stage   = io_stage
+      io_repo    = io_repo ).
 
     io_repo->push( is_comment = ls_comment
                    io_stage   = io_stage ).
@@ -35427,8 +35442,8 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       EXPORTING
         iv_source_branch_name = lv_source_branch_name
       IMPORTING
-        ev_name   = lv_name
-        ev_cancel = lv_cancel ).
+        ev_name               = lv_name
+        ev_cancel             = lv_cancel ).
 
     IF lv_cancel = abap_true.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
@@ -112520,7 +112535,7 @@ CLASS ZCL_ABAPGIT_GIT_TAG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
+CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
   METHOD build_trees.
 
     DATA: lt_nodes   TYPE zcl_abapgit_git_pack=>ty_nodes_tt,
@@ -112795,6 +112810,7 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_stage>   LIKE LINE OF lt_stage,
                    <ls_updated> LIKE LINE OF rs_result-updated_files,
                    <ls_exp>     LIKE LINE OF lt_expanded.
+
     lt_expanded = full_tree( it_objects = it_old_objects
                              iv_parent  = iv_parent ).
 
@@ -112858,9 +112874,9 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
 
     APPEND LINES OF it_old_objects TO rs_result-new_objects.
     walk( EXPORTING it_objects = rs_result-new_objects
-                    iv_sha1 = lv_new_tree
-                    iv_path = '/'
-          CHANGING ct_files = rs_result-new_files ).
+                    iv_sha1    = lv_new_tree
+                    iv_path    = '/'
+          CHANGING  ct_files   = rs_result-new_files ).
 
   ENDMETHOD.
   METHOD receive_pack_create_tag.
@@ -113038,9 +113054,9 @@ CLASS ZCL_ABAPGIT_GIT_PORCELAIN IMPLEMENTATION.
     LOOP AT lt_nodes ASSIGNING <ls_node> WHERE chmod = zif_abapgit_definitions=>c_chmod-dir.
       CONCATENATE iv_path <ls_node>-name '/' INTO lv_path.
       walk( EXPORTING it_objects = it_objects
-                      iv_sha1 = <ls_node>-sha1
-                      iv_path = lv_path
-            CHANGING ct_files = ct_files ).
+                      iv_sha1    = <ls_node>-sha1
+                      iv_path    = lv_path
+            CHANGING  ct_files   = ct_files ).
     ENDLOOP.
 
   ENDMETHOD.
@@ -114379,12 +114395,12 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
       TRY.
           gi_exit->adjust_display_commit_url(
             EXPORTING
-              iv_repo_url           = iv_repo_url
-              iv_repo_name          = iv_repo_name
-              iv_repo_key           = iv_repo_key
-              iv_commit_hash        = iv_commit_hash
+              iv_repo_url    = iv_repo_url
+              iv_repo_name   = iv_repo_name
+              iv_repo_key    = iv_repo_key
+              iv_commit_hash = iv_commit_hash
             CHANGING
-              cv_display_url        = cv_display_url ).
+              cv_display_url = cv_display_url ).
         CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
       ENDTRY.
     ENDIF.
@@ -114582,8 +114598,8 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
             EXPORTING
               is_repo_meta = is_repo_meta
             CHANGING
-              ct_local  = ct_local
-              ct_remote = ct_remote ).
+              ct_local     = ct_local
+              ct_remote    = ct_remote ).
         CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
       ENDTRY.
     ENDIF.
@@ -114641,7 +114657,19 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_exit~validate_before_push.
 
+    IF gi_exit IS NOT INITIAL.
+      TRY.
+          gi_exit->validate_before_push(
+            is_comment = is_comment
+            io_stage   = io_stage
+            io_repo    = io_repo ).
+        CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+      ENDTRY.
+    ENDIF.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_data_utils IMPLEMENTATION.
@@ -117751,6 +117779,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-01-31T10:51:31.224Z
+* abapmerge 0.14.8 - 2023-02-01T08:47:27.409Z
 ENDINTERFACE.
 ****************************************************
