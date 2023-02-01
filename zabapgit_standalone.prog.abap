@@ -12505,11 +12505,24 @@ CLASS zcl_abapgit_object_sfbf DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
 
+    METHODS constructor
+      IMPORTING
+        !is_item     TYPE zif_abapgit_definitions=>ty_item
+        !iv_language TYPE spras.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
+
     CONSTANTS c_longtext_id_sfbf TYPE dokil-id VALUE 'BF'.
 
+    DATA mv_bf TYPE sfw_bfunction.
+
     METHODS:
+      activate
+        RAISING zcx_abapgit_exception,
+      create
+        RETURNING VALUE(ro_bf) TYPE REF TO cl_sfw_bf
+        RAISING   zcx_abapgit_exception,
       get
         RETURNING VALUE(ro_bf) TYPE REF TO cl_sfw_bf
         RAISING   zcx_abapgit_exception.
@@ -12520,11 +12533,24 @@ CLASS zcl_abapgit_object_sfbs DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
 
+    METHODS constructor
+      IMPORTING
+        !is_item     TYPE zif_abapgit_definitions=>ty_item
+        !iv_language TYPE spras.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
+
     CONSTANTS c_longtext_id_sfbs TYPE dokil-id VALUE 'BS'.
 
+    DATA mv_bfset TYPE sfw_bset.
+
     METHODS:
+      activate
+        RAISING zcx_abapgit_exception,
+      create
+        RETURNING VALUE(ro_bfs) TYPE REF TO cl_sfw_bfs
+        RAISING   zcx_abapgit_exception,
       get
         RETURNING VALUE(ro_bfs) TYPE REF TO cl_sfw_bfs
         RAISING   zcx_abapgit_exception.
@@ -12578,18 +12604,27 @@ CLASS zcl_abapgit_object_sfsw DEFINITION INHERITING FROM zcl_abapgit_objects_sup
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object.
 
+    METHODS constructor
+      IMPORTING
+        !is_item     TYPE zif_abapgit_definitions=>ty_item
+        !iv_language TYPE spras.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
+
     CONSTANTS c_longtext_id_sfsw TYPE dokil-id VALUE 'SW'.
 
+    DATA mv_switch TYPE sfw_switch_id.
+
     METHODS:
-      get
+      activate
+        RAISING zcx_abapgit_exception,
+      create
         RETURNING VALUE(ro_switch) TYPE REF TO cl_sfw_sw
         RAISING   zcx_abapgit_exception,
-      wait_for_background_job,
-      wait_for_deletion
-        RAISING
-          zcx_abapgit_exception.
+      get
+        RETURNING VALUE(ro_switch) TYPE REF TO cl_sfw_sw
+        RAISING   zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_object_shi3 DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
@@ -75772,56 +75807,61 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
-  METHOD get.
+  METHOD activate.
 
-    DATA: lv_switch_id TYPE sfw_switch_id.
+    DATA: lt_switches TYPE sfw_switchtab,
+          lt_msgtab   TYPE sprot_u_tab.
 
-    lv_switch_id = ms_item-obj_name.
+    IF zif_abapgit_object~is_active( ) = abap_true.
+      RETURN.
+    ENDIF.
+
+    APPEND mv_switch TO lt_switches.
+
+    cl_sfw_activate=>activate_sfsw(
+      EXPORTING
+        p_switches = lt_switches
+        p_version  = 'I'
+      IMPORTING
+        p_msgtab   = lt_msgtab ).
+
+    READ TABLE lt_msgtab WITH KEY severity = 'E' TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      zcx_abapgit_exception=>raise( 'Error activating SFBS' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    super->constructor(
+      is_item     = is_item
+      iv_language = iv_language ).
+
+    mv_switch = is_item-obj_name.
+
+  ENDMETHOD.
+  METHOD create.
 
     TRY.
-        ro_switch = cl_sfw_sw=>get_switch_from_db( lv_switch_id ).
+        " make sure to clear cache
+        ro_switch = cl_sfw_sw=>create_switch( mv_switch ).
+        ro_switch->free( ).
+        ro_switch = cl_sfw_sw=>create_switch( mv_switch ).
       CATCH cx_pak_invalid_data cx_pak_invalid_state cx_pak_not_authorized.
-        zcx_abapgit_exception=>raise( 'Error from CL_SFW_SW=>GET_SWITCH' ).
+        zcx_abapgit_exception=>raise( 'Error from CL_SFW_SW=>CREATE_SWITCH' ).
     ENDTRY.
 
   ENDMETHOD.
-  METHOD wait_for_background_job.
+  METHOD get.
 
-    DATA: lv_job_count TYPE tbtco-jobcount.
-
-    " We wait for at most 5 seconds. If it takes
-    " more than that it probably doesn't matter,
-    " because we have other problems
-
-    DO 5 TIMES.
-
-      SELECT SINGLE jobcount
-        FROM tbtco
-        INTO lv_job_count
-        WHERE jobname = 'SFW_DELETE_SWITCH'
-        AND status = 'R'
-        AND sdluname = sy-uname.
-
-      IF sy-subrc = 0.
-        WAIT UP TO 1 SECONDS.
-      ELSE.
-        EXIT.
-      ENDIF.
-
-    ENDDO.
-
-  ENDMETHOD.
-  METHOD wait_for_deletion.
-
-    DO 5 TIMES.
-
-      IF zif_abapgit_object~exists( ) = abap_true.
-        WAIT UP TO 1 SECONDS.
-      ELSE.
-        EXIT.
-      ENDIF.
-
-    ENDDO.
+    TRY.
+        " make sure to clear cache
+        ro_switch = cl_sfw_sw=>get_switch( mv_switch ).
+        ro_switch->free( ).
+        ro_switch = cl_sfw_sw=>get_switch( mv_switch ).
+      CATCH cx_pak_invalid_data cx_pak_invalid_state cx_pak_not_authorized.
+        zcx_abapgit_exception=>raise( 'Error from CL_SFW_SW=>GET_SWITCH' ).
+    ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -75837,34 +75877,36 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_switch_id TYPE sfw_switch_id,
-          lo_switch    TYPE REF TO cl_sfw_sw.
-    lv_switch_id = ms_item-obj_name.
-    TRY.
-        lo_switch = cl_sfw_sw=>get_switch( lv_switch_id ).
-        lo_switch->set_delete_flag( lv_switch_id ).
-        lo_switch->save_all( ).
+    DATA: lt_delete TYPE sfw_switchtab,
+          lt_msgtab TYPE sprot_u_tab.
 
-        " deletion via background job. Wait until the job is finished...
-        wait_for_background_job( ).
+    APPEND mv_switch TO lt_delete.
 
-        " ... the object is deleted
-        wait_for_deletion( ).
+    cl_sfw_activate=>delete_sfsw( EXPORTING p_switches = lt_delete
+                                  IMPORTING p_msgtab = lt_msgtab ).
 
-      CATCH cx_pak_invalid_data cx_pak_invalid_state cx_pak_not_authorized.
-        zcx_abapgit_exception=>raise( 'Error deleting Switch' ).
-    ENDTRY.
+    READ TABLE lt_msgtab WITH KEY severity = 'E' TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      zcx_abapgit_exception=>raise( 'Error deleting SFSW' ).
+    ENDIF.
+
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lo_switch    TYPE REF TO cl_sfw_sw,
-          lv_switch_id TYPE sfw_switch_id,
           ls_header    TYPE sfw_switch,
           lv_name_32   TYPE sfw_name32,
           lv_name_80   TYPE sfw_name80,
           lt_parent_bf TYPE sfw_bf_sw_outtab,
           lt_conflicts TYPE sfw_confl_outtab.
+
+    IF iv_step = zif_abapgit_object=>gc_step_id-late.
+      activate( ).
+      RETURN.
+    ENDIF.
+
     io_xml->read( EXPORTING iv_name = 'HEADER'
                   CHANGING cg_data = ls_header ).
     io_xml->read( EXPORTING iv_name = 'NAME32'
@@ -75877,9 +75919,12 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'CONFLICTS'
                   CHANGING cg_data = lt_conflicts ).
 
-    lv_switch_id = ms_item-obj_name.
     TRY.
-        lo_switch = cl_sfw_sw=>create_switch( lv_switch_id ).
+        IF zif_abapgit_object~exists( ) = abap_true.
+          lo_switch = get( ).
+        ELSE.
+          lo_switch = create( ).
+        ENDIF.
       CATCH cx_pak_not_authorized cx_pak_invalid_state cx_pak_invalid_data.
         zcx_abapgit_exception=>raise( 'error in CL_SFW_SW=>CREATE_SWITCH' ).
     ENDTRY.
@@ -75914,10 +75959,9 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: ls_tadir     TYPE tadir,
-          lv_switch_id TYPE sfw_switch_id.
-    lv_switch_id = ms_item-obj_name.
-    IF cl_sfw_sw=>check_existence( lv_switch_id ) = abap_false.
+    DATA ls_tadir TYPE tadir.
+
+    IF cl_sfw_sw=>check_existence( mv_switch ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -75930,12 +75974,14 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
     ENDIF.
 
     rv_bool = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -75965,6 +76011,7 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
 
     ls_header = lo_switch->get_header_data( ).
     CLEAR: ls_header-author,
+           ls_header-version,
            ls_header-createdon,
            ls_header-changedby,
            ls_header-changedon,
@@ -76436,15 +76483,58 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
-  METHOD get.
+  METHOD activate.
 
-    DATA: lv_bfset TYPE sfw_bset.
-    lv_bfset = ms_item-obj_name.
+    DATA: lt_bfsets TYPE sfw_bstab,
+          lt_msgtab TYPE sprot_u_tab.
+
+    IF zif_abapgit_object~is_active( ) = abap_true.
+      RETURN.
+    ENDIF.
+
+    APPEND mv_bfset TO lt_bfsets.
+
+    cl_sfw_activate=>activate_sfbs(
+      EXPORTING
+        p_bsets   = lt_bfsets
+        p_version = 'I'
+      IMPORTING
+        p_msgtab  = lt_msgtab ).
+
+    READ TABLE lt_msgtab WITH KEY severity = 'E' TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      zcx_abapgit_exception=>raise( 'Error activating SFBS' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    super->constructor(
+      is_item     = is_item
+      iv_language = iv_language ).
+
+    mv_bfset = is_item-obj_name.
+
+  ENDMETHOD.
+  METHOD create.
 
     TRY.
-        ro_bfs = cl_sfw_bfs=>get_bfs( lv_bfset ).
+        " make sure to clear cache
+        ro_bfs = cl_sfw_bfs=>create_bfs( mv_bfset ).
         ro_bfs->free( ).
-        ro_bfs = cl_sfw_bfs=>get_bfs( lv_bfset ).
+        ro_bfs = cl_sfw_bfs=>create_bfs( mv_bfset ).
+      CATCH cx_pak_invalid_data cx_pak_invalid_state cx_pak_not_authorized.
+        zcx_abapgit_exception=>raise( 'Error from CL_SFW_BFS=>CREATE_BFS' ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD get.
+
+    TRY.
+        " make sure to clear cache
+        ro_bfs = cl_sfw_bfs=>get_bfs( mv_bfset ).
+        ro_bfs->free( ).
+        ro_bfs = cl_sfw_bfs=>get_bfs( mv_bfset ).
       CATCH cx_pak_invalid_data cx_pak_invalid_state cx_pak_not_authorized.
         zcx_abapgit_exception=>raise( 'Error from CL_SFW_BFS=>GET_BFS' ).
     ENDTRY.
@@ -76465,11 +76555,10 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_bfset  TYPE sfw_bset,
-          lt_delete TYPE sfw_bstab,
+    DATA: lt_delete TYPE sfw_bstab,
           lt_msgtab TYPE sprot_u_tab.
-    lv_bfset = ms_item-obj_name.
-    APPEND lv_bfset TO lt_delete.
+
+    APPEND mv_bfset TO lt_delete.
 
     cl_sfw_activate=>delete_sfbs( EXPORTING p_bsets = lt_delete
                                   IMPORTING p_msgtab = lt_msgtab ).
@@ -76479,19 +76568,24 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error deleting SFBS' ).
     ENDIF.
 
-    tadir_delete( ).
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lv_bfset       TYPE sfw_bset,
-          lo_bfs         TYPE REF TO cl_sfw_bfs,
+    DATA: lo_bfs         TYPE REF TO cl_sfw_bfs,
           ls_header      TYPE sfw_bs,
           lv_name_32     TYPE sfw_name32,
           lv_name_80     TYPE sfw_name80,
           lt_assigned_bf TYPE sfw_bfbs_outtab,
           lt_nested_bfs  TYPE sfw_bsbs_outtab,
           lt_parent_bfs  TYPE sfw_bs_bs_parent_outtab.
+
+    IF iv_step = zif_abapgit_object=>gc_step_id-late.
+      activate( ).
+      RETURN.
+    ENDIF.
+
     io_xml->read( EXPORTING iv_name = 'HEADER'
                   CHANGING cg_data = ls_header ).
     io_xml->read( EXPORTING iv_name = 'NAME32'
@@ -76506,9 +76600,12 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'PARENT_BFS'
                   CHANGING cg_data = lt_parent_bfs ).
 
-    lv_bfset = ms_item-obj_name.
     TRY.
-        lo_bfs = cl_sfw_bfs=>create_bfs( lv_bfset ).
+        IF zif_abapgit_object~exists( ) = abap_true.
+          lo_bfs = get( ).
+        ELSE.
+          lo_bfs = create( ).
+        ENDIF.
       CATCH cx_pak_not_authorized cx_pak_invalid_state cx_pak_invalid_data.
         zcx_abapgit_exception=>raise( 'error in CL_SFW_BFS=>CREATE_BFS' ).
     ENDTRY.
@@ -76537,10 +76634,9 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    DATA: ls_tadir TYPE tadir,
-          lv_bfset TYPE sfw_bset.
-    lv_bfset = ms_item-obj_name.
-    IF cl_sfw_bfs=>check_existence( lv_bfset ) = abap_false.
+    DATA ls_tadir TYPE tadir.
+
+    IF cl_sfw_bfs=>check_existence( mv_bfset ) = abap_false.
       RETURN.
     ENDIF.
 
@@ -76560,6 +76656,7 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -76590,6 +76687,7 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
 
     ls_header = lo_bfs->get_header_data( ).
     CLEAR: ls_header-author,
+           ls_header-version,
            ls_header-createdon,
            ls_header-changedby,
            ls_header-changedon,
@@ -76625,16 +76723,58 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
-  METHOD get.
+  METHOD activate.
 
-    DATA: lv_bf TYPE sfw_bfunction.
-    lv_bf = ms_item-obj_name.
+    DATA: lt_bfuncts TYPE sfw_bftab,
+          lt_msgtab  TYPE sprot_u_tab.
+
+    IF zif_abapgit_object~is_active( ) = abap_true.
+      RETURN.
+    ENDIF.
+
+    APPEND mv_bf TO lt_bfuncts.
+
+    cl_sfw_activate=>activate_sfbf(
+      EXPORTING
+        p_bfuncts = lt_bfuncts
+        p_version = 'I'
+      IMPORTING
+        p_msgtab  = lt_msgtab ).
+
+    READ TABLE lt_msgtab WITH KEY severity = 'E' TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      zcx_abapgit_exception=>raise( 'Error activating SFBF' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    super->constructor(
+      is_item     = is_item
+      iv_language = iv_language ).
+
+    mv_bf = is_item-obj_name.
+
+  ENDMETHOD.
+  METHOD create.
 
     TRY.
-* make sure to clear cache, method GET_BF_FROM_DB does not exist in 702
-        ro_bf = cl_sfw_bf=>get_bf( lv_bf ).
+        " make sure to clear cache
+        ro_bf = cl_sfw_bf=>create_bf( mv_bf ).
         ro_bf->free( ).
-        ro_bf = cl_sfw_bf=>get_bf( lv_bf ).
+        ro_bf = cl_sfw_bf=>create_bf( mv_bf ).
+      CATCH cx_pak_invalid_data cx_pak_invalid_state cx_pak_not_authorized.
+        zcx_abapgit_exception=>raise( 'Error from CL_SFW_BF=>CREATE_BF' ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD get.
+
+    TRY.
+        " make sure to clear cache, method GET_BF_FROM_DB does not exist in 702
+        ro_bf = cl_sfw_bf=>get_bf( mv_bf ).
+        ro_bf->free( ).
+        ro_bf = cl_sfw_bf=>get_bf( mv_bf ).
       CATCH cx_pak_invalid_data cx_pak_invalid_state cx_pak_not_authorized.
         zcx_abapgit_exception=>raise( 'Error from CL_SFW_BF=>GET_BF' ).
     ENDTRY.
@@ -76655,11 +76795,10 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: lv_bf     TYPE sfw_bfunction,
-          lt_delete TYPE sfw_bftab,
+    DATA: lt_delete TYPE sfw_bftab,
           lt_msgtab TYPE sprot_u_tab.
-    lv_bf = ms_item-obj_name.
-    APPEND lv_bf TO lt_delete.
+
+    APPEND mv_bf TO lt_delete.
 
     cl_sfw_activate=>delete_sfbf( EXPORTING p_bfuncts = lt_delete
                                   IMPORTING p_msgtab = lt_msgtab ).
@@ -76669,13 +76808,12 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Error deleting SFBF' ).
     ENDIF.
 
-    tadir_delete( ).
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lv_bf                TYPE sfw_bfunction,
-          lo_bf                TYPE REF TO cl_sfw_bf,
+    DATA: lo_bf                TYPE REF TO cl_sfw_bf,
           ls_header            TYPE sfw_bf,
           lv_name_32           TYPE sfw_name32,
           lv_name_80           TYPE sfw_name80,
@@ -76685,6 +76823,12 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
           ls_sfw_bfc_tc        TYPE sfw_bfc_tc,
           ls_sfw_bfc_rn        TYPE sfw_bfc_rn,
           lt_parent_bfs        TYPE sfw_bs_bf_outtab.
+
+    IF iv_step = zif_abapgit_object=>gc_step_id-late.
+      activate( ).
+      RETURN.
+    ENDIF.
+
     io_xml->read( EXPORTING iv_name = 'HEADER'
                   CHANGING cg_data = ls_header ).
     io_xml->read( EXPORTING iv_name = 'NAME32'
@@ -76705,15 +76849,22 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'PARENT_BFS'
                   CHANGING cg_data = lt_parent_bfs ).
 
-    lv_bf = ms_item-obj_name.
     TRY.
-        lo_bf = cl_sfw_bf=>create_bf( lv_bf ).
+        IF zif_abapgit_object~exists( ) = abap_true.
+          lo_bf = get( ).
+        ELSE.
+          lo_bf = create( ).
+        ENDIF.
       CATCH cx_pak_not_authorized cx_pak_invalid_state cx_pak_invalid_data.
         zcx_abapgit_exception=>raise( 'error in CL_SFW_BF=>CREATE_BF' ).
     ENDTRY.
 
     ls_header-author = sy-uname.
     ls_header-createdon = sy-datum.
+
+    " Get component from package
+    SELECT SINGLE dlvunit FROM tdevc INTO ls_header-component WHERE devclass = iv_package.
+
     lo_bf->set_header_data( ls_header ).
 
     lo_bf->set_texts( p_32 = lv_name_32
@@ -76763,6 +76914,7 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
+    APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -76798,6 +76950,8 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
 
     ls_header = lo_bf->get_header_data( ).
     CLEAR: ls_header-author,
+           ls_header-version,
+           ls_header-component,
            ls_header-createdon,
            ls_header-changedby,
            ls_header-changedon,
@@ -117779,6 +117933,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-01T08:47:27.409Z
+* abapmerge 0.14.8 - 2023-02-01T09:30:20.965Z
 ENDINTERFACE.
 ****************************************************
