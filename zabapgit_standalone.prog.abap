@@ -119,7 +119,6 @@ CLASS zcl_abapgit_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_version DEFINITION DEFERRED.
 CLASS zcl_abapgit_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_user_record DEFINITION DEFERRED.
-CLASS zcl_abapgit_time DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_map DEFINITION DEFERRED.
 CLASS zcl_abapgit_requirement_helper DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_labels DEFINITION DEFERRED.
@@ -439,6 +438,7 @@ CLASS zcl_abapgit_pr_enum_github DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_url DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_transport DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_time DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_tag DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_porcelain DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_pack DEFINITION DEFERRED.
@@ -6302,6 +6302,29 @@ CLASS zcl_abapgit_git_tag DEFINITION
         !iv_text       TYPE string
       RETURNING
         VALUE(rv_text) TYPE string .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_git_time DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    TYPES:
+      ty_unixtime TYPE c LENGTH 16 .
+
+    CLASS-METHODS get_unix
+      RETURNING
+        VALUE(rv_time) TYPE ty_unixtime
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS get_utc
+      IMPORTING
+        !iv_unix TYPE ty_unixtime
+      EXPORTING
+        !ev_date TYPE sy-datum
+        !ev_time TYPE sy-uzeit .
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -22036,29 +22059,6 @@ CLASS zcl_abapgit_string_map DEFINITION
     DATA mv_case_insensitive TYPE abap_bool.
 
 ENDCLASS.
-CLASS zcl_abapgit_time DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    TYPES:
-      ty_unixtime TYPE c LENGTH 16 .
-
-    CLASS-METHODS get_unix
-      RETURNING
-        VALUE(rv_time) TYPE ty_unixtime
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS get_utc
-      IMPORTING
-        !iv_unix TYPE ty_unixtime
-      EXPORTING
-        !ev_date TYPE sy-datum
-        !ev_time TYPE sy-uzeit .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-ENDCLASS.
 CLASS zcl_abapgit_user_record DEFINITION
   FINAL
   CREATE PRIVATE.
@@ -25408,52 +25408,6 @@ CLASS zcl_abapgit_user_record IMPLEMENTATION.
   ENDMETHOD.
   METHOD reset.
     CLEAR gt_user.
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_TIME IMPLEMENTATION.
-  METHOD get_unix.
-* returns seconds since unix epoch, including timezone indicator
-
-    CONSTANTS lc_epoch TYPE timestamp VALUE '19700101000000'.
-    DATA lv_time TYPE timestamp.
-    DATA lv_seconds TYPE i.
-
-    GET TIME STAMP FIELD lv_time.
-
-    lv_seconds = cl_abap_tstmp=>subtract(
-      tstmp1 = lv_time
-      tstmp2 = lc_epoch ).
-
-    rv_time = lv_seconds.
-    CONDENSE rv_time.
-    rv_time+11 = '+000000'.
-
-  ENDMETHOD.
-  METHOD get_utc.
-
-    CONSTANTS lc_epoch TYPE d VALUE '19700101'.
-
-    DATA: lv_i       TYPE i,
-          lv_utcdiff TYPE t,
-          lv_utcsign TYPE c LENGTH 1.
-    lv_i = iv_unix(10).
-    lv_utcsign = iv_unix+11.
-    lv_utcdiff = iv_unix+12.
-
-    " GMT + time-zone
-    CASE lv_utcsign.
-      WHEN '+'.
-        lv_i = lv_i + lv_utcdiff.
-      WHEN '-'.
-        lv_i = lv_i - lv_utcdiff.
-    ENDCASE.
-
-    ev_time = lv_i MOD 86400.
-    lv_i = lv_i - ev_time.
-    lv_i = lv_i / 86400.
-    ev_date = lv_i + lc_epoch.
-
   ENDMETHOD.
 ENDCLASS.
 
@@ -32838,7 +32792,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD commit_list_build.
 
     DATA:
-      lv_unix_time   TYPE zcl_abapgit_time=>ty_unixtime,
+      lv_unix_time   TYPE zcl_abapgit_git_time=>ty_unixtime,
       lv_date        TYPE d,
       lv_date_string TYPE c LENGTH 12,
       lv_time        TYPE t,
@@ -32867,7 +32821,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       <ls_value_tab>-commit  = <ls_commit>-sha1.
       <ls_value_tab>-message = <ls_commit>-message.
       lv_unix_time = <ls_commit>-time.
-      zcl_abapgit_time=>get_utc(
+      zcl_abapgit_git_time=>get_utc(
         EXPORTING
           iv_unix = lv_unix_time
         IMPORTING
@@ -45446,7 +45400,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
     ri_html->add( |<tr><td>GUI version:    </td><td>{ lv_gui_version }</td></tr>| ).
     ri_html->add( |<tr><td>APACK version:  </td><td>{
                   zcl_abapgit_apack_migration=>c_apack_interface_version }</td></tr>| ).
-    ri_html->add( |<tr><td>LCL_TIME:       </td><td>{ zcl_abapgit_time=>get_unix( ) }</td></tr>| ).
+    ri_html->add( |<tr><td>LCL_TIME:       </td><td>{ zcl_abapgit_git_time=>get_unix( ) }</td></tr>| ).
     ri_html->add( |<tr><td>SY time:        </td><td>{ sy-datum } { sy-uzeit } { sy-tzone }</td></tr>| ).
     ri_html->add( |<tr><td>SY release:     </td><td>{ ls_release-release } SP { ls_release-sp }</td></tr>| ).
     ri_html->add( |</table>| ).
@@ -112672,6 +112626,52 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_git_time IMPLEMENTATION.
+  METHOD get_unix.
+* returns seconds since unix epoch, including timezone indicator
+
+    CONSTANTS lc_epoch TYPE timestamp VALUE '19700101000000'.
+    DATA lv_time TYPE timestamp.
+    DATA lv_seconds TYPE i.
+
+    GET TIME STAMP FIELD lv_time.
+
+    lv_seconds = cl_abap_tstmp=>subtract(
+      tstmp1 = lv_time
+      tstmp2 = lc_epoch ).
+
+    rv_time = lv_seconds.
+    CONDENSE rv_time.
+    rv_time+11 = '+000000'.
+
+  ENDMETHOD.
+  METHOD get_utc.
+
+    CONSTANTS lc_epoch TYPE d VALUE '19700101'.
+
+    DATA: lv_i       TYPE i,
+          lv_utcdiff TYPE t,
+          lv_utcsign TYPE c LENGTH 1.
+    lv_i = iv_unix(10).
+    lv_utcsign = iv_unix+11.
+    lv_utcdiff = iv_unix+12.
+
+    " GMT + time-zone
+    CASE lv_utcsign.
+      WHEN '+'.
+        lv_i = lv_i + lv_utcdiff.
+      WHEN '-'.
+        lv_i = lv_i - lv_utcdiff.
+    ENDCASE.
+
+    ev_time = lv_i MOD 86400.
+    lv_i = lv_i - ev_time.
+    lv_i = lv_i / 86400.
+    ev_date = lv_i + lc_epoch.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GIT_TAG IMPLEMENTATION.
   METHOD add_tag_prefix.
 
@@ -113075,7 +113075,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
   ENDMETHOD.
   METHOD receive_pack_push.
 
-    DATA: lv_time   TYPE zcl_abapgit_time=>ty_unixtime,
+    DATA: lv_time   TYPE zcl_abapgit_git_time=>ty_unixtime,
           lv_commit TYPE xstring,
           lv_pack   TYPE xstring,
           ls_object LIKE LINE OF et_new_objects,
@@ -113084,7 +113084,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_tree> LIKE LINE OF it_trees,
                    <ls_blob> LIKE LINE OF it_blobs.
-    lv_time = zcl_abapgit_time=>get_unix( ).
+    lv_time = zcl_abapgit_git_time=>get_unix( ).
 
     READ TABLE it_trees ASSIGNING <ls_tree> WITH KEY path = '/'.
     ASSERT sy-subrc = 0.
@@ -113826,9 +113826,9 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
   METHOD encode_tag.
 
     DATA: lv_string TYPE string,
-          lv_time   TYPE zcl_abapgit_time=>ty_unixtime.
+          lv_time   TYPE zcl_abapgit_git_time=>ty_unixtime.
 
-    lv_time = zcl_abapgit_time=>get_unix( ).
+    lv_time = zcl_abapgit_git_time=>get_unix( ).
 
     lv_string = |object { is_tag-object }{ zif_abapgit_definitions=>c_newline }|
              && |type { is_tag-type }{ zif_abapgit_definitions=>c_newline }|
@@ -117933,6 +117933,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-02T08:15:11.967Z
+* abapmerge 0.14.8 - 2023-02-02T08:29:05.265Z
 ENDINTERFACE.
 ****************************************************
