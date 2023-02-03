@@ -3033,14 +3033,6 @@ INTERFACE zif_abapgit_definitions .
       prerelase_patch TYPE i,
     END OF ty_version.
   TYPES:
-    BEGIN OF ty_alv_column,
-      name      TYPE string,
-      text      TYPE string,
-      length    TYPE lvc_outlen,
-      show_icon TYPE abap_bool,
-    END OF ty_alv_column,
-    ty_alv_column_tt TYPE TABLE OF ty_alv_column WITH DEFAULT KEY.
-  TYPES:
     ty_deserialization_step TYPE string.
   TYPES:
     ty_deserialization_step_tt TYPE STANDARD TABLE OF ty_deserialization_step
@@ -4614,6 +4606,15 @@ INTERFACE zif_abapgit_popups .
     ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY,
     ty_rows    TYPE SORTED TABLE OF i WITH UNIQUE KEY table_line.
 
+  TYPES:
+    BEGIN OF ty_alv_column,
+      name      TYPE string,
+      text      TYPE string,
+      length    TYPE lvc_outlen,
+      show_icon TYPE abap_bool,
+    END OF ty_alv_column,
+    ty_alv_column_tt TYPE TABLE OF ty_alv_column WITH DEFAULT KEY.
+
   CONSTANTS c_new_branch_label TYPE string VALUE '+ create new ...' ##NO_TEXT.
 
   METHODS popup_search_help
@@ -4707,7 +4708,7 @@ INTERFACE zif_abapgit_popups .
       !iv_optimize_col_width TYPE abap_bool DEFAULT abap_true
       !iv_selection_mode     TYPE salv_de_constant DEFAULT if_salv_c_selection_mode=>multiple
       !iv_select_column_text TYPE csequence DEFAULT space
-      !it_columns_to_display TYPE zif_abapgit_definitions=>ty_alv_column_tt
+      !it_columns_to_display TYPE ty_alv_column_tt
       !it_preselected_rows   TYPE ty_rows OPTIONAL
     EXPORTING
       VALUE(et_list)         TYPE STANDARD TABLE
@@ -32767,11 +32768,11 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       lt_commits         TYPE zif_abapgit_definitions=>ty_commit_tt,
       lt_value_tab       TYPE ty_commit_value_tab_tt,
       lt_selected_values TYPE ty_commit_value_tab_tt,
-      lt_columns         TYPE zif_abapgit_definitions=>ty_alv_column_tt.
+      lt_columns         TYPE zif_abapgit_popups=>ty_alv_column_tt.
 
     FIELD-SYMBOLS:
       <ls_value_tab> TYPE ty_commit_value_tab,
-      <ls_column>    TYPE zif_abapgit_definitions=>ty_alv_column.
+      <ls_column>    TYPE zif_abapgit_popups=>ty_alv_column.
 
     commit_list_build(
       EXPORTING
@@ -33093,7 +33094,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
           lo_table_header TYPE REF TO cl_salv_form_text.
 
     FIELD-SYMBOLS: <lt_table>             TYPE STANDARD TABLE,
-                   <ls_column_to_display> TYPE zif_abapgit_definitions=>ty_alv_column,
+                   <ls_column_to_display> TYPE zif_abapgit_popups=>ty_alv_column,
                    <lv_row>               TYPE i,
                    <ls_line>              TYPE any,
                    <lv_selected>          TYPE data.
@@ -33241,7 +33242,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       ls_label              LIKE LINE OF lt_all_labels,
       lt_current_labels     TYPE string_table,
       lt_selected_labels    LIKE lt_all_labels,
-      lt_columns_to_display TYPE zif_abapgit_definitions=>ty_alv_column_tt,
+      lt_columns_to_display TYPE zif_abapgit_popups=>ty_alv_column_tt,
       lt_preselected_rows   TYPE zif_abapgit_popups=>ty_rows,
       ls_columns_to_display LIKE LINE OF lt_columns_to_display,
       lv_save_tabix         TYPE i,
@@ -34468,13 +34469,13 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD popup_overwrite.
 
-    DATA: lt_columns  TYPE zif_abapgit_definitions=>ty_alv_column_tt,
+    DATA: lt_columns  TYPE zif_abapgit_popups=>ty_alv_column_tt,
           lt_selected LIKE ct_overwrite,
           li_popups   TYPE REF TO zif_abapgit_popups.
     DATA lt_preselected_rows TYPE zif_abapgit_popups=>ty_rows.
 
     FIELD-SYMBOLS: <ls_overwrite> LIKE LINE OF ct_overwrite,
-                   <ls_column>    TYPE zif_abapgit_definitions=>ty_alv_column.
+                   <ls_column>    TYPE zif_abapgit_popups=>ty_alv_column.
     IF lines( ct_overwrite ) = 0.
       RETURN.
     ENDIF.
@@ -34523,12 +34524,12 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD popup_package_overwrite.
 
-    DATA: lt_columns  TYPE zif_abapgit_definitions=>ty_alv_column_tt,
+    DATA: lt_columns  TYPE zif_abapgit_popups=>ty_alv_column_tt,
           lt_selected LIKE ct_overwrite,
           li_popups   TYPE REF TO zif_abapgit_popups.
 
     FIELD-SYMBOLS: <ls_overwrite> LIKE LINE OF ct_overwrite,
-                   <ls_column>    TYPE zif_abapgit_definitions=>ty_alv_column.
+                   <ls_column>    TYPE zif_abapgit_popups=>ty_alv_column.
 
     IF lines( ct_overwrite ) = 0.
       RETURN.
@@ -117928,6 +117929,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-03T15:26:17.272Z
+* abapmerge 0.14.8 - 2023-02-03T15:38:40.465Z
 ENDINTERFACE.
 ****************************************************
