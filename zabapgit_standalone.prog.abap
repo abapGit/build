@@ -93,6 +93,7 @@ INTERFACE zif_abapgit_code_inspector DEFERRED.
 INTERFACE zif_abapgit_http_response DEFERRED.
 INTERFACE zif_abapgit_http_agent DEFERRED.
 INTERFACE zif_abapgit_pr_enum_provider DEFERRED.
+INTERFACE zif_abapgit_git_definitions DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
 INTERFACE zif_abapgit_data_serializer DEFERRED.
 INTERFACE zif_abapgit_data_deserializer DEFERRED.
@@ -1147,6 +1148,172 @@ INTERFACE zif_abapgit_background .
       !io_repo     TYPE REF TO zcl_abapgit_repo_online
       !ii_log      TYPE REF TO zif_abapgit_log
       !it_settings TYPE ty_settings_tt OPTIONAL
+    RAISING
+      zcx_abapgit_exception .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_git_definitions .
+* this interface is self contained
+* only references to built in types
+* git does not know the concept of TADIR objects, only knows files
+  TYPES:
+    ty_type    TYPE c LENGTH 6 .
+  TYPES:
+    ty_bitbyte TYPE c LENGTH 8 .
+  TYPES:
+    ty_sha1    TYPE c LENGTH 40 .
+  TYPES: ty_sha1_tt TYPE STANDARD TABLE OF ty_sha1 WITH DEFAULT KEY .
+  TYPES:
+    ty_adler32 TYPE x LENGTH 4 .
+
+  TYPES ty_item_state TYPE c LENGTH 1.
+  TYPES:
+    BEGIN OF ty_file_signature,
+      path     TYPE string,
+      filename TYPE string,
+      sha1     TYPE ty_sha1,
+    END OF ty_file_signature .
+  TYPES:
+    ty_file_signatures_tt TYPE STANDARD TABLE OF
+           ty_file_signature WITH DEFAULT KEY .
+  TYPES:
+    ty_file_signatures_ts TYPE SORTED TABLE OF
+           ty_file_signature WITH UNIQUE KEY path filename .
+  TYPES:
+    BEGIN OF ty_file.
+      INCLUDE TYPE ty_file_signature.
+  TYPES: data TYPE xstring,
+    END OF ty_file .
+  TYPES:
+    ty_files_tt TYPE STANDARD TABLE OF ty_file WITH DEFAULT KEY
+                     WITH UNIQUE SORTED KEY file_path COMPONENTS path filename
+                     WITH NON-UNIQUE SORTED KEY file COMPONENTS filename.
+
+  TYPES ty_git_branch_type TYPE c LENGTH 2 .
+  TYPES:
+    BEGIN OF ty_git_branch,
+      sha1         TYPE ty_sha1,
+      name         TYPE string,
+      type         TYPE ty_git_branch_type,
+      is_head      TYPE abap_bool,
+      display_name TYPE string,
+    END OF ty_git_branch .
+  TYPES:
+    ty_git_branch_list_tt TYPE STANDARD TABLE OF ty_git_branch WITH DEFAULT KEY
+                               WITH NON-UNIQUE SORTED KEY name_key
+                               COMPONENTS name.
+  TYPES:
+    BEGIN OF ty_git_tag,
+      sha1         TYPE ty_sha1,
+      object       TYPE ty_sha1,
+      name         TYPE string,
+      type         TYPE ty_git_branch_type,
+      display_name TYPE string,
+      tagger_name  TYPE string,
+      tagger_email TYPE string,
+      message      TYPE string,
+      body         TYPE string,
+    END OF ty_git_tag .
+  TYPES:
+    BEGIN OF ty_git_user,
+      name  TYPE string,
+      email TYPE string,
+    END OF ty_git_user .
+  TYPES:
+    BEGIN OF ty_comment,
+      committer TYPE ty_git_user,
+      author    TYPE ty_git_user,
+      comment   TYPE string,
+    END OF ty_comment .
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_data_config .
+  TYPES:
+    ty_data_type TYPE c LENGTH 4 .
+  TYPES:
+    BEGIN OF ty_config,
+      type         TYPE ty_data_type,
+      name         TYPE tadir-obj_name,
+      skip_initial TYPE abap_bool,
+      where        TYPE string_table,
+    END OF ty_config .
+  TYPES:
+    ty_config_tt TYPE SORTED TABLE OF ty_config WITH UNIQUE KEY type name .
+
+  CONSTANTS c_default_path TYPE string VALUE '/data/' ##NO_TEXT.
+  CONSTANTS c_default_format TYPE string VALUE 'json' ##NO_TEXT.
+  CONSTANTS c_config TYPE string VALUE 'conf' ##NO_TEXT.
+  CONSTANTS:
+    BEGIN OF c_data_type,
+      tabu TYPE ty_data_type VALUE 'TABU',
+      vdat TYPE ty_data_type VALUE 'VDAT',
+      cdat TYPE ty_data_type VALUE 'CDAT',
+      tdat TYPE ty_data_type VALUE 'TDAT',
+    END OF c_data_type .
+
+  METHODS add_config
+    IMPORTING
+      !is_config TYPE ty_config
+    RAISING
+      zcx_abapgit_exception .
+  METHODS from_json
+    IMPORTING
+      !it_files TYPE zif_abapgit_git_definitions=>ty_files_tt
+    RAISING
+      zcx_abapgit_exception .
+  METHODS get_configs
+    RETURNING
+      VALUE(rt_configs) TYPE ty_config_tt .
+  METHODS remove_config
+    IMPORTING
+      !is_config TYPE ty_config
+    RAISING
+      zcx_abapgit_exception .
+  METHODS to_json
+    RETURNING
+      VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_files_tt
+    RAISING
+      zcx_abapgit_exception .
+  METHODS update_config
+    IMPORTING
+      !is_config TYPE ty_config
+    RAISING
+      zcx_abapgit_exception .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_data_deserializer .
+  TYPES: BEGIN OF ty_result,
+           table   TYPE tadir-obj_name,
+           deletes TYPE REF TO data,
+           updates TYPE REF TO data,
+           inserts TYPE REF TO data,
+         END OF ty_result.
+  TYPES: ty_results TYPE STANDARD TABLE OF ty_result WITH KEY table.
+
+  METHODS deserialize
+    IMPORTING
+      !ii_config       TYPE REF TO zif_abapgit_data_config
+      !it_files        TYPE zif_abapgit_git_definitions=>ty_files_tt
+    RETURNING
+      VALUE(rt_result) TYPE ty_results
+    RAISING
+      zcx_abapgit_exception .
+
+  METHODS actualize
+    IMPORTING
+      it_result TYPE ty_results
+    RAISING
+      zcx_abapgit_exception .
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_data_serializer .
+  METHODS serialize
+    IMPORTING
+      !ii_config      TYPE REF TO zif_abapgit_data_config
+    RETURNING
+      VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_files_tt
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
@@ -2580,75 +2747,9 @@ INTERFACE zif_abapgit_auth.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_definitions .
-  TYPES:
-    ty_type    TYPE c LENGTH 6 .
-  TYPES:
-    ty_bitbyte TYPE c LENGTH 8 .
-  TYPES:
-    ty_sha1    TYPE c LENGTH 40 .
-  TYPES: ty_sha1_tt TYPE STANDARD TABLE OF ty_sha1 WITH DEFAULT KEY .
-  TYPES:
-    ty_adler32 TYPE x LENGTH 4 .
-  TYPES ty_item_state TYPE c LENGTH 1.
-  TYPES:
-    BEGIN OF ty_file_signature,
-      path     TYPE string,
-      filename TYPE string,
-      sha1     TYPE ty_sha1,
-    END OF ty_file_signature .
-  TYPES:
-    ty_file_signatures_tt TYPE STANDARD TABLE OF
-           ty_file_signature WITH DEFAULT KEY .
-  TYPES:
-    ty_file_signatures_ts TYPE SORTED TABLE OF
-           ty_file_signature WITH UNIQUE KEY path filename .
-  TYPES:
-    BEGIN OF ty_file.
-      INCLUDE TYPE ty_file_signature.
-  TYPES: data TYPE xstring,
-    END OF ty_file .
-  TYPES:
-    ty_files_tt TYPE STANDARD TABLE OF ty_file WITH DEFAULT KEY
-                     WITH UNIQUE SORTED KEY file_path COMPONENTS path filename
-                     WITH NON-UNIQUE SORTED KEY file COMPONENTS filename.
+
   TYPES:
     ty_string_tt TYPE STANDARD TABLE OF string WITH DEFAULT KEY .
-  TYPES ty_git_branch_type TYPE c LENGTH 2 .
-  TYPES:
-    BEGIN OF ty_git_branch,
-      sha1         TYPE ty_sha1,
-      name         TYPE string,
-      type         TYPE ty_git_branch_type,
-      is_head      TYPE abap_bool,
-      display_name TYPE string,
-    END OF ty_git_branch .
-  TYPES:
-    ty_git_branch_list_tt TYPE STANDARD TABLE OF ty_git_branch WITH DEFAULT KEY
-                               WITH NON-UNIQUE SORTED KEY name_key
-                               COMPONENTS name.
-  TYPES:
-    BEGIN OF ty_git_tag,
-      sha1         TYPE ty_sha1,
-      object       TYPE ty_sha1,
-      name         TYPE string,
-      type         TYPE ty_git_branch_type,
-      display_name TYPE string,
-      tagger_name  TYPE string,
-      tagger_email TYPE string,
-      message      TYPE string,
-      body         TYPE string,
-    END OF ty_git_tag .
-  TYPES:
-    BEGIN OF ty_git_user,
-      name  TYPE string,
-      email TYPE string,
-    END OF ty_git_user .
-  TYPES:
-    BEGIN OF ty_comment,
-      committer TYPE ty_git_user,
-      author    TYPE ty_git_user,
-      comment   TYPE string,
-    END OF ty_comment .
   TYPES:
     BEGIN OF ty_item_signature,
       obj_type TYPE tadir-object,
@@ -2668,7 +2769,7 @@ INTERFACE zif_abapgit_definitions .
     ty_items_ts TYPE SORTED TABLE OF ty_item WITH UNIQUE KEY obj_type obj_name .
   TYPES:
     BEGIN OF ty_file_item,
-      file TYPE ty_file,
+      file TYPE zif_abapgit_git_definitions=>ty_file,
       item TYPE ty_item,
     END OF ty_file_item .
   TYPES:
@@ -2733,8 +2834,8 @@ INTERFACE zif_abapgit_definitions .
       path       TYPE string,
       filename   TYPE string,
       is_changed TYPE abap_bool,
-      rstate     TYPE ty_item_state,
-      lstate     TYPE ty_item_state,
+      rstate     TYPE zif_abapgit_git_definitions=>ty_item_state,
+      lstate     TYPE zif_abapgit_git_definitions=>ty_item_state,
     END OF ty_repo_file .
   TYPES:
     ty_repo_file_tt TYPE STANDARD TABLE OF ty_repo_file WITH DEFAULT KEY .
@@ -2742,10 +2843,10 @@ INTERFACE zif_abapgit_definitions .
     ty_chmod TYPE c LENGTH 6 .
   TYPES:
     BEGIN OF ty_object,
-      sha1    TYPE ty_sha1,
-      type    TYPE ty_type,
+      sha1    TYPE zif_abapgit_git_definitions=>ty_sha1,
+      type    TYPE zif_abapgit_git_definitions=>ty_type,
       data    TYPE xstring,
-      adler32 TYPE ty_adler32,
+      adler32 TYPE zif_abapgit_git_definitions=>ty_adler32,
       index   TYPE i,
     END OF ty_object .
   TYPES:
@@ -2775,8 +2876,8 @@ INTERFACE zif_abapgit_definitions .
       filename  TYPE string,
       package   TYPE devclass,
       match     TYPE abap_bool,
-      lstate    TYPE ty_item_state,
-      rstate    TYPE ty_item_state,
+      lstate    TYPE zif_abapgit_git_definitions=>ty_item_state,
+      rstate    TYPE zif_abapgit_git_definitions=>ty_item_state,
       packmove  TYPE abap_bool,
       srcsystem TYPE tadir-srcsystem,
     END OF ty_result .
@@ -2787,7 +2888,7 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     BEGIN OF ty_stage_files,
       local  TYPE ty_files_item_tt,
-      remote TYPE ty_files_tt,
+      remote TYPE zif_abapgit_git_definitions=>ty_files_tt,
       status TYPE ty_results_ts_path,
     END OF ty_stage_files .
   TYPES:
@@ -2828,9 +2929,9 @@ INTERFACE zif_abapgit_definitions .
     END OF ty_create .
   TYPES:
     BEGIN OF ty_commit,
-      sha1       TYPE ty_sha1,
-      parent1    TYPE ty_sha1,
-      parent2    TYPE ty_sha1,
+      sha1       TYPE zif_abapgit_git_definitions=>ty_sha1,
+      parent1    TYPE zif_abapgit_git_definitions=>ty_sha1,
+      parent2    TYPE zif_abapgit_git_definitions=>ty_sha1,
       author     TYPE string,
       email      TYPE string,
       time       TYPE string,
@@ -2870,15 +2971,15 @@ INTERFACE zif_abapgit_definitions .
     BEGIN OF ty_expanded,
       path  TYPE string,
       name  TYPE string,
-      sha1  TYPE ty_sha1,
+      sha1  TYPE zif_abapgit_git_definitions=>ty_sha1,
       chmod TYPE ty_chmod,
     END OF ty_expanded .
   TYPES:
     ty_expanded_tt TYPE STANDARD TABLE OF ty_expanded WITH DEFAULT KEY .
   TYPES:
     BEGIN OF ty_ancestor,
-      commit TYPE ty_sha1,
-      tree   TYPE ty_sha1,
+      commit TYPE zif_abapgit_git_definitions=>ty_sha1,
+      tree   TYPE zif_abapgit_git_definitions=>ty_sha1,
       time   TYPE string,
       body   TYPE string,
     END OF ty_ancestor .
@@ -2891,8 +2992,8 @@ INTERFACE zif_abapgit_definitions .
       path       TYPE string,
       is_dir     TYPE abap_bool,
       changes    TYPE i,
-      lstate     TYPE ty_item_state,
-      rstate     TYPE ty_item_state,
+      lstate     TYPE zif_abapgit_git_definitions=>ty_item_state,
+      rstate     TYPE zif_abapgit_git_definitions=>ty_item_state,
       files      TYPE ty_repo_file_tt,
       changed_by TYPE syuname,
       transport  TYPE trkorr,
@@ -2963,10 +3064,10 @@ INTERFACE zif_abapgit_definitions .
     END OF c_sci_result.
   CONSTANTS:
     BEGIN OF c_git_branch_type,
-      branch          TYPE ty_git_branch_type VALUE 'HD',
-      lightweight_tag TYPE ty_git_branch_type VALUE 'TG',
-      annotated_tag   TYPE ty_git_branch_type VALUE 'AT',
-      other           TYPE ty_git_branch_type VALUE 'ZZ',
+      branch          TYPE zif_abapgit_git_definitions=>ty_git_branch_type VALUE 'HD',
+      lightweight_tag TYPE zif_abapgit_git_definitions=>ty_git_branch_type VALUE 'TG',
+      annotated_tag   TYPE zif_abapgit_git_definitions=>ty_git_branch_type VALUE 'AT',
+      other           TYPE zif_abapgit_git_definitions=>ty_git_branch_type VALUE 'ZZ',
     END OF c_git_branch_type .
   CONSTANTS c_head_name TYPE string VALUE 'HEAD' ##NO_TEXT.
   CONSTANTS:
@@ -2987,19 +3088,19 @@ INTERFACE zif_abapgit_definitions .
     END OF c_diff .
   CONSTANTS:
     BEGIN OF c_type,
-      commit TYPE ty_type VALUE 'commit',                   "#EC NOTEXT
-      tree   TYPE ty_type VALUE 'tree',                     "#EC NOTEXT
-      ref_d  TYPE ty_type VALUE 'ref_d',                    "#EC NOTEXT
-      tag    TYPE ty_type VALUE 'tag',                      "#EC NOTEXT
-      blob   TYPE ty_type VALUE 'blob',                     "#EC NOTEXT
+      commit TYPE zif_abapgit_git_definitions=>ty_type VALUE 'commit',                   "#EC NOTEXT
+      tree   TYPE zif_abapgit_git_definitions=>ty_type VALUE 'tree',                     "#EC NOTEXT
+      ref_d  TYPE zif_abapgit_git_definitions=>ty_type VALUE 'ref_d',                    "#EC NOTEXT
+      tag    TYPE zif_abapgit_git_definitions=>ty_type VALUE 'tag',                      "#EC NOTEXT
+      blob   TYPE zif_abapgit_git_definitions=>ty_type VALUE 'blob',                     "#EC NOTEXT
     END OF c_type .
   CONSTANTS:
     BEGIN OF c_state, " https://git-scm.com/docs/git-status
-      unchanged TYPE ty_item_state VALUE '',
-      added     TYPE ty_item_state VALUE 'A',
-      modified  TYPE ty_item_state VALUE 'M',
-      deleted   TYPE ty_item_state VALUE 'D',
-      mixed     TYPE ty_item_state VALUE '*',
+      unchanged TYPE zif_abapgit_git_definitions=>ty_item_state VALUE '',
+      added     TYPE zif_abapgit_git_definitions=>ty_item_state VALUE 'A',
+      modified  TYPE zif_abapgit_git_definitions=>ty_item_state VALUE 'M',
+      deleted   TYPE zif_abapgit_git_definitions=>ty_item_state VALUE 'D',
+      mixed     TYPE zif_abapgit_git_definitions=>ty_item_state VALUE '*',
     END OF c_state .
   CONSTANTS:
     BEGIN OF c_chmod,
@@ -3101,7 +3202,7 @@ INTERFACE zif_abapgit_definitions .
     ty_method TYPE c LENGTH 1 .
   TYPES:
     BEGIN OF ty_stage,
-      file   TYPE ty_file,
+      file   TYPE zif_abapgit_git_definitions=>ty_file,
       method TYPE ty_method,
       status TYPE ty_result,
     END OF ty_stage .
@@ -3215,96 +3316,6 @@ INTERFACE zif_abapgit_cts_api .
     RAISING
       zcx_abapgit_exception .
 
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_data_config .
-  TYPES:
-    ty_data_type TYPE c LENGTH 4 .
-  TYPES:
-    BEGIN OF ty_config,
-      type         TYPE ty_data_type,
-      name         TYPE tadir-obj_name,
-      skip_initial TYPE abap_bool,
-      where        TYPE string_table,
-    END OF ty_config .
-  TYPES:
-    ty_config_tt TYPE SORTED TABLE OF ty_config WITH UNIQUE KEY type name .
-
-  CONSTANTS c_default_path TYPE string VALUE '/data/' ##NO_TEXT.
-  CONSTANTS c_default_format TYPE string VALUE 'json' ##NO_TEXT.
-  CONSTANTS c_config TYPE string VALUE 'conf' ##NO_TEXT.
-  CONSTANTS:
-    BEGIN OF c_data_type,
-      tabu TYPE ty_data_type VALUE 'TABU',
-      vdat TYPE ty_data_type VALUE 'VDAT',
-      cdat TYPE ty_data_type VALUE 'CDAT',
-      tdat TYPE ty_data_type VALUE 'TDAT',
-    END OF c_data_type .
-
-  METHODS add_config
-    IMPORTING
-      !is_config TYPE ty_config
-    RAISING
-      zcx_abapgit_exception .
-  METHODS from_json
-    IMPORTING
-      !it_files TYPE zif_abapgit_definitions=>ty_files_tt
-    RAISING
-      zcx_abapgit_exception .
-  METHODS get_configs
-    RETURNING
-      VALUE(rt_configs) TYPE ty_config_tt .
-  METHODS remove_config
-    IMPORTING
-      !is_config TYPE ty_config
-    RAISING
-      zcx_abapgit_exception .
-  METHODS to_json
-    RETURNING
-      VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
-    RAISING
-      zcx_abapgit_exception .
-  METHODS update_config
-    IMPORTING
-      !is_config TYPE ty_config
-    RAISING
-      zcx_abapgit_exception .
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_data_deserializer .
-  TYPES: BEGIN OF ty_result,
-           table   TYPE tadir-obj_name,
-           deletes TYPE REF TO data,
-           updates TYPE REF TO data,
-           inserts TYPE REF TO data,
-         END OF ty_result.
-  TYPES: ty_results TYPE STANDARD TABLE OF ty_result WITH KEY table.
-
-  METHODS deserialize
-    IMPORTING
-      !ii_config       TYPE REF TO zif_abapgit_data_config
-      !it_files        TYPE zif_abapgit_definitions=>ty_files_tt
-    RETURNING
-      VALUE(rt_result) TYPE ty_results
-    RAISING
-      zcx_abapgit_exception .
-
-  METHODS actualize
-    IMPORTING
-      it_result TYPE ty_results
-    RAISING
-      zcx_abapgit_exception .
-
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_data_serializer .
-  METHODS serialize
-    IMPORTING
-      !ii_config      TYPE REF TO zif_abapgit_data_config
-    RETURNING
-      VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
-    RAISING
-      zcx_abapgit_exception .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_tadir .
@@ -3690,7 +3701,7 @@ INTERFACE zif_abapgit_objects.
 
   TYPES:
     BEGIN OF ty_serialization,
-      files TYPE zif_abapgit_definitions=>ty_files_tt,
+      files TYPE zif_abapgit_git_definitions=>ty_files_tt,
       item  TYPE zif_abapgit_definitions=>ty_item,
     END OF ty_serialization .
   TYPES:
@@ -3776,7 +3787,7 @@ INTERFACE zif_abapgit_persistence.
 
   TYPES: BEGIN OF ty_local_checksum,
            item  TYPE zif_abapgit_definitions=>ty_item_signature,
-           files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
+           files TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt,
          END OF ty_local_checksum.
 
   TYPES:
@@ -3799,7 +3810,7 @@ INTERFACE zif_abapgit_persistence.
   TYPES: BEGIN OF ty_repo_xml,
            url             TYPE string,
            branch_name     TYPE string,
-           selected_commit TYPE zif_abapgit_definitions=>ty_sha1,
+           selected_commit TYPE zif_abapgit_git_definitions=>ty_sha1,
            package         TYPE devclass,
            created_by      TYPE syuname,
            created_at      TYPE timestampl,
@@ -3852,7 +3863,7 @@ INTERFACE zif_abapgit_exit .
       !iv_repo_url    TYPE csequence
       !iv_repo_name   TYPE csequence
       !iv_repo_key    TYPE csequence
-      !iv_commit_hash TYPE zif_abapgit_definitions=>ty_sha1
+      !iv_commit_hash TYPE zif_abapgit_git_definitions=>ty_sha1
     CHANGING
       !cv_display_url TYPE csequence
     RAISING
@@ -3920,7 +3931,7 @@ INTERFACE zif_abapgit_exit .
       !is_repo_meta TYPE zif_abapgit_persistence=>ty_repo
     CHANGING
       !ct_local     TYPE zif_abapgit_definitions=>ty_files_item_tt
-      !ct_remote    TYPE zif_abapgit_definitions=>ty_files_tt
+      !ct_remote    TYPE zif_abapgit_git_definitions=>ty_files_tt
     RAISING
       zcx_abapgit_exception .
   METHODS wall_message_list
@@ -3957,7 +3968,7 @@ INTERFACE zif_abapgit_exit .
 
   METHODS validate_before_push
     IMPORTING
-      !is_comment     TYPE zif_abapgit_definitions=>ty_comment
+      !is_comment     TYPE zif_abapgit_git_definitions=>ty_comment
       !io_stage       TYPE REF TO zcl_abapgit_stage
       !io_repo        TYPE REF TO zcl_abapgit_repo_online
     RAISING
@@ -3970,7 +3981,7 @@ INTERFACE zif_abapgit_persist_repo .
     IMPORTING
       !iv_url         TYPE string
       !iv_branch_name TYPE string
-      !iv_branch      TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
+      !iv_branch      TYPE zif_abapgit_git_definitions=>ty_sha1 OPTIONAL
       iv_display_name TYPE string OPTIONAL
       !iv_package     TYPE devclass
       !iv_offline     TYPE abap_bool DEFAULT abap_false
@@ -4282,7 +4293,7 @@ INTERFACE zif_abapgit_repo .
       !iv_ignore_files TYPE abap_bool DEFAULT abap_false
         PREFERRED PARAMETER ii_obj_filter
     RETURNING
-      VALUE(rt_files)  TYPE zif_abapgit_definitions=>ty_files_tt
+      VALUE(rt_files)  TYPE zif_abapgit_git_definitions=>ty_files_tt
     RAISING
       zcx_abapgit_exception .
   METHODS refresh
@@ -4328,7 +4339,7 @@ INTERFACE zif_abapgit_repo_checksums.
 
   METHODS get_checksums_per_file
     RETURNING
-      VALUE(rt_checksums) TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
+      VALUE(rt_checksums) TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt .
 
   METHODS rebuild
     IMPORTING
@@ -4338,7 +4349,7 @@ INTERFACE zif_abapgit_repo_checksums.
 
   METHODS update
     IMPORTING
-      !it_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+      !it_updated_files TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
     RAISING
       zcx_abapgit_exception.
 
@@ -4379,7 +4390,7 @@ INTERFACE zif_abapgit_repo_online .
       zcx_abapgit_exception .
   METHODS get_current_remote
     RETURNING
-      VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+      VALUE(rv_sha1) TYPE zif_abapgit_git_definitions=>ty_sha1
     RAISING
       zcx_abapgit_exception .
   METHODS select_commit
@@ -4399,14 +4410,14 @@ INTERFACE zif_abapgit_repo_online .
       VALUE(rv_switched_origin) TYPE zif_abapgit_persistence=>ty_repo-switched_origin.
   METHODS push
     IMPORTING
-      !is_comment TYPE zif_abapgit_definitions=>ty_comment
+      !is_comment TYPE zif_abapgit_git_definitions=>ty_comment
       !io_stage   TYPE REF TO zcl_abapgit_stage
     RAISING
       zcx_abapgit_exception .
   METHODS create_branch
     IMPORTING
       !iv_name TYPE string
-      !iv_from TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
+      !iv_from TYPE zif_abapgit_git_definitions=>ty_sha1 OPTIONAL
     RAISING
       zcx_abapgit_exception .
   METHODS check_for_valid_branch
@@ -4532,8 +4543,8 @@ INTERFACE zif_abapgit_merge .
   TYPES:
     BEGIN OF ty_merge,
       repo     TYPE REF TO zcl_abapgit_repo_online,
-      source   TYPE zif_abapgit_definitions=>ty_git_branch,
-      target   TYPE zif_abapgit_definitions=>ty_git_branch,
+      source   TYPE zif_abapgit_git_definitions=>ty_git_branch,
+      target   TYPE zif_abapgit_git_definitions=>ty_git_branch,
       common   TYPE zif_abapgit_definitions=>ty_ancestor,
       stree    TYPE zif_abapgit_definitions=>ty_expanded_tt,
       ttree    TYPE zif_abapgit_definitions=>ty_expanded_tt,
@@ -4546,11 +4557,11 @@ INTERFACE zif_abapgit_merge .
     BEGIN OF ty_merge_conflict,
       path        TYPE string,
       filename    TYPE string,
-      source_sha1 TYPE zif_abapgit_definitions=>ty_sha1,
+      source_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1,
       source_data TYPE xstring,
-      target_sha1 TYPE zif_abapgit_definitions=>ty_sha1,
+      target_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1,
       target_data TYPE xstring,
-      result_sha1 TYPE zif_abapgit_definitions=>ty_sha1,
+      result_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1,
       result_data TYPE xstring,
     END OF ty_merge_conflict .
   TYPES:
@@ -4642,14 +4653,14 @@ INTERFACE zif_abapgit_popups .
       !iv_hide_branch     TYPE zif_abapgit_persistence=>ty_repo-branch_name OPTIONAL
       !iv_hide_head       TYPE abap_bool OPTIONAL
     RETURNING
-      VALUE(rs_branch)    TYPE zif_abapgit_definitions=>ty_git_branch
+      VALUE(rs_branch)    TYPE zif_abapgit_git_definitions=>ty_git_branch
     RAISING
       zcx_abapgit_exception .
   METHODS tag_list_popup
     IMPORTING
       !iv_url       TYPE string
     RETURNING
-      VALUE(rs_tag) TYPE zif_abapgit_definitions=>ty_git_tag
+      VALUE(rs_tag) TYPE zif_abapgit_git_definitions=>ty_git_tag
     RAISING
       zcx_abapgit_exception .
   METHODS commit_list_popup
@@ -5016,7 +5027,7 @@ CLASS zcl_abapgit_apack_helper DEFINITION
       IMPORTING
         !iv_package    TYPE devclass
       RETURNING
-        VALUE(rs_file) TYPE zif_abapgit_definitions=>ty_file
+        VALUE(rs_file) TYPE zif_abapgit_git_definitions=>ty_file
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -5255,7 +5266,7 @@ CLASS zcl_abapgit_background_push_au DEFINITION
       IMPORTING
         !iv_changed_by TYPE syuname
       RETURNING
-        VALUE(rs_user) TYPE zif_abapgit_definitions=>ty_git_user .
+        VALUE(rs_user) TYPE zif_abapgit_git_definitions=>ty_git_user .
     METHODS push_deletions
       IMPORTING
         !io_repo  TYPE REF TO zcl_abapgit_repo_online
@@ -5524,7 +5535,7 @@ CLASS zcl_abapgit_transport_2_branch DEFINITION
       IMPORTING
         !is_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch
       RETURNING
-        VALUE(rs_comment)       TYPE zif_abapgit_definitions=>ty_comment .
+        VALUE(rs_comment)       TYPE zif_abapgit_git_definitions=>ty_comment .
     METHODS stage_transport_objects
       IMPORTING
         !it_transport_objects TYPE zif_abapgit_definitions=>ty_tadir_tt
@@ -5602,7 +5613,7 @@ CLASS zcl_abapgit_data_deserializer DEFINITION
 
     METHODS convert_json_to_itab
       IMPORTING
-        !is_file TYPE zif_abapgit_definitions=>ty_file
+        !is_file TYPE zif_abapgit_git_definitions=>ty_file
         !ir_data TYPE REF TO data
       RAISING
         zcx_abapgit_exception .
@@ -5787,7 +5798,7 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
       IMPORTING
         !iv_branch_name  TYPE clike
       RETURNING
-        VALUE(rs_branch) TYPE zif_abapgit_definitions=>ty_git_branch
+        VALUE(rs_branch) TYPE zif_abapgit_git_definitions=>ty_git_branch
       RAISING
         zcx_abapgit_exception .
     METHODS get_head_symref
@@ -5795,17 +5806,17 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
         VALUE(rv_head_symref) TYPE string .
     METHODS get_all
       RETURNING
-        VALUE(rt_branches) TYPE zif_abapgit_definitions=>ty_git_branch_list_tt
+        VALUE(rt_branches) TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt
       RAISING
         zcx_abapgit_exception .
     METHODS get_branches_only
       RETURNING
-        VALUE(rt_branches) TYPE zif_abapgit_definitions=>ty_git_branch_list_tt
+        VALUE(rt_branches) TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt
       RAISING
         zcx_abapgit_exception .
     METHODS get_tags_only             " For potential future use
       RETURNING
-        VALUE(rt_tags) TYPE zif_abapgit_definitions=>ty_git_branch_list_tt
+        VALUE(rt_tags) TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS get_display_name
@@ -5819,7 +5830,7 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
         !it_result            TYPE string_table OPTIONAL
         !iv_current_row_index TYPE sy-tabix OPTIONAL
       RETURNING
-        VALUE(rv_type)        TYPE zif_abapgit_definitions=>ty_git_branch_type .
+        VALUE(rv_type)        TYPE zif_abapgit_git_definitions=>ty_git_branch_type .
     CLASS-METHODS complete_heads_branch_name
       IMPORTING
         !iv_branch_name TYPE clike
@@ -5833,7 +5844,7 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    DATA mt_branches TYPE zif_abapgit_definitions=>ty_git_branch_list_tt .
+    DATA mt_branches TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt .
     DATA mv_head_symref TYPE string .
 
     CLASS-METHODS skip_first_pkt
@@ -5847,14 +5858,14 @@ CLASS zcl_abapgit_git_branch_list DEFINITION
       IMPORTING
         !iv_branch_name  TYPE string
       RETURNING
-        VALUE(rs_branch) TYPE zif_abapgit_definitions=>ty_git_branch
+        VALUE(rs_branch) TYPE zif_abapgit_git_definitions=>ty_git_branch
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS parse_branch_list
       IMPORTING
         !iv_data        TYPE string
       EXPORTING
-        !et_list        TYPE zif_abapgit_definitions=>ty_git_branch_list_tt
+        !et_list        TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt
         !ev_head_symref TYPE string
       RAISING
         zcx_abapgit_exception .
@@ -5871,7 +5882,7 @@ CLASS zcl_abapgit_git_commit DEFINITION
     TYPES:
       BEGIN OF ty_pull_result,
         commits TYPE zif_abapgit_definitions=>ty_commit_tt,
-        commit  TYPE zif_abapgit_definitions=>ty_sha1,
+        commit  TYPE zif_abapgit_git_definitions=>ty_sha1,
       END OF ty_pull_result .
 
     CLASS-METHODS get_by_branch
@@ -5886,7 +5897,7 @@ CLASS zcl_abapgit_git_commit DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS get_by_commit
       IMPORTING
-        !iv_commit_hash   TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_commit_hash   TYPE zif_abapgit_git_definitions=>ty_sha1
         !iv_repo_url      TYPE string
         !iv_deepen_level  TYPE i
       RETURNING
@@ -5909,10 +5920,9 @@ CLASS zcl_abapgit_git_commit DEFINITION
       CHANGING
         !ct_commits TYPE zif_abapgit_definitions=>ty_commit_tt .
     CLASS-METHODS clear_missing_parents CHANGING ct_commits TYPE zif_abapgit_definitions=>ty_commit_tt .
-
   PROTECTED SECTION.
   PRIVATE SECTION.
-    TYPES: ty_sha1_range TYPE RANGE OF zif_abapgit_definitions=>ty_sha1 .
+    TYPES: ty_sha1_range TYPE RANGE OF zif_abapgit_git_definitions=>ty_sha1 .
 
     CLASS-METHODS get_1st_child_commit
       IMPORTING
@@ -5926,7 +5936,7 @@ CLASS zcl_abapgit_git_commit DEFINITION
     CLASS-METHODS is_missing
       IMPORTING
         it_commits       TYPE zif_abapgit_definitions=>ty_commit_tt
-        iv_sha1          TYPE zif_abapgit_definitions=>ty_sha1
+        iv_sha1          TYPE zif_abapgit_git_definitions=>ty_sha1
       RETURNING
         VALUE(rv_result) TYPE abap_bool.
 ENDCLASS.
@@ -5966,15 +5976,15 @@ CLASS zcl_abapgit_git_pack DEFINITION
       BEGIN OF ty_node,
         chmod TYPE zif_abapgit_definitions=>ty_chmod,
         name  TYPE string,
-        sha1  TYPE zif_abapgit_definitions=>ty_sha1,
+        sha1  TYPE zif_abapgit_git_definitions=>ty_sha1,
       END OF ty_node .
     TYPES:
       ty_nodes_tt TYPE STANDARD TABLE OF ty_node WITH DEFAULT KEY .
     TYPES:
       BEGIN OF ty_commit,
-        tree      TYPE zif_abapgit_definitions=>ty_sha1,
-        parent    TYPE zif_abapgit_definitions=>ty_sha1,
-        parent2   TYPE zif_abapgit_definitions=>ty_sha1,
+        tree      TYPE zif_abapgit_git_definitions=>ty_sha1,
+        parent    TYPE zif_abapgit_git_definitions=>ty_sha1,
+        parent2   TYPE zif_abapgit_git_definitions=>ty_sha1,
         author    TYPE string,
         committer TYPE string,
         gpgsig    TYPE string,
@@ -6085,7 +6095,7 @@ CLASS zcl_abapgit_git_pack DEFINITION
       IMPORTING
         !iv_x          TYPE x
       RETURNING
-        VALUE(rv_type) TYPE zif_abapgit_definitions=>ty_type
+        VALUE(rv_type) TYPE zif_abapgit_git_definitions=>ty_type
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS get_length
@@ -6095,7 +6105,7 @@ CLASS zcl_abapgit_git_pack DEFINITION
         !cv_data   TYPE xstring .
     CLASS-METHODS type_and_length
       IMPORTING
-        !iv_type          TYPE zif_abapgit_definitions=>ty_type
+        !iv_type          TYPE zif_abapgit_git_definitions=>ty_type
         !iv_length        TYPE i
       RETURNING
         VALUE(rv_xstring) TYPE xstring
@@ -6116,15 +6126,15 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
 
     TYPES:
       BEGIN OF ty_pull_result,
-        files   TYPE zif_abapgit_definitions=>ty_files_tt,
+        files   TYPE zif_abapgit_git_definitions=>ty_files_tt,
         objects TYPE zif_abapgit_definitions=>ty_objects_tt,
-        commit  TYPE zif_abapgit_definitions=>ty_sha1,
+        commit  TYPE zif_abapgit_git_definitions=>ty_sha1,
       END OF ty_pull_result .
     TYPES:
       BEGIN OF ty_push_result,
-        new_files     TYPE zif_abapgit_definitions=>ty_files_tt,
-        branch        TYPE zif_abapgit_definitions=>ty_sha1,
-        updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
+        new_files     TYPE zif_abapgit_git_definitions=>ty_files_tt,
+        branch        TYPE zif_abapgit_git_definitions=>ty_sha1,
+        updated_files TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt,
         new_objects   TYPE zif_abapgit_definitions=>ty_objects_tt,
       END OF ty_push_result .
 
@@ -6140,7 +6150,7 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
     CLASS-METHODS pull_by_commit
       IMPORTING
         !iv_url          TYPE string
-        !iv_commit_hash  TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_commit_hash  TYPE zif_abapgit_git_definitions=>ty_sha1
         !iv_deepen_level TYPE i DEFAULT 1
       RETURNING
         VALUE(rs_result) TYPE ty_pull_result
@@ -6148,10 +6158,10 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS push
       IMPORTING
-        !is_comment      TYPE zif_abapgit_definitions=>ty_comment
+        !is_comment      TYPE zif_abapgit_git_definitions=>ty_comment
         !io_stage        TYPE REF TO zcl_abapgit_stage
         !it_old_objects  TYPE zif_abapgit_definitions=>ty_objects_tt
-        !iv_parent       TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_parent       TYPE zif_abapgit_git_definitions=>ty_sha1
         !iv_url          TYPE string
         !iv_branch_name  TYPE string
       RETURNING
@@ -6162,36 +6172,35 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
       IMPORTING
         !iv_url  TYPE string
         !iv_name TYPE string
-        !iv_from TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_from TYPE zif_abapgit_git_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS create_tag
       IMPORTING
         !iv_url TYPE string
-        !is_tag TYPE zif_abapgit_definitions=>ty_git_tag
+        !is_tag TYPE zif_abapgit_git_definitions=>ty_git_tag
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS delete_branch
       IMPORTING
         !iv_url    TYPE string
-        !is_branch TYPE zif_abapgit_definitions=>ty_git_branch
+        !is_branch TYPE zif_abapgit_git_definitions=>ty_git_branch
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS delete_tag
       IMPORTING
         !iv_url TYPE string
-        !is_tag TYPE zif_abapgit_definitions=>ty_git_tag
+        !is_tag TYPE zif_abapgit_git_definitions=>ty_git_tag
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS full_tree
       IMPORTING
         !it_objects        TYPE zif_abapgit_definitions=>ty_objects_tt
-        !iv_parent         TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_parent         TYPE zif_abapgit_git_definitions=>ty_sha1
       RETURNING
         VALUE(rt_expanded) TYPE zif_abapgit_definitions=>ty_expanded_tt
       RAISING
         zcx_abapgit_exception .
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -6199,7 +6208,7 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
       BEGIN OF ty_tree,
         path TYPE string,
         data TYPE xstring,
-        sha1 TYPE zif_abapgit_definitions=>ty_sha1,
+        sha1 TYPE zif_abapgit_git_definitions=>ty_sha1,
       END OF ty_tree .
     TYPES:
       ty_trees_tt TYPE STANDARD TABLE OF ty_tree WITH DEFAULT KEY .
@@ -6207,12 +6216,13 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
       BEGIN OF ty_folder,
         path  TYPE string,
         count TYPE i,
-        sha1  TYPE zif_abapgit_definitions=>ty_sha1,
+        sha1  TYPE zif_abapgit_git_definitions=>ty_sha1,
       END OF ty_folder .
     TYPES:
       ty_folders_tt TYPE STANDARD TABLE OF ty_folder WITH DEFAULT KEY .
 
-    CONSTANTS c_zero TYPE zif_abapgit_definitions=>ty_sha1 VALUE '0000000000000000000000000000000000000000' ##NO_TEXT.
+    CONSTANTS c_zero TYPE zif_abapgit_git_definitions=>ty_sha1
+      VALUE '0000000000000000000000000000000000000000' ##NO_TEXT.
 
     CLASS-METHODS build_trees
       IMPORTING
@@ -6228,25 +6238,25 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
         VALUE(rt_folders) TYPE ty_folders_tt .
     CLASS-METHODS pull
       IMPORTING
-        !iv_commit      TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_commit      TYPE zif_abapgit_git_definitions=>ty_sha1
         !it_objects     TYPE zif_abapgit_definitions=>ty_objects_tt
       RETURNING
-        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
+        VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception.
     CLASS-METHODS walk
       IMPORTING
         !it_objects TYPE zif_abapgit_definitions=>ty_objects_tt
-        !iv_sha1    TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_sha1    TYPE zif_abapgit_git_definitions=>ty_sha1
         !iv_path    TYPE string
       CHANGING
-        !ct_files   TYPE zif_abapgit_definitions=>ty_files_tt
+        !ct_files   TYPE zif_abapgit_git_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS walk_tree
       IMPORTING
         !it_objects        TYPE zif_abapgit_definitions=>ty_objects_tt
-        !iv_tree           TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_tree           TYPE zif_abapgit_git_definitions=>ty_sha1
         !iv_base           TYPE string
       RETURNING
         VALUE(rt_expanded) TYPE zif_abapgit_definitions=>ty_expanded_tt
@@ -6254,38 +6264,37 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS receive_pack_push
       IMPORTING
-        !is_comment     TYPE zif_abapgit_definitions=>ty_comment
+        !is_comment     TYPE zif_abapgit_git_definitions=>ty_comment
         !it_trees       TYPE ty_trees_tt
-        !it_blobs       TYPE zif_abapgit_definitions=>ty_files_tt
-        !iv_parent      TYPE zif_abapgit_definitions=>ty_sha1
-        !iv_parent2     TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
+        !it_blobs       TYPE zif_abapgit_git_definitions=>ty_files_tt
+        !iv_parent      TYPE zif_abapgit_git_definitions=>ty_sha1
+        !iv_parent2     TYPE zif_abapgit_git_definitions=>ty_sha1 OPTIONAL
         !iv_url         TYPE string
         !iv_branch_name TYPE string
       EXPORTING
-        !ev_new_commit  TYPE zif_abapgit_definitions=>ty_sha1
+        !ev_new_commit  TYPE zif_abapgit_git_definitions=>ty_sha1
         !et_new_objects TYPE zif_abapgit_definitions=>ty_objects_tt
-        !ev_new_tree    TYPE zif_abapgit_definitions=>ty_sha1
+        !ev_new_tree    TYPE zif_abapgit_git_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS receive_pack_create_tag
       IMPORTING
-        !is_tag TYPE zif_abapgit_definitions=>ty_git_tag
+        !is_tag TYPE zif_abapgit_git_definitions=>ty_git_tag
         !iv_url TYPE string
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS create_annotated_tag
       IMPORTING
-        !is_tag TYPE zif_abapgit_definitions=>ty_git_tag
+        !is_tag TYPE zif_abapgit_git_definitions=>ty_git_tag
         !iv_url TYPE string
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS create_lightweight_tag
       IMPORTING
-        is_tag TYPE zif_abapgit_definitions=>ty_git_tag
+        is_tag TYPE zif_abapgit_git_definitions=>ty_git_tag
         iv_url TYPE string
       RAISING
         zcx_abapgit_exception .
-
 ENDCLASS.
 CLASS zcl_abapgit_git_tag DEFINITION
   CREATE PUBLIC .
@@ -6340,28 +6349,28 @@ CLASS zcl_abapgit_git_transport DEFINITION
         !iv_url          TYPE string
         !iv_branch_name  TYPE string
         !iv_deepen_level TYPE i DEFAULT 1
-        !it_branches     TYPE zif_abapgit_definitions=>ty_git_branch_list_tt OPTIONAL
+        !it_branches     TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt OPTIONAL
       EXPORTING
         !et_objects      TYPE zif_abapgit_definitions=>ty_objects_tt
-        !ev_branch       TYPE zif_abapgit_definitions=>ty_sha1
+        !ev_branch       TYPE zif_abapgit_git_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS upload_pack_by_commit
       IMPORTING
         !iv_url          TYPE string
-        !iv_hash         TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL
+        !iv_hash         TYPE zif_abapgit_git_definitions=>ty_sha1 OPTIONAL
         !iv_deepen_level TYPE i DEFAULT 0
       EXPORTING
         !et_objects      TYPE zif_abapgit_definitions=>ty_objects_tt
-        !ev_commit       TYPE zif_abapgit_definitions=>ty_sha1
+        !ev_commit       TYPE zif_abapgit_git_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
 * local to remote
     CLASS-METHODS receive_pack
       IMPORTING
         !iv_url         TYPE string
-        !iv_old         TYPE zif_abapgit_definitions=>ty_sha1
-        !iv_new         TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_old         TYPE zif_abapgit_git_definitions=>ty_sha1
+        !iv_new         TYPE zif_abapgit_git_definitions=>ty_sha1
         !iv_branch_name TYPE string
         !iv_pack        TYPE xstring
       RAISING
@@ -6403,7 +6412,7 @@ CLASS zcl_abapgit_git_transport DEFINITION
         !iv_branch_name TYPE string
       EXPORTING
         !eo_client      TYPE REF TO zcl_abapgit_http_client
-        !ev_branch      TYPE zif_abapgit_definitions=>ty_sha1
+        !ev_branch      TYPE zif_abapgit_git_definitions=>ty_sha1
         !eo_branch_list TYPE REF TO zcl_abapgit_git_branch_list
       RAISING
         zcx_abapgit_exception .
@@ -6419,7 +6428,7 @@ CLASS zcl_abapgit_git_transport DEFINITION
         !io_client        TYPE REF TO zcl_abapgit_http_client
         !iv_url           TYPE string
         !iv_deepen_level  TYPE i DEFAULT 0
-        !it_hashes        TYPE zif_abapgit_definitions=>ty_sha1_tt
+        !it_hashes        TYPE zif_abapgit_git_definitions=>ty_sha1_tt
       RETURNING
         VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
       RAISING
@@ -6617,7 +6626,7 @@ CLASS zcl_abapgit_git_url DEFINITION
     METHODS get_default_commit_display_url
       IMPORTING
         !iv_repo_url         TYPE string
-        !iv_hash             TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_hash             TYPE zif_abapgit_git_definitions=>ty_sha1
       RETURNING
         VALUE(rv_commit_url) TYPE string
       RAISING
@@ -7777,8 +7786,8 @@ CLASS zcl_abapgit_file_status DEFINITION
         !iv_devclass      TYPE devclass
         !io_dot           TYPE REF TO zcl_abapgit_dot_abapgit
         !it_local         TYPE zif_abapgit_definitions=>ty_files_item_tt
-        !it_remote        TYPE zif_abapgit_definitions=>ty_files_tt
-        !it_cur_state     TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+        !it_remote        TYPE zif_abapgit_git_definitions=>ty_files_tt
+        !it_cur_state     TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
       RETURNING
         VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
       RAISING
@@ -7787,9 +7796,9 @@ CLASS zcl_abapgit_file_status DEFINITION
       IMPORTING
         !io_dot       TYPE REF TO zcl_abapgit_dot_abapgit
         !it_local     TYPE zif_abapgit_definitions=>ty_files_item_tt
-        !it_state_idx TYPE zif_abapgit_definitions=>ty_file_signatures_ts
+        !it_state_idx TYPE zif_abapgit_git_definitions=>ty_file_signatures_ts
       CHANGING
-        !ct_remote    TYPE zif_abapgit_definitions=>ty_files_tt
+        !ct_remote    TYPE zif_abapgit_git_definitions=>ty_files_tt
         !ct_items     TYPE zif_abapgit_definitions=>ty_items_tt
         !ct_results   TYPE zif_abapgit_definitions=>ty_results_tt
       RAISING
@@ -7798,7 +7807,7 @@ CLASS zcl_abapgit_file_status DEFINITION
       IMPORTING
         !iv_devclass TYPE devclass
         !io_dot      TYPE REF TO zcl_abapgit_dot_abapgit
-        !it_remote   TYPE zif_abapgit_definitions=>ty_files_tt
+        !it_remote   TYPE zif_abapgit_git_definitions=>ty_files_tt
       CHANGING
         !ct_items    TYPE zif_abapgit_definitions=>ty_items_tt
       RAISING
@@ -7808,8 +7817,8 @@ CLASS zcl_abapgit_file_status DEFINITION
         !iv_devclass  TYPE devclass
         !io_dot       TYPE REF TO zcl_abapgit_dot_abapgit
         !it_local     TYPE zif_abapgit_definitions=>ty_files_item_tt
-        !it_remote    TYPE zif_abapgit_definitions=>ty_files_tt
-        !it_state_idx TYPE zif_abapgit_definitions=>ty_file_signatures_ts
+        !it_remote    TYPE zif_abapgit_git_definitions=>ty_files_tt
+        !it_state_idx TYPE zif_abapgit_git_definitions=>ty_file_signatures_ts
         !it_items_idx TYPE zif_abapgit_definitions=>ty_items_ts
       CHANGING
         !ct_results   TYPE zif_abapgit_definitions=>ty_results_tt
@@ -7826,8 +7835,8 @@ CLASS zcl_abapgit_file_status DEFINITION
     CLASS-METHODS build_existing
       IMPORTING
         !is_local        TYPE zif_abapgit_definitions=>ty_file_item
-        !is_remote       TYPE zif_abapgit_definitions=>ty_file
-        !it_state        TYPE zif_abapgit_definitions=>ty_file_signatures_ts
+        !is_remote       TYPE zif_abapgit_git_definitions=>ty_file
+        !it_state        TYPE zif_abapgit_git_definitions=>ty_file_signatures_ts
       RETURNING
         VALUE(rs_result) TYPE zif_abapgit_definitions=>ty_result .
     CLASS-METHODS build_new_local
@@ -7839,9 +7848,9 @@ CLASS zcl_abapgit_file_status DEFINITION
       IMPORTING
         !iv_devclass     TYPE devclass
         !io_dot          TYPE REF TO zcl_abapgit_dot_abapgit
-        !is_remote       TYPE zif_abapgit_definitions=>ty_file
+        !is_remote       TYPE zif_abapgit_git_definitions=>ty_file
         !it_items        TYPE zif_abapgit_definitions=>ty_items_ts
-        !it_state        TYPE zif_abapgit_definitions=>ty_file_signatures_ts
+        !it_state        TYPE zif_abapgit_git_definitions=>ty_file_signatures_ts
       RETURNING
         VALUE(rs_result) TYPE zif_abapgit_definitions=>ty_result
       RAISING
@@ -8029,10 +8038,10 @@ CLASS zcl_abapgit_item_state DEFINITION
 
     METHODS local
       RETURNING
-        VALUE(rv_state) TYPE zif_abapgit_definitions=>ty_item_state.
+        VALUE(rv_state) TYPE zif_abapgit_git_definitions=>ty_item_state.
     METHODS remote
       RETURNING
-        VALUE(rv_state) TYPE zif_abapgit_definitions=>ty_item_state.
+        VALUE(rv_state) TYPE zif_abapgit_git_definitions=>ty_item_state.
     METHODS is_reassigned
       RETURNING
         VALUE(rv_is_reassigned) TYPE abap_bool.
@@ -8045,20 +8054,18 @@ CLASS zcl_abapgit_item_state DEFINITION
     METHODS sum_with_status_item
       IMPORTING
         !is_status_item TYPE zif_abapgit_definitions=>ty_result.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
-    DATA mv_lstate TYPE zif_abapgit_definitions=>ty_item_state.
-    DATA mv_rstate TYPE zif_abapgit_definitions=>ty_item_state.
+    DATA mv_lstate TYPE zif_abapgit_git_definitions=>ty_item_state.
+    DATA mv_rstate TYPE zif_abapgit_git_definitions=>ty_item_state.
     DATA mv_is_reassigned TYPE abap_bool.
 
     CLASS-METHODS reduce
       IMPORTING
-        iv_prev       TYPE zif_abapgit_definitions=>ty_item_state
-        iv_cur        TYPE zif_abapgit_definitions=>ty_item_state
+        iv_prev       TYPE zif_abapgit_git_definitions=>ty_item_state
+        iv_cur        TYPE zif_abapgit_git_definitions=>ty_item_state
       RETURNING
-        VALUE(rv_new) TYPE zif_abapgit_definitions=>ty_item_state.
-
+        VALUE(rv_new) TYPE zif_abapgit_git_definitions=>ty_item_state.
 ENDCLASS.
 CLASS zcl_abapgit_objects_activation DEFINITION
   CREATE PUBLIC .
@@ -8307,7 +8314,7 @@ CLASS zcl_abapgit_objects_files DEFINITION
         zcx_abapgit_exception .
     METHODS add
       IMPORTING
-        !is_file TYPE zif_abapgit_definitions=>ty_file .
+        !is_file TYPE zif_abapgit_git_definitions=>ty_file .
     METHODS add_raw
       IMPORTING
         !iv_extra TYPE clike OPTIONAL
@@ -8323,13 +8330,13 @@ CLASS zcl_abapgit_objects_files DEFINITION
         zcx_abapgit_exception .
     METHODS get_files
       RETURNING
-        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt .
+        VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_files_tt .
     METHODS set_files
       IMPORTING
-        !it_files TYPE zif_abapgit_definitions=>ty_files_tt .
+        !it_files TYPE zif_abapgit_git_definitions=>ty_files_tt .
     METHODS get_accessed_files
       RETURNING
-        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
+        VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt .
     METHODS contains_file
       IMPORTING
         !iv_extra         TYPE clike OPTIONAL
@@ -8355,8 +8362,8 @@ CLASS zcl_abapgit_objects_files DEFINITION
   PRIVATE SECTION.
 
     DATA ms_item TYPE zif_abapgit_definitions=>ty_item .
-    DATA mt_accessed_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt .
-    DATA mt_files TYPE zif_abapgit_definitions=>ty_files_tt .
+    DATA mt_accessed_files TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt .
+    DATA mt_files TYPE zif_abapgit_git_definitions=>ty_files_tt .
     DATA mv_path TYPE string .
 ENDCLASS.
 CLASS zcl_abapgit_serialize DEFINITION
@@ -9742,7 +9749,7 @@ CLASS zcl_abapgit_objects DEFINITION
       ty_types_tt TYPE SORTED TABLE OF tadir-object WITH UNIQUE KEY table_line .
     TYPES:
       BEGIN OF ty_serialization,
-        files TYPE zif_abapgit_definitions=>ty_files_tt,
+        files TYPE zif_abapgit_git_definitions=>ty_files_tt,
         item  TYPE zif_abapgit_definitions=>ty_item,
       END OF ty_serialization .
 
@@ -9762,7 +9769,7 @@ CLASS zcl_abapgit_objects DEFINITION
         !is_checks               TYPE zif_abapgit_definitions=>ty_deserialize_checks
         !ii_log                  TYPE REF TO zif_abapgit_log
       RETURNING
-        VALUE(rt_accessed_files) TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+        VALUE(rt_accessed_files) TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS deserialize_checks
@@ -9844,7 +9851,7 @@ CLASS zcl_abapgit_objects DEFINITION
 
     CLASS-METHODS check_duplicates
       IMPORTING
-        !it_files TYPE zif_abapgit_definitions=>ty_files_tt
+        !it_files TYPE zif_abapgit_git_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS class_name
@@ -9865,7 +9872,7 @@ CLASS zcl_abapgit_objects DEFINITION
     CLASS-METHODS compare_remote_to_local
       IMPORTING
         !ii_object TYPE REF TO zif_abapgit_object
-        !it_remote TYPE zif_abapgit_definitions=>ty_files_tt
+        !it_remote TYPE zif_abapgit_git_definitions=>ty_files_tt
         !is_result TYPE zif_abapgit_definitions=>ty_result
         !ii_log    TYPE REF TO zif_abapgit_log
       RAISING
@@ -9876,7 +9883,7 @@ CLASS zcl_abapgit_objects DEFINITION
         !ii_log       TYPE REF TO zif_abapgit_log
         !iv_transport TYPE trkorr
       CHANGING
-        !ct_files     TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+        !ct_files     TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS check_objects_locked
@@ -15555,14 +15562,14 @@ CLASS zcl_abapgit_persistence_user DEFINITION
       BEGIN OF ty_repo_config,
         url              TYPE zif_abapgit_persistence=>ty_repo-url,
         login            TYPE string,
-        git_user         TYPE zif_abapgit_definitions=>ty_git_user,
+        git_user         TYPE zif_abapgit_git_definitions=>ty_git_user,
         last_change_seen TYPE string,
       END OF ty_repo_config .
     TYPES:
       ty_repo_configs TYPE STANDARD TABLE OF ty_repo_config WITH DEFAULT KEY .
     TYPES:
       BEGIN OF ty_user,
-        default_git_user TYPE zif_abapgit_definitions=>ty_git_user,
+        default_git_user TYPE zif_abapgit_git_definitions=>ty_git_user,
         repo_show        TYPE zif_abapgit_persistence=>ty_repo-key,
         hide_files       TYPE abap_bool,
         changes_only     TYPE abap_bool,
@@ -15637,7 +15644,7 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
         zcx_abapgit_exception .
     METHODS to_file
       RETURNING
-        VALUE(rs_file) TYPE zif_abapgit_definitions=>ty_file
+        VALUE(rs_file) TYPE zif_abapgit_git_definitions=>ty_file
       RAISING
         zcx_abapgit_exception.
     METHODS get_data
@@ -15684,7 +15691,7 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
         zcx_abapgit_exception .
     METHODS get_signature
       RETURNING
-        VALUE(rs_signature) TYPE zif_abapgit_definitions=>ty_file_signature
+        VALUE(rs_signature) TYPE zif_abapgit_git_definitions=>ty_file_signature
       RAISING
         zcx_abapgit_exception .
     METHODS get_requirements
@@ -15697,7 +15704,6 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
       RETURNING VALUE(rv_version_constant) TYPE string.
     METHODS set_version_constant
       IMPORTING iv_version_constant TYPE csequence.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: ms_data TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
@@ -15818,7 +15824,7 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
     METHODS set_files_remote
       IMPORTING
-        !it_files TYPE zif_abapgit_definitions=>ty_files_tt .
+        !it_files TYPE zif_abapgit_git_definitions=>ty_files_tt .
     METHODS set_local_settings
       IMPORTING
         !is_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
@@ -15865,7 +15871,7 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
     METHODS remove_ignored_files
       CHANGING
-        ct_files TYPE zif_abapgit_definitions=>ty_files_tt
+        ct_files TYPE zif_abapgit_git_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception .
     METHODS check_and_create_package
@@ -15876,7 +15882,7 @@ CLASS zcl_abapgit_repo DEFINITION
   PROTECTED SECTION.
 
     DATA mt_local TYPE zif_abapgit_definitions=>ty_files_item_tt .
-    DATA mt_remote TYPE zif_abapgit_definitions=>ty_files_tt .
+    DATA mt_remote TYPE zif_abapgit_git_definitions=>ty_files_tt .
     DATA mv_request_local_refresh TYPE abap_bool .
     DATA mv_request_remote_refresh TYPE abap_bool .
     DATA mt_status TYPE zif_abapgit_definitions=>ty_results_tt .
@@ -15966,7 +15972,7 @@ CLASS zcl_abapgit_repo_checksums DEFINITION
 
     METHODS build_checksums_from_files
       IMPORTING
-        it_remote    TYPE zif_abapgit_definitions=>ty_files_tt
+        it_remote    TYPE zif_abapgit_git_definitions=>ty_files_tt
         it_local     TYPE ty_local_files_by_item_tt
         iv_branches_equal TYPE abap_bool DEFAULT abap_false
       RETURNING
@@ -15988,7 +15994,6 @@ CLASS zcl_abapgit_repo_checksums DEFINITION
       CHANGING
 *        co_string_map - return string map with meta when it is needed
         cv_cs_blob TYPE string.
-
 ENDCLASS.
 CLASS zcl_abapgit_repo_content_list DEFINITION
   FINAL
@@ -16093,16 +16098,16 @@ CLASS zcl_abapgit_repo_filter DEFINITION
         io_dot      TYPE REF TO zcl_abapgit_dot_abapgit OPTIONAL
         iv_devclass TYPE devclass OPTIONAL
       CHANGING
-        ct_files    TYPE zif_abapgit_definitions=>ty_files_tt
+        ct_files    TYPE zif_abapgit_git_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception.
-
   PROTECTED SECTION.
 
     METHODS filter_generated_tadir
       CHANGING
         !ct_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt .
 
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_repo_offline DEFINITION
   INHERITING FROM zcl_abapgit_repo
@@ -16170,7 +16175,7 @@ CLASS zcl_abapgit_repo_online DEFINITION
   PRIVATE SECTION.
 
     DATA mt_objects TYPE zif_abapgit_definitions=>ty_objects_tt .
-    DATA mv_current_commit TYPE zif_abapgit_definitions=>ty_sha1 .
+    DATA mv_current_commit TYPE zif_abapgit_git_definitions=>ty_sha1 .
 
     METHODS handle_stage_ignore
       IMPORTING
@@ -16282,7 +16287,7 @@ CLASS zcl_abapgit_merge DEFINITION
     TYPES:
       ty_ancestor_tt TYPE STANDARD TABLE OF zif_abapgit_definitions=>ty_ancestor WITH DEFAULT KEY .
     TYPES:
-      ty_visit_tt TYPE STANDARD TABLE OF zif_abapgit_definitions=>ty_sha1 WITH DEFAULT KEY .
+      ty_visit_tt TYPE STANDARD TABLE OF zif_abapgit_git_definitions=>ty_sha1 WITH DEFAULT KEY .
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
     DATA ms_merge TYPE zif_abapgit_merge=>ty_merge .
@@ -16292,7 +16297,7 @@ CLASS zcl_abapgit_merge DEFINITION
 
     METHODS visit
       IMPORTING
-        !iv_parent TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_parent TYPE zif_abapgit_git_definitions=>ty_sha1
       CHANGING
         !ct_visit  TYPE ty_visit_tt .
     METHODS all_files
@@ -16308,7 +16313,7 @@ CLASS zcl_abapgit_merge DEFINITION
         zcx_abapgit_exception .
     METHODS find_ancestors
       IMPORTING
-        !iv_commit          TYPE zif_abapgit_definitions=>ty_sha1
+        !iv_commit          TYPE zif_abapgit_git_definitions=>ty_sha1
       RETURNING
         VALUE(rt_ancestors) TYPE ty_ancestor_tt
       RAISING
@@ -16336,37 +16341,37 @@ CLASS zcl_abapgit_stage DEFINITION
         zcx_abapgit_exception .
     METHODS constructor
       IMPORTING
-        !iv_merge_source TYPE zif_abapgit_definitions=>ty_sha1 OPTIONAL .
+        !iv_merge_source TYPE zif_abapgit_git_definitions=>ty_sha1 OPTIONAL .
     METHODS add
       IMPORTING
-        !iv_path     TYPE zif_abapgit_definitions=>ty_file-path
-        !iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
+        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
+        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
         !iv_data     TYPE xstring
         !is_status   TYPE zif_abapgit_definitions=>ty_result OPTIONAL
       RAISING
         zcx_abapgit_exception .
     METHODS reset
       IMPORTING
-        !iv_path     TYPE zif_abapgit_definitions=>ty_file-path
-        !iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
+        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
+        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
       RAISING
         zcx_abapgit_exception .
     METHODS rm
       IMPORTING
-        !iv_path     TYPE zif_abapgit_definitions=>ty_file-path
-        !iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
+        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
+        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
         !is_status   TYPE zif_abapgit_definitions=>ty_result OPTIONAL
       RAISING
         zcx_abapgit_exception .
     METHODS ignore
       IMPORTING
-        !iv_path     TYPE zif_abapgit_definitions=>ty_file-path
-        !iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
+        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
+        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
       RAISING
         zcx_abapgit_exception .
     METHODS get_merge_source
       RETURNING
-        VALUE(rv_source) TYPE zif_abapgit_definitions=>ty_sha1 .
+        VALUE(rv_source) TYPE zif_abapgit_git_definitions=>ty_sha1 .
     METHODS count
       RETURNING
         VALUE(rv_count) TYPE i .
@@ -16377,12 +16382,12 @@ CLASS zcl_abapgit_stage DEFINITION
   PRIVATE SECTION.
 
     DATA mt_stage TYPE zif_abapgit_definitions=>ty_stage_tt .
-    DATA mv_merge_source TYPE zif_abapgit_definitions=>ty_sha1 .
+    DATA mv_merge_source TYPE zif_abapgit_git_definitions=>ty_sha1 .
 
     METHODS append
       IMPORTING
-        !iv_path     TYPE zif_abapgit_definitions=>ty_file-path
-        !iv_filename TYPE zif_abapgit_definitions=>ty_file-filename
+        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
+        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
         !iv_method   TYPE zif_abapgit_definitions=>ty_method
         !is_status   TYPE zif_abapgit_definitions=>ty_result OPTIONAL
         !iv_data     TYPE xstring OPTIONAL
@@ -18887,7 +18892,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
     METHODS constructor
       IMPORTING
         !iv_key    TYPE zif_abapgit_persistence=>ty_repo-key
-        !is_file   TYPE zif_abapgit_definitions=>ty_file OPTIONAL
+        !is_file   TYPE zif_abapgit_git_definitions=>ty_file OPTIONAL
         !is_object TYPE zif_abapgit_definitions=>ty_item OPTIONAL
         !it_files  TYPE zif_abapgit_definitions=>ty_stage_tt OPTIONAL
       RAISING
@@ -18942,7 +18947,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         !io_menu TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS calculate_diff
       IMPORTING
-        !is_file   TYPE zif_abapgit_definitions=>ty_file OPTIONAL
+        !is_file   TYPE zif_abapgit_git_definitions=>ty_file OPTIONAL
         !is_object TYPE zif_abapgit_definitions=>ty_item OPTIONAL
         !it_files  TYPE zif_abapgit_definitions=>ty_stage_tt OPTIONAL
       RAISING
@@ -19074,7 +19079,7 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS append_diff
       IMPORTING
-        !it_remote TYPE zif_abapgit_definitions=>ty_files_tt
+        !it_remote TYPE zif_abapgit_git_definitions=>ty_files_tt
         !it_local  TYPE zif_abapgit_definitions=>ty_files_item_tt
         !is_status TYPE zif_abapgit_definitions=>ty_result
       RAISING
@@ -19117,7 +19122,6 @@ CLASS zcl_abapgit_gui_page_diff DEFINITION
         !it_diffs           TYPE zif_abapgit_definitions=>ty_diffs_tt
       RETURNING
         VALUE(rv_has_diffs) TYPE abap_bool.
-
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_ex_object DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -19457,7 +19461,7 @@ CLASS zcl_abapgit_gui_page_merge_sel DEFINITION
     DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
     DATA mo_form_util TYPE REF TO zcl_abapgit_html_form_utils.
     DATA mo_repo TYPE REF TO zcl_abapgit_repo_online.
-    DATA mt_branches TYPE zif_abapgit_definitions=>ty_git_branch_list_tt.
+    DATA mt_branches TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt.
 
     METHODS read_branches
       RAISING
@@ -19477,7 +19481,7 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
       constructor
         IMPORTING
           iv_key        TYPE zif_abapgit_persistence=>ty_repo-key
-          is_file       TYPE zif_abapgit_definitions=>ty_file OPTIONAL
+          is_file       TYPE zif_abapgit_git_definitions=>ty_file OPTIONAL
           is_object     TYPE zif_abapgit_definitions=>ty_item OPTIONAL
           it_files      TYPE zif_abapgit_definitions=>ty_stage_tt OPTIONAL
         RAISING
@@ -19495,7 +19499,6 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
           ev_line_index TYPE string
         RAISING
           zcx_abapgit_exception.
-
   PROTECTED SECTION.
     METHODS:
       render_content REDEFINITION,
@@ -20220,7 +20223,7 @@ CLASS zcl_abapgit_gui_page_sett_info DEFINITION
     METHODS read_stats_files
       EXPORTING
         !et_local  TYPE zif_abapgit_definitions=>ty_files_item_tt
-        !et_remote TYPE zif_abapgit_definitions=>ty_files_tt
+        !et_remote TYPE zif_abapgit_git_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception .
     METHODS read_stats_state
@@ -20229,7 +20232,7 @@ CLASS zcl_abapgit_gui_page_sett_info DEFINITION
     METHODS read_stats_size_lines_sloc
       IMPORTING
         !it_local        TYPE zif_abapgit_definitions=>ty_files_item_tt
-        !it_remote       TYPE zif_abapgit_definitions=>ty_files_tt
+        !it_remote       TYPE zif_abapgit_git_definitions=>ty_files_tt
       EXPORTING
         !et_local_items  TYPE zif_abapgit_definitions=>ty_items_tt
         !et_remote_items TYPE zif_abapgit_definitions=>ty_items_tt
@@ -20237,7 +20240,7 @@ CLASS zcl_abapgit_gui_page_sett_info DEFINITION
         zcx_abapgit_exception .
     METHODS read_stats_file
       IMPORTING
-        !is_file       TYPE zif_abapgit_definitions=>ty_file
+        !is_file       TYPE zif_abapgit_git_definitions=>ty_file
       RETURNING
         VALUE(rs_info) TYPE ty_infos .
     METHODS read_stats_objects
@@ -20452,8 +20455,8 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
       BEGIN OF ty_remote_settings,
         offline         TYPE zif_abapgit_persistence=>ty_repo-offline,
         url             TYPE zif_abapgit_persistence=>ty_repo-url,
-        branch          TYPE zif_abapgit_definitions=>ty_git_branch-name,
-        tag             TYPE zif_abapgit_definitions=>ty_git_tag-name,
+        branch          TYPE zif_abapgit_git_definitions=>ty_git_branch-name,
+        tag             TYPE zif_abapgit_git_definitions=>ty_git_tag-name,
         commit          TYPE zif_abapgit_definitions=>ty_commit-sha1,
         pull_request    TYPE string,
         head_type       TYPE ty_head_type,
@@ -20743,7 +20746,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
     METHODS render_file
       IMPORTING
         !iv_context    TYPE string
-        !is_file       TYPE zif_abapgit_definitions=>ty_file
+        !is_file       TYPE zif_abapgit_git_definitions=>ty_file
         !is_item       TYPE zif_abapgit_definitions=>ty_item OPTIONAL
         !is_status     TYPE zif_abapgit_definitions=>ty_result
         !iv_changed_by TYPE syuname OPTIONAL
@@ -20887,7 +20890,7 @@ CLASS zcl_abapgit_gui_page_tags DEFINITION
     DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map.
     DATA mo_repo TYPE REF TO zcl_abapgit_repo_online.
     DATA mo_settings TYPE REF TO zcl_abapgit_settings.
-    DATA ms_tag TYPE zif_abapgit_definitions=>ty_git_tag.
+    DATA ms_tag TYPE zif_abapgit_git_definitions=>ty_git_tag.
 
     METHODS get_form_schema
       IMPORTING
@@ -21413,7 +21416,7 @@ CLASS zcl_abapgit_popups DEFINITION
 
     TYPES:
       BEGIN OF ty_commit_value_tab,
-        commit   TYPE zif_abapgit_definitions=>ty_sha1,
+        commit   TYPE zif_abapgit_git_definitions=>ty_sha1,
         message  TYPE c LENGTH 100,
         datetime TYPE c LENGTH 20,
       END OF ty_commit_value_tab.
@@ -21575,7 +21578,7 @@ CLASS zcl_abapgit_convert DEFINITION
       IMPORTING
         !iv_x             TYPE x
       RETURNING
-        VALUE(rv_bitbyte) TYPE zif_abapgit_definitions=>ty_bitbyte .
+        VALUE(rv_bitbyte) TYPE zif_abapgit_git_definitions=>ty_bitbyte .
     CLASS-METHODS string_to_xstring_utf8
       IMPORTING
         !iv_string        TYPE string
@@ -21743,55 +21746,55 @@ CLASS zcl_abapgit_hash DEFINITION
       IMPORTING
         !iv_xstring        TYPE xstring
       RETURNING
-        VALUE(rv_checksum) TYPE zif_abapgit_definitions=>ty_adler32 .
+        VALUE(rv_checksum) TYPE zif_abapgit_git_definitions=>ty_adler32 .
     CLASS-METHODS sha1
       IMPORTING
-        !iv_type       TYPE zif_abapgit_definitions=>ty_type
+        !iv_type       TYPE zif_abapgit_git_definitions=>ty_type
         !iv_data       TYPE xstring
       RETURNING
-        VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+        VALUE(rv_sha1) TYPE zif_abapgit_git_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS sha1_commit
       IMPORTING
         !iv_data       TYPE xstring
       RETURNING
-        VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+        VALUE(rv_sha1) TYPE zif_abapgit_git_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS sha1_tree
       IMPORTING
         !iv_data       TYPE xstring
       RETURNING
-        VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+        VALUE(rv_sha1) TYPE zif_abapgit_git_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS sha1_tag
       IMPORTING
         !iv_data       TYPE xstring
       RETURNING
-        VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+        VALUE(rv_sha1) TYPE zif_abapgit_git_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS sha1_blob
       IMPORTING
         !iv_data       TYPE xstring
       RETURNING
-        VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+        VALUE(rv_sha1) TYPE zif_abapgit_git_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS sha1_raw
       IMPORTING
         !iv_data       TYPE xstring
       RETURNING
-        VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+        VALUE(rv_sha1) TYPE zif_abapgit_git_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS sha1_string
       IMPORTING
         !iv_data       TYPE string
       RETURNING
-        VALUE(rv_sha1) TYPE zif_abapgit_definitions=>ty_sha1
+        VALUE(rv_sha1) TYPE zif_abapgit_git_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -22218,10 +22221,10 @@ CLASS zcl_abapgit_user_record DEFINITION
         !iv_user TYPE sy-uname.
     METHODS get_name
       RETURNING
-        VALUE(rv_name) TYPE zif_abapgit_definitions=>ty_git_user-name.
+        VALUE(rv_name) TYPE zif_abapgit_git_definitions=>ty_git_user-name.
     METHODS get_email
       RETURNING
-        VALUE(rv_email) TYPE zif_abapgit_definitions=>ty_git_user-email.
+        VALUE(rv_email) TYPE zif_abapgit_git_definitions=>ty_git_user-email.
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
@@ -22241,7 +22244,7 @@ CLASS zcl_abapgit_user_record DEFINITION
                    WITH UNIQUE KEY user.
 
     DATA:
-      ms_user TYPE zif_abapgit_definitions=>ty_git_user.
+      ms_user TYPE zif_abapgit_git_definitions=>ty_git_user.
 
     METHODS check_user_exists
       IMPORTING
@@ -22255,7 +22258,6 @@ CLASS zcl_abapgit_user_record DEFINITION
     METHODS get_user_dtls_from_other_clnt
       IMPORTING
         iv_user TYPE sy-uname.
-
 ENDCLASS.
 CLASS zcl_abapgit_utils DEFINITION
   FINAL
@@ -22832,7 +22834,7 @@ CLASS zcl_abapgit_zip DEFINITION
       IMPORTING
         !iv_xstr        TYPE xstring
       RETURNING
-        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
+        VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS save_binstring_to_localfile
@@ -22856,14 +22858,14 @@ CLASS zcl_abapgit_zip DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS normalize_path
       CHANGING
-        !ct_files TYPE zif_abapgit_definitions=>ty_files_tt
+        !ct_files TYPE zif_abapgit_git_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS unzip_file
       IMPORTING
         !iv_xstr        TYPE xstring
       RETURNING
-        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_tt
+        VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -25585,7 +25587,7 @@ CLASS zcl_abapgit_news IMPLEMENTATION.
       lc_log_filename_up TYPE string VALUE 'CHANGELOG*'.
 
     DATA: lo_apack            TYPE REF TO zcl_abapgit_apack_reader,
-          lt_remote           TYPE zif_abapgit_definitions=>ty_files_tt,
+          lt_remote           TYPE zif_abapgit_git_definitions=>ty_files_tt,
           lv_version          TYPE string,
           lv_last_seen        TYPE string,
           lv_url              TYPE string,
@@ -32633,7 +32635,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD zif_abapgit_popups~branch_list_popup.
 
     DATA: lo_branches    TYPE REF TO zcl_abapgit_git_branch_list,
-          lt_branches    TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
+          lt_branches    TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt,
           lv_answer      TYPE c LENGTH 1,
           lv_default     TYPE i,
           lv_head_suffix TYPE string,
@@ -33454,8 +33456,8 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD zif_abapgit_popups~tag_list_popup.
 
     DATA: lo_branches  TYPE REF TO zcl_abapgit_git_branch_list,
-          lt_tags      TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
-          ls_branch    TYPE zif_abapgit_definitions=>ty_git_branch,
+          lt_tags      TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt,
+          ls_branch    TYPE zif_abapgit_git_definitions=>ty_git_branch,
           lv_answer    TYPE c LENGTH 1,
           lv_default   TYPE i,
           lv_tag       TYPE string,
@@ -34838,7 +34840,7 @@ ENDCLASS.
 CLASS zcl_abapgit_services_git IMPLEMENTATION.
   METHOD commit.
 
-    DATA: ls_comment TYPE zif_abapgit_definitions=>ty_comment,
+    DATA: ls_comment TYPE zif_abapgit_git_definitions=>ty_comment,
           li_user    TYPE REF TO zif_abapgit_persist_user.
 
     li_user = zcl_abapgit_persistence_user=>get_instance( ).
@@ -34912,7 +34914,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
   METHOD delete_branch.
 
     DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
-          ls_branch TYPE zif_abapgit_definitions=>ty_git_branch,
+          ls_branch TYPE zif_abapgit_git_definitions=>ty_git_branch,
           lv_msg    TYPE string,
           li_popups TYPE REF TO zif_abapgit_popups.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
@@ -34936,7 +34938,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
   METHOD delete_tag.
 
     DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
-          ls_tag  TYPE zif_abapgit_definitions=>ty_git_tag,
+          ls_tag  TYPE zif_abapgit_git_definitions=>ty_git_tag,
           lv_text TYPE string.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
@@ -34969,7 +34971,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
   METHOD switch_branch.
 
     DATA: lo_repo   TYPE REF TO zcl_abapgit_repo_online,
-          ls_branch TYPE zif_abapgit_definitions=>ty_git_branch.
+          ls_branch TYPE zif_abapgit_git_definitions=>ty_git_branch.
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
     ls_branch = zcl_abapgit_ui_factory=>get_popups( )->branch_list_popup(
@@ -34996,7 +34998,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
   METHOD switch_tag.
 
     DATA: lo_repo TYPE REF TO zcl_abapgit_repo_online,
-          ls_tag  TYPE zif_abapgit_definitions=>ty_git_tag,
+          ls_tag  TYPE zif_abapgit_git_definitions=>ty_git_tag,
           lv_text TYPE string.
 
     lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
@@ -35448,7 +35450,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_page_diff.
 
-    DATA: ls_file   TYPE zif_abapgit_definitions=>ty_file,
+    DATA: ls_file   TYPE zif_abapgit_git_definitions=>ty_file,
           ls_object TYPE zif_abapgit_definitions=>ty_item,
           lo_page   TYPE REF TO zcl_abapgit_gui_page_diff,
           lv_key    TYPE zif_abapgit_persistence=>ty_repo-key.
@@ -36259,7 +36261,7 @@ CLASS zcl_abapgit_gui_page_tags IMPLEMENTATION.
   METHOD validate_form.
 
     DATA:
-      lt_tags         TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
+      lt_tags         TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt,
       lv_new_tag_name TYPE string.
 
     ro_validation_log = mo_form_util->validate( io_form_data ).
@@ -36290,7 +36292,7 @@ CLASS zcl_abapgit_gui_page_tags IMPLEMENTATION.
 
     DATA:
       lx_error  TYPE REF TO zcx_abapgit_exception,
-      lv_commit TYPE zif_abapgit_definitions=>ty_sha1,
+      lv_commit TYPE zif_abapgit_git_definitions=>ty_sha1,
       lv_text   TYPE string.
 
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
@@ -36475,7 +36477,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD check_selected.
 
     DATA:
-      ls_file    TYPE zif_abapgit_definitions=>ty_file,
+      ls_file    TYPE zif_abapgit_git_definitions=>ty_file,
       lv_pattern TYPE string,
       lv_msg     TYPE string.
 
@@ -37010,7 +37012,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD stage_selected.
 
-    DATA ls_file  TYPE zif_abapgit_definitions=>ty_file.
+    DATA ls_file  TYPE zif_abapgit_git_definitions=>ty_file.
     DATA lo_files TYPE REF TO zcl_abapgit_string_map.
 
     FIELD-SYMBOLS:
@@ -37537,7 +37539,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     DATA:
       lv_url         TYPE zif_abapgit_persistence=>ty_repo-url,
       lv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name,
-      ls_branch      TYPE zif_abapgit_definitions=>ty_git_branch.
+      ls_branch      TYPE zif_abapgit_git_definitions=>ty_git_branch.
 
     IF mo_form_data->get( c_id-offline ) = abap_true.
       RETURN.
@@ -37610,7 +37612,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
 
     DATA:
       lo_repo TYPE REF TO zcl_abapgit_repo_online,
-      ls_tag  TYPE zif_abapgit_definitions=>ty_git_tag,
+      ls_tag  TYPE zif_abapgit_git_definitions=>ty_git_tag,
       lv_url  TYPE ty_remote_settings-url.
 
     IF mo_form_data->get( c_id-offline ) = abap_true.
@@ -39225,7 +39227,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
 
     DATA:
       lt_local        TYPE zif_abapgit_definitions=>ty_files_item_tt,
-      lt_remote       TYPE zif_abapgit_definitions=>ty_files_tt,
+      lt_remote       TYPE zif_abapgit_git_definitions=>ty_files_tt,
       lt_local_items  TYPE zif_abapgit_definitions=>ty_items_tt,
       lt_remote_items TYPE zif_abapgit_definitions=>ty_items_tt.
 
@@ -39285,7 +39287,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
   METHOD read_stats_files.
 
     DATA ls_stats TYPE ty_stats.
-    DATA lt_remote_wo_ignored TYPE zif_abapgit_definitions=>ty_files_tt.
+    DATA lt_remote_wo_ignored TYPE zif_abapgit_git_definitions=>ty_files_tt.
 
     et_local = mo_repo->get_files_local( ).
 
@@ -43996,7 +43998,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   ENDMETHOD.
   METHOD calculate_diff.
 
-    DATA: lt_remote TYPE zif_abapgit_definitions=>ty_files_tt,
+    DATA: lt_remote TYPE zif_abapgit_git_definitions=>ty_files_tt,
           lt_local  TYPE zif_abapgit_definitions=>ty_files_item_tt,
           lt_status TYPE zif_abapgit_definitions=>ty_results_tt.
 
@@ -46271,7 +46273,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD validate_form.
 
-    DATA: lt_branches        TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
+    DATA: lt_branches        TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt,
           lv_new_branch_name TYPE string.
 
     ro_validation_log = mo_form_util->validate( io_form_data ).
@@ -50353,8 +50355,8 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_repo_top_commit_hash.
 
-    DATA: lv_commit_hash       TYPE zif_abapgit_definitions=>ty_sha1,
-          lv_commit_short_hash TYPE zif_abapgit_definitions=>ty_sha1,
+    DATA: lv_commit_hash       TYPE zif_abapgit_git_definitions=>ty_sha1,
+          lv_commit_short_hash TYPE zif_abapgit_git_definitions=>ty_sha1,
           lv_display_url       TYPE zif_abapgit_persistence=>ty_repo-url,
           lo_url               TYPE REF TO zcl_abapgit_git_url,
           lv_icon_commit       TYPE string.
@@ -53899,7 +53901,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
   METHOD fetch_git.
 
     DATA: lo_branch_list TYPE REF TO zcl_abapgit_git_branch_list,
-          lt_upload      TYPE zif_abapgit_definitions=>ty_git_branch_list_tt.
+          lt_upload      TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt.
 
     lo_branch_list = zcl_abapgit_git_transport=>branches( ms_merge-repo->get_url( ) ).
 
@@ -54737,7 +54739,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   METHOD raise_error_if_branch_exists.
 
     DATA:
-      lt_branches     TYPE zif_abapgit_definitions=>ty_git_branch_list_tt,
+      lt_branches     TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt,
       lv_display_name TYPE string.
 
     lt_branches = zcl_abapgit_git_transport=>branches( get_url( ) )->get_branches_only( ).
@@ -54787,7 +54789,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo_online~create_branch.
 
-    DATA: lv_sha1 TYPE zif_abapgit_definitions=>ty_sha1.
+    DATA: lv_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1.
 
     ASSERT iv_name CP zif_abapgit_definitions=>c_git_branch-heads.
 
@@ -54830,7 +54832,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
 
     DATA: ls_push   TYPE zcl_abapgit_git_porcelain=>ty_push_result,
           lv_text   TYPE string,
-          lv_parent TYPE zif_abapgit_definitions=>ty_sha1.
+          lv_parent TYPE zif_abapgit_git_definitions=>ty_sha1.
     IF ms_data-branch_name CP zif_abapgit_definitions=>c_git_branch-tags.
       lv_text = |You're working on a tag. Currently it's not |
              && |possible to push on tags. Consider creating a branch instead|.
@@ -55012,54 +55014,8 @@ CLASS zcl_abapgit_repo_filter IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD filter_generated_tadir.
-
-    DATA: ls_tadir     TYPE zif_abapgit_definitions=>ty_tadir,
-          ls_tadir_gen TYPE zif_abapgit_definitions=>ty_tadir,
-          lv_cd_object TYPE cdobjectcl,
-          lt_cd_names  TYPE STANDARD TABLE OF cdnames,
-          ls_cd_names  TYPE cdnames,
-          lt_tcdrs     TYPE STANDARD TABLE OF tcdrs,
-          ls_tcdrs     TYPE tcdrs.
-
-    LOOP AT ct_tadir INTO ls_tadir WHERE pgmid = 'R3TR' AND object = 'CHDO'.
-      CLEAR: lv_cd_object, lt_cd_names, ls_tadir_gen, lt_tcdrs, ls_tcdrs.
-
-      lv_cd_object = ls_tadir-obj_name.
-
-      CALL FUNCTION 'CDNAMES_GET'
-        EXPORTING
-          iv_object        = lv_cd_object
-        TABLES
-          it_names         = lt_cd_names
-          it_tcdrs         = lt_tcdrs
-        EXCEPTIONS
-          object_space     = 1
-          object_not_found = 2
-          OTHERS           = 3.
-      IF sy-subrc <> 0.
-        CONTINUE.
-      ENDIF.
-
-      LOOP AT lt_cd_names INTO ls_cd_names.
-        DELETE ct_tadir WHERE pgmid = 'R3TR'
-                          AND ( ( object = 'PROG'
-                              AND ( obj_name = ls_cd_names-repnamec
-                                 OR obj_name = ls_cd_names-repnamet
-                                 OR obj_name = ls_cd_names-repnamefix
-                                 OR obj_name = ls_cd_names-repnamevar ) )
-                               OR object = 'FUGR' AND obj_name = ls_cd_names-fgrp ).
-      ENDLOOP.
-
-      LOOP AT lt_tcdrs INTO ls_tcdrs.
-        DELETE ct_tadir WHERE pgmid = 'R3TR' AND object = 'TABL' AND obj_name = ls_tcdrs-tabname.
-      ENDLOOP.
-
-    ENDLOOP.
-
-  ENDMETHOD.
   METHOD apply_object_filter.
-    DATA lr_file TYPE REF TO  zif_abapgit_definitions=>ty_file.
+    DATA lr_file TYPE REF TO zif_abapgit_git_definitions=>ty_file.
     DATA ls_item TYPE zif_abapgit_definitions=>ty_item.
     DATA ls_tadir TYPE zif_abapgit_definitions=>ty_tadir.
     DATA lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
@@ -55110,7 +55066,52 @@ CLASS zcl_abapgit_repo_filter IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD filter_generated_tadir.
 
+    DATA: ls_tadir     TYPE zif_abapgit_definitions=>ty_tadir,
+          ls_tadir_gen TYPE zif_abapgit_definitions=>ty_tadir,
+          lv_cd_object TYPE cdobjectcl,
+          lt_cd_names  TYPE STANDARD TABLE OF cdnames,
+          ls_cd_names  TYPE cdnames,
+          lt_tcdrs     TYPE STANDARD TABLE OF tcdrs,
+          ls_tcdrs     TYPE tcdrs.
+
+    LOOP AT ct_tadir INTO ls_tadir WHERE pgmid = 'R3TR' AND object = 'CHDO'.
+      CLEAR: lv_cd_object, lt_cd_names, ls_tadir_gen, lt_tcdrs, ls_tcdrs.
+
+      lv_cd_object = ls_tadir-obj_name.
+
+      CALL FUNCTION 'CDNAMES_GET'
+        EXPORTING
+          iv_object        = lv_cd_object
+        TABLES
+          it_names         = lt_cd_names
+          it_tcdrs         = lt_tcdrs
+        EXCEPTIONS
+          object_space     = 1
+          object_not_found = 2
+          OTHERS           = 3.
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+
+      LOOP AT lt_cd_names INTO ls_cd_names.
+        DELETE ct_tadir WHERE pgmid = 'R3TR'
+                          AND ( ( object = 'PROG'
+                              AND ( obj_name = ls_cd_names-repnamec
+                                 OR obj_name = ls_cd_names-repnamet
+                                 OR obj_name = ls_cd_names-repnamefix
+                                 OR obj_name = ls_cd_names-repnamevar ) )
+                               OR object = 'FUGR' AND obj_name = ls_cd_names-fgrp ).
+      ENDLOOP.
+
+      LOOP AT lt_tcdrs INTO ls_tcdrs.
+        DELETE ct_tadir WHERE pgmid = 'R3TR' AND object = 'TABL' AND obj_name = ls_tcdrs-tabname.
+      ENDLOOP.
+
+    ENDLOOP.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_REPO_CS_MIGRATION IMPLEMENTATION.
@@ -55344,7 +55345,7 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
 
     CONSTANTS lc_new_repo_size TYPE i VALUE 10.
 
-    DATA lt_remote TYPE zif_abapgit_definitions=>ty_files_tt.
+    DATA lt_remote TYPE zif_abapgit_git_definitions=>ty_files_tt.
 
     lt_remote = mo_repo->get_files_remote( ).
 
@@ -55576,7 +55577,7 @@ CLASS kHGwlIAZUQfihQNtbCZJXaTWQDiHod DEFINITION
 
     CLASS-METHODS calculate_updated
       IMPORTING
-        it_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt
+        it_updated_files TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
         it_current_checksums TYPE zif_abapgit_persistence=>ty_local_checksum_tt
         it_local_files TYPE zif_abapgit_definitions=>ty_files_item_tt
       RETURNING
@@ -55586,13 +55587,13 @@ CLASS kHGwlIAZUQfihQNtbCZJXaTWQDiHod DEFINITION
 
     CLASS-METHODS process_updated_files
       CHANGING
-        ct_update_index TYPE zif_abapgit_definitions=>ty_file_signatures_ts
+        ct_update_index TYPE zif_abapgit_git_definitions=>ty_file_signatures_ts
         ct_checksums    TYPE zif_abapgit_persistence=>ty_local_checksum_by_item_tt.
 
     CLASS-METHODS add_new_files
       IMPORTING
         it_local        TYPE zif_abapgit_definitions=>ty_files_item_tt
-        it_update_index TYPE zif_abapgit_definitions=>ty_file_signatures_ts
+        it_update_index TYPE zif_abapgit_git_definitions=>ty_file_signatures_ts
       CHANGING
         ct_checksums    TYPE zif_abapgit_persistence=>ty_local_checksum_by_item_tt.
 
@@ -55602,7 +55603,7 @@ CLASS kHGwlIAZUQfihQNtbCZJXaTWQDiHod IMPLEMENTATION.
 
   METHOD calculate_updated.
 
-    DATA lt_update_index TYPE zif_abapgit_definitions=>ty_file_signatures_ts.
+    DATA lt_update_index TYPE zif_abapgit_git_definitions=>ty_file_signatures_ts.
     DATA lt_checksums_sorted TYPE zif_abapgit_persistence=>ty_local_checksum_by_item_tt.
 
     lt_checksums_sorted = it_current_checksums.
@@ -55834,7 +55835,7 @@ CLASS ZCL_ABAPGIT_REPO_CHECKSUMS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo_checksums~rebuild.
 
-    DATA lt_remote    TYPE zif_abapgit_definitions=>ty_files_tt.
+    DATA lt_remote    TYPE zif_abapgit_git_definitions=>ty_files_tt.
     DATA lt_local     TYPE ty_local_files_by_item_tt.
     DATA lt_checksums TYPE zif_abapgit_persistence=>ty_local_checksum_tt.
 
@@ -56292,7 +56293,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo~deserialize.
 
-    DATA: lt_updated_files TYPE zif_abapgit_definitions=>ty_file_signatures_tt,
+    DATA: lt_updated_files TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt,
           lt_result        TYPE zif_abapgit_data_deserializer=>ty_results,
           lx_error         TYPE REF TO zcx_abapgit_exception.
 
@@ -56882,6 +56883,9 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
     rv_username = ms_user-default_git_user-name.
 
   ENDMETHOD.
+  METHOD zif_abapgit_persist_user~get_diff_first.
+    rv_diff_first = ms_user-diff_first.
+  ENDMETHOD.
   METHOD zif_abapgit_persist_user~get_diff_unified.
 
     rv_diff_unified = ms_user-diff_unified.
@@ -56897,11 +56901,11 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
     rv_hide = ms_user-hide_files.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_persist_user~get_show_folders.
-
-    rv_folders = ms_user-show_folders.
-
+  METHOD zif_abapgit_persist_user~get_order_by.
+    rv_order_by = ms_user-order_by.
+  ENDMETHOD.
+  METHOD zif_abapgit_persist_user~get_order_descending.
+    rv_order_descending = ms_user-order_descending.
   ENDMETHOD.
   METHOD zif_abapgit_persist_user~get_repo_git_user_email.
 
@@ -56948,6 +56952,11 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
     rs_user_settings = ms_user-settings.
 
   ENDMETHOD.
+  METHOD zif_abapgit_persist_user~get_show_folders.
+
+    rv_folders = ms_user-show_folders.
+
+  ENDMETHOD.
   METHOD zif_abapgit_persist_user~is_favorite_repo.
 
     READ TABLE ms_user-favorites TRANSPORTING NO FIELDS
@@ -56967,6 +56976,21 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
     ms_user-default_git_user-name = iv_username.
     update( ).
 
+  ENDMETHOD.
+  METHOD zif_abapgit_persist_user~set_diff_first.
+    ms_user-diff_first = iv_diff_first.
+    update( ).
+    rv_diff_first = ms_user-diff_first.
+  ENDMETHOD.
+  METHOD zif_abapgit_persist_user~set_order_by.
+    ms_user-order_by = iv_order_by.
+    update( ).
+    rv_order_by = ms_user-order_by.
+  ENDMETHOD.
+  METHOD zif_abapgit_persist_user~set_order_descending.
+    ms_user-order_descending = iv_order_descending.
+    update( ).
+    rv_order_descending = ms_user-order_descending.
   ENDMETHOD.
   METHOD zif_abapgit_persist_user~set_repo_git_user_email.
 
@@ -57050,7 +57074,6 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
     update( ).
 
   ENDMETHOD.
-
   METHOD zif_abapgit_persist_user~toggle_hide_files.
 
     ms_user-hide_files = boolc( ms_user-hide_files = abap_false ).
@@ -57059,44 +57082,12 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
     rv_hide = ms_user-hide_files.
 
   ENDMETHOD.
-
   METHOD zif_abapgit_persist_user~toggle_show_folders.
     ms_user-show_folders = boolc( ms_user-show_folders = abap_false ).
     update( ).
 
     rv_folders = ms_user-show_folders.
   ENDMETHOD.
-
-  METHOD zif_abapgit_persist_user~get_diff_first.
-    rv_diff_first = ms_user-diff_first.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_persist_user~get_order_by.
-    rv_order_by = ms_user-order_by.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_persist_user~get_order_descending.
-    rv_order_descending = ms_user-order_descending.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_persist_user~set_diff_first.
-    ms_user-diff_first = iv_diff_first.
-    update( ).
-    rv_diff_first = ms_user-diff_first.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_persist_user~set_order_by.
-    ms_user-order_by = iv_order_by.
-    update( ).
-    rv_order_by = ms_user-order_by.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_persist_user~set_order_descending.
-    ms_user-order_descending = iv_order_descending.
-    update( ).
-    rv_order_descending = ms_user-order_descending.
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
@@ -59944,7 +59935,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
   ENDMETHOD.
   METHOD check_duplicates.
 
-    DATA: lt_files          TYPE zif_abapgit_definitions=>ty_files_tt,
+    DATA: lt_files          TYPE zif_abapgit_git_definitions=>ty_files_tt,
           lv_path           TYPE string,
           lv_filename       TYPE string,
           lt_duplicates     TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
@@ -60031,7 +60022,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 * before pull, this is useful eg. when overwriting a TABL object.
 * only the main XML file is used for comparison
 
-    DATA: ls_remote_file    TYPE zif_abapgit_definitions=>ty_file,
+    DATA: ls_remote_file    TYPE zif_abapgit_git_definitions=>ty_file,
           li_remote_version TYPE REF TO zif_abapgit_xml_input,
           lv_count          TYPE i,
           ls_result         TYPE zif_abapgit_comparator=>ty_result,
@@ -60268,7 +60259,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     DATA: ls_item     TYPE zif_abapgit_definitions=>ty_item,
           li_obj      TYPE REF TO zif_abapgit_object,
-          lt_remote   TYPE zif_abapgit_definitions=>ty_files_tt,
+          lt_remote   TYPE zif_abapgit_git_definitions=>ty_files_tt,
           lv_package  TYPE devclass,
           lo_files    TYPE REF TO zcl_abapgit_objects_files,
           ls_metadata TYPE zif_abapgit_definitions=>ty_metadata,
@@ -73458,7 +73449,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
   METHOD find_content.
 
     DATA: lv_filename TYPE string,
-          lt_files    TYPE zif_abapgit_definitions=>ty_files_tt.
+          lt_files    TYPE zif_abapgit_git_definitions=>ty_files_tt.
 
     FIELD-SYMBOLS: <ls_file> LIKE LINE OF lt_files.
     lv_filename = get_filename( iv_url ).
@@ -73676,7 +73667,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
           lv_folder   TYPE abap_bool,
           lv_filename TYPE string,
           lv_class    TYPE smimloio-lo_class,
-          ls_file     TYPE zif_abapgit_definitions=>ty_file,
+          ls_file     TYPE zif_abapgit_git_definitions=>ty_file,
           lv_content  TYPE xstring,
           li_api      TYPE REF TO if_mr_api,
           lv_loio     TYPE sdok_docid.
@@ -100508,10 +100499,10 @@ CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
           lt_abap        TYPE rswsourcet,
           lx_enh_root    TYPE REF TO cx_enh_root,
           lv_new_em      TYPE abap_bool,
-          lt_files       TYPE zif_abapgit_definitions=>ty_files_tt.
+          lt_files       TYPE zif_abapgit_git_definitions=>ty_files_tt.
 
     FIELD-SYMBOLS: <ls_method> LIKE LINE OF lt_tab_methods,
-                   <ls_file>   TYPE zif_abapgit_definitions=>ty_file.
+                   <ls_file>   TYPE zif_abapgit_git_definitions=>ty_file.
 
     ii_xml->read( EXPORTING iv_name = 'TAB_METHODS'
                   CHANGING cg_data = lt_tab_methods ).
@@ -102700,7 +102691,7 @@ ENDCLASS.
 CLASS zcl_abapgit_serialize IMPLEMENTATION.
   METHOD add_apack.
 
-    DATA ls_apack_file TYPE zif_abapgit_definitions=>ty_file.
+    DATA ls_apack_file TYPE zif_abapgit_git_definitions=>ty_file.
 
     FIELD-SYMBOLS <ls_file> LIKE LINE OF ct_files.
     ls_apack_file = zcl_abapgit_apack_helper=>to_file( iv_package ).
@@ -102712,7 +102703,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
   ENDMETHOD.
   METHOD add_data.
 
-    DATA lt_files TYPE zif_abapgit_definitions=>ty_files_tt.
+    DATA lt_files TYPE zif_abapgit_git_definitions=>ty_files_tt.
     DATA ls_file LIKE LINE OF lt_files.
 
     FIELD-SYMBOLS <ls_return> LIKE LINE OF ct_files.
@@ -103214,7 +103205,7 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
   METHOD add_abap.
 
     DATA: lv_source TYPE string,
-          ls_file   TYPE zif_abapgit_definitions=>ty_file.
+          ls_file   TYPE zif_abapgit_git_definitions=>ty_file.
     CONCATENATE LINES OF it_abap INTO lv_source SEPARATED BY zif_abapgit_definitions=>c_newline.
 * when editing files via eg. GitHub web interface it adds a newline at end of file
     lv_source = lv_source && zif_abapgit_definitions=>c_newline.
@@ -103231,7 +103222,7 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
   ENDMETHOD.
   METHOD add_raw.
 
-    DATA: ls_file TYPE zif_abapgit_definitions=>ty_file.
+    DATA: ls_file TYPE zif_abapgit_git_definitions=>ty_file.
 
     ls_file-path     = '/'.
     ls_file-data     = iv_data.
@@ -103245,7 +103236,7 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
   ENDMETHOD.
   METHOD add_string.
 
-    DATA: ls_file TYPE zif_abapgit_definitions=>ty_file.
+    DATA: ls_file TYPE zif_abapgit_git_definitions=>ty_file.
     ls_file-path = '/'.
     ls_file-filename = zcl_abapgit_filename_logic=>object_to_file(
       is_item  = ms_item
@@ -103259,7 +103250,7 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
   METHOD add_xml.
 
     DATA: lv_xml  TYPE string,
-          ls_file TYPE zif_abapgit_definitions=>ty_file.
+          ls_file TYPE zif_abapgit_git_definitions=>ty_file.
 
     lv_xml = ii_xml->render( iv_normalize = iv_normalize
                              is_metadata = is_metadata ).
@@ -104731,7 +104722,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
       lt_remote    LIKE it_remote,
       lt_items     TYPE zif_abapgit_definitions=>ty_items_tt,
       lt_items_idx TYPE zif_abapgit_definitions=>ty_items_ts, " Sorted by obj_type+obj_name
-      lt_state_idx TYPE zif_abapgit_definitions=>ty_file_signatures_ts. " Sorted by path+filename
+      lt_state_idx TYPE zif_abapgit_git_definitions=>ty_file_signatures_ts. " Sorted by path+filename
 
     lt_state_idx = it_cur_state. " Force sort it
 
@@ -104827,7 +104818,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
 
     DATA:
       lt_res_sort LIKE it_results,
-      ls_file     TYPE zif_abapgit_definitions=>ty_file_signature.
+      ls_file     TYPE zif_abapgit_git_definitions=>ty_file_signature.
 
     FIELD-SYMBOLS <ls_result> LIKE LINE OF it_results.
 
@@ -105184,7 +105175,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
   METHOD status.
 
     DATA lt_local TYPE zif_abapgit_definitions=>ty_files_item_tt.
-    DATA lt_remote TYPE zif_abapgit_definitions=>ty_files_tt.
+    DATA lt_remote TYPE zif_abapgit_git_definitions=>ty_files_tt.
     DATA li_exit TYPE REF TO zif_abapgit_exit.
 
     lt_local = io_repo->get_files_local( ii_log = ii_log ).
@@ -112580,7 +112571,7 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
   METHOD upload_pack_by_branch.
 
     DATA: lo_client TYPE REF TO zcl_abapgit_http_client,
-          lt_hashes TYPE zif_abapgit_definitions=>ty_sha1_tt.
+          lt_hashes TYPE zif_abapgit_git_definitions=>ty_sha1_tt.
 
     FIELD-SYMBOLS: <ls_branch> LIKE LINE OF it_branches.
     CLEAR: et_objects,
@@ -112612,7 +112603,7 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
   METHOD upload_pack_by_commit.
 
     DATA: lo_client TYPE REF TO zcl_abapgit_http_client,
-          lt_hashes TYPE zif_abapgit_definitions=>ty_sha1_tt.
+          lt_hashes TYPE zif_abapgit_git_definitions=>ty_sha1_tt.
     CLEAR: et_objects,
            ev_commit.
 
@@ -112960,9 +112951,9 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
   METHOD push.
 
     DATA: lt_expanded TYPE zif_abapgit_definitions=>ty_expanded_tt,
-          lt_blobs    TYPE zif_abapgit_definitions=>ty_files_tt,
-          lv_sha1     TYPE zif_abapgit_definitions=>ty_sha1,
-          lv_new_tree TYPE zif_abapgit_definitions=>ty_sha1,
+          lt_blobs    TYPE zif_abapgit_git_definitions=>ty_files_tt,
+          lv_sha1     TYPE zif_abapgit_git_definitions=>ty_sha1,
+          lv_new_tree TYPE zif_abapgit_git_definitions=>ty_sha1,
           lt_trees    TYPE ty_trees_tt,
           lt_stage    TYPE zif_abapgit_definitions=>ty_stage_tt.
 
@@ -113045,7 +113036,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
           lv_pack         TYPE xstring,
           ls_object       LIKE LINE OF lt_objects,
           ls_tag          TYPE zcl_abapgit_git_pack=>ty_tag,
-          lv_new_tag_sha1 TYPE zif_abapgit_definitions=>ty_sha1.
+          lv_new_tag_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1.
 
 * new tag
     ls_tag-object       = is_tag-sha1.
@@ -113286,7 +113277,7 @@ CLASS kHGwlHhZbTrIxNkYzsWttffscEwAXR IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_git_pack IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
   METHOD decode.
 
     DATA: lv_x              TYPE x,
@@ -113295,8 +113286,8 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
           lv_zlib           TYPE x LENGTH 2,
           lv_objects        TYPE i,
           lv_len            TYPE i,
-          lv_sha1           TYPE zif_abapgit_definitions=>ty_sha1,
-          lv_ref_delta      TYPE zif_abapgit_definitions=>ty_sha1,
+          lv_sha1           TYPE zif_abapgit_git_definitions=>ty_sha1,
+          lv_ref_delta      TYPE zif_abapgit_git_definitions=>ty_sha1,
           lv_compressed_len TYPE i,
           lv_compressed     TYPE xstring,
           lv_decompressed   TYPE xstring,
@@ -113622,7 +113613,7 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
           lv_result TYPE xstring,
           lv_offset TYPE i,
           lo_stream TYPE REF TO kHGwlHhZbTrIxNkYzsWttffscEwAXR,
-          lv_sha1   TYPE zif_abapgit_definitions=>ty_sha1,
+          lv_sha1   TYPE zif_abapgit_git_definitions=>ty_sha1,
           ls_object LIKE LINE OF ct_objects,
           lv_len    TYPE i,
           lv_tmp    TYPE xstring,
@@ -113708,7 +113699,7 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
   ENDMETHOD.
   METHOD delta_header.
 
-    DATA: lv_bitbyte TYPE zif_abapgit_definitions=>ty_bitbyte,
+    DATA: lv_bitbyte TYPE zif_abapgit_git_definitions=>ty_bitbyte,
           lv_bits    TYPE string,
           lv_x       TYPE x.
     lv_bits = ''.
@@ -113726,7 +113717,7 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
   METHOD encode.
 
     DATA: lv_sha1          TYPE x LENGTH 20,
-          lv_adler32       TYPE zif_abapgit_definitions=>ty_adler32,
+          lv_adler32       TYPE zif_abapgit_git_definitions=>ty_adler32,
           lv_compressed    TYPE xstring,
           lv_xstring       TYPE xstring,
           li_progress      TYPE REF TO zif_abapgit_progress,
@@ -113882,7 +113873,7 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
 
     DATA: lv_x           TYPE x,
           lv_length_bits TYPE string,
-          lv_bitbyte     TYPE zif_abapgit_definitions=>ty_bitbyte.
+          lv_bitbyte     TYPE zif_abapgit_git_definitions=>ty_bitbyte.
     lv_x = cv_data(1).
     lv_bitbyte = zcl_abapgit_convert=>x_to_bitbyte( lv_x ).
 
@@ -114001,7 +113992,7 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
 
     DATA: ls_data           TYPE zcl_abapgit_zlib=>ty_decompress,
           lv_compressed_len TYPE i,
-          lv_adler32        TYPE zif_abapgit_definitions=>ty_adler32.
+          lv_adler32        TYPE zif_abapgit_git_definitions=>ty_adler32.
     ls_data = zcl_abapgit_zlib=>decompress( cv_data ).
     lv_compressed_len = ls_data-compressed_len.
     cv_decompressed = ls_data-raw.
@@ -114382,7 +114373,7 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
   METHOD parse_branch_list.
 
     DATA: lt_result            TYPE TABLE OF string,
-          lv_hash              TYPE zif_abapgit_definitions=>ty_sha1,
+          lv_hash              TYPE zif_abapgit_git_definitions=>ty_sha1,
           lv_name              TYPE string,
           lv_head_params       TYPE string,
           lv_char              TYPE c,
@@ -115655,7 +115646,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_2_BRANCH IMPLEMENTATION.
   METHOD create.
     DATA:
       lv_branch_name     TYPE string,
-      ls_comment         TYPE zif_abapgit_definitions=>ty_comment,
+      ls_comment         TYPE zif_abapgit_git_definitions=>ty_comment,
       lo_stage           TYPE REF TO zcl_abapgit_stage,
       ls_stage_objects   TYPE zif_abapgit_definitions=>ty_stage_files,
       lt_object_statuses TYPE zif_abapgit_definitions=>ty_results_tt.
@@ -116448,7 +116439,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
   ENDMETHOD.
   METHOD push_fixed.
 
-    DATA: ls_comment TYPE zif_abapgit_definitions=>ty_comment,
+    DATA: ls_comment TYPE zif_abapgit_git_definitions=>ty_comment,
           ls_files   TYPE zif_abapgit_definitions=>ty_stage_files,
           lo_stage   TYPE REF TO zcl_abapgit_stage.
 
@@ -116587,7 +116578,7 @@ CLASS zcl_abapgit_background_push_au IMPLEMENTATION.
              changed_by TYPE syuname,
            END OF ty_changed.
 
-    DATA: ls_comment    TYPE zif_abapgit_definitions=>ty_comment,
+    DATA: ls_comment    TYPE zif_abapgit_git_definitions=>ty_comment,
           ls_files      TYPE zif_abapgit_definitions=>ty_stage_files,
           lt_changed    TYPE STANDARD TABLE OF ty_changed WITH DEFAULT KEY,
           lt_users      TYPE STANDARD TABLE OF syuname WITH DEFAULT KEY,
@@ -116671,7 +116662,7 @@ CLASS zcl_abapgit_background_push_au IMPLEMENTATION.
   METHOD push_deletions.
 
     DATA: lo_stage   TYPE REF TO zcl_abapgit_stage,
-          ls_comment TYPE zif_abapgit_definitions=>ty_comment.
+          ls_comment TYPE zif_abapgit_git_definitions=>ty_comment.
 
     FIELD-SYMBOLS: <ls_remote> LIKE LINE OF is_files-remote.
 
@@ -117936,6 +117927,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-03T06:20:06.177Z
+* abapmerge 0.14.8 - 2023-02-03T10:46:51.747Z
 ENDINTERFACE.
 ****************************************************
