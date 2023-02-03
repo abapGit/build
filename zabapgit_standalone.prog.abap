@@ -33,7 +33,6 @@ INTERFACE zif_abapgit_definitions DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
 INTERFACE zif_abapgit_xml_output DEFERRED.
 INTERFACE zif_abapgit_xml_input DEFERRED.
-INTERFACE zif_abapgit_progress DEFERRED.
 INTERFACE zif_abapgit_log DEFERRED.
 INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_frontend_services DEFERRED.
@@ -61,6 +60,7 @@ INTERFACE zif_abapgit_repo_checksums DEFERRED.
 INTERFACE zif_abapgit_repo DEFERRED.
 INTERFACE zif_abapgit_object_filter DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
+INTERFACE zif_abapgit_progress DEFERRED.
 INTERFACE zif_abapgit_persistence DEFERRED.
 INTERFACE zif_abapgit_persist_user DEFERRED.
 INTERFACE zif_abapgit_persist_settings DEFERRED.
@@ -119,7 +119,6 @@ CLASS zcl_abapgit_user_record DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_map DEFINITION DEFERRED.
 CLASS zcl_abapgit_requirement_helper DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_labels DEFINITION DEFERRED.
-CLASS zcl_abapgit_progress DEFINITION DEFERRED.
 CLASS zcl_abapgit_path DEFINITION DEFERRED.
 CLASS zcl_abapgit_news DEFINITION DEFERRED.
 CLASS zcl_abapgit_log DEFINITION DEFERRED.
@@ -213,6 +212,7 @@ CLASS zcl_abapgit_repo_checksums DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_filter_tran DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
+CLASS zcl_abapgit_progress DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_user DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_db DEFINITION DEFERRED.
@@ -2140,6 +2140,17 @@ INTERFACE zif_abapgit_persist_settings.
 
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_progress .
+  METHODS show
+    IMPORTING
+      !iv_current TYPE i
+      !iv_text    TYPE csequence .
+  METHODS set_total
+    IMPORTING
+      !iv_total TYPE i .
+  METHODS off .
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_gui_asset_manager .
 
   TYPES:
@@ -2713,17 +2724,6 @@ INTERFACE zif_abapgit_frontend_services.
     RETURNING
       VALUE(rv_is_webgui) TYPE abap_bool.
 
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_progress .
-  METHODS show
-    IMPORTING
-      !iv_current TYPE i
-      !iv_text    TYPE csequence .
-  METHODS set_total
-    IMPORTING
-      !iv_total TYPE i .
-  METHODS off .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_auth.
@@ -15619,6 +15619,37 @@ CLASS zcl_abapgit_persistence_user DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
+CLASS zcl_abapgit_progress DEFINITION
+  FINAL
+  CREATE PROTECTED .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_progress .
+
+    CLASS-METHODS set_instance
+      IMPORTING
+        !ii_progress TYPE REF TO zif_abapgit_progress .
+    CLASS-METHODS get_instance
+      IMPORTING
+        !iv_total          TYPE i
+      RETURNING
+        VALUE(ri_progress) TYPE REF TO zif_abapgit_progress .
+  PROTECTED SECTION.
+
+    DATA mv_total TYPE i .
+    CLASS-DATA gi_progress TYPE REF TO zif_abapgit_progress .
+
+    METHODS calc_pct
+      IMPORTING
+        !iv_current   TYPE i
+      RETURNING
+        VALUE(rv_pct) TYPE i .
+  PRIVATE SECTION.
+
+    DATA mv_cv_time_next TYPE sy-uzeit .
+    DATA mv_cv_datum_next TYPE sy-datum .
+ENDCLASS.
 CLASS zcl_abapgit_dot_abapgit DEFINITION
   CREATE PUBLIC .
 
@@ -21959,37 +21990,6 @@ CLASS zcl_abapgit_path DEFINITION FINAL
       RETURNING VALUE(rv_filename) TYPE string.
 
 ENDCLASS.
-CLASS zcl_abapgit_progress DEFINITION
-  FINAL
-  CREATE PROTECTED .
-
-  PUBLIC SECTION.
-
-    INTERFACES zif_abapgit_progress .
-
-    CLASS-METHODS set_instance
-      IMPORTING
-        !ii_progress TYPE REF TO zif_abapgit_progress .
-    CLASS-METHODS get_instance
-      IMPORTING
-        !iv_total          TYPE i
-      RETURNING
-        VALUE(ri_progress) TYPE REF TO zif_abapgit_progress .
-  PROTECTED SECTION.
-
-    DATA mv_total TYPE i .
-    CLASS-DATA gi_progress TYPE REF TO zif_abapgit_progress .
-
-    METHODS calc_pct
-      IMPORTING
-        !iv_current   TYPE i
-      RETURNING
-        VALUE(rv_pct) TYPE i .
-  PRIVATE SECTION.
-
-    DATA mv_cv_time_next TYPE sy-uzeit .
-    DATA mv_cv_datum_next TYPE sy-datum .
-ENDCLASS.
 CLASS zcl_abapgit_repo_labels DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -25377,91 +25377,6 @@ CLASS ZCL_ABAPGIT_REPO_LABELS IMPLEMENTATION.
       IF NOT ( lv_len = 3 OR lv_len = 6 ).
         zcx_abapgit_exception=>raise( |Icorrect color in pair #{ iv_index }| ).
       ENDIF.
-    ENDIF.
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_progress IMPLEMENTATION.
-  METHOD calc_pct.
-
-    DATA: lv_f TYPE f.
-
-    lv_f = ( iv_current / mv_total ) * 100.
-    rv_pct = lv_f.
-
-    IF rv_pct = 100.
-      rv_pct = 99.
-    ELSEIF rv_pct = 0.
-      rv_pct = 1.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_instance.
-
-* max one progress indicator at a time is supported
-
-    IF gi_progress IS INITIAL.
-      CREATE OBJECT gi_progress TYPE zcl_abapgit_progress.
-    ENDIF.
-
-    gi_progress->set_total( iv_total ).
-
-    ri_progress = gi_progress.
-
-  ENDMETHOD.
-  METHOD set_instance.
-
-    gi_progress = ii_progress.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_progress~off.
-
-    " Clear the status bar
-    CALL FUNCTION 'SAPGUI_PROGRESS_INDICATOR'.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_progress~set_total.
-
-    mv_total = iv_total.
-
-    CLEAR mv_cv_time_next.
-    CLEAR mv_cv_datum_next.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_progress~show.
-
-    DATA: lv_pct  TYPE i,
-          lv_time TYPE t.
-
-    CONSTANTS: lc_wait_secs TYPE i VALUE 2.
-
-    GET TIME.
-    lv_time = sy-uzeit.
-    IF mv_cv_time_next IS INITIAL AND mv_cv_datum_next IS INITIAL.
-      mv_cv_time_next  = lv_time.
-      mv_cv_datum_next = sy-datum.
-    ENDIF.
-
-    "We only do a progress indication if enough time has passed
-    IF lv_time >= mv_cv_time_next
-        AND sy-datum = mv_cv_datum_next
-        OR sy-datum > mv_cv_datum_next.
-
-      lv_pct = calc_pct( iv_current ).
-
-      CALL FUNCTION 'SAPGUI_PROGRESS_INDICATOR'
-        EXPORTING
-          percentage = lv_pct
-          text       = iv_text.
-      mv_cv_time_next = lv_time + lc_wait_secs.
-
-    ENDIF.
-    IF sy-datum > mv_cv_datum_next.
-      mv_cv_datum_next = sy-datum.
-    ENDIF.
-    IF mv_cv_time_next < lv_time.
-      mv_cv_datum_next = sy-datum + 1.
     ENDIF.
 
   ENDMETHOD.
@@ -56773,6 +56688,91 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
       IN rv_xml
       WITH '<?xml version="1.0" encoding="utf-8"?>'.
     ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_progress IMPLEMENTATION.
+  METHOD calc_pct.
+
+    DATA: lv_f TYPE f.
+
+    lv_f = ( iv_current / mv_total ) * 100.
+    rv_pct = lv_f.
+
+    IF rv_pct = 100.
+      rv_pct = 99.
+    ELSEIF rv_pct = 0.
+      rv_pct = 1.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_instance.
+
+* max one progress indicator at a time is supported
+
+    IF gi_progress IS INITIAL.
+      CREATE OBJECT gi_progress TYPE zcl_abapgit_progress.
+    ENDIF.
+
+    gi_progress->set_total( iv_total ).
+
+    ri_progress = gi_progress.
+
+  ENDMETHOD.
+  METHOD set_instance.
+
+    gi_progress = ii_progress.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_progress~off.
+
+    " Clear the status bar
+    CALL FUNCTION 'SAPGUI_PROGRESS_INDICATOR'.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_progress~set_total.
+
+    mv_total = iv_total.
+
+    CLEAR mv_cv_time_next.
+    CLEAR mv_cv_datum_next.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_progress~show.
+
+    DATA: lv_pct  TYPE i,
+          lv_time TYPE t.
+
+    CONSTANTS: lc_wait_secs TYPE i VALUE 2.
+
+    GET TIME.
+    lv_time = sy-uzeit.
+    IF mv_cv_time_next IS INITIAL AND mv_cv_datum_next IS INITIAL.
+      mv_cv_time_next  = lv_time.
+      mv_cv_datum_next = sy-datum.
+    ENDIF.
+
+    "We only do a progress indication if enough time has passed
+    IF lv_time >= mv_cv_time_next
+        AND sy-datum = mv_cv_datum_next
+        OR sy-datum > mv_cv_datum_next.
+
+      lv_pct = calc_pct( iv_current ).
+
+      CALL FUNCTION 'SAPGUI_PROGRESS_INDICATOR'
+        EXPORTING
+          percentage = lv_pct
+          text       = iv_text.
+      mv_cv_time_next = lv_time + lc_wait_secs.
+
+    ENDIF.
+    IF sy-datum > mv_cv_datum_next.
+      mv_cv_datum_next = sy-datum.
+    ENDIF.
+    IF mv_cv_time_next < lv_time.
+      mv_cv_datum_next = sy-datum + 1.
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -117927,6 +117927,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-03T10:46:51.747Z
+* abapmerge 0.14.8 - 2023-02-03T12:42:21.094Z
 ENDINTERFACE.
 ****************************************************
