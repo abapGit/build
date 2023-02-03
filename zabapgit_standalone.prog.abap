@@ -754,7 +754,7 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_source_position.
 
-    FIELD-SYMBOLS: <ls_callstack> TYPE abap_callstack_line.
+    FIELD-SYMBOLS: <ls_callstack> LIKE LINE OF mt_callstack.
 
     READ TABLE mt_callstack ASSIGNING <ls_callstack>
                             INDEX 1.
@@ -982,7 +982,7 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
   ENDMETHOD.
   METHOD save_callstack.
 
-    FIELD-SYMBOLS: <ls_callstack> TYPE abap_callstack_line.
+    FIELD-SYMBOLS: <ls_callstack> LIKE LINE OF mt_callstack.
 
     CALL FUNCTION 'SYSTEM_CALLSTACK'
       IMPORTING
@@ -117927,6 +117927,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-03T15:07:58.370Z
+* abapmerge 0.14.8 - 2023-02-03T15:24:09.703Z
 ENDINTERFACE.
 ****************************************************
