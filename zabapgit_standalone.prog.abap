@@ -2485,9 +2485,7 @@ INTERFACE zif_abapgit_html_viewer .
   METHODS set_visiblity
     IMPORTING
       !iv_visible TYPE abap_bool .
-  METHODS get_viewer
-    RETURNING
-      VALUE(ro_result) TYPE REF TO cl_gui_html_viewer .
+  METHODS set_focus RAISING zcx_abapgit_exception.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_event .
@@ -17250,7 +17248,7 @@ CLASS zcl_abapgit_html_viewer_gui DEFINITION
     DATA mo_html_viewer TYPE REF TO cl_gui_html_viewer .
 
     METHODS on_event
-      FOR EVENT sapevent OF cl_gui_html_viewer
+        FOR EVENT sapevent OF cl_gui_html_viewer
       IMPORTING
         !action
         !frame
@@ -50846,9 +50844,6 @@ CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
     rv_url = lv_url.
 
   ENDMETHOD.
-  METHOD zif_abapgit_html_viewer~get_viewer.
-    ro_result = mo_html_viewer.
-  ENDMETHOD.
   METHOD zif_abapgit_html_viewer~load_data.
 
     DATA lv_url TYPE c LENGTH 250.
@@ -50877,6 +50872,18 @@ CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
     ENDIF.
     ev_assigned_url = lv_assigned.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_html_viewer~set_focus.
+    cl_gui_control=>set_focus(
+      EXPORTING
+        control           = mo_html_viewer
+      EXCEPTIONS
+        cntl_error        = 1
+        cntl_system_error = 2
+        OTHERS            = 3 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error in: cl_gui_control=>set_focus - SUBRC = { sy-subrc }| ).
+    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_html_viewer~set_registered_events.
 
@@ -52050,16 +52057,7 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD set_focus.
-    cl_gui_control=>set_focus(
-      EXPORTING
-        control           = mi_html_viewer->get_viewer( )
-      EXCEPTIONS
-        cntl_error        = 1
-        cntl_system_error = 2
-        OTHERS            = 3 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error in: cl_gui_control=>set_focus - SUBRC = { sy-subrc }| ).
-    ENDIF.
+    mi_html_viewer->set_focus( ).
   ENDMETHOD.
   METHOD startup.
 
@@ -117929,6 +117927,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-03T15:38:40.465Z
+* abapmerge 0.14.8 - 2023-02-04T08:58:13.559Z
 ENDINTERFACE.
 ****************************************************
