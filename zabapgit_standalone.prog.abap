@@ -86,6 +86,7 @@ INTERFACE zif_abapgit_aff_oo_types_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_intf_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_type_mapping DEFERRED.
 INTERFACE zif_abapgit_aff_registry DEFERRED.
+INTERFACE zif_abapgit_ajson_types DEFERRED.
 INTERFACE zif_abapgit_ajson_mapping DEFERRED.
 INTERFACE zif_abapgit_ajson_filter DEFERRED.
 INTERFACE zif_abapgit_ajson DEFERRED.
@@ -1414,11 +1415,7 @@ INTERFACE zif_abapgit_code_inspector .
       VALUE(rv_success) TYPE abap_bool .
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_ajson.
-
-  CONSTANTS version TYPE string VALUE 'v1.1.7'. "#EC NOTEXT
-  CONSTANTS origin TYPE string VALUE 'https://github.com/sbcgua/ajson'. "#EC NOTEXT
-  CONSTANTS license TYPE string VALUE 'MIT'. "#EC NOTEXT
+INTERFACE zif_abapgit_ajson_types.
 
   TYPES:
     ty_node_type TYPE string.
@@ -1442,19 +1439,29 @@ INTERFACE zif_abapgit_ajson.
       index TYPE i,
       order TYPE i,
       children TYPE i,
-    END OF ty_node .
+    END OF ty_node.
   TYPES:
-    ty_nodes_tt TYPE STANDARD TABLE OF ty_node WITH KEY path name .
+    ty_nodes_tt TYPE STANDARD TABLE OF ty_node WITH KEY path name.
   TYPES:
     ty_nodes_ts TYPE SORTED TABLE OF ty_node
       WITH UNIQUE KEY path name
       WITH NON-UNIQUE SORTED KEY array_index COMPONENTS path index
-      WITH NON-UNIQUE SORTED KEY item_order COMPONENTS path order .
+      WITH NON-UNIQUE SORTED KEY item_order COMPONENTS path order.
+
   TYPES:
     BEGIN OF ty_path_name,
       path TYPE string,
       name TYPE string,
     END OF ty_path_name.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_ajson.
+
+  CONSTANTS version TYPE string VALUE 'v1.1.7'. "#EC NOTEXT
+  CONSTANTS origin TYPE string VALUE 'https://github.com/sbcgua/ajson'. "#EC NOTEXT
+  CONSTANTS license TYPE string VALUE 'MIT'. "#EC NOTEXT
+
   TYPES:
     BEGIN OF ty_opts,
       read_only TYPE abap_bool,
@@ -1464,9 +1471,10 @@ INTERFACE zif_abapgit_ajson.
 
   " DATA
 
-  DATA mt_json_tree TYPE ty_nodes_ts READ-ONLY.
+  DATA mt_json_tree TYPE zif_abapgit_ajson_types=>ty_nodes_ts READ-ONLY.
 
   " CLONING
+
   METHODS clone
     RETURNING
       VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
@@ -1530,7 +1538,7 @@ INTERFACE zif_abapgit_ajson.
     IMPORTING
       iv_path TYPE string
     RETURNING
-      VALUE(rv_node_type) TYPE ty_node_type.
+      VALUE(rv_node_type) TYPE zif_abapgit_ajson_types=>ty_node_type.
 
   METHODS get_boolean
     IMPORTING
@@ -1599,7 +1607,7 @@ INTERFACE zif_abapgit_ajson.
       iv_path TYPE string
       iv_val TYPE any
       iv_ignore_empty TYPE abap_bool DEFAULT abap_true
-      iv_node_type TYPE ty_node_type OPTIONAL
+      iv_node_type TYPE zif_abapgit_ajson_types=>ty_node_type OPTIONAL
     RETURNING
       VALUE(ri_json) TYPE REF TO zif_abapgit_ajson
     RAISING
@@ -1716,7 +1724,7 @@ INTERFACE zif_abapgit_ajson_filter.
 
   METHODS keep_node
     IMPORTING
-      is_node TYPE zif_abapgit_ajson=>ty_node
+      is_node TYPE zif_abapgit_ajson_types=>ty_node
       iv_visit TYPE ty_visit_type DEFAULT visit_type-value
     RETURNING
       VALUE(rv_keep) TYPE abap_bool
@@ -1763,9 +1771,9 @@ INTERFACE zif_abapgit_ajson_mapping.
 
   METHODS rename_node
     IMPORTING
-      !is_node TYPE zif_abapgit_ajson=>ty_node
+      !is_node TYPE zif_abapgit_ajson_types=>ty_node
     CHANGING
-      !cv_name TYPE zif_abapgit_ajson=>ty_node-name.
+      !cv_name TYPE zif_abapgit_ajson_types=>ty_node-name.
 
 ENDINTERFACE.
 
@@ -7281,21 +7289,21 @@ CLASS zcl_abapgit_ajson DEFINITION
       IMPORTING
         iv_path        TYPE string
       RETURNING
-        VALUE(rv_item) TYPE REF TO zif_abapgit_ajson=>ty_node.
+        VALUE(rv_item) TYPE REF TO zif_abapgit_ajson_types=>ty_node.
     METHODS prove_path_exists
       IMPORTING
         iv_path              TYPE string
       RETURNING
-        VALUE(rr_end_node) TYPE REF TO zif_abapgit_ajson=>ty_node
+        VALUE(rr_end_node) TYPE REF TO zif_abapgit_ajson_types=>ty_node
       RAISING
         zcx_abapgit_ajson_error.
     METHODS delete_subtree
       IMPORTING
         iv_path           TYPE string
         iv_name           TYPE string
-        ir_parent         TYPE REF TO zif_abapgit_ajson=>ty_node OPTIONAL
+        ir_parent         TYPE REF TO zif_abapgit_ajson_types=>ty_node OPTIONAL
       RETURNING
-        VALUE(rs_top_node) TYPE zif_abapgit_ajson=>ty_node.
+        VALUE(rs_top_node) TYPE zif_abapgit_ajson_types=>ty_node.
     METHODS read_only_watchdog
       RAISING
         zcx_abapgit_ajson_error.
@@ -106678,7 +106686,7 @@ CLASS zcl_abapgit_ajson_utilities IMPLEMENTATION.
 
       IF iv_keep_empty_arrays = abap_false.
         LOOP AT io_json->mt_json_tree INTO ls_json_tree
-          WHERE type = zif_abapgit_ajson=>node_type-array AND children = 0.
+          WHERE type = zif_abapgit_ajson_types=>node_type-array AND children = 0.
 
           io_json->delete( ls_json_tree-path && ls_json_tree-name ).
 
@@ -106689,7 +106697,7 @@ CLASS zcl_abapgit_ajson_utilities IMPLEMENTATION.
       ENDIF.
 
       LOOP AT io_json->mt_json_tree INTO ls_json_tree
-        WHERE type = zif_abapgit_ajson=>node_type-object AND children = 0.
+        WHERE type = zif_abapgit_ajson_types=>node_type-object AND children = 0.
 
         io_json->delete( ls_json_tree-path && ls_json_tree-name ).
 
@@ -106756,12 +106764,12 @@ CLASS zcl_abapgit_ajson_utilities IMPLEMENTATION.
 
         IF <node_a>-type = <node_b>-type.
           CASE <node_a>-type.
-            WHEN zif_abapgit_ajson=>node_type-array.
+            WHEN zif_abapgit_ajson_types=>node_type-array.
               mo_insert->touch_array( lv_path_a ).
               mo_change->touch_array( lv_path_a ).
               mo_delete->touch_array( lv_path_a ).
               diff_a_b( lv_path_a ).
-            WHEN zif_abapgit_ajson=>node_type-object.
+            WHEN zif_abapgit_ajson_types=>node_type-object.
               diff_a_b( lv_path_a ).
             WHEN OTHERS.
               IF <node_a>-value <> <node_b>-value.
@@ -106775,10 +106783,10 @@ CLASS zcl_abapgit_ajson_utilities IMPLEMENTATION.
         ELSE.
           " save changed type as delete + insert
           CASE <node_a>-type.
-            WHEN zif_abapgit_ajson=>node_type-array.
+            WHEN zif_abapgit_ajson_types=>node_type-array.
               mo_delete->touch_array( lv_path_a ).
               diff_a_b( lv_path_a ).
-            WHEN zif_abapgit_ajson=>node_type-object.
+            WHEN zif_abapgit_ajson_types=>node_type-object.
               diff_a_b( lv_path_a ).
             WHEN OTHERS.
               mo_delete->set(
@@ -106787,10 +106795,10 @@ CLASS zcl_abapgit_ajson_utilities IMPLEMENTATION.
                 iv_node_type = <node_a>-type ).
           ENDCASE.
           CASE <node_b>-type.
-            WHEN zif_abapgit_ajson=>node_type-array.
+            WHEN zif_abapgit_ajson_types=>node_type-array.
               mo_insert->touch_array( lv_path_b ).
               diff_b_a( lv_path_b ).
-            WHEN zif_abapgit_ajson=>node_type-object.
+            WHEN zif_abapgit_ajson_types=>node_type-object.
               diff_b_a( lv_path_b ).
             WHEN OTHERS.
               mo_insert->set(
@@ -106802,10 +106810,10 @@ CLASS zcl_abapgit_ajson_utilities IMPLEMENTATION.
       ELSE.
         " save as delete
         CASE <node_a>-type.
-          WHEN zif_abapgit_ajson=>node_type-array.
+          WHEN zif_abapgit_ajson_types=>node_type-array.
             mo_delete->touch_array( lv_path_a ).
             diff_a_b( lv_path_a ).
-          WHEN zif_abapgit_ajson=>node_type-object.
+          WHEN zif_abapgit_ajson_types=>node_type-object.
             diff_a_b( lv_path_a ).
           WHEN OTHERS.
             mo_delete->set(
@@ -106827,12 +106835,12 @@ CLASS zcl_abapgit_ajson_utilities IMPLEMENTATION.
       lv_path = <node_b>-path && <node_b>-name && '/'.
 
       CASE <node_b>-type.
-        WHEN zif_abapgit_ajson=>node_type-array.
+        WHEN zif_abapgit_ajson_types=>node_type-array.
           mo_insert->touch_array( lv_path ).
           diff_b_a(
             iv_path  = lv_path
             iv_array = abap_true ).
-        WHEN zif_abapgit_ajson=>node_type-object.
+        WHEN zif_abapgit_ajson_types=>node_type-object.
           diff_b_a( lv_path ).
         WHEN OTHERS.
           IF iv_array = abap_false.
@@ -107260,21 +107268,6 @@ CLASS zcl_abapgit_ajson_mapping IMPLEMENTATION.
         iv_first_json_upper = iv_first_json_upper.
 
   ENDMETHOD.
-  METHOD create_field_mapping.
-
-    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMoTFhfUGDgXz
-      EXPORTING
-        it_mapping_fields = it_mapping_fields.
-
-  ENDMETHOD.
-  METHOD create_lower_case.
-
-    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMoIaLFAtEmIg
-      EXPORTING
-        it_mapping_fields = it_mapping_fields.
-
-  ENDMETHOD.
-
   METHOD create_compound_mapper.
 
     DATA lt_queue TYPE zif_abapgit_ajson_mapping=>ty_table_of.
@@ -107290,15 +107283,20 @@ CLASS zcl_abapgit_ajson_mapping IMPLEMENTATION.
         it_queue = lt_queue.
 
   ENDMETHOD.
+  METHOD create_field_mapping.
 
-  METHOD create_upper_case.
-
-    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMoayhtkOTSGN
+    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMoTFhfUGDgXz
       EXPORTING
         it_mapping_fields = it_mapping_fields.
 
   ENDMETHOD.
+  METHOD create_lower_case.
 
+    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMoIaLFAtEmIg
+      EXPORTING
+        it_mapping_fields = it_mapping_fields.
+
+  ENDMETHOD.
   METHOD create_rename.
 
     CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMocwrelrEIET
@@ -107307,13 +107305,6 @@ CLASS zcl_abapgit_ajson_mapping IMPLEMENTATION.
         iv_rename_by = iv_rename_by.
 
   ENDMETHOD.
-
-  METHOD create_to_snake_case.
-
-    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMorCLylKulMM.
-
-  ENDMETHOD.
-
   METHOD create_to_camel_case.
 
     CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMoWRsLzEdjUi
@@ -107321,7 +107312,18 @@ CLASS zcl_abapgit_ajson_mapping IMPLEMENTATION.
         iv_first_json_upper = iv_first_json_upper.
 
   ENDMETHOD.
+  METHOD create_to_snake_case.
 
+    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMorCLylKulMM.
+
+  ENDMETHOD.
+  METHOD create_upper_case.
+
+    CREATE OBJECT ri_mapping TYPE kHGwlpuwVGRXmbkWZJMoayhtkOTSGN
+      EXPORTING
+        it_mapping_fields = it_mapping_fields.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS kHGwlqZELdDwrxoEPdVyarIhEaaLQd DEFINITION DEFERRED.
@@ -107573,7 +107575,7 @@ CLASS kHGwlMWhQrsNKkKXALnpzByNvbZmNu DEFINITION FINAL.
       IMPORTING
         iv_path TYPE string
       RETURNING
-        VALUE(rv_path_name) TYPE zif_abapgit_ajson=>ty_path_name.
+        VALUE(rv_path_name) TYPE zif_abapgit_ajson_types=>ty_path_name.
     CLASS-METHODS validate_array_index
       IMPORTING
         iv_path TYPE string
@@ -107582,10 +107584,43 @@ CLASS kHGwlMWhQrsNKkKXALnpzByNvbZmNu DEFINITION FINAL.
         VALUE(rv_index) TYPE i
       RAISING
         zcx_abapgit_ajson_error.
+    CLASS-METHODS string_to_xstring_utf8
+      IMPORTING
+        iv_str TYPE string
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring.
 
 ENDCLASS.
 
 CLASS kHGwlMWhQrsNKkKXALnpzByNvbZmNu IMPLEMENTATION.
+
+  METHOD string_to_xstring_utf8.
+
+    DATA lo_conv TYPE REF TO object.
+
+    TRY.
+        CALL METHOD ('CL_ABAP_CONV_CODEPAGE')=>create_out
+        RECEIVING
+          instance = lo_conv.
+        CALL METHOD lo_conv->('IF_ABAP_CONV_OUT~CONVERT')
+        EXPORTING
+          source = iv_str
+        RECEIVING
+          result = rv_xstr.
+      CATCH cx_sy_dyn_call_illegal_class.
+        CALL METHOD ('CL_ABAP_CONV_OUT_CE')=>create
+        EXPORTING
+          encoding = 'UTF-8'
+        RECEIVING
+          conv = lo_conv.
+        CALL METHOD lo_conv->('CONVERT')
+        EXPORTING
+          data = iv_str
+        IMPORTING
+          buffer = rv_xstr.
+    ENDTRY.
+
+  ENDMETHOD.
 
   METHOD validate_array_index.
 
@@ -107660,14 +107695,14 @@ CLASS kHGwlMWhQrsNKkKXALnpfipvepHQnc DEFINITION FINAL.
       IMPORTING
         iv_json TYPE string
       RETURNING
-        VALUE(rt_json_tree) TYPE zif_abapgit_ajson=>ty_nodes_tt
+        VALUE(rt_json_tree) TYPE zif_abapgit_ajson_types=>ty_nodes_tt
       RAISING
         zcx_abapgit_ajson_error.
 
   PRIVATE SECTION.
 
     TYPES:
-      ty_stack_tt TYPE STANDARD TABLE OF REF TO zif_abapgit_ajson=>ty_node.
+      ty_stack_tt TYPE STANDARD TABLE OF REF TO zif_abapgit_ajson_types=>ty_node.
 
     DATA mt_stack TYPE ty_stack_tt.
     DATA mv_stack_path TYPE string.
@@ -107682,7 +107717,7 @@ CLASS kHGwlMWhQrsNKkKXALnpfipvepHQnc DEFINITION FINAL.
       IMPORTING
         iv_json TYPE string
       RETURNING
-        VALUE(rt_json_tree) TYPE zif_abapgit_ajson=>ty_nodes_tt
+        VALUE(rt_json_tree) TYPE zif_abapgit_ajson_types=>ty_nodes_tt
       RAISING
         zcx_abapgit_ajson_error cx_sxml_error.
 
@@ -107769,7 +107804,7 @@ CLASS kHGwlMWhQrsNKkKXALnpfipvepHQnc IMPLEMENTATION.
     IF iv_json IS INITIAL.
       RETURN.
     ENDIF.
-    lo_reader = cl_sxml_string_reader=>create( cl_abap_codepage=>convert_to( iv_json ) ).
+    lo_reader = cl_sxml_string_reader=>create( kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>string_to_xstring_utf8( iv_json ) ).
 
     " TODO: self protection, check non-empty, check starting from object ...
 
@@ -107866,7 +107901,7 @@ CLASS kHGwlMWhQrsNKkKXALnpFgyFungUrS DEFINITION FINAL CREATE PRIVATE.
 
     CLASS-METHODS stringify
       IMPORTING
-        it_json_tree TYPE zif_abapgit_ajson=>ty_nodes_ts
+        it_json_tree TYPE zif_abapgit_ajson_types=>ty_nodes_ts
         iv_indent TYPE i DEFAULT 0
         iv_keep_item_order TYPE abap_bool DEFAULT abap_false
       RETURNING
@@ -107880,7 +107915,7 @@ CLASS kHGwlMWhQrsNKkKXALnpFgyFungUrS DEFINITION FINAL CREATE PRIVATE.
 
     CLASS-DATA gv_comma_with_lf TYPE string.
 
-    DATA mt_json_tree TYPE zif_abapgit_ajson=>ty_nodes_ts.
+    DATA mt_json_tree TYPE zif_abapgit_ajson_types=>ty_nodes_ts.
     DATA mv_keep_item_order TYPE abap_bool.
     DATA mt_buffer TYPE string_table.
     DATA mv_indent_step TYPE i.
@@ -107900,7 +107935,7 @@ CLASS kHGwlMWhQrsNKkKXALnpFgyFungUrS DEFINITION FINAL CREATE PRIVATE.
 
     METHODS stringify_node
       IMPORTING
-        is_node TYPE zif_abapgit_ajson=>ty_node
+        is_node TYPE zif_abapgit_ajson_types=>ty_node
       RAISING
         zcx_abapgit_ajson_error.
 
@@ -107967,15 +108002,15 @@ CLASS kHGwlMWhQrsNKkKXALnpFgyFungUrS IMPLEMENTATION.
     ENDIF.
 
     CASE is_node-type.
-      WHEN zif_abapgit_ajson=>node_type-array.
+      WHEN zif_abapgit_ajson_types=>node_type-array.
         lv_item = lv_item && '['.
-      WHEN zif_abapgit_ajson=>node_type-object.
+      WHEN zif_abapgit_ajson_types=>node_type-object.
         lv_item = lv_item && '{'.
-      WHEN zif_abapgit_ajson=>node_type-string.
+      WHEN zif_abapgit_ajson_types=>node_type-string.
         lv_item = lv_item && |"{ escape_string( is_node-value ) }"|.
-      WHEN zif_abapgit_ajson=>node_type-boolean OR zif_abapgit_ajson=>node_type-number.
+      WHEN zif_abapgit_ajson_types=>node_type-boolean OR zif_abapgit_ajson_types=>node_type-number.
         lv_item = lv_item && is_node-value.
-      WHEN zif_abapgit_ajson=>node_type-null.
+      WHEN zif_abapgit_ajson_types=>node_type-null.
         lv_item = lv_item && 'null'.
       WHEN OTHERS.
         zcx_abapgit_ajson_error=>raise(
@@ -107984,7 +108019,7 @@ CLASS kHGwlMWhQrsNKkKXALnpFgyFungUrS IMPLEMENTATION.
     ENDCASE.
 
     IF mv_indent_step > 0
-      AND ( is_node-type = zif_abapgit_ajson=>node_type-array OR is_node-type = zif_abapgit_ajson=>node_type-object )
+      AND ( is_node-type = zif_abapgit_ajson_types=>node_type-array OR is_node-type = zif_abapgit_ajson_types=>node_type-object )
       AND is_node-children > 0.
       mv_level = mv_level + 1.
       lv_item = lv_item && cl_abap_char_utilities=>newline.
@@ -107994,21 +108029,21 @@ CLASS kHGwlMWhQrsNKkKXALnpFgyFungUrS IMPLEMENTATION.
 
     " finish complex item
 
-    IF is_node-type = zif_abapgit_ajson=>node_type-array OR is_node-type = zif_abapgit_ajson=>node_type-object.
+    IF is_node-type = zif_abapgit_ajson_types=>node_type-array OR is_node-type = zif_abapgit_ajson_types=>node_type-object.
       DATA lv_children_path TYPE string.
       DATA lv_tail TYPE string.
 
       lv_children_path = is_node-path && is_node-name && '/'. " for root: path = '' and name = '', so result is '/'
 
       CASE is_node-type.
-        WHEN zif_abapgit_ajson=>node_type-array.
+        WHEN zif_abapgit_ajson_types=>node_type-array.
           IF is_node-children > 0.
             stringify_set(
               iv_parent_path = lv_children_path
               iv_array       = abap_true ).
           ENDIF.
           lv_tail = ']'.
-        WHEN zif_abapgit_ajson=>node_type-object.
+        WHEN zif_abapgit_ajson_types=>node_type-object.
           IF is_node-children > 0.
             stringify_set(
               iv_parent_path = lv_children_path
@@ -108109,7 +108144,7 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI DEFINITION FINAL.
 
     METHODS to_abap
       IMPORTING
-        it_nodes     TYPE zif_abapgit_ajson=>ty_nodes_ts
+        it_nodes     TYPE zif_abapgit_ajson_types=>ty_nodes_ts
       CHANGING
         c_container TYPE any
       RAISING
@@ -108117,7 +108152,7 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI DEFINITION FINAL.
 
     METHODS to_timestamp
       IMPORTING
-        iv_value         TYPE zif_abapgit_ajson=>ty_node-value
+        iv_value         TYPE zif_abapgit_ajson_types=>ty_node-value
       RETURNING
         VALUE(rv_result) TYPE timestamp
       RAISING
@@ -108125,7 +108160,7 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI DEFINITION FINAL.
 
     METHODS to_date
       IMPORTING
-        iv_value         TYPE zif_abapgit_ajson=>ty_node-value
+        iv_value         TYPE zif_abapgit_ajson_types=>ty_node-value
       RETURNING
         VALUE(rv_result) TYPE d
       RAISING
@@ -108143,7 +108178,7 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI DEFINITION FINAL.
       END OF ty_type_cache.
     DATA mt_node_type_cache TYPE HASHED TABLE OF ty_type_cache WITH UNIQUE KEY type_path.
 
-    DATA mr_nodes TYPE REF TO zif_abapgit_ajson=>ty_nodes_ts.
+    DATA mr_nodes TYPE REF TO zif_abapgit_ajson_types=>ty_nodes_ts.
     DATA mi_custom_mapping TYPE REF TO zif_abapgit_ajson_mapping.
     DATA mv_corresponding TYPE abap_bool.
 
@@ -108157,7 +108192,7 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI DEFINITION FINAL.
 
     METHODS value_to_abap
       IMPORTING
-        is_node      TYPE zif_abapgit_ajson=>ty_node
+        is_node      TYPE zif_abapgit_ajson_types=>ty_node
         is_node_type TYPE ty_type_cache
         i_container_ref TYPE REF TO data
       RAISING
@@ -108166,7 +108201,7 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI DEFINITION FINAL.
 
     METHODS get_node_type
       IMPORTING
-        is_node            TYPE zif_abapgit_ajson=>ty_node OPTIONAL " Empty for root
+        is_node            TYPE zif_abapgit_ajson_types=>ty_node OPTIONAL " Empty for root
         is_parent_type     TYPE ty_type_cache OPTIONAL
         i_container_ref    TYPE REF TO data OPTIONAL
       RETURNING
@@ -108283,7 +108318,7 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI IMPLEMENTATION.
     DATA lx_root TYPE REF TO cx_root.
     DATA lr_target_field TYPE REF TO data.
 
-    FIELD-SYMBOLS <n> TYPE zif_abapgit_ajson=>ty_node.
+    FIELD-SYMBOLS <n> TYPE zif_abapgit_ajson_types=>ty_node.
     FIELD-SYMBOLS <parent_stdtab> TYPE STANDARD TABLE.
     FIELD-SYMBOLS <parent_anytab> TYPE ANY TABLE.
     FIELD-SYMBOLS <parent_struc> TYPE any.
@@ -108364,7 +108399,7 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI IMPLEMENTATION.
 
         " Process value assignment
           CASE <n>-type.
-            WHEN zif_abapgit_ajson=>node_type-object.
+            WHEN zif_abapgit_ajson_types=>node_type-object.
               IF ls_node_type-type_kind <> iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>struct_flat AND
                ls_node_type-type_kind <> iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>struct_deep.
                 zcx_abapgit_ajson_error=>raise( 'Expected structure' ).
@@ -108374,7 +108409,7 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI IMPLEMENTATION.
               is_parent_type  = ls_node_type
               i_container_ref = lr_target_field ).
 
-            WHEN zif_abapgit_ajson=>node_type-array.
+            WHEN zif_abapgit_ajson_types=>node_type-array.
               IF NOT ls_node_type-type_kind = iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>table.
                 zcx_abapgit_ajson_error=>raise( 'Expected table' ).
               ENDIF.
@@ -108432,16 +108467,16 @@ CLASS kHGwlMWhQrsNKkKXALnpXxNdxsjJjI IMPLEMENTATION.
     ASSERT sy-subrc = 0.
 
     CASE is_node-type.
-      WHEN zif_abapgit_ajson=>node_type-null.
+      WHEN zif_abapgit_ajson_types=>node_type-null.
         " Do nothing
-      WHEN zif_abapgit_ajson=>node_type-boolean.
+      WHEN zif_abapgit_ajson_types=>node_type-boolean.
         " TODO: check type ?
         <container> = boolc( is_node-value = 'true' ).
-      WHEN zif_abapgit_ajson=>node_type-number.
+      WHEN zif_abapgit_ajson_types=>node_type-number.
         " TODO: check type ?
         <container> = is_node-value.
 
-      WHEN zif_abapgit_ajson=>node_type-string.
+      WHEN zif_abapgit_ajson_types=>node_type-string.
         " TODO: check type ?
         IF is_node_type-type_kind = iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>date AND is_node-value IS NOT INITIAL.
           <container> = to_date( is_node-value ).
@@ -108567,27 +108602,27 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz DEFINITION FINAL.
     CLASS-METHODS convert
       IMPORTING
         iv_data            TYPE any
-        is_prefix          TYPE zif_abapgit_ajson=>ty_path_name OPTIONAL
+        is_prefix          TYPE zif_abapgit_ajson_types=>ty_path_name OPTIONAL
         iv_array_index     TYPE i DEFAULT 0
         ii_custom_mapping  TYPE REF TO zif_abapgit_ajson_mapping OPTIONAL
         is_opts            TYPE zif_abapgit_ajson=>ty_opts OPTIONAL
         iv_item_order      TYPE i DEFAULT 0
       RETURNING
-        VALUE(rt_nodes)   TYPE zif_abapgit_ajson=>ty_nodes_tt
+        VALUE(rt_nodes)   TYPE zif_abapgit_ajson_types=>ty_nodes_tt
       RAISING
         zcx_abapgit_ajson_error.
 
     CLASS-METHODS insert_with_type
       IMPORTING
         iv_data            TYPE any
-        iv_type            TYPE zif_abapgit_ajson=>ty_node_type
-        is_prefix          TYPE zif_abapgit_ajson=>ty_path_name OPTIONAL
+        iv_type            TYPE zif_abapgit_ajson_types=>ty_node_type
+        is_prefix          TYPE zif_abapgit_ajson_types=>ty_path_name OPTIONAL
         iv_array_index     TYPE i DEFAULT 0
         ii_custom_mapping  TYPE REF TO zif_abapgit_ajson_mapping OPTIONAL
         is_opts            TYPE zif_abapgit_ajson=>ty_opts OPTIONAL
         iv_item_order      TYPE i DEFAULT 0
       RETURNING
-        VALUE(rt_nodes)   TYPE zif_abapgit_ajson=>ty_nodes_tt
+        VALUE(rt_nodes)   TYPE zif_abapgit_ajson_types=>ty_nodes_tt
       RAISING
         zcx_abapgit_ajson_error.
 
@@ -108620,21 +108655,21 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz DEFINITION FINAL.
       IMPORTING
         iv_data TYPE any
         io_type TYPE REF TO cl_abap_typedescr
-        is_prefix TYPE zif_abapgit_ajson=>ty_path_name
+        is_prefix TYPE zif_abapgit_ajson_types=>ty_path_name
         iv_index TYPE i DEFAULT 0
         iv_item_order TYPE i DEFAULT 0
       CHANGING
-        ct_nodes TYPE zif_abapgit_ajson=>ty_nodes_tt
+        ct_nodes TYPE zif_abapgit_ajson_types=>ty_nodes_tt
       RAISING
         zcx_abapgit_ajson_error.
 
     METHODS convert_ajson
       IMPORTING
         io_json TYPE REF TO zif_abapgit_ajson
-        is_prefix TYPE zif_abapgit_ajson=>ty_path_name
+        is_prefix TYPE zif_abapgit_ajson_types=>ty_path_name
         iv_index TYPE i DEFAULT 0
       CHANGING
-        ct_nodes TYPE zif_abapgit_ajson=>ty_nodes_tt
+        ct_nodes TYPE zif_abapgit_ajson_types=>ty_nodes_tt
       RAISING
         zcx_abapgit_ajson_error.
 
@@ -108642,22 +108677,22 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz DEFINITION FINAL.
       IMPORTING
         iv_data TYPE any
         io_type TYPE REF TO cl_abap_typedescr
-        is_prefix TYPE zif_abapgit_ajson=>ty_path_name
+        is_prefix TYPE zif_abapgit_ajson_types=>ty_path_name
         iv_index TYPE i DEFAULT 0
         iv_item_order TYPE i DEFAULT 0
       CHANGING
-        ct_nodes TYPE zif_abapgit_ajson=>ty_nodes_tt
+        ct_nodes TYPE zif_abapgit_ajson_types=>ty_nodes_tt
       RAISING
         zcx_abapgit_ajson_error.
 
     METHODS convert_ref
       IMPORTING
         iv_data TYPE any
-        is_prefix TYPE zif_abapgit_ajson=>ty_path_name
+        is_prefix TYPE zif_abapgit_ajson_types=>ty_path_name
         iv_index TYPE i DEFAULT 0
         iv_item_order TYPE i DEFAULT 0
       CHANGING
-        ct_nodes TYPE zif_abapgit_ajson=>ty_nodes_tt
+        ct_nodes TYPE zif_abapgit_ajson_types=>ty_nodes_tt
       RAISING
         zcx_abapgit_ajson_error.
 
@@ -108665,12 +108700,12 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz DEFINITION FINAL.
       IMPORTING
         iv_data TYPE any
         io_type TYPE REF TO cl_abap_typedescr
-        is_prefix TYPE zif_abapgit_ajson=>ty_path_name
+        is_prefix TYPE zif_abapgit_ajson_types=>ty_path_name
         iv_index TYPE i DEFAULT 0
         iv_item_order TYPE i DEFAULT 0
       CHANGING
-        ct_nodes TYPE zif_abapgit_ajson=>ty_nodes_tt
-        cs_root  TYPE zif_abapgit_ajson=>ty_node OPTIONAL
+        ct_nodes TYPE zif_abapgit_ajson_types=>ty_nodes_tt
+        cs_root  TYPE zif_abapgit_ajson_types=>ty_node OPTIONAL
       RAISING
         zcx_abapgit_ajson_error.
 
@@ -108678,24 +108713,24 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz DEFINITION FINAL.
       IMPORTING
         iv_data TYPE any
         io_type TYPE REF TO cl_abap_typedescr
-        is_prefix TYPE zif_abapgit_ajson=>ty_path_name
+        is_prefix TYPE zif_abapgit_ajson_types=>ty_path_name
         iv_index TYPE i DEFAULT 0
         iv_item_order TYPE i DEFAULT 0
       CHANGING
-        ct_nodes TYPE zif_abapgit_ajson=>ty_nodes_tt
+        ct_nodes TYPE zif_abapgit_ajson_types=>ty_nodes_tt
       RAISING
         zcx_abapgit_ajson_error.
 
     METHODS insert_value_with_type
       IMPORTING
         iv_data TYPE any
-        iv_type TYPE zif_abapgit_ajson=>ty_node_type
+        iv_type TYPE zif_abapgit_ajson_types=>ty_node_type
         io_type TYPE REF TO cl_abap_typedescr
-        is_prefix TYPE zif_abapgit_ajson=>ty_path_name
+        is_prefix TYPE zif_abapgit_ajson_types=>ty_path_name
         iv_index TYPE i DEFAULT 0
         iv_item_order TYPE i DEFAULT 0
       CHANGING
-        ct_nodes TYPE zif_abapgit_ajson=>ty_nodes_tt
+        ct_nodes TYPE zif_abapgit_ajson_types=>ty_nodes_tt
       RAISING
         zcx_abapgit_ajson_error.
 
@@ -108875,7 +108910,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
         OR io_type->absolute_name = '\TYPE=XSDBOOLEAN'
         OR io_type->absolute_name = '\TYPE=FLAG'
         OR io_type->absolute_name = '\TYPE=XFELD'.
-      ls_node-type = zif_abapgit_ajson=>node_type-boolean.
+      ls_node-type = zif_abapgit_ajson_types=>node_type-boolean.
       IF iv_data IS NOT INITIAL.
         ls_node-value = 'true'.
       ELSE.
@@ -108883,33 +108918,33 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
       ENDIF.
     ELSEIF io_type->absolute_name = '\TYPE=TIMESTAMP'.
       IF mv_format_datetime = abap_true.
-        ls_node-type  = zif_abapgit_ajson=>node_type-string.
+        ls_node-type  = zif_abapgit_ajson_types=>node_type-string.
         ls_node-value = format_timestamp( iv_data ).
       ELSE.
-        ls_node-type  = zif_abapgit_ajson=>node_type-number.
+        ls_node-type  = zif_abapgit_ajson_types=>node_type-number.
         ls_node-value = |{ iv_data }|.
       ENDIF.
     ELSEIF io_type->type_kind CO iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>texts OR
            io_type->type_kind CO iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>binary OR
            io_type->type_kind CO iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>enum.
-      ls_node-type = zif_abapgit_ajson=>node_type-string.
+      ls_node-type = zif_abapgit_ajson_types=>node_type-string.
       ls_node-value = |{ iv_data }|.
     ELSEIF io_type->type_kind = iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>date.
-      ls_node-type = zif_abapgit_ajson=>node_type-string.
+      ls_node-type = zif_abapgit_ajson_types=>node_type-string.
       IF mv_format_datetime = abap_true.
         ls_node-value = format_date( iv_data ).
       ELSE.
         ls_node-value = |{ iv_data }|.
       ENDIF.
     ELSEIF io_type->type_kind = iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>time.
-      ls_node-type = zif_abapgit_ajson=>node_type-string.
+      ls_node-type = zif_abapgit_ajson_types=>node_type-string.
       IF mv_format_datetime = abap_true.
         ls_node-value = format_time( iv_data ).
       ELSE.
         ls_node-value = |{ iv_data }|.
       ENDIF.
     ELSEIF io_type->type_kind CO iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>numeric.
-      ls_node-type = zif_abapgit_ajson=>node_type-number.
+      ls_node-type = zif_abapgit_ajson_types=>node_type-number.
       ls_node-value = |{ iv_data }|.
     ELSE.
       zcx_abapgit_ajson_error=>raise( |Unexpected elementary type [{
@@ -108940,7 +108975,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
     ENDIF.
 
     IF iv_data IS INITIAL.
-      ls_node-type  = zif_abapgit_ajson=>node_type-null.
+      ls_node-type  = zif_abapgit_ajson_types=>node_type-null.
       ls_node-value = 'null'.
     ELSE.
       " TODO support data references
@@ -108971,7 +109006,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
     ELSE. " First call
       ls_root-path  = is_prefix-path.
       ls_root-name  = is_prefix-name.
-      ls_root-type  = zif_abapgit_ajson=>node_type-object.
+      ls_root-type  = zif_abapgit_ajson_types=>node_type-object.
       ls_root-index = iv_index.
 
       IF mi_custom_mapping IS BOUND.
@@ -109066,7 +109101,7 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
 
     ls_root-path  = is_prefix-path.
     ls_root-name  = is_prefix-name.
-    ls_root-type  = zif_abapgit_ajson=>node_type-array.
+    ls_root-type  = zif_abapgit_ajson_types=>node_type-array.
     ls_root-index = iv_index.
     ls_root-order = iv_item_order.
 
@@ -109143,18 +109178,18 @@ CLASS kHGwlMWhQrsNKkKXALnpeJqampzabz IMPLEMENTATION.
     IF io_type->type_kind CO iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>texts OR
        io_type->type_kind CO iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>date OR
        io_type->type_kind CO iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>time.
-      IF iv_type = zif_abapgit_ajson=>node_type-boolean AND iv_data <> 'true' AND iv_data <> 'false'.
+      IF iv_type = zif_abapgit_ajson_types=>node_type-boolean AND iv_data <> 'true' AND iv_data <> 'false'.
         zcx_abapgit_ajson_error=>raise( |Unexpected boolean value [{ iv_data }] @{ lv_prefix }| ).
-      ELSEIF iv_type = zif_abapgit_ajson=>node_type-null AND iv_data IS NOT INITIAL.
+      ELSEIF iv_type = zif_abapgit_ajson_types=>node_type-null AND iv_data IS NOT INITIAL.
         zcx_abapgit_ajson_error=>raise( |Unexpected null value [{ iv_data }] @{ lv_prefix }| ).
-      ELSEIF iv_type = zif_abapgit_ajson=>node_type-number AND iv_data CN '0123456789. E+-'.
+      ELSEIF iv_type = zif_abapgit_ajson_types=>node_type-number AND iv_data CN '0123456789. E+-'.
         zcx_abapgit_ajson_error=>raise( |Unexpected numeric value [{ iv_data }] @{ lv_prefix }| ).
-      ELSEIF iv_type <> zif_abapgit_ajson=>node_type-string AND iv_type <> zif_abapgit_ajson=>node_type-boolean
-        AND iv_type <> zif_abapgit_ajson=>node_type-null AND iv_type <> zif_abapgit_ajson=>node_type-number.
+      ELSEIF iv_type <> zif_abapgit_ajson_types=>node_type-string AND iv_type <> zif_abapgit_ajson_types=>node_type-boolean
+        AND iv_type <> zif_abapgit_ajson_types=>node_type-null AND iv_type <> zif_abapgit_ajson_types=>node_type-number.
         zcx_abapgit_ajson_error=>raise( |Unexpected type for value [{ iv_type },{ iv_data }] @{ lv_prefix }| ).
       ENDIF.
     ELSEIF io_type->type_kind CO iUFTsMWhQrsNKkKXALnpdAMURRqLkF=>numeric.
-      IF iv_type <> zif_abapgit_ajson=>node_type-number.
+      IF iv_type <> zif_abapgit_ajson_types=>node_type-number.
         zcx_abapgit_ajson_error=>raise( |Unexpected value for numeric [{ iv_data }] @{ lv_prefix }| ).
       ENDIF.
     ELSE.
@@ -109192,9 +109227,9 @@ ENDCLASS.
 INTERFACE iUFTsMWhQrsNKkKXALnptzVIYRIbuu.
   METHODS run
     IMPORTING
-      it_source_tree TYPE zif_abapgit_ajson=>ty_nodes_ts
+      it_source_tree TYPE zif_abapgit_ajson_types=>ty_nodes_ts
     EXPORTING
-      et_dest_tree TYPE zif_abapgit_ajson=>ty_nodes_ts
+      et_dest_tree TYPE zif_abapgit_ajson_types=>ty_nodes_ts
     RAISING
       zcx_abapgit_ajson_error.
 ENDINTERFACE.
@@ -109218,14 +109253,14 @@ CLASS kHGwlMWhQrsNKkKXALnplwblMIpVBS DEFINITION FINAL.
 
   PRIVATE SECTION.
     DATA mi_filter TYPE REF TO zif_abapgit_ajson_filter.
-    DATA mr_source_tree TYPE REF TO zif_abapgit_ajson=>ty_nodes_ts.
-    DATA mr_dest_tree TYPE REF TO zif_abapgit_ajson=>ty_nodes_ts.
+    DATA mr_source_tree TYPE REF TO zif_abapgit_ajson_types=>ty_nodes_ts.
+    DATA mr_dest_tree TYPE REF TO zif_abapgit_ajson_types=>ty_nodes_ts.
 
     METHODS walk
       IMPORTING
         iv_path TYPE string
       CHANGING
-        cs_parent TYPE zif_abapgit_ajson=>ty_node OPTIONAL
+        cs_parent TYPE zif_abapgit_ajson_types=>ty_node OPTIONAL
       RAISING
         zcx_abapgit_ajson_error.
 
@@ -109254,18 +109289,18 @@ CLASS kHGwlMWhQrsNKkKXALnplwblMIpVBS IMPLEMENTATION.
 
   METHOD walk.
 
-    DATA ls_node TYPE zif_abapgit_ajson=>ty_node.
+    DATA ls_node TYPE zif_abapgit_ajson_types=>ty_node.
 
     LOOP AT mr_source_tree->* INTO ls_node WHERE path = iv_path.
       CASE ls_node-type.
-        WHEN zif_abapgit_ajson=>node_type-boolean OR zif_abapgit_ajson=>node_type-null
-          OR zif_abapgit_ajson=>node_type-number OR zif_abapgit_ajson=>node_type-string.
+        WHEN zif_abapgit_ajson_types=>node_type-boolean OR zif_abapgit_ajson_types=>node_type-null
+          OR zif_abapgit_ajson_types=>node_type-number OR zif_abapgit_ajson_types=>node_type-string.
 
           IF mi_filter->keep_node( ls_node ) = abap_false.
             CONTINUE.
           ENDIF.
 
-        WHEN zif_abapgit_ajson=>node_type-array OR zif_abapgit_ajson=>node_type-object.
+        WHEN zif_abapgit_ajson_types=>node_type-array OR zif_abapgit_ajson_types=>node_type-object.
 
           IF mi_filter->keep_node(
               is_node  = ls_node
@@ -109294,7 +109329,7 @@ CLASS kHGwlMWhQrsNKkKXALnplwblMIpVBS IMPLEMENTATION.
 
       IF cs_parent IS SUPPLIED.
         cs_parent-children = cs_parent-children + 1.
-        IF cs_parent-type = zif_abapgit_ajson=>node_type-array.
+        IF cs_parent-type = zif_abapgit_ajson_types=>node_type-array.
           ls_node-name  = |{ cs_parent-children }|.
           ls_node-index = cs_parent-children.
         ENDIF.
@@ -109326,14 +109361,14 @@ CLASS kHGwlMWhQrsNKkKXALnphFTcRDbOtm DEFINITION FINAL.
 
   PRIVATE SECTION.
     DATA mi_mapper TYPE REF TO zif_abapgit_ajson_mapping.
-    DATA mr_source_tree TYPE REF TO zif_abapgit_ajson=>ty_nodes_ts.
-    DATA mr_dest_tree TYPE REF TO zif_abapgit_ajson=>ty_nodes_ts.
+    DATA mr_source_tree TYPE REF TO zif_abapgit_ajson_types=>ty_nodes_ts.
+    DATA mr_dest_tree TYPE REF TO zif_abapgit_ajson_types=>ty_nodes_ts.
 
     METHODS process_deep_node
       IMPORTING
         iv_path         TYPE string
         iv_renamed_path TYPE string
-        iv_node_type    TYPE zif_abapgit_ajson=>ty_node-type
+        iv_node_type    TYPE zif_abapgit_ajson_types=>ty_node-type
       RAISING
         zcx_abapgit_ajson_error.
 
@@ -109355,7 +109390,8 @@ CLASS kHGwlMWhQrsNKkKXALnphFTcRDbOtm IMPLEMENTATION.
     FIELD-SYMBOLS <root> LIKE LINE OF it_source_tree.
 
     READ TABLE it_source_tree WITH KEY path = `` name = `` ASSIGNING <root>.
-    IF sy-subrc <> 0 OR NOT ( <root>-type = zif_abapgit_ajson=>node_type-array OR <root>-type = zif_abapgit_ajson=>node_type-object ).
+    IF sy-subrc <> 0
+      OR NOT ( <root>-type = zif_abapgit_ajson_types=>node_type-array OR <root>-type = zif_abapgit_ajson_types=>node_type-object ).
       " empty or one-value-only tree
       et_dest_tree = it_source_tree.
       RETURN.
@@ -109379,7 +109415,7 @@ CLASS kHGwlMWhQrsNKkKXALnphFTcRDbOtm IMPLEMENTATION.
 
     LOOP AT mr_source_tree->* ASSIGNING <item> WHERE path = iv_path.
       ls_renamed_node = <item>.
-      IF iv_node_type <> zif_abapgit_ajson=>node_type-array.
+      IF iv_node_type <> zif_abapgit_ajson_types=>node_type-array.
         " don't rename array item names -> they are numeric index
         mi_mapper->rename_node(
           EXPORTING
@@ -109403,7 +109439,7 @@ CLASS kHGwlMWhQrsNKkKXALnphFTcRDbOtm IMPLEMENTATION.
 
       " maybe also catch CX_SY_ITAB_DUPLICATE_KEY but secondary keys are not changed here, so not for now
 
-      IF <item>-type = zif_abapgit_ajson=>node_type-array OR <item>-type = zif_abapgit_ajson=>node_type-object.
+      IF <item>-type = zif_abapgit_ajson_types=>node_type-array OR <item>-type = zif_abapgit_ajson_types=>node_type-object.
         process_deep_node(
           iv_path         = iv_path && <item>-name && `/`
           iv_renamed_path = iv_renamed_path && ls_renamed_node-name && `/`
@@ -109457,7 +109493,7 @@ CLASS kHGwlMWhQrsNKkKXALnpucOpllUiAS IMPLEMENTATION.
     DATA lv_qsize TYPE i.
     FIELD-SYMBOLS <from> LIKE it_source_tree.
     FIELD-SYMBOLS <to> LIKE it_source_tree.
-    DATA lr_buf TYPE REF TO zif_abapgit_ajson=>ty_nodes_ts.
+    DATA lr_buf TYPE REF TO zif_abapgit_ajson_types=>ty_nodes_ts.
 
     lv_qsize = lines( mt_queue ).
 
@@ -109569,7 +109605,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   METHOD get_item.
 
     FIELD-SYMBOLS <item> LIKE LINE OF mt_json_tree.
-    DATA ls_path_name TYPE zif_abapgit_ajson=>ty_path_name.
+    DATA ls_path_name TYPE zif_abapgit_ajson_types=>ty_path_name.
     ls_path_name = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>split_path( iv_path ).
 
     READ TABLE mt_json_tree
@@ -109623,7 +109659,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
         CLEAR ls_new_node.
         IF lr_node_parent IS NOT INITIAL. " if has parent
           lr_node_parent->children = lr_node_parent->children + 1.
-          IF lr_node_parent->type = zif_abapgit_ajson=>node_type-array.
+          IF lr_node_parent->type = zif_abapgit_ajson_types=>node_type-array.
             ls_new_node-index = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>validate_array_index(
               iv_path  = lv_cur_path
               iv_index = lv_cur_name ).
@@ -109631,7 +109667,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
         ENDIF.
         ls_new_node-path = lv_cur_path.
         ls_new_node-name = lv_cur_name.
-        ls_new_node-type = zif_abapgit_ajson=>node_type-object.
+        ls_new_node-type = zif_abapgit_ajson_types=>node_type-object.
         INSERT ls_new_node INTO TABLE mt_json_tree REFERENCE INTO rr_end_node.
       ENDIF.
       lv_cur_path = lv_cur_path && lv_cur_name && '/'.
@@ -109650,7 +109686,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   METHOD zif_abapgit_ajson~array_to_string_table.
 
     DATA lv_normalized_path TYPE string.
-    DATA lr_node TYPE REF TO zif_abapgit_ajson=>ty_node.
+    DATA lr_node TYPE REF TO zif_abapgit_ajson_types=>ty_node.
     FIELD-SYMBOLS <item> LIKE LINE OF mt_json_tree.
 
     lv_normalized_path = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>normalize_path( iv_path ).
@@ -109659,17 +109695,17 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     IF lr_node IS INITIAL.
       zcx_abapgit_ajson_error=>raise( |Path not found: { iv_path }| ).
     ENDIF.
-    IF lr_node->type <> zif_abapgit_ajson=>node_type-array.
+    IF lr_node->type <> zif_abapgit_ajson_types=>node_type-array.
       zcx_abapgit_ajson_error=>raise( |Array expected at: { iv_path }| ).
     ENDIF.
 
     LOOP AT mt_json_tree ASSIGNING <item> WHERE path = lv_normalized_path.
       CASE <item>-type.
-        WHEN zif_abapgit_ajson=>node_type-number OR zif_abapgit_ajson=>node_type-string.
+        WHEN zif_abapgit_ajson_types=>node_type-number OR zif_abapgit_ajson_types=>node_type-string.
           APPEND <item>-value TO rt_string_table.
-        WHEN zif_abapgit_ajson=>node_type-null.
+        WHEN zif_abapgit_ajson_types=>node_type-null.
           APPEND '' TO rt_string_table.
-        WHEN zif_abapgit_ajson=>node_type-boolean.
+        WHEN zif_abapgit_ajson_types=>node_type-boolean.
           DATA lv_tmp TYPE string.
           IF <item>-value = 'true'.
             lv_tmp = abap_true.
@@ -109697,7 +109733,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
 
     read_only_watchdog( ).
 
-    DATA ls_split_path TYPE zif_abapgit_ajson=>ty_path_name.
+    DATA ls_split_path TYPE zif_abapgit_ajson_types=>ty_path_name.
     ls_split_path = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>split_path( iv_path ).
 
     delete_subtree(
@@ -109724,7 +109760,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_ajson~get.
 
-    DATA lr_item TYPE REF TO zif_abapgit_ajson=>ty_node.
+    DATA lr_item TYPE REF TO zif_abapgit_ajson_types=>ty_node.
     lr_item = get_item( iv_path ).
     IF lr_item IS NOT INITIAL.
       rv_value = lr_item->value.
@@ -109733,11 +109769,11 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_ajson~get_boolean.
 
-    DATA lr_item TYPE REF TO zif_abapgit_ajson=>ty_node.
+    DATA lr_item TYPE REF TO zif_abapgit_ajson_types=>ty_node.
     lr_item = get_item( iv_path ).
-    IF lr_item IS INITIAL OR lr_item->type = zif_abapgit_ajson=>node_type-null.
+    IF lr_item IS INITIAL OR lr_item->type = zif_abapgit_ajson_types=>node_type-null.
       RETURN.
-    ELSEIF lr_item->type = zif_abapgit_ajson=>node_type-boolean.
+    ELSEIF lr_item->type = zif_abapgit_ajson_types=>node_type-boolean.
       rv_value = boolc( lr_item->value = 'true' ).
     ELSEIF lr_item->value IS NOT INITIAL.
       rv_value = abap_true.
@@ -109746,14 +109782,14 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_ajson~get_date.
 
-    DATA lr_item TYPE REF TO zif_abapgit_ajson=>ty_node.
+    DATA lr_item TYPE REF TO zif_abapgit_ajson_types=>ty_node.
     DATA lv_y TYPE c LENGTH 4.
     DATA lv_m TYPE c LENGTH 2.
     DATA lv_d TYPE c LENGTH 2.
 
     lr_item = get_item( iv_path ).
 
-    IF lr_item IS NOT INITIAL AND lr_item->type = zif_abapgit_ajson=>node_type-string.
+    IF lr_item IS NOT INITIAL AND lr_item->type = zif_abapgit_ajson_types=>node_type-string.
       FIND FIRST OCCURRENCE OF REGEX '^(\d{4})-(\d{2})-(\d{2})(T|$)'
         IN lr_item->value
         SUBMATCHES lv_y lv_m lv_d.
@@ -109763,16 +109799,16 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_ajson~get_integer.
 
-    DATA lr_item TYPE REF TO zif_abapgit_ajson=>ty_node.
+    DATA lr_item TYPE REF TO zif_abapgit_ajson_types=>ty_node.
     lr_item = get_item( iv_path ).
-    IF lr_item IS NOT INITIAL AND lr_item->type = zif_abapgit_ajson=>node_type-number.
+    IF lr_item IS NOT INITIAL AND lr_item->type = zif_abapgit_ajson_types=>node_type-number.
       rv_value = lr_item->value.
     ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_ajson~get_node_type.
 
-    DATA lr_item TYPE REF TO zif_abapgit_ajson=>ty_node.
+    DATA lr_item TYPE REF TO zif_abapgit_ajson_types=>ty_node.
     lr_item = get_item( iv_path ).
     IF lr_item IS NOT INITIAL.
       rv_node_type = lr_item->type.
@@ -109781,18 +109817,18 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_ajson~get_number.
 
-    DATA lr_item TYPE REF TO zif_abapgit_ajson=>ty_node.
+    DATA lr_item TYPE REF TO zif_abapgit_ajson_types=>ty_node.
     lr_item = get_item( iv_path ).
-    IF lr_item IS NOT INITIAL AND lr_item->type = zif_abapgit_ajson=>node_type-number.
+    IF lr_item IS NOT INITIAL AND lr_item->type = zif_abapgit_ajson_types=>node_type-number.
       rv_value = lr_item->value.
     ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_ajson~get_string.
 
-    DATA lr_item TYPE REF TO zif_abapgit_ajson=>ty_node.
+    DATA lr_item TYPE REF TO zif_abapgit_ajson_types=>ty_node.
     lr_item = get_item( iv_path ).
-    IF lr_item IS NOT INITIAL AND lr_item->type <> zif_abapgit_ajson=>node_type-null.
+    IF lr_item IS NOT INITIAL AND lr_item->type <> zif_abapgit_ajson_types=>node_type-null.
       rv_value = lr_item->value.
     ENDIF.
 
@@ -109800,7 +109836,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   METHOD zif_abapgit_ajson~get_timestamp.
 
     DATA lo_to_abap TYPE REF TO kHGwlMWhQrsNKkKXALnpXxNdxsjJjI.
-    DATA lr_item TYPE REF TO zif_abapgit_ajson=>ty_node.
+    DATA lr_item TYPE REF TO zif_abapgit_ajson_types=>ty_node.
 
     lr_item = get_item( iv_path ).
 
@@ -109846,8 +109882,8 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_ajson~push.
 
-    DATA lr_parent TYPE REF TO zif_abapgit_ajson=>ty_node.
-    DATA lr_new_node TYPE REF TO zif_abapgit_ajson=>ty_node.
+    DATA lr_parent TYPE REF TO zif_abapgit_ajson_types=>ty_node.
+    DATA lr_new_node TYPE REF TO zif_abapgit_ajson_types=>ty_node.
 
     read_only_watchdog( ).
 
@@ -109857,12 +109893,12 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       zcx_abapgit_ajson_error=>raise( |Path [{ iv_path }] does not exist| ).
     ENDIF.
 
-    IF lr_parent->type <> zif_abapgit_ajson=>node_type-array.
+    IF lr_parent->type <> zif_abapgit_ajson_types=>node_type-array.
       zcx_abapgit_ajson_error=>raise( |Path [{ iv_path }] is not array| ).
     ENDIF.
 
-    DATA lt_new_nodes TYPE zif_abapgit_ajson=>ty_nodes_tt.
-    DATA ls_new_path TYPE zif_abapgit_ajson=>ty_path_name.
+    DATA lt_new_nodes TYPE zif_abapgit_ajson_types=>ty_nodes_tt.
+    DATA ls_new_path TYPE zif_abapgit_ajson_types=>ty_path_name.
     DATA lv_new_index TYPE i.
 
     lv_new_index     = lr_parent->children + 1.
@@ -109886,9 +109922,9 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_ajson~set.
 
-    DATA ls_split_path TYPE zif_abapgit_ajson=>ty_path_name.
-    DATA lr_parent TYPE REF TO zif_abapgit_ajson=>ty_node.
-    DATA ls_deleted_node TYPE zif_abapgit_ajson=>ty_node.
+    DATA ls_split_path TYPE zif_abapgit_ajson_types=>ty_path_name.
+    DATA lr_parent TYPE REF TO zif_abapgit_ajson_types=>ty_node.
+    DATA ls_deleted_node TYPE zif_abapgit_ajson_types=>ty_node.
 
     read_only_watchdog( ).
 
@@ -109899,8 +109935,8 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     ENDIF.
 
     IF iv_node_type IS NOT INITIAL
-      AND iv_node_type <> zif_abapgit_ajson=>node_type-boolean AND iv_node_type <> zif_abapgit_ajson=>node_type-null
-      AND iv_node_type <> zif_abapgit_ajson=>node_type-number AND iv_node_type <> zif_abapgit_ajson=>node_type-string.
+      AND iv_node_type <> zif_abapgit_ajson_types=>node_type-boolean AND iv_node_type <> zif_abapgit_ajson_types=>node_type-null
+      AND iv_node_type <> zif_abapgit_ajson_types=>node_type-number AND iv_node_type <> zif_abapgit_ajson_types=>node_type-string.
       zcx_abapgit_ajson_error=>raise( |Unexpected type { iv_node_type }| ).
     ENDIF.
 
@@ -109934,10 +109970,10 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       iv_name   = ls_split_path-name ).
 
     " convert to json
-    DATA lt_new_nodes TYPE zif_abapgit_ajson=>ty_nodes_tt.
+    DATA lt_new_nodes TYPE zif_abapgit_ajson_types=>ty_nodes_tt.
     DATA lv_array_index TYPE i.
 
-    IF lr_parent->type = zif_abapgit_ajson=>node_type-array.
+    IF lr_parent->type = zif_abapgit_ajson_types=>node_type-array.
       lv_array_index = kHGwlMWhQrsNKkKXALnpzByNvbZmNu=>validate_array_index(
         iv_path  = ls_split_path-path
         iv_index = ls_split_path-name ).
@@ -110113,7 +110149,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     DATA lo_section         TYPE REF TO zcl_abapgit_ajson.
     DATA ls_item            LIKE LINE OF mt_json_tree.
     DATA lv_normalized_path TYPE string.
-    DATA ls_path_parts      TYPE zif_abapgit_ajson=>ty_path_name.
+    DATA ls_path_parts      TYPE zif_abapgit_ajson_types=>ty_path_name.
     DATA lv_path_len        TYPE i.
 
     CREATE OBJECT lo_section.
@@ -110148,10 +110184,10 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_ajson~touch_array.
 
-    DATA lr_node TYPE REF TO zif_abapgit_ajson=>ty_node.
-    DATA ls_deleted_node TYPE zif_abapgit_ajson=>ty_node.
+    DATA lr_node TYPE REF TO zif_abapgit_ajson_types=>ty_node.
+    DATA ls_deleted_node TYPE zif_abapgit_ajson_types=>ty_node.
     DATA ls_new_node LIKE LINE OF mt_json_tree.
-    DATA ls_split_path TYPE zif_abapgit_ajson=>ty_path_name.
+    DATA ls_split_path TYPE zif_abapgit_ajson_types=>ty_path_name.
 
     read_only_watchdog( ).
 
@@ -110159,7 +110195,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     IF ls_split_path IS INITIAL. " Assign root, exceptional processing
       ls_new_node-path = ls_split_path-path.
       ls_new_node-name = ls_split_path-name.
-      ls_new_node-type = zif_abapgit_ajson=>node_type-array.
+      ls_new_node-type = zif_abapgit_ajson_types=>node_type-array.
       INSERT ls_new_node INTO TABLE mt_json_tree.
       RETURN.
     ENDIF.
@@ -110174,7 +110210,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
 
     IF lr_node IS INITIAL. " Or node was cleared
 
-      DATA lr_parent TYPE REF TO zif_abapgit_ajson=>ty_node.
+      DATA lr_parent TYPE REF TO zif_abapgit_ajson_types=>ty_node.
       lr_parent = prove_path_exists( ls_split_path-path ).
       ASSERT lr_parent IS NOT INITIAL.
 
@@ -110182,7 +110218,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
 
       ls_new_node-path = ls_split_path-path.
       ls_new_node-name = ls_split_path-name.
-      ls_new_node-type = zif_abapgit_ajson=>node_type-array.
+      ls_new_node-type = zif_abapgit_ajson_types=>node_type-array.
 
       IF ms_opts-keep_item_order = abap_true AND ls_deleted_node IS NOT INITIAL.
         ls_new_node-order = ls_deleted_node-order.
@@ -110190,7 +110226,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
 
       INSERT ls_new_node INTO TABLE mt_json_tree.
 
-    ELSEIF lr_node->type <> zif_abapgit_ajson=>node_type-array.
+    ELSEIF lr_node->type <> zif_abapgit_ajson_types=>node_type-array.
       zcx_abapgit_ajson_error=>raise( |Path [{ iv_path }] already used and is not array| ).
     ENDIF.
 
@@ -117927,6 +117963,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-06T06:39:50.793Z
+* abapmerge 0.14.8 - 2023-02-06T06:52:48.696Z
 ENDINTERFACE.
 ****************************************************
