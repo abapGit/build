@@ -112395,7 +112395,7 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
       lv_error = 'Missing pkt length for unpack status'.
     ELSE.
       lv_string = lv_string+4.
-      SPLIT lv_string AT zif_abapgit_definitions=>c_newline INTO lv_unpack_status lv_string.
+      SPLIT lv_string AT cl_abap_char_utilities=>newline INTO lv_unpack_status lv_string.
       SPLIT lv_unpack_status AT space INTO lv_unpack_text lv_unpack_code.
 
       IF lv_unpack_text <> 'unpack'.
@@ -112408,7 +112408,7 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
         lv_error = 'Missing pkt length for command status'.
       ELSE.
         lv_string = lv_string+4.
-        SPLIT lv_string AT zif_abapgit_definitions=>c_newline INTO lv_commnd_status lv_string.
+        SPLIT lv_string AT cl_abap_char_utilities=>newline INTO lv_commnd_status lv_string.
         SPLIT lv_commnd_status AT space INTO lv_commnd_code lv_commnd_text.
 
         IF lv_commnd_code <> 'ok'. "=ng
@@ -112531,7 +112531,7 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
               zcl_abapgit_git_utils=>get_null( ) &&
               ` ` &&
               lv_cap_list &&
-              zif_abapgit_definitions=>c_newline.
+              cl_abap_char_utilities=>newline.
     lv_cmd_pkt = zcl_abapgit_git_utils=>pkt_string( lv_line ).
 
     lv_buffer = lv_cmd_pkt && '0000'.
@@ -112562,22 +112562,22 @@ CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
       IF sy-tabix = 1.
         lv_capa = 'side-band-64k no-progress multi_ack'.
         lv_line = 'want' && ` ` && <lv_hash>
-          && ` ` && lv_capa && zif_abapgit_definitions=>c_newline.
+          && ` ` && lv_capa && cl_abap_char_utilities=>newline.
       ELSE.
         lv_line = 'want' && ` ` && <lv_hash>
-          && zif_abapgit_definitions=>c_newline.
+          && cl_abap_char_utilities=>newline.
       ENDIF.
       lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( lv_line ).
     ENDLOOP.
 
     IF iv_deepen_level > 0.
       lv_buffer = lv_buffer && zcl_abapgit_git_utils=>pkt_string( |deepen { iv_deepen_level }| &&
-        zif_abapgit_definitions=>c_newline ).
+        cl_abap_char_utilities=>newline ).
     ENDIF.
 
     lv_buffer = lv_buffer
              && '0000'
-             && '0009done' && zif_abapgit_definitions=>c_newline.
+             && '0009done' && cl_abap_char_utilities=>newline.
 
     lv_xstring = io_client->send_receive_close( zcl_abapgit_convert=>string_to_xstring_utf8( lv_buffer ) ).
 
@@ -113068,8 +113068,8 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
     ls_tag-tagger_name  = is_tag-tagger_name.
     ls_tag-tagger_email = is_tag-tagger_email.
     ls_tag-message      = is_tag-message
-                      && |{ zif_abapgit_definitions=>c_newline }|
-                      && |{ zif_abapgit_definitions=>c_newline }|
+                      && |{ cl_abap_char_utilities=>newline }|
+                      && |{ cl_abap_char_utilities=>newline }|
                       && is_tag-body.
 
     lv_tag = zcl_abapgit_git_pack=>encode_tag( ls_tag ).
@@ -113440,7 +113440,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     FIELD-SYMBOLS: <lv_string> LIKE LINE OF lt_string.
     lv_string = zcl_abapgit_convert=>xstring_to_string_utf8( iv_data ).
 
-    SPLIT lv_string AT zif_abapgit_definitions=>c_newline INTO TABLE lt_string.
+    SPLIT lv_string AT cl_abap_char_utilities=>newline INTO TABLE lt_string.
 
     LOOP AT lt_string ASSIGNING <lv_string>.
       lv_length = strlen( <lv_string> ) + 1.
@@ -113528,7 +113528,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     FIELD-SYMBOLS: <lv_string> LIKE LINE OF lt_string.
     lv_string = zcl_abapgit_convert=>xstring_to_string_utf8( iv_data ).
 
-    SPLIT lv_string AT zif_abapgit_definitions=>c_newline INTO TABLE lt_string.
+    SPLIT lv_string AT cl_abap_char_utilities=>newline INTO TABLE lt_string.
 
     LOOP AT lt_string ASSIGNING <lv_string>.
 
@@ -113563,7 +113563,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
           ELSE.
 
             IF rs_tag-body IS NOT INITIAL.
-              rs_tag-body = rs_tag-body && zif_abapgit_definitions=>c_newline.
+              rs_tag-body = rs_tag-body && cl_abap_char_utilities=>newline.
             ENDIF.
 
             rs_tag-body = rs_tag-body && <lv_string>.
@@ -113803,7 +113803,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
     lv_string = ''.
 
     CONCATENATE 'tree' lv_tree_lower INTO lv_tmp SEPARATED BY space.
-    CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
+    CONCATENATE lv_string lv_tmp cl_abap_char_utilities=>newline INTO lv_string.
 
     IF NOT is_commit-parent IS INITIAL.
       lv_parent_lower = is_commit-parent.
@@ -113811,7 +113811,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
       CONCATENATE 'parent' lv_parent_lower
         INTO lv_tmp SEPARATED BY space.
-      CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
+      CONCATENATE lv_string lv_tmp cl_abap_char_utilities=>newline INTO lv_string.
     ENDIF.
 
     IF NOT is_commit-parent2 IS INITIAL.
@@ -113820,16 +113820,16 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
       CONCATENATE 'parent' lv_parent_lower
         INTO lv_tmp SEPARATED BY space.
-      CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
+      CONCATENATE lv_string lv_tmp cl_abap_char_utilities=>newline INTO lv_string.
     ENDIF.
 
     CONCATENATE 'author' is_commit-author
       INTO lv_tmp SEPARATED BY space.
-    CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
+    CONCATENATE lv_string lv_tmp cl_abap_char_utilities=>newline INTO lv_string.
 
     CONCATENATE 'committer' is_commit-committer
       INTO lv_tmp SEPARATED BY space.
-    CONCATENATE lv_string lv_tmp zif_abapgit_definitions=>c_newline INTO lv_string.
+    CONCATENATE lv_string lv_tmp cl_abap_char_utilities=>newline INTO lv_string.
 
     IF NOT is_commit-gpgsig IS INITIAL.
       CONCATENATE 'gpgsig' is_commit-gpgsig
@@ -113837,7 +113837,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       CONCATENATE lv_string lv_tmp INTO lv_string.
     ENDIF.
 
-    CONCATENATE lv_string zif_abapgit_definitions=>c_newline is_commit-body INTO lv_string.
+    CONCATENATE lv_string cl_abap_char_utilities=>newline is_commit-body INTO lv_string.
 
     rv_data = zcl_abapgit_convert=>string_to_xstring_utf8( lv_string ).
 
@@ -113849,12 +113849,12 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
     lv_time = zcl_abapgit_git_time=>get_unix( ).
 
-    lv_string = |object { is_tag-object }{ zif_abapgit_definitions=>c_newline }|
-             && |type { is_tag-type }{ zif_abapgit_definitions=>c_newline }|
-             && |tag { zcl_abapgit_git_tag=>remove_tag_prefix( is_tag-tag ) }{ zif_abapgit_definitions=>c_newline }|
+    lv_string = |object { is_tag-object }{ cl_abap_char_utilities=>newline }|
+             && |type { is_tag-type }{ cl_abap_char_utilities=>newline }|
+             && |tag { zcl_abapgit_git_tag=>remove_tag_prefix( is_tag-tag ) }{ cl_abap_char_utilities=>newline }|
              && |tagger { is_tag-tagger_name } <{ is_tag-tagger_email }> { lv_time }|
-             && |{ zif_abapgit_definitions=>c_newline }|
-             && |{ zif_abapgit_definitions=>c_newline }|
+             && |{ cl_abap_char_utilities=>newline }|
+             && |{ cl_abap_char_utilities=>newline }|
              && |{ is_tag-message }|.
 
     rv_data = zcl_abapgit_convert=>string_to_xstring_utf8( lv_string ).
@@ -114197,7 +114197,7 @@ CLASS zcl_abapgit_git_commit IMPLEMENTATION.
       ls_commit-parent1 = ls_raw-parent.
       ls_commit-parent2 = ls_raw-parent2.
 
-      SPLIT ls_raw-body AT zif_abapgit_definitions=>c_newline INTO TABLE lt_body.
+      SPLIT ls_raw-body AT cl_abap_char_utilities=>newline INTO TABLE lt_body.
 
       READ TABLE lt_body WITH KEY table_line = ' -----END PGP SIGNATURE-----' TRANSPORTING NO FIELDS.
       IF sy-subrc = 0.
@@ -114424,7 +114424,7 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
     CLEAR: et_list, ev_head_symref.
 
     lv_data = skip_first_pkt( iv_data ).
-    SPLIT lv_data AT zif_abapgit_definitions=>c_newline INTO TABLE lt_result.
+    SPLIT lv_data AT cl_abap_char_utilities=>newline INTO TABLE lt_result.
 
     LOOP AT lt_result INTO lv_data.
       lv_current_row_index = sy-tabix.
@@ -114557,8 +114557,8 @@ CLASS ZCL_ABAPGIT_GIT_ADD_PATCH IMPLEMENTATION.
       mt_patch = calculate_patch( ).
     ENDIF.
 
-    CONCATENATE LINES OF mt_patch INTO lv_string SEPARATED BY zif_abapgit_definitions=>c_newline.
-    lv_string = lv_string && zif_abapgit_definitions=>c_newline.
+    CONCATENATE LINES OF mt_patch INTO lv_string SEPARATED BY cl_abap_char_utilities=>newline.
+    lv_string = lv_string && cl_abap_char_utilities=>newline.
 
     rv_patch_binary = zcl_abapgit_convert=>string_to_xstring_utf8( lv_string ).
 
@@ -117966,6 +117966,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-06T17:49:39.654Z
+* abapmerge 0.14.8 - 2023-02-07T07:39:57.648Z
 ENDINTERFACE.
 ****************************************************
