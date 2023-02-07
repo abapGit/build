@@ -8192,7 +8192,7 @@ CLASS zcl_abapgit_objects_activation DEFINITION
       c_sqsc       TYPE c LENGTH 4  VALUE 'SQSC',
       c_stob       TYPE c LENGTH 4  VALUE 'STOB',
       c_ntab       TYPE c LENGTH 14 VALUE 'NTTT NTTB NTDT',
-      c_ddls       TYPE c LENGTH 14 VALUE 'DDLS DRUL DTDC',
+      c_ddls       TYPE c LENGTH 24 VALUE 'DDLS DRUL DTDC DTEB',
       c_switches   TYPE c LENGTH 24 VALUE 'SF01 SF02 SFSW SFBS SFBF',
       c_para       TYPE c LENGTH 4  VALUE 'PARA', " can be referenced by DTEL
       c_enhd       TYPE c LENGTH 4  VALUE 'ENHD'.
@@ -106016,6 +106016,11 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
           ENDIF.
         ENDLOOP.
 
+        IF is_active( ) = abap_false.
+          " as DDIC-object e.g. are not deserialized in active state, activation must be performed
+          zcl_abapgit_objects_activation=>add_item( ms_item ).
+        ENDIF.
+
         tadir_insert( ms_item-devclass ).
 
       CATCH cx_root INTO lx_exception.
@@ -117966,6 +117971,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-07T07:39:57.648Z
+* abapmerge 0.14.8 - 2023-02-07T12:59:50.102Z
 ENDINTERFACE.
 ****************************************************
