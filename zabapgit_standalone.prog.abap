@@ -21701,6 +21701,7 @@ CLASS zcl_abapgit_convert DEFINITION
     CLASS-METHODS xstring_to_string_utf8
       IMPORTING
         !iv_data         TYPE xsequence
+        !iv_length       TYPE i OPTIONAL
       RETURNING
         VALUE(rv_string) TYPE string
       RAISING
@@ -26502,7 +26503,13 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
   ENDMETHOD.
   METHOD xstring_to_string_utf8.
 
-    DATA lx_error TYPE REF TO cx_root.
+    DATA lx_error  TYPE REF TO cx_root.
+    DATA lv_length TYPE i.
+
+    lv_length = iv_length.
+    IF lv_length <= 0.
+      lv_length = xstrlen( iv_data ).
+    ENDIF.
 
     TRY.
         IF go_convert_in IS INITIAL.
@@ -26512,7 +26519,7 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
         go_convert_in->convert(
           EXPORTING
             input = iv_data
-            n     = xstrlen( iv_data )
+            n     = lv_length
           IMPORTING
             data  = rv_string ).
 
@@ -112298,23 +112305,9 @@ CLASS zcl_abapgit_git_utils IMPLEMENTATION.
 
     lv_xstring = iv_data(4).
 
-    IF go_convert_in IS INITIAL.
-      go_convert_in = cl_abap_conv_in_ce=>create( encoding = 'UTF-8' ).
-    ENDIF.
-
-    TRY.
-        go_convert_in->convert(
-          EXPORTING
-            input = lv_xstring
-            n     = 4
-          IMPORTING
-            data  = lv_char4 ).
-
-      CATCH cx_sy_codepage_converter_init
-            cx_sy_conversion_codepage
-            cx_parameter_invalid_type.
-        zcx_abapgit_exception=>raise( 'error converting to hex, LENGTH_UTF8_HEX' ).
-    ENDTRY.
+    lv_char4 = zcl_abapgit_convert=>xstring_to_string_utf8(
+      iv_data   = lv_xstring
+      iv_length = 4 ).
 
     TRANSLATE lv_char4 TO UPPER CASE.
     lv_x = lv_char4.
@@ -117971,6 +117964,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-07T12:59:50.102Z
+* abapmerge 0.14.8 - 2023-02-08T10:02:31.628Z
 ENDINTERFACE.
 ****************************************************
