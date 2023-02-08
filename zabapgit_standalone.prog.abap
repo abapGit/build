@@ -41190,6 +41190,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ENDTRY.
 
     register_deferred_script( render_scripts( ) ).
+    register_hotkeys( ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -117922,6 +117923,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-08T12:01:50.163Z
+* abapmerge 0.14.8 - 2023-02-08T14:15:55.555Z
 ENDINTERFACE.
 ****************************************************
