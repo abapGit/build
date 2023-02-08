@@ -82980,6 +82980,8 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
         deserialize_pre_ddic(
           ii_xml     = io_xml
           iv_package = iv_package ).
+      ELSE.
+        corr_insert( iv_package ).
       ENDIF.
 
     ENDIF.
@@ -93831,6 +93833,8 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
         deserialize_pre_ddic(
           ii_xml     = io_xml
           iv_package = iv_package ).
+      ELSE.
+        corr_insert( iv_package ).
       ENDIF.
 
     ENDIF.
@@ -117964,6 +117968,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-08T10:02:31.628Z
+* abapmerge 0.14.8 - 2023-02-08T11:46:33.646Z
 ENDINTERFACE.
 ****************************************************
