@@ -68058,8 +68058,6 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
 
     LOOP AT lt_dd12v INTO ls_dd12v.
 
-* todo, call corr_insert?
-
       CLEAR lt_secondary.
       LOOP AT lt_dd17v INTO ls_dd17v
           WHERE sqltab = ls_dd12v-sqltab AND indexname = ls_dd12v-indexname.
@@ -68092,8 +68090,8 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
         IMPORTING
           obj_name = lv_tname.
 
-      zcl_abapgit_objects_activation=>add( iv_type = 'INDX'
-                                           iv_name = lv_tname ).
+      " Secondary indexes are automatically activated as part of R3TR TABL
+      " So there's no need to add them to activation queue
 
     ENDLOOP.
 
@@ -117942,6 +117940,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-09T08:25:46.249Z
+* abapmerge 0.14.8 - 2023-02-09T08:28:33.110Z
 ENDINTERFACE.
 ****************************************************
