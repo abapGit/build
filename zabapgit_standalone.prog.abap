@@ -6468,7 +6468,6 @@ CLASS zcl_abapgit_git_utils DEFINITION
         zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
-    CLASS-DATA go_convert_in TYPE REF TO cl_abap_conv_in_ce.
 ENDCLASS.
 CLASS zcl_abapgit_hash DEFINITION
   CREATE PUBLIC .
@@ -117923,6 +117922,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-08T14:15:55.555Z
+* abapmerge 0.14.8 - 2023-02-09T06:45:40.122Z
 ENDINTERFACE.
 ****************************************************
