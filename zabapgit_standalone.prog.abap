@@ -3097,8 +3097,6 @@ INTERFACE zif_abapgit_definitions .
       dir        TYPE ty_chmod VALUE '40000 ',
       submodule  TYPE ty_chmod VALUE '160000',
     END OF c_chmod .
-  CONSTANTS c_crlf TYPE c LENGTH 2 VALUE cl_abap_char_utilities=>cr_lf ##NO_TEXT.
-  CONSTANTS c_newline TYPE c LENGTH 1 VALUE cl_abap_char_utilities=>newline ##NO_TEXT.
   CONSTANTS c_english TYPE spras VALUE 'E' ##NO_TEXT.
   CONSTANTS c_root_dir TYPE string VALUE '/' ##NO_TEXT.
   CONSTANTS c_dot_abapgit TYPE string VALUE '.abapgit.xml' ##NO_TEXT.
@@ -26336,16 +26334,16 @@ CLASS zcl_abapgit_diff IMPLEMENTATION.
         off = strlen( lv_old ) - 1 ).
     ENDIF.
 
-    IF lv_new_last = zif_abapgit_definitions=>c_newline AND lv_old_last <> zif_abapgit_definitions=>c_newline
+    IF lv_new_last = cl_abap_char_utilities=>newline AND lv_old_last <> cl_abap_char_utilities=>newline
       AND lv_old IS NOT INITIAL.
       lv_old = lv_old && cl_abap_char_utilities=>form_feed.
-    ELSEIF lv_new_last <> zif_abapgit_definitions=>c_newline AND lv_old_last = zif_abapgit_definitions=>c_newline
+    ELSEIF lv_new_last <> cl_abap_char_utilities=>newline AND lv_old_last = cl_abap_char_utilities=>newline
       AND lv_new IS NOT INITIAL.
       lv_new = lv_new && cl_abap_char_utilities=>form_feed.
     ENDIF.
 
-    SPLIT lv_new AT zif_abapgit_definitions=>c_newline INTO TABLE et_new.
-    SPLIT lv_old AT zif_abapgit_definitions=>c_newline INTO TABLE et_old.
+    SPLIT lv_new AT cl_abap_char_utilities=>newline INTO TABLE et_new.
+    SPLIT lv_old AT cl_abap_char_utilities=>newline INTO TABLE et_old.
 
   ENDMETHOD.
 ENDCLASS.
@@ -34669,7 +34667,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
 
     IF NOT is_commit-body IS INITIAL.
       CONCATENATE ls_comment-comment '' is_commit-body
-        INTO ls_comment-comment SEPARATED BY zif_abapgit_definitions=>c_newline.
+        INTO ls_comment-comment SEPARATED BY cl_abap_char_utilities=>newline.
     ENDIF.
 
     zcl_abapgit_exit=>get_instance(  )->validate_before_push(
@@ -36119,9 +36117,9 @@ CLASS zcl_abapgit_gui_page_tags IMPLEMENTATION.
           mo_form_data->to_abap( CHANGING cs_container = ms_tag ).
 
           REPLACE ALL OCCURRENCES
-            OF zif_abapgit_definitions=>c_crlf
+            OF cl_abap_char_utilities=>cr_lf
             IN ms_tag-body
-            WITH zif_abapgit_definitions=>c_newline.
+            WITH cl_abap_char_utilities=>newline.
 
           ms_tag-name = zcl_abapgit_git_tag=>add_tag_prefix( ms_tag-name ).
           ASSERT ms_tag-name CP zif_abapgit_definitions=>c_git_branch-tags.
@@ -37108,7 +37106,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
 
     lv_ignore = concat_lines_of(
       table = ls_dot-ignore
-      sep   = zif_abapgit_definitions=>c_newline ).
+      sep   = cl_abap_char_utilities=>newline ).
 
     mo_form_data->set(
       iv_key = c_id-ignore
@@ -39063,7 +39061,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
         CATCH zcx_abapgit_exception ##NO_HANDLER.
       ENDTRY.
 
-      SPLIT lv_code AT zif_abapgit_definitions=>c_newline INTO TABLE lt_code.
+      SPLIT lv_code AT cl_abap_char_utilities=>newline INTO TABLE lt_code.
 
       rs_info-line = lines( lt_code ).
 
@@ -39272,7 +39270,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -39378,7 +39376,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
 
     lt_proxy_bypass = mo_settings->get_proxy_bypass( ).
     LOOP AT lt_proxy_bypass INTO ls_proxy_bypass.
-      lv_val = lv_val && ls_proxy_bypass-low && zif_abapgit_definitions=>c_newline.
+      lv_val = lv_val && ls_proxy_bypass-low && cl_abap_char_utilities=>newline.
     ENDLOOP.
 
     mo_form_data->set(
@@ -42688,7 +42686,7 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
     lv_merge_content = ii_event->form_data( )->get( 'MERGE_CONTENT' ).
 
     REPLACE ALL OCCURRENCES
-      OF zif_abapgit_definitions=>c_crlf IN lv_merge_content WITH zif_abapgit_definitions=>c_newline.
+      OF cl_abap_char_utilities=>cr_lf IN lv_merge_content WITH cl_abap_char_utilities=>newline.
 
     lv_new_file_content = zcl_abapgit_convert=>string_to_xstring_utf8( lv_merge_content ).
 
@@ -45048,8 +45046,7 @@ CLASS zcl_abapgit_gui_page_db_dis IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_record_banner.
     rv_html = |<table class="tag"><tr><td class="label">Type:</td>|
-           && | <td>{ is_key-type }</td></tr></table>|
-           && zif_abapgit_definitions=>c_newline
+           && | <td>{ is_key-type }</td></tr></table>\n|
            && |<table class="tag"><tr><td class="label">Key:</td>|
            && |  <td>{ is_key-value }</td></tr></table>|.
   ENDMETHOD.
@@ -45751,7 +45748,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
   METHOD branch_name_to_internal.
     rv_new_branch_name = zcl_abapgit_git_branch_list=>complete_heads_branch_name(
       zcl_abapgit_git_branch_list=>normalize_branch_name( iv_branch_name ) ).
@@ -46095,9 +46092,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
           mo_form_data->to_abap( CHANGING cs_container = ms_commit ).
 
           REPLACE ALL OCCURRENCES
-            OF zif_abapgit_definitions=>c_crlf
+            OF cl_abap_char_utilities=>cr_lf
             IN ms_commit-body
-            WITH zif_abapgit_definitions=>c_newline.
+            WITH cl_abap_char_utilities=>newline.
 
           lv_new_branch_name = mo_form_data->get( c_id-new_branch_name ).
           " create new branch and commit to it if branch name is not empty
@@ -48008,8 +48005,8 @@ CLASS zcl_abapgit_html_form_utils IMPLEMENTATION.
           ENDDO.
         ENDDO.
       ELSEIF <ls_field>-type = zif_abapgit_html_form=>c_field_type-textarea.
-        REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_crlf IN lv_value WITH ''.
-        REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_newline IN lv_value WITH ''.
+        REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>cr_lf IN lv_value WITH ''.
+        REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>newline IN lv_value WITH ''.
         rv_empty = boolc( lv_value IS INITIAL ).
       ELSE.
         rv_empty = boolc( lv_value IS INITIAL ).
@@ -48077,12 +48074,12 @@ CLASS zcl_abapgit_html_form_utils IMPLEMENTATION.
           iv_key = |{ <ls_field>-name }-{ zif_abapgit_html_form=>c_rows }|
           iv_val = |{ lv_rows }| ).
       ELSEIF <ls_field>-type = zif_abapgit_html_form=>c_field_type-textarea.
-        REPLACE ALL OCCURRENCES OF zif_abapgit_definitions=>c_crlf IN lv_value
-          WITH zif_abapgit_definitions=>c_newline.
+        REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>cr_lf IN lv_value
+          WITH cl_abap_char_utilities=>newline.
 
         " Remove last line if empty (ie 2x newline)
         lv_len = strlen( lv_value ) - 2.
-        IF lv_len >= 0 AND lv_value+lv_len(1) = zif_abapgit_definitions=>c_newline.
+        IF lv_len >= 0 AND lv_value+lv_len(1) = cl_abap_char_utilities=>newline.
           lv_len = lv_len + 1.
           lv_value = lv_value(lv_len).
         ENDIF.
@@ -63539,7 +63536,7 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |WAPA - error from get_page_content| ).
     ENDIF.
 
-    CONCATENATE LINES OF lt_content INTO lv_string SEPARATED BY zif_abapgit_definitions=>c_newline RESPECTING BLANKS.
+    CONCATENATE LINES OF lt_content INTO lv_string SEPARATED BY cl_abap_char_utilities=>newline RESPECTING BLANKS.
 
     rv_content = zcl_abapgit_convert=>string_to_xstring_utf8( lv_string ).
 
@@ -63623,7 +63620,7 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
     DATA: lv_string TYPE string.
     lv_string = zcl_abapgit_convert=>xstring_to_string_utf8( iv_content ).
 
-    SPLIT lv_string AT zif_abapgit_definitions=>c_newline INTO TABLE rt_content.
+    SPLIT lv_string AT cl_abap_char_utilities=>newline INTO TABLE rt_content.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
@@ -103062,9 +103059,9 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
 
     DATA: lv_source TYPE string,
           ls_file   TYPE zif_abapgit_git_definitions=>ty_file.
-    CONCATENATE LINES OF it_abap INTO lv_source SEPARATED BY zif_abapgit_definitions=>c_newline.
+    CONCATENATE LINES OF it_abap INTO lv_source SEPARATED BY cl_abap_char_utilities=>newline.
 * when editing files via eg. GitHub web interface it adds a newline at end of file
-    lv_source = lv_source && zif_abapgit_definitions=>c_newline.
+    lv_source = lv_source && cl_abap_char_utilities=>newline.
 
     ls_file-path = '/'.
     ls_file-filename = zcl_abapgit_filename_logic=>object_to_file(
@@ -103201,7 +103198,7 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
 
     lv_abap = zcl_abapgit_convert=>xstring_to_string_utf8( lv_data ).
 
-    SPLIT lv_abap AT zif_abapgit_definitions=>c_newline INTO TABLE rt_abap.
+    SPLIT lv_abap AT cl_abap_char_utilities=>newline INTO TABLE rt_abap.
 
   ENDMETHOD.
   METHOD read_file.
@@ -116425,7 +116422,7 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
+CLASS zcl_abapgit_background_push_fi IMPLEMENTATION.
   METHOD build_comment.
 
     DATA: lt_objects TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
@@ -116445,7 +116442,7 @@ CLASS ZCL_ABAPGIT_BACKGROUND_PUSH_FI IMPLEMENTATION.
     ELSE.
       rv_comment = 'BG: Multiple objects'.
       LOOP AT lt_objects INTO lv_str.
-        CONCATENATE rv_comment zif_abapgit_definitions=>c_newline lv_str INTO rv_comment.
+        CONCATENATE rv_comment cl_abap_char_utilities=>newline lv_str INTO rv_comment.
       ENDLOOP.
     ENDIF.
 
@@ -116560,7 +116557,7 @@ CLASS zcl_abapgit_background_push_au IMPLEMENTATION.
     ELSE.
       rv_comment = 'BG: Multiple objects'.
       LOOP AT lt_objects INTO lv_str.
-        CONCATENATE rv_comment zif_abapgit_definitions=>c_newline lv_str INTO rv_comment.
+        CONCATENATE rv_comment cl_abap_char_utilities=>newline lv_str INTO rv_comment.
       ENDLOOP.
     ENDIF.
 
@@ -116692,7 +116689,7 @@ CLASS zcl_abapgit_background_push_au IMPLEMENTATION.
       lo_stage->rm( iv_path     = <ls_remote>-path
                     iv_filename = <ls_remote>-filename ).
 
-      CONCATENATE ls_comment-comment zif_abapgit_definitions=>c_newline <ls_remote>-filename
+      CONCATENATE ls_comment-comment cl_abap_char_utilities=>newline <ls_remote>-filename
         INTO ls_comment-comment.
 
     ENDLOOP.
@@ -117940,6 +117937,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-09T08:28:33.110Z
+* abapmerge 0.14.8 - 2023-02-09T19:03:53.054Z
 ENDINTERFACE.
 ****************************************************
