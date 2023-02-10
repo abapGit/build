@@ -12919,18 +12919,24 @@ CLASS zcl_abapgit_object_shi3 DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       IMPORTING
         !iv_structure_id TYPE hier_guid .
   PRIVATE SECTION.
-    DATA: mv_tree_id TYPE ttree-id.
 
+    DATA mv_tree_id TYPE ttree-id.
+
+    METHODS insert_transport
+      IMPORTING
+        !iv_transport TYPE trkorr
+      RAISING
+        zcx_abapgit_exception.
     METHODS jump_se43
-      RAISING zcx_abapgit_exception.
-
+      RAISING
+        zcx_abapgit_exception.
     METHODS jump_sbach04
-      RAISING zcx_abapgit_exception.
-
+      RAISING
+        zcx_abapgit_exception.
     METHODS clear_fields
-      CHANGING cs_head  TYPE ttree
-               ct_nodes TYPE hier_iface_t.
-
+      CHANGING
+        !cs_head  TYPE ttree
+        !ct_nodes TYPE hier_iface_t.
 ENDCLASS.
 CLASS zcl_abapgit_object_shi5 DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -74656,21 +74662,85 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA: ls_message             TYPE hier_mess,
-          lv_deletion_successful TYPE hier_yesno.
+    DATA:
+      ls_msg              TYPE hier_mess,
+      lv_found_users      TYPE hier_yesno,
+      ls_check_extensions TYPE treenamesp,
+      lt_check_extensions TYPE TABLE OF treenamesp,
+      lv_obj_name         TYPE ko200-obj_name.
 
-    corr_insert( iv_package ).
+    " STREE_EXTENSION_DELETE shows a popup so do the same here
 
-    CALL FUNCTION 'STREE_EXTENSION_DELETE'
-      EXPORTING
-        extension           = mv_extension
+    ls_check_extensions-extension = mv_extension.
+    INSERT ls_check_extensions INTO TABLE lt_check_extensions.
+
+    CALL FUNCTION 'STREE_CHECK_EXTENSION'
       IMPORTING
-        message             = ls_message
-        deletion_successful = lv_deletion_successful.
+        message         = ls_msg
+      TABLES
+        check_extension = lt_check_extensions.
 
-    IF lv_deletion_successful = abap_false.
-      zcx_abapgit_exception=>raise( ls_message-msgtxt ).
+    READ TABLE lt_check_extensions INTO ls_check_extensions INDEX 1.
+    IF ls_check_extensions-original = abap_false.
+      zcx_abapgit_exception=>raise( 'Delete enhancement ID in your source system' ).
     ENDIF.
+
+    lv_obj_name = mv_extension.
+
+    CALL FUNCTION 'STREE_TRANSPORT_CHECK'
+      EXPORTING
+        object   = 'SHI5'
+        obj_name = lv_obj_name
+      IMPORTING
+        message  = ls_msg.
+
+    IF ls_msg-msgty = 'E'.
+      MESSAGE ID ls_msg-msgid TYPE ls_msg-msgty NUMBER ls_msg-msgno
+        WITH ls_msg-msgv1 ls_msg-msgv2 ls_msg-msgv3 ls_msg-msgv4 INTO zcx_abapgit_exception=>null.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    CALL FUNCTION 'STREE_EXTENSION_USAGE'
+      EXPORTING
+        extension         = mv_extension
+        no_display        = abap_true
+      IMPORTING
+        message           = ls_msg
+        extension_is_used = lv_found_users.
+
+    IF ls_msg-msgty = 'E'.
+      MESSAGE ID ls_msg-msgid TYPE ls_msg-msgty NUMBER ls_msg-msgno
+        WITH ls_msg-msgv1 ls_msg-msgv2 ls_msg-msgv3 ls_msg-msgv4 INTO zcx_abapgit_exception=>null.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    IF lv_found_users = abap_true.
+      zcx_abapgit_exception=>raise( 'Enhancement ID is still used' ).
+    ENDIF.
+
+    CALL FUNCTION 'STREE_TRANSPORT_INSERT'
+      EXPORTING
+        object   = 'SHI5'
+        obj_name = lv_obj_name
+      IMPORTING
+        message  = ls_msg.
+
+    IF ls_msg-msgty = 'E'.
+      MESSAGE ID ls_msg-msgid TYPE ls_msg-msgty NUMBER ls_msg-msgno
+        WITH ls_msg-msgv1 ls_msg-msgv2 ls_msg-msgv3 ls_msg-msgv4 INTO zcx_abapgit_exception=>null.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    DELETE FROM ttree_ext WHERE extension = mv_extension.
+    DELETE FROM ttree_extt WHERE extension = mv_extension.
+
+    IF ls_check_extensions-transport = abap_false.
+      " no transportable Devclass -> delete TADIR
+      tadir_delete( ).
+    ENDIF.
+
+    " reset some internal tables
+    CALL FUNCTION 'STREE_RESET_FUGR_SHI5_TABLES'.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -74810,6 +74880,51 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( iv_msgid = 'S#'
                                          iv_msgno = '203' ).
     ENDIF.
+  ENDMETHOD.
+  METHOD insert_transport.
+
+    DATA:
+      ls_msg     TYPE hier_mess,
+      ls_object  TYPE e071,
+      lt_objects TYPE TABLE OF e071,
+      lt_keys    TYPE TABLE OF e071k,
+      ls_ko200   TYPE ko200,
+      lt_ko200   TYPE TABLE OF ko200.
+
+    " This function shows a popup so get objects and keys and insert
+    " them into transport below
+    CALL FUNCTION 'STREE_INSERT_ALL_IN_TRANSPORT'
+      EXPORTING
+        structure_id               = mv_tree_id
+        iv_return_objects_and_keys = abap_true
+      IMPORTING
+        message                    = ls_msg
+      TABLES
+        et_objects                 = lt_objects
+        et_keys                    = lt_keys.
+    IF ls_msg-msgty = 'E'.
+      MESSAGE ID ls_msg-msgid TYPE ls_msg-msgty NUMBER ls_msg-msgno
+        WITH ls_msg-msgv1 ls_msg-msgv2 ls_msg-msgv3 ls_msg-msgv4 INTO zcx_abapgit_exception=>null.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    LOOP AT lt_objects INTO ls_object.
+      MOVE-CORRESPONDING ls_object TO ls_ko200.
+      INSERT ls_ko200 INTO TABLE lt_ko200.
+    ENDLOOP.
+
+    CALL FUNCTION 'TR_RECORD_OBJ_CHANGE_TO_REQ'
+      EXPORTING
+        iv_request = iv_transport
+        it_objects = lt_ko200
+        it_keys    = lt_keys
+      EXCEPTIONS
+        cancel     = 1
+        OTHERS     = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
   ENDMETHOD.
   METHOD is_used.
 
@@ -74955,6 +75070,10 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
         OTHERS                   = 2.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
+    ELSEIF ls_msg-msgty = 'E'.
+      MESSAGE ID ls_msg-msgid TYPE ls_msg-msgty NUMBER ls_msg-msgno
+        WITH ls_msg-msgv1 ls_msg-msgv2 ls_msg-msgv3 ls_msg-msgv4 INTO zcx_abapgit_exception=>null.
+      zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
     " Set buffer mode for menus (see function BMENU_CREATE_TREE)
@@ -74964,6 +75083,11 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
       ls_ttree-buffermode = ls_head-buffermode.
       ls_ttree-buffervar  = ls_head-buffervar.
       MODIFY ttree FROM ls_ttree.
+    ENDIF.
+
+    IF zcl_abapgit_factory=>get_sap_package( iv_package )->are_changes_recorded_in_tr_req( ) = abap_true.
+      " Add necessary SHI6, SHI7, and TABU entries to transport (SAP Note 455542)
+      insert_transport( iv_transport ).
     ENDIF.
 
   ENDMETHOD.
@@ -75030,7 +75154,6 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
           lt_nodes         TYPE TABLE OF hier_iface,
           lt_texts         TYPE TABLE OF hier_texts,
           lt_refs          TYPE TABLE OF hier_ref,
-          lv_language      TYPE spras,
           lv_all_languages TYPE abap_bool.
     CALL FUNCTION 'STREE_STRUCTURE_READ'
       EXPORTING
@@ -75046,16 +75169,15 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
     IF io_xml->i18n_params( )-main_language_only = abap_false.
       lv_all_languages = abap_true.
     ELSE.
-      lv_language = mv_language.
-      DELETE lt_titles WHERE spras <> lv_language.
+      DELETE lt_titles WHERE spras <> mv_language.
     ENDIF.
 
     CALL FUNCTION 'STREE_HIERARCHY_READ'
       EXPORTING
         structure_id       = mv_tree_id
-        read_also_texts    = 'X'
+        read_also_texts    = abap_true
         all_languages      = lv_all_languages
-        language           = lv_language
+        language           = mv_language
       IMPORTING
         message            = ls_msg
       TABLES
@@ -117959,6 +118081,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-10T17:51:52.206Z
+* abapmerge 0.14.8 - 2023-02-10T17:56:03.685Z
 ENDINTERFACE.
 ****************************************************
