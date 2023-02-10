@@ -36243,7 +36243,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
   METHOD build_menu.
 
     CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
@@ -36469,6 +36469,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
                                                              ii_obj_filter = mi_obj_filter ).
 
     IF lines( ms_files-local ) = 0 AND lines( ms_files-remote ) = 0.
+      mo_repo->refresh( ).
       zcx_abapgit_exception=>raise( 'There are no changes that could be staged' ).
     ENDIF.
   ENDMETHOD.
@@ -117939,6 +117940,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-10T08:48:55.743Z
+* abapmerge 0.14.8 - 2023-02-10T08:50:50.686Z
 ENDINTERFACE.
 ****************************************************
