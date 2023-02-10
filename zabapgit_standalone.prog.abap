@@ -52174,7 +52174,9 @@ CLASS zcl_abapgit_syntax_txt IMPLEMENTATION.
   ENDMETHOD.
   METHOD process_line.
 
-    rv_line = show_hidden_chars( iv_line ).
+    rv_line = apply_style(
+      iv_line  = iv_line
+      iv_class = '' ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -117937,6 +117939,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-09T19:03:53.054Z
+* abapmerge 0.14.8 - 2023-02-10T08:33:45.217Z
 ENDINTERFACE.
 ****************************************************
