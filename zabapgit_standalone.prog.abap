@@ -41945,6 +41945,21 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     ls_hotkey_action-ui_component = 'Repo overview'.
 
+    ls_hotkey_action-description   = |New Online Repository|.
+    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-repo_newonline.
+    ls_hotkey_action-hotkey = |n|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description   = |New Offline Repository|.
+    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-repo_newoffline.
+    ls_hotkey_action-hotkey = |o|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description   = |abapGit Settings|.
+    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_settings.
+    ls_hotkey_action-hotkey = |x|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
     ls_hotkey_action-description = |Stage|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_stage.
     ls_hotkey_action-hotkey = |s|.
@@ -117940,6 +117955,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-10T08:50:50.686Z
+* abapmerge 0.14.8 - 2023-02-10T13:36:21.865Z
 ENDINTERFACE.
 ****************************************************
