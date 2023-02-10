@@ -16699,47 +16699,47 @@ CLASS zcl_abapgit_syntax_css DEFINITION
 
     CONSTANTS:
       BEGIN OF c_css,
-        keyword    TYPE string VALUE 'keyword',             "#EC NOTEXT
-        text       TYPE string VALUE 'text',                "#EC NOTEXT
-        comment    TYPE string VALUE 'comment',             "#EC NOTEXT
-        selectors  TYPE string VALUE 'selectors',           "#EC NOTEXT
-        units      TYPE string VALUE 'units',               "#EC NOTEXT
-        properties TYPE string VALUE 'properties',          "#EC NOTEXT
-        values     TYPE string VALUE 'values',              "#EC NOTEXT
-        functions  TYPE string VALUE 'functions',           "#EC NOTEXT
-        colors     TYPE string VALUE 'colors',              "#EC NOTEXT
-        extensions TYPE string VALUE 'extensions',          "#EC NOTEXT
-        at_rules   TYPE string VALUE 'at_rules',            "#EC NOTEXT
-        html       TYPE string VALUE 'html',                "#EC NOTEXT
+        keyword    TYPE string VALUE 'keyword',
+        text       TYPE string VALUE 'text',
+        comment    TYPE string VALUE 'comment',
+        selectors  TYPE string VALUE 'selectors',
+        units      TYPE string VALUE 'units',
+        properties TYPE string VALUE 'properties',
+        values     TYPE string VALUE 'values',
+        functions  TYPE string VALUE 'functions',
+        colors     TYPE string VALUE 'colors',
+        extensions TYPE string VALUE 'extensions',
+        at_rules   TYPE string VALUE 'at_rules',
+        html       TYPE string VALUE 'html',
       END OF c_css .
     CONSTANTS:
       BEGIN OF c_token,
-        keyword    TYPE c VALUE 'K',                        "#EC NOTEXT
-        text       TYPE c VALUE 'T',                        "#EC NOTEXT
-        comment    TYPE c VALUE 'C',                        "#EC NOTEXT
-        selectors  TYPE c VALUE 'S',                        "#EC NOTEXT
-        units      TYPE c VALUE 'U',                        "#EC NOTEXT
-        properties TYPE c VALUE 'P',                        "#EC NOTEXT
-        values     TYPE c VALUE 'V',                        "#EC NOTEXT
-        functions  TYPE c VALUE 'F',                        "#EC NOTEXT
-        colors     TYPE c VALUE 'Z',                        "#EC NOTEXT
-        extensions TYPE c VALUE 'E',                        "#EC NOTEXT
-        at_rules   TYPE c VALUE 'A',                        "#EC NOTEXT
-        html       TYPE c VALUE 'H',                        "#EC NOTEXT
+        keyword    TYPE c VALUE 'K',
+        text       TYPE c VALUE 'T',
+        comment    TYPE c VALUE 'C',
+        selectors  TYPE c VALUE 'S',
+        units      TYPE c VALUE 'U',
+        properties TYPE c VALUE 'P',
+        values     TYPE c VALUE 'V',
+        functions  TYPE c VALUE 'F',
+        colors     TYPE c VALUE 'Z',
+        extensions TYPE c VALUE 'E',
+        at_rules   TYPE c VALUE 'A',
+        html       TYPE c VALUE 'H',
       END OF c_token .
     CONSTANTS:
       BEGIN OF c_regex,
         " comments /* ... */
-        comment   TYPE string VALUE '\/\*.*\*\/|\/\*|\*\/', "#EC NOTEXT
+        comment   TYPE string VALUE '\/\*.*\*\/|\/\*|\*\/',
         " single or double quoted strings
-        text      TYPE string VALUE '("[^"]*")|(''[^'']*'')', "#EC NOTEXT
+        text      TYPE string VALUE '("[^"]*")|(''[^'']*'')|(`[^`]*`)',
         " in general keywords don't contain numbers (except -ms-scrollbar-3dlight-color)
-        keyword   TYPE string VALUE '\b[a-z3@\-]+\b',       "#EC NOTEXT
+        keyword   TYPE string VALUE '\b[a-z3@\-]+\b',
         " selectors begin with :
-        selectors TYPE string VALUE ':[:a-z]+\b',           "#EC NOTEXT
+        selectors TYPE string VALUE ':[:a-z]+\b',
         " units
         units     TYPE string
-        VALUE '\b[0-9\. ]+(ch|cm|em|ex|in|mm|pc|pt|px|vh|vmax|vmin|vw)\b|\b[0-9\. ]+%', "#EC NOTEXT
+        VALUE '\b[0-9\. ]+(ch|cm|em|ex|in|mm|pc|pt|px|vh|vmax|vmin|vw)\b|\b[0-9\. ]+%',
       END OF c_regex .
 
     CLASS-METHODS class_constructor .
@@ -16781,26 +16781,26 @@ CLASS zcl_abapgit_syntax_js DEFINITION
       " 2) Variable types
       " 3) HTML Tags
       BEGIN OF c_css,
-        keyword   TYPE string VALUE 'keyword',              "#EC NOTEXT
-        text      TYPE string VALUE 'text',                 "#EC NOTEXT
-        comment   TYPE string VALUE 'comment',              "#EC NOTEXT
-        variables TYPE string VALUE 'variables',            "#EC NOTEXT
+        keyword   TYPE string VALUE 'keyword',
+        text      TYPE string VALUE 'text',
+        comment   TYPE string VALUE 'comment',
+        variables TYPE string VALUE 'variables',
       END OF c_css .
     CONSTANTS:
       BEGIN OF c_token,
-        keyword   TYPE c VALUE 'K',                         "#EC NOTEXT
-        text      TYPE c VALUE 'T',                         "#EC NOTEXT
-        comment   TYPE c VALUE 'C',                         "#EC NOTEXT
-        variables TYPE c VALUE 'V',                         "#EC NOTEXT
+        keyword   TYPE c VALUE 'K',
+        text      TYPE c VALUE 'T',
+        comment   TYPE c VALUE 'C',
+        variables TYPE c VALUE 'V',
       END OF c_token .
     CONSTANTS:
       BEGIN OF c_regex,
         " comments /* ... */ or //
-        comment TYPE string VALUE '\/\*.*\*\/|\/\*|\*\/|\/\/', "#EC NOTEXT
+        comment TYPE string VALUE '\/\*.*\*\/|\/\*|\*\/|\/\/',
         " single or double quoted strings
-        text    TYPE string VALUE '"|''',                   "#EC NOTEXT
+        text    TYPE string VALUE '"|''|`',
         " in general keywords don't contain numbers (except -ms-scrollbar-3dlight-color)
-        keyword TYPE string VALUE '\b[a-z-]+\b',            "#EC NOTEXT
+        keyword TYPE string VALUE '\b[a-z-]+\b',
       END OF c_regex .
 
     CLASS-METHODS class_constructor .
@@ -16890,27 +16890,27 @@ CLASS zcl_abapgit_syntax_xml DEFINITION
 
     CONSTANTS:
       BEGIN OF c_css,
-        xml_tag  TYPE string VALUE 'xml_tag',               "#EC NOTEXT
-        attr     TYPE string VALUE 'attr',                  "#EC NOTEXT
-        attr_val TYPE string VALUE 'attr_val',              "#EC NOTEXT
-        comment  TYPE string VALUE 'comment',               "#EC NOTEXT
+        xml_tag  TYPE string VALUE 'xml_tag',
+        attr     TYPE string VALUE 'attr',
+        attr_val TYPE string VALUE 'attr_val',
+        comment  TYPE string VALUE 'comment',
       END OF c_css .
     CONSTANTS:
       BEGIN OF c_token,
-        xml_tag  TYPE c VALUE 'X',                          "#EC NOTEXT
-        attr     TYPE c VALUE 'A',                          "#EC NOTEXT
-        attr_val TYPE c VALUE 'V',                          "#EC NOTEXT
-        comment  TYPE c VALUE 'C',                          "#EC NOTEXT
+        xml_tag  TYPE c VALUE 'X',
+        attr     TYPE c VALUE 'A',
+        attr_val TYPE c VALUE 'V',
+        comment  TYPE c VALUE 'C',
       END OF c_token .
     CONSTANTS:
       BEGIN OF c_regex,
         "for XML tags, we will use a submatch
         " main pattern includes quoted strings so we can ignore < and > in attr values
-        xml_tag  TYPE string VALUE '(?:"[^"]*")|(?:''[^'']*'')|([<>])', "#EC NOTEXT
-        attr     TYPE string VALUE '(?:^|\s)[-a-z:_0-9]+\s*(?==\s*["|''])', "#EC NOTEXT
-        attr_val TYPE string VALUE '("[^"]*")|(''[^'']*'')', "#EC NOTEXT
+        xml_tag  TYPE string VALUE '(?:"[^"]*")|(?:''[^'']*'')|(?:`[^`]*`)|([<>])',
+        attr     TYPE string VALUE '(?:^|\s)[-a-z:_0-9]+\s*(?==\s*["|''|`])',
+        attr_val TYPE string VALUE '("[^"]*")|(''[^'']*'')|(`[^`]*`)',
         " comments <!-- ... -->
-        comment  TYPE string VALUE '[\<]!--.*--[\>]|[\<]!--|--[\>]', "#EC NOTEXT
+        comment  TYPE string VALUE '[\<]!--.*--[\>]|[\<]!--|--[\>]',
       END OF c_regex .
 
     METHODS constructor .
@@ -117939,6 +117939,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-10T08:33:45.217Z
+* abapmerge 0.14.8 - 2023-02-10T08:48:55.743Z
 ENDINTERFACE.
 ****************************************************
