@@ -51966,11 +51966,12 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_services~cache_asset.
 
-    TYPES: ty_hex TYPE x LENGTH 200.
+    TYPES ty_hex TYPE x LENGTH 200.
+    TYPES ty_char TYPE c LENGTH 200.
 
     DATA: lt_xdata TYPE STANDARD TABLE OF ty_hex WITH DEFAULT KEY,
           lv_size  TYPE i,
-          lt_html  TYPE w3htmltab.
+          lt_html  TYPE STANDARD TABLE OF ty_char WITH DEFAULT KEY.
 
     ASSERT iv_text IS SUPPLIED OR iv_xdata IS SUPPLIED.
 
@@ -118081,6 +118082,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-10T17:56:03.685Z
+* abapmerge 0.14.8 - 2023-02-13T06:28:26.900Z
 ENDINTERFACE.
 ****************************************************
