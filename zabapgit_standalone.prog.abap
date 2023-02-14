@@ -530,7 +530,7 @@ private section.
     end of ty_message_parts.
 ENDCLASS.
 CLASS zcx_abapgit_ajson_error IMPLEMENTATION.
-  method CONSTRUCTOR.
+method CONSTRUCTOR.
 CALL METHOD SUPER->CONSTRUCTOR
 EXPORTING
 PREVIOUS = PREVIOUS
@@ -548,7 +548,7 @@ if textid is initial.
 else.
   IF_T100_MESSAGE~T100KEY = TEXTID.
 endif.
-  endmethod.
+endmethod.
 method raise.
 
   data lx type ref to zcx_abapgit_ajson_error.
@@ -1711,7 +1711,7 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_ajson_filter.
 
-  TYPES ty_filter_tab TYPE STANDARD TABLE OF REF TO zif_abapgit_ajson_filter WITH DEFAULT KEY.
+  TYPES ty_filter_tab TYPE STANDARD TABLE OF REF TO zif_abapgit_ajson_filter WITH KEY table_line.
   TYPES ty_visit_type TYPE i.
 
   CONSTANTS:
@@ -118082,6 +118082,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-13T06:28:26.900Z
+* abapmerge 0.14.8 - 2023-02-14T12:06:06.810Z
 ENDINTERFACE.
 ****************************************************
