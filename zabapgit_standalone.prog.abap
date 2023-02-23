@@ -17731,14 +17731,24 @@ CLASS zcl_abapgit_gui_component DEFINITION
         VALUE(ri_gui_services) TYPE REF TO zif_abapgit_gui_services
       RAISING
         zcx_abapgit_exception.
+    METHODS register_handlers
+      RAISING
+        zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    DATA mi_gui_services TYPE REF TO zif_abapgit_gui_services.
+
+    METHODS register_event_handler
+      IMPORTING
+        ii_event_handler TYPE REF TO zif_abapgit_gui_event_handler OPTIONAL
+      RAISING
+        zcx_abapgit_exception.
     METHODS register_hotkeys
       IMPORTING
         ii_hotkey_provider TYPE REF TO zif_abapgit_gui_hotkeys OPTIONAL
       RAISING
         zcx_abapgit_exception.
 
-  PRIVATE SECTION.
-    DATA mi_gui_services TYPE REF TO zif_abapgit_gui_services.
 ENDCLASS.
 CLASS zcl_abapgit_gui_hotkey_ctl DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -17862,6 +17872,7 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_html_form DEFINITION
   FINAL
+  INHERITING FROM zcl_abapgit_gui_component
   CREATE PRIVATE .
 
   PUBLIC SECTION.
@@ -19919,6 +19930,7 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
       RAISING
         zcx_abapgit_exception .
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
@@ -35897,7 +35909,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TUTORIAL IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_tags IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_TAGS IMPLEMENTATION.
   METHOD choose_commit.
 
     DATA li_popups TYPE REF TO zif_abapgit_popups.
@@ -36174,7 +36186,7 @@ CLASS zcl_abapgit_gui_page_tags IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -36264,7 +36276,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
   METHOD build_menu.
 
     CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
@@ -36558,7 +36570,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
     ri_html->add( '</div>' ).
 
-    gui_services( )->get_hotkeys_ctl( )->register_hotkeys( zif_abapgit_gui_hotkeys~get_hotkey_actions( ) ).
+    register_handlers( ).
     gui_services( )->get_html_parts( )->add_part(
       iv_collection = zcl_abapgit_gui_component=>c_html_parts-hidden_forms
       ii_part       = render_deferred_hidden_events( ) ).
@@ -36974,7 +36986,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -37311,7 +37323,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     IF mo_form_util->is_empty( mo_form_data ) = abap_true.
       read_settings( ).
@@ -37335,7 +37347,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
   METHOD check_protection.
 
     IF mo_repo->is_offline( ) = abap_true.
@@ -38182,7 +38194,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -38198,8 +38210,6 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
       io_validation_log = mo_validation_log ) ).
 
     ri_html->add( `</div>` ).
-
-    gui_services( )->get_hotkeys_ctl( )->register_hotkeys( zif_abapgit_gui_hotkeys~get_hotkey_actions( ) ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -38507,7 +38517,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     IF mo_form_util->is_empty( mo_form_data ) = abap_true.
       read_settings( ).
@@ -38522,7 +38532,48 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
+  METHOD choose_check_variant.
+
+    DATA: lv_check_variant TYPE sci_chkv.
+
+    lv_check_variant = zcl_abapgit_ui_factory=>get_popups( )->choose_code_insp_check_variant( ).
+
+    IF lv_check_variant IS NOT INITIAL.
+      mo_form_data->set(
+        iv_key = c_id-code_inspector_check_variant
+        iv_val = lv_check_variant ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD choose_labels.
+
+    DATA:
+      lv_old_labels TYPE string,
+      lv_new_labels TYPE string.
+
+    lv_old_labels = mo_form_data->get( c_id-labels ).
+
+    lv_new_labels = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_labels( lv_old_labels ).
+
+    mo_form_data->set(
+      iv_key = c_id-labels
+      iv_val = lv_new_labels ).
+
+  ENDMETHOD.
+  METHOD choose_transport_request.
+
+    DATA: lv_transport_request TYPE trkorr.
+
+    lv_transport_request = zcl_abapgit_ui_factory=>get_popups( )->popup_transport_request( ).
+
+    IF lv_transport_request IS NOT INITIAL.
+      mo_form_data->set(
+          iv_key = c_id-transport_request
+          iv_val = lv_transport_request ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD constructor.
 
     super->constructor( ).
@@ -38763,7 +38814,7 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     IF mo_form_util->is_empty( mo_form_data ) = abap_true.
       read_settings( ).
@@ -38785,51 +38836,9 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
     ri_html->add( `</div>` ).
 
   ENDMETHOD.
-  METHOD choose_labels.
-
-    DATA:
-      lv_old_labels TYPE string,
-      lv_new_labels TYPE string.
-
-    lv_old_labels = mo_form_data->get( c_id-labels ).
-
-    lv_new_labels = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_labels( lv_old_labels ).
-
-    mo_form_data->set(
-      iv_key = c_id-labels
-      iv_val = lv_new_labels ).
-
-  ENDMETHOD.
-  METHOD choose_check_variant.
-
-    DATA: lv_check_variant TYPE sci_chkv.
-
-    lv_check_variant = zcl_abapgit_ui_factory=>get_popups( )->choose_code_insp_check_variant( ).
-
-    IF lv_check_variant IS NOT INITIAL.
-      mo_form_data->set(
-        iv_key = c_id-code_inspector_check_variant
-        iv_val = lv_check_variant ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD choose_transport_request.
-
-    DATA: lv_transport_request TYPE trkorr.
-
-    lv_transport_request = zcl_abapgit_ui_factory=>get_popups( )->popup_transport_request( ).
-
-    IF lv_transport_request IS NOT INITIAL.
-      mo_form_data->set(
-          iv_key = c_id-transport_request
-          iv_val = lv_transport_request ).
-    ENDIF.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_INFO IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -39272,7 +39281,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     read_settings( ).
 
@@ -39292,7 +39301,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -39554,7 +39563,7 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     IF mo_form_util->is_empty( mo_form_data ) = abap_true.
       read_settings( ).
@@ -39570,7 +39579,7 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_bckg IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_BCKG IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -39816,7 +39825,7 @@ CLASS zcl_abapgit_gui_page_sett_bckg IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     read_settings( ).
 
@@ -40010,7 +40019,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_RUNIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_run_bckg IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_RUN_BCKG IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -40056,7 +40065,7 @@ CLASS zcl_abapgit_gui_page_run_bckg IMPLEMENTATION.
 
     DATA: lv_text LIKE LINE OF mt_text.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     run( ).
 
@@ -40071,7 +40080,7 @@ CLASS zcl_abapgit_gui_page_run_bckg IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -41087,7 +41096,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_item> LIKE LINE OF lt_repo_items.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     CREATE OBJECT mo_repo_aggregated_state.
 
@@ -41229,7 +41238,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ENDTRY.
 
     register_deferred_script( render_scripts( ) ).
-    register_hotkeys( ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -41273,7 +41281,7 @@ CLASS kHGwlZbCwKVqbmulVBzOHKguCDENGa IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
   METHOD apply_filter.
 
     DATA lv_pfxl TYPE i.
@@ -42080,15 +42088,14 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       it_overview = lt_overview ).
     ri_html->add( |</div>| ).
 
-    gui_services( )->register_event_handler( me ).
     register_deferred_script( render_scripts( ) ).
     register_deferred_script( zcl_abapgit_gui_chunk_lib=>render_repo_palette( c_action-select ) ).
-    register_hotkeys( ).
+    register_handlers( ).
 
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
   METHOD add_menu_begin.
 
     io_menu->add(
@@ -42377,7 +42384,7 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
       CLEAR: mv_pushed.
     ENDIF.
 
-    gui_services( )->get_hotkeys_ctl( )->register_hotkeys( zif_abapgit_gui_hotkeys~get_hotkey_actions( ) ).
+    register_handlers( ).
 
     ri_html = super->render_content( ).
 
@@ -42579,7 +42586,7 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_merge_sel IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_SEL IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -42692,7 +42699,7 @@ CLASS zcl_abapgit_gui_page_merge_sel IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -43328,7 +43335,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_HOC IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_ex_pckage IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_EX_PCKAGE IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -43426,7 +43433,7 @@ CLASS zcl_abapgit_gui_page_ex_pckage IMPLEMENTATION.
     ENDCASE.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -43538,7 +43545,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EX_OBJECT IMPLEMENTATION.
     ENDCASE.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -43550,7 +43557,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EX_OBJECT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
   METHOD add_filter_sub_menu.
 
     DATA:
@@ -44100,7 +44107,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     li_progress->off( ).
 
-    gui_services( )->get_hotkeys_ctl( )->register_hotkeys( zif_abapgit_gui_hotkeys~get_hotkey_actions( ) ).
+    register_handlers( ).
 
   ENDMETHOD.
   METHOD render_diff.
@@ -44572,7 +44579,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
   METHOD build_toolbar.
 
     CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-debug'.
@@ -44918,7 +44925,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -45785,7 +45792,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
   METHOD branch_name_to_internal.
     rv_new_branch_name = zcl_abapgit_git_branch_list=>complete_heads_branch_name(
       zcl_abapgit_git_branch_list=>normalize_branch_name( iv_branch_name ) ).
@@ -46156,7 +46163,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     IF mo_form_util->is_empty( mo_form_data ) = abap_true.
       get_defaults( ).
@@ -46451,7 +46458,7 @@ CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
   METHOD ask_user_for_check_variant.
 
     rv_check_variant = zcl_abapgit_ui_factory=>get_popups( )->choose_code_insp_check_variant( ).
@@ -46542,7 +46549,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    gui_services( )->get_hotkeys_ctl( )->register_hotkeys( zif_abapgit_gui_hotkeys~get_hotkey_actions( ) ).
+    register_handlers( ).
 
     ri_html->add( render_variant( mv_check_variant ) ).
 
@@ -46663,7 +46670,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_ADDONLINE IMPLEMENTATION.
   METHOD choose_labels.
 
     DATA:
@@ -46905,7 +46912,7 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -46917,7 +46924,7 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
   METHOD choose_labels.
 
     DATA:
@@ -47103,7 +47110,7 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -47116,7 +47123,7 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -47350,7 +47357,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
       lv_end    TYPE i,
       lv_total  TYPE ty_time.
 
-    gui_services( )->register_event_handler( me ).
+    register_handlers( ).
 
     GET RUN TIME FIELD lv_start.
 
@@ -48196,7 +48203,7 @@ CLASS zcl_abapgit_html_form_utils IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_html_form IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
   METHOD checkbox.
 
     DATA ls_field LIKE LINE OF mt_fields.
@@ -48431,9 +48438,7 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     ri_html->add( |</form>| ).
     ri_html->add( |</div>| ).
 
-    zcl_abapgit_ui_factory=>get_gui_services(
-      )->get_hotkeys_ctl(
-      )->register_hotkeys( zif_abapgit_gui_hotkeys~get_hotkey_actions( ) ).
+    register_handlers( ).
 
   ENDMETHOD.
   METHOD render_command.
@@ -49149,6 +49154,27 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
     gui_services( )->get_html_parts( )->add_part(
       iv_collection = c_html_parts-scripts
       ii_part       = ii_part ).
+  ENDMETHOD.
+  METHOD register_event_handler.
+
+    DATA li_event_handler TYPE REF TO zif_abapgit_gui_event_handler.
+
+    IF ii_event_handler IS BOUND.
+      li_event_handler = ii_event_handler.
+    ELSE.
+      TRY.
+          li_event_handler ?= me.
+        CATCH cx_root.
+          RETURN.
+      ENDTRY.
+    ENDIF.
+
+    gui_services( )->register_event_handler( li_event_handler ).
+
+  ENDMETHOD.
+  METHOD register_handlers.
+    register_event_handler( ).
+    register_hotkeys( ).
   ENDMETHOD.
   METHOD register_hotkeys.
 
@@ -51271,7 +51297,7 @@ CLASS ZCL_ABAPGIT_GUI_HTML_PROCESSOR IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_hotkey_ctl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_HOTKEY_CTL IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -51363,7 +51389,7 @@ CLASS zcl_abapgit_gui_hotkey_ctl IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_hotkey> LIKE LINE OF lt_registered_hotkeys.
 
-    zif_abapgit_gui_hotkey_ctl~register_hotkeys( zif_abapgit_gui_hotkeys~get_hotkey_actions( ) ).
+    register_handlers( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -118087,6 +118113,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-23T06:39:41.276Z
+* abapmerge 0.14.8 - 2023-02-23T13:15:17.473Z
 ENDINTERFACE.
 ****************************************************
