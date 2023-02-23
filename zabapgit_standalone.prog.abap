@@ -49212,12 +49212,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_t100_text.
 
-    SELECT SINGLE text
-           FROM t100
-           INTO rv_text
-           WHERE arbgb = iv_msgid
-           AND msgnr = iv_msgno
-           AND sprsl = sy-langu.
+    MESSAGE ID iv_msgid TYPE 'S' NUMBER iv_msgno WITH '&1' '&2' '&3' '&4' INTO rv_text.
 
     " Don't return any generic messages like `&1 &2 &3 &4`
     IF rv_text CO ' 0123456789&'.
@@ -118082,6 +118077,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-22T06:32:02.006Z
+* abapmerge 0.14.8 - 2023-02-23T06:34:03.720Z
 ENDINTERFACE.
 ****************************************************
