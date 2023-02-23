@@ -4988,6 +4988,11 @@ INTERFACE zif_abapgit_sap_package .
       VALUE(rv_parentcl) TYPE tdevc-parentcl
     RAISING
       zcx_abapgit_exception .
+  METHODS read_description
+    RETURNING
+      VALUE(rv_description) TYPE string
+    RAISING
+      zcx_abapgit_exception .
   METHODS create_child
     IMPORTING
       !iv_child TYPE devclass
@@ -23690,6 +23695,12 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
       lt_list = zcl_abapgit_factory=>get_sap_package( lv_parent )->list_superpackages( ).
       APPEND LINES OF lt_list TO rt_list.
     ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_sap_package~read_description.
+
+    SELECT SINGLE ctext FROM tdevct INTO rv_description
+      WHERE devclass = mv_package AND spras = sy-langu ##SUBRC_OK.
 
   ENDMETHOD.
   METHOD zif_abapgit_sap_package~read_parent.
@@ -49743,8 +49754,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ENDIF.
 
     IF iv_suppress_title = abap_false.
-      SELECT SINGLE ctext FROM tdevct INTO lv_title
-        WHERE devclass = iv_package AND spras = sy-langu ##SUBRC_OK.
+      lv_title = zcl_abapgit_factory=>get_sap_package( iv_package )->read_description( ).
     ENDIF.
 
     lv_obj_name = iv_package.
@@ -118077,6 +118087,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-23T06:34:03.720Z
+* abapmerge 0.14.8 - 2023-02-23T06:39:41.276Z
 ENDINTERFACE.
 ****************************************************
