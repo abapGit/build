@@ -3302,6 +3302,12 @@ INTERFACE zif_abapgit_cts_api .
     RAISING
       zcx_abapgit_exception .
 
+  METHODS read_description
+    IMPORTING
+      iv_trkorr             TYPE trkorr
+    RETURNING
+      VALUE(rv_description) TYPE string.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_tadir .
@@ -32965,9 +32971,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     IF lines( it_transport_headers ) = 1.
       READ TABLE it_transport_headers INDEX 1 INTO ls_transport_header.
       lv_transports_as_text = ls_transport_header-trkorr.
-      SELECT SINGLE as4text FROM e07t INTO lv_desc_as_text  WHERE
-        trkorr = ls_transport_header-trkorr AND
-        langu = sy-langu.
+      lv_desc_as_text = zcl_abapgit_factory=>get_cts_api( )->read_description( ls_transport_header-trkorr ).
     ELSE.   " Else set branch name and commit message to 'Transport(s)_TRXXXXXX_TRXXXXX'
       lv_transports_as_text = 'Transport(s)'.
       LOOP AT it_transport_headers INTO ls_transport_header.
@@ -50128,8 +50132,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    SELECT SINGLE as4text FROM e07t INTO lv_title
-      WHERE trkorr = iv_transport AND langu = sy-langu ##SUBRC_OK.
+    lv_title = zcl_abapgit_factory=>get_cts_api( )->read_description( iv_transport ).
 
     lv_jump = |{ zif_abapgit_definitions=>c_action-jump_transport }?transport={ iv_transport }|.
 
@@ -116487,6 +116490,25 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
 
     rv_transportable = boolc( lv_type_check_result CA 'RTL' ).
   ENDMETHOD.
+  METHOD zif_abapgit_cts_api~get_r3tr_obj_for_limu_obj.
+
+    CLEAR ev_object.
+    CLEAR ev_obj_name.
+
+    CALL FUNCTION 'GET_R3TR_OBJECT_FROM_LIMU_OBJ'
+      EXPORTING
+        p_limu_objtype = iv_object
+        p_limu_objname = iv_obj_name
+      IMPORTING
+        p_r3tr_objtype = ev_object
+        p_r3tr_objname = ev_obj_name
+      EXCEPTIONS
+        no_mapping     = 1
+        OTHERS         = 2.
+    IF sy-subrc <> 0 OR ev_obj_name IS INITIAL.
+      zcx_abapgit_exception=>raise( |No R3TR Object found for { iv_object } { iv_obj_name }| ).
+    ENDIF.
+  ENDMETHOD.
   METHOD zif_abapgit_cts_api~get_transports_for_list.
 
     DATA lv_request TYPE trkorr.
@@ -116576,26 +116598,14 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
       rv_possible = zcl_abapgit_factory=>get_sap_package( iv_package )->are_changes_recorded_in_tr_req( ).
     ENDIF.
   ENDMETHOD.
-  METHOD zif_abapgit_cts_api~get_r3tr_obj_for_limu_obj.
+  METHOD zif_abapgit_cts_api~read_description.
 
-    CLEAR ev_object.
-    CLEAR ev_obj_name.
+    SELECT SINGLE as4text FROM e07t
+      INTO rv_description
+      WHERE trkorr = iv_trkorr
+      AND langu = sy-langu ##SUBRC_OK.
 
-    CALL FUNCTION 'GET_R3TR_OBJECT_FROM_LIMU_OBJ'
-      EXPORTING
-        p_limu_objtype = iv_object
-        p_limu_objname = iv_obj_name
-      IMPORTING
-        p_r3tr_objtype = ev_object
-        p_r3tr_objname = ev_obj_name
-      EXCEPTIONS
-        no_mapping     = 1
-        OTHERS         = 2.
-    IF sy-subrc <> 0 OR ev_obj_name IS INITIAL.
-      zcx_abapgit_exception=>raise( |No R3TR Object found for { iv_object } { iv_obj_name }| ).
-    ENDIF.
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_background_push_fi IMPLEMENTATION.
@@ -118113,6 +118123,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-23T13:15:17.473Z
+* abapmerge 0.14.8 - 2023-02-24T14:23:38.727Z
 ENDINTERFACE.
 ****************************************************
