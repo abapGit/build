@@ -4999,6 +4999,11 @@ INTERFACE zif_abapgit_sap_package .
       VALUE(rv_description) TYPE string
     RAISING
       zcx_abapgit_exception .
+  METHODS read_responsible
+    RETURNING
+      VALUE(rv_responsible) TYPE usnam
+    RAISING
+      zcx_abapgit_exception .
   METHODS create_child
     IMPORTING
       !iv_child TYPE devclass
@@ -23730,6 +23735,13 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_sap_package~read_responsible.
+    SELECT SINGLE as4user FROM tdevc
+      INTO rv_responsible
+      WHERE devclass = mv_package ##SUBRC_OK. "#EC CI_GENBUFF
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
@@ -54450,9 +54462,8 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     zcl_abapgit_sap_package=>validate_name( iv_package ).
 
     " Check if package owned by SAP is allowed (new packages are ok, since they are created automatically)
-    SELECT SINGLE as4user FROM tdevc
-      INTO lv_as4user
-      WHERE devclass = iv_package.                      "#EC CI_GENBUFF
+    lv_as4user = zcl_abapgit_factory=>get_sap_package( iv_package )->read_responsible( ).
+
     IF sy-subrc = 0 AND lv_as4user = 'SAP' AND
       zcl_abapgit_factory=>get_environment( )->is_sap_object_allowed( ) = abap_false.
       zcx_abapgit_exception=>raise( |Package { iv_package } not allowed, responsible user = 'SAP'| ).
@@ -118123,6 +118134,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-24T14:23:38.727Z
+* abapmerge 0.14.8 - 2023-02-24T14:59:12.268Z
 ENDINTERFACE.
 ****************************************************
