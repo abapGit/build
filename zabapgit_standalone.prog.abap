@@ -92887,6 +92887,10 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
       DELETE ls_customzing_activity-activity_title WHERE spras <> mv_language.
     ENDIF.
 
+    SORT ls_customzing_activity-activity_title.
+    SORT ls_customzing_activity-objects.
+    SORT ls_customzing_activity-objects_title.
+
     io_xml->add( iv_name = 'CUS1'
                  ig_data = ls_customzing_activity ).
 
@@ -93027,6 +93031,8 @@ CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
     IF io_xml->i18n_params( )-main_language_only = abap_true.
       DELETE ls_img_activity-texts WHERE spras <> mv_language.
     ENDIF.
+
+    SORT ls_img_activity-texts.
 
     io_xml->add( iv_name = 'CUS0'
                  ig_data = ls_img_activity ).
@@ -118134,6 +118140,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-24T14:59:12.268Z
+* abapmerge 0.14.8 - 2023-02-25T09:19:05.449Z
 ENDINTERFACE.
 ****************************************************
