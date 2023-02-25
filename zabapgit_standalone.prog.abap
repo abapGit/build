@@ -29388,14 +29388,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
-    lo_buf->add( ' * TAG PAGE Logic' ).
-    lo_buf->add( ' **********************************************************/' ).
-    lo_buf->add( 'function onTagTypeChange(oSelectObject){' ).
-    lo_buf->add( '  var sValue = oSelectObject.value;' ).
-    lo_buf->add( '  submitSapeventForm({ type: sValue }, "change_tag_type", "post");' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '/**********************************************************' ).
     lo_buf->add( ' * Repo Overview Logic' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( 'function findStyleSheetByName(name) {' ).
@@ -31215,85 +31207,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'function registerStagePatch(){' ).
     lo_buf->add( '  var oPatch = new Patch();' ).
     lo_buf->add( '  oPatch.registerStagePatch();' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '/**********************************************************' ).
-    lo_buf->add( ' * Page branch overview' ).
-    lo_buf->add( ' *' ).
-    lo_buf->add( ' * Hovering a commit node in the branch overview will show' ).
-    lo_buf->add( ' * a popup with the commit details. Single click on a node' ).
-    lo_buf->add( ' * will fix the popup, so that users can select text. The' ).
-    lo_buf->add( ' * fixation is removed when any node is hovered or the popup' ).
-    lo_buf->add( ' * is closed via ''X''.' ).
-    lo_buf->add( ' *' ).
-    lo_buf->add( ' **********************************************************/' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'function BranchOverview() {' ).
-    lo_buf->add( '  this.bFixed = false;' ).
-    lo_buf->add( '  this.elCurrentCommit = {' ).
-    lo_buf->add( '    style : {' ).
-    lo_buf->add( '      display: "none"' ).
-    lo_buf->add( '    }' ).
-    lo_buf->add( '  };' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'BranchOverview.prototype.toggleCommit = function(sSha1, bFixPopup) {' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  // If the popup is fixed, we just remove the fixation.' ).
-    lo_buf->add( '  // The popup will then be hidden by the next call of hideCommit' ).
-    lo_buf->add( '  if (this.bFixed) {' ).
-    lo_buf->add( '    this.bFixed = false;' ).
-    lo_buf->add( '    return;' ).
-    lo_buf->add( '  }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  // We hide the previous shown commit popup' ).
-    lo_buf->add( '  this.elCurrentCommit.style.display = "none";' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  // Display the new commit popup if sha1 is supplied' ).
-    lo_buf->add( '  if (sSha1){' ).
-    lo_buf->add( '    this.elCurrentCommit = document.getElementById(sSha1);' ).
-    lo_buf->add( '    this.elCurrentCommit.style.display = "";' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '    // and fix the popup so that the next hideCommit won''t hide it.' ).
-    lo_buf->add( '    this.bFixed = bFixPopup;' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '// called by onClick of commit nodes in branch overview' ).
-    lo_buf->add( 'BranchOverview.prototype.onCommitClick = function(commit){' ).
-    lo_buf->add( '  this.toggleCommit(commit.sha1, true);' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '// Called by commit:mouseover' ).
-    lo_buf->add( 'BranchOverview.prototype.showCommit = function(event){' ).
-    lo_buf->add( '  this.toggleCommit(event.data.sha1);' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '// Called by commit:mouseout' ).
-    lo_buf->add( 'BranchOverview.prototype.hideCommit = function (){' ).
-    lo_buf->add( '  this.toggleCommit();' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '// Initialize Top Horizontal Scroller on GitGraph' ).
-    lo_buf->add( 'function setGitGraphScroller(){ // eslint-disable-line no-unused-vars' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  // Get gitGraph Element Canvas Width' ).
-    lo_buf->add( '  var gitGraphEl = document.getElementById("gitGraph");' ).
-    lo_buf->add( '  var gitGraphWidth = gitGraphEl.offsetWidth;' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  // Initialize gitGraph-HTopScroller Element width as gitGraph' ).
-    lo_buf->add( '  var HTopScrollerEl = document.querySelector(".gitGraph-HTopScroller");' ).
-    lo_buf->add( '  HTopScrollerEl.style.width = gitGraphWidth + "px";' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '// Setup Top Horizontal Scroller on GitGraph event' ).
-    lo_buf->add( 'function GitGraphScroller() { // eslint-disable-line no-unused-vars' ).
-    lo_buf->add( '  var gitGraphWrapperEl = document.querySelector(".gitGraph-Wrapper");' ).
-    lo_buf->add( '  var gitGraphscrollWrapperEl = document.querySelector(".gitGraph-scrollWrapper");' ).
-    lo_buf->add( '  gitGraphWrapperEl.scrollLeft = gitGraphscrollWrapperEl.scrollLeft;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -118140,6 +118053,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.8 - 2023-02-25T09:35:04.571Z
+* abapmerge 0.14.8 - 2023-02-25T15:08:28.701Z
 ENDINTERFACE.
 ****************************************************
