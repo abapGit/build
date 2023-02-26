@@ -3054,6 +3054,7 @@ INTERFACE zif_abapgit_definitions .
       heads        TYPE string VALUE 'refs/heads/*',
       tags_prefix  TYPE string VALUE 'refs/tags/',
       tags         TYPE string VALUE 'refs/tags/*',
+      peel         TYPE string VALUE '^{}',
     END OF c_git_branch.
   CONSTANTS:
     BEGIN OF c_diff,
@@ -6338,9 +6339,21 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
         iv_url TYPE string
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS delete_annotated_tag
+      IMPORTING
+        !iv_url TYPE string
+        !is_tag TYPE zif_abapgit_git_definitions=>ty_git_tag
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS delete_lightweight_tag
+      IMPORTING
+        !iv_url TYPE string
+        !is_tag TYPE zif_abapgit_git_definitions=>ty_git_tag
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_git_tag DEFINITION
-  CREATE PUBLIC .
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
 
@@ -6348,12 +6361,26 @@ CLASS zcl_abapgit_git_tag DEFINITION
       IMPORTING
         !iv_text       TYPE csequence
       RETURNING
-        VALUE(rv_text) TYPE string .
+        VALUE(rv_text) TYPE string.
+
     CLASS-METHODS remove_tag_prefix
       IMPORTING
         !iv_text       TYPE string
       RETURNING
-        VALUE(rv_text) TYPE string .
+        VALUE(rv_text) TYPE string.
+
+    CLASS-METHODS add_peel
+      IMPORTING
+        !iv_text       TYPE string
+      RETURNING
+        VALUE(rv_text) TYPE string.
+
+    CLASS-METHODS remove_peel
+      IMPORTING
+        !iv_text       TYPE string
+      RETURNING
+        VALUE(rv_text) TYPE string.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -6415,7 +6442,7 @@ CLASS zcl_abapgit_git_transport DEFINITION
         !iv_old         TYPE zif_abapgit_git_definitions=>ty_sha1
         !iv_new         TYPE zif_abapgit_git_definitions=>ty_sha1
         !iv_branch_name TYPE string
-        !iv_pack        TYPE xstring
+        !iv_pack        TYPE xstring OPTIONAL
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS branches
@@ -34866,7 +34893,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       iv_url = lo_repo->get_url( )
       is_tag = ls_tag ).
 
-    lv_text = |Tag { zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag-name ) } deleted|.
+    lv_text = |Tag { ls_tag-display_name } deleted|.
 
     MESSAGE lv_text TYPE 'S'.
 
@@ -112555,7 +112582,7 @@ CLASS zcl_abapgit_git_utils IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GIT_TRANSPORT IMPLEMENTATION.
+CLASS zcl_abapgit_git_transport IMPLEMENTATION.
   METHOD branches.
 
     DATA: lo_client TYPE REF TO zcl_abapgit_http_client.
@@ -112913,10 +112940,22 @@ CLASS zcl_abapgit_git_time IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GIT_TAG IMPLEMENTATION.
+CLASS zcl_abapgit_git_tag IMPLEMENTATION.
+  METHOD add_peel.
+
+    rv_text = iv_text && zif_abapgit_definitions=>c_git_branch-peel.
+
+  ENDMETHOD.
   METHOD add_tag_prefix.
 
     rv_text = zif_abapgit_definitions=>c_git_branch-tags_prefix && iv_text.
+
+  ENDMETHOD.
+  METHOD remove_peel.
+
+    rv_text = iv_text.
+
+    REPLACE zif_abapgit_definitions=>c_git_branch-peel IN rv_text WITH ''.
 
   ENDMETHOD.
   METHOD remove_tag_prefix.
@@ -113055,34 +113094,64 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
-  METHOD delete_branch.
+  METHOD delete_annotated_tag.
 
-    DATA: lv_pack TYPE xstring.
-* "client MUST send an empty packfile"
-* https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
+    DATA:
+      lo_branches TYPE REF TO zcl_abapgit_git_branch_list,
+      lv_tag      TYPE string,
+      ls_tag      TYPE zif_abapgit_git_definitions=>ty_git_branch,
+      lt_tags     TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt.
+
+    " For annotated tags, find the correct commit
+    lo_branches = zcl_abapgit_git_transport=>branches( iv_url ).
+    lt_tags     = lo_branches->get_tags_only( ).
+    lv_tag      = zcl_abapgit_git_tag=>remove_peel( is_tag-name ).
+
+    READ TABLE lt_tags INTO ls_tag WITH KEY name_key COMPONENTS name = lv_tag.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Annotated tag { lv_tag } not found| ).
+    ENDIF.
+
+    zcl_abapgit_git_transport=>receive_pack(
+      iv_url         = iv_url
+      iv_old         = ls_tag-sha1
+      iv_new         = c_zero
+      iv_branch_name = ls_tag-name ).
+
+  ENDMETHOD.
+  METHOD delete_branch.
 
     zcl_abapgit_git_transport=>receive_pack(
       iv_url         = iv_url
       iv_old         = is_branch-sha1
       iv_new         = c_zero
-      iv_branch_name = is_branch-name
-      iv_pack        = lv_pack ).
+      iv_branch_name = is_branch-name ).
 
   ENDMETHOD.
-  METHOD delete_tag.
-
-    DATA: lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt,
-          lv_pack    TYPE xstring.
-* "client MUST send an empty packfile"
-* https://github.com/git/git/blob/master/Documentation/technical/pack-protocol.txt#L514
-    lv_pack = zcl_abapgit_git_pack=>encode( lt_objects ).
+  METHOD delete_lightweight_tag.
 
     zcl_abapgit_git_transport=>receive_pack(
       iv_url         = iv_url
       iv_old         = is_tag-sha1
       iv_new         = c_zero
-      iv_branch_name = is_tag-name
-      iv_pack        = lv_pack ).
+      iv_branch_name = is_tag-name ).
+
+  ENDMETHOD.
+  METHOD delete_tag.
+
+    IF is_tag-name CS zif_abapgit_definitions=>c_git_branch-peel.
+
+      delete_annotated_tag(
+        is_tag = is_tag
+        iv_url = iv_url ).
+
+    ELSE.
+
+      delete_lightweight_tag(
+        is_tag = is_tag
+        iv_url = iv_url ).
+
+    ENDIF.
 
   ENDMETHOD.
   METHOD find_folders.
@@ -114582,6 +114651,7 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
       REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_git_branch-heads_prefix IN rv_display_name WITH ''.
     ELSEIF rv_display_name CP zif_abapgit_definitions=>c_git_branch-tags.
       REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_git_branch-prefix IN rv_display_name WITH ''.
+      rv_display_name = zcl_abapgit_git_tag=>remove_peel( rv_display_name ).
     ENDIF.
 
   ENDMETHOD.
@@ -114702,8 +114772,8 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
   ENDMETHOD.
   METHOD skip_first_pkt.
 
-    DATA: lv_hex     TYPE x LENGTH 1,
-          lv_length  TYPE i.
+    DATA: lv_hex    TYPE x LENGTH 1,
+          lv_length TYPE i.
 
 * channel
     ASSERT iv_data(2) = '00'.
@@ -118232,6 +118302,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.9 - 2023-02-26T16:38:11.231Z
+* abapmerge 0.14.9 - 2023-02-26T17:08:11.904Z
 ENDINTERFACE.
 ****************************************************
