@@ -29175,6 +29175,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/**********************************************************' ).
     lo_buf->add( '  Global variables used from outside' ).
     lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/* exported setInitialFocus */' ).
     lo_buf->add( '/* exported setInitialFocusWithQuerySelector */' ).
     lo_buf->add( '/* exported submitFormById */' ).
@@ -29209,17 +29210,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      throw new TypeError("Function.prototype.bind - subject is not callable");' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '    var aArgs   = Array.prototype.slice.call(arguments, 1),' ).
-    lo_buf->add( '      fToBind = this,' ).
-    lo_buf->add( '      fNOP    = function() {},' ).
-    lo_buf->add( '      fBound  = function() {' ).
-    lo_buf->add( '        return fToBind.apply(' ).
-    lo_buf->add( '          this instanceof fNOP' ).
-    lo_buf->add( '            ? this' ).
-    lo_buf->add( '            : oThis,' ).
-    lo_buf->add( '          aArgs.concat(Array.prototype.slice.call(arguments))' ).
-    lo_buf->add( '        );' ).
-    lo_buf->add( '      };' ).
+    lo_buf->add( '    var aArgs   = Array.prototype.slice.call(arguments, 1);' ).
+    lo_buf->add( '    var fToBind = this;' ).
+    lo_buf->add( '    var fNOP    = function() { };' ).
+    lo_buf->add( '    var fBound  = function() {' ).
+    lo_buf->add( '      return fToBind.apply(' ).
+    lo_buf->add( '        this instanceof fNOP ? this : oThis,' ).
+    lo_buf->add( '        aArgs.concat(Array.prototype.slice.call(arguments))' ).
+    lo_buf->add( '      );' ).
+    lo_buf->add( '    };' ).
     lo_buf->add( '' ).
     lo_buf->add( '    if (this.prototype) {' ).
     lo_buf->add( '      fNOP.prototype = this.prototype;' ).
@@ -29251,6 +29250,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  Object.defineProperty(String.prototype, "startsWith", {' ).
     lo_buf->add( '    value: function(search, pos) {' ).
     lo_buf->add( '      pos = !pos || pos < 0 ? 0 : +pos;' ).
+    lo_buf->add( '' ).
     lo_buf->add( '      return this.substring(pos, pos + search.length) === search;' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  });' ).
@@ -29268,8 +29268,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '// Output text to the debug div' ).
     lo_buf->add( 'function debugOutput(text, dstID) {' ).
-    lo_buf->add( '  var stdout       = document.getElementById(dstID || "debug-output");' ).
-    lo_buf->add( '  var wrapped      = "<p>" + text + "</p>";' ).
+    lo_buf->add( '  var stdout  = document.getElementById(dstID || "debug-output");' ).
+    lo_buf->add( '  var wrapped = "<p>" + text + "</p>";' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  stdout.innerHTML = stdout.innerHTML + wrapped;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -29278,7 +29279,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'function submitSapeventForm(params, action, method, form) {' ).
     lo_buf->add( '' ).
     lo_buf->add( '  function getSapeventPrefix() {' ).
-    lo_buf->add( '    if (document.querySelector(''a[href*="file:///SAPEVENT:"]''))  {' ).
+    lo_buf->add( '    if (document.querySelector(''a[href*="file:///SAPEVENT:"]'')) {' ).
     lo_buf->add( '      return "file:///"; //Prefix for chromium based browser control' ).
     lo_buf->add( '    } else {' ).
     lo_buf->add( '      return "";' ).
@@ -29288,17 +29289,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  var stub_form_id = "form_" + action;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  form = form' ).
-    lo_buf->add( '      || document.getElementById(stub_form_id)' ).
-    lo_buf->add( '      || document.createElement("form");' ).
+    lo_buf->add( '    || document.getElementById(stub_form_id)' ).
+    lo_buf->add( '    || document.createElement("form");' ).
     lo_buf->add( '' ).
     lo_buf->add( '  form.setAttribute("method", method || "post");' ).
-    lo_buf->add( '  if (/sapevent/i.test(action)){' ).
+    lo_buf->add( '  if (/sapevent/i.test(action)) {' ).
     lo_buf->add( '    form.setAttribute("action", action);' ).
     lo_buf->add( '  } else {' ).
     lo_buf->add( '    form.setAttribute("action", getSapeventPrefix() + "SAPEVENT:" + action);' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  for(var key in params) {' ).
+    lo_buf->add( '  for (var key in params) {' ).
     lo_buf->add( '    var hiddenField = document.createElement("input");' ).
     lo_buf->add( '    hiddenField.setAttribute("type", "hidden");' ).
     lo_buf->add( '    hiddenField.setAttribute("name", key);' ).
@@ -29331,7 +29332,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      oSelected.focus();' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
-    lo_buf->add( '' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Submit an existing form' ).
@@ -29364,7 +29364,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'function perfOut(prefix) {' ).
     lo_buf->add( '  var totals = {};' ).
     lo_buf->add( '  for (var i = gPerf.length - 1; i >= 0; i--) {' ).
-    lo_buf->add( '    if (!totals[gPerf[i].name]) totals[gPerf[i].name] = {count: 0, time: 0};' ).
+    lo_buf->add( '    if (!totals[gPerf[i].name]) totals[gPerf[i].name] = { count: 0, time: 0 };' ).
+    lo_buf->add( '' ).
     lo_buf->add( '    totals[gPerf[i].name].time  += gPerf[i].time;' ).
     lo_buf->add( '    totals[gPerf[i].name].count += 1;' ).
     lo_buf->add( '  }' ).
@@ -29374,12 +29375,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    console.log(prefix' ).
     lo_buf->add( '      + " " + keys[j] + ": "' ).
     lo_buf->add( '      + totals[keys[j]].time.toFixed(3) + "ms"' ).
-    lo_buf->add( '      + " (" + totals[keys[j]].count.toFixed() +")");' ).
+    lo_buf->add( '      + " (" + totals[keys[j]].count.toFixed() + ")");' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function perfLog(name, startTime) {' ).
-    lo_buf->add( '  gPerf.push({name: name, time: window.performance.now() - startTime});' ).
+    lo_buf->add( '  gPerf.push({ name: name, time: window.performance.now() - startTime });' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function perfClear() {' ).
@@ -29389,6 +29390,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/**********************************************************' ).
     lo_buf->add( ' * Repo Overview Logic' ).
     lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'function findStyleSheetByName(name) {' ).
     lo_buf->add( '  for (var s = 0; s < document.styleSheets.length; s++) {' ).
     lo_buf->add( '    var styleSheet = document.styleSheets[s];' ).
@@ -29414,21 +29416,22 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    this.focusFilterKey = opts.focusFilterKey;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '  this.setHooks();' ).
-    lo_buf->add( '  this.pageId = "RepoOverViewHelperState"; // constant is OK for this case' ).
-    lo_buf->add( '  this.isDetailsDisplayed = false;' ).
+    lo_buf->add( '  this.pageId                   = "RepoOverViewHelperState"; // constant is OK for this case' ).
+    lo_buf->add( '  this.isDetailsDisplayed       = false;' ).
     lo_buf->add( '  this.isOnlyFavoritesDisplayed = false;' ).
-    lo_buf->add( '  this.detailCssClass = findStyleSheetByName(".repo-overview .ro-detail");' ).
+    lo_buf->add( '  this.detailCssClass           = findStyleSheetByName(".repo-overview .ro-detail");' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  var icon = document.getElementById("icon-filter-detail");' ).
     lo_buf->add( '  this.toggleFilterIcon(icon, this.isDetailsDisplayed);' ).
     lo_buf->add( '  this.registerRowSelection();' ).
     lo_buf->add( '  this.registerKeyboardShortcuts();' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.setHooks = function () {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.setHooks = function() {' ).
     lo_buf->add( '  window.onload = this.onPageLoad.bind(this);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.onPageLoad = function () {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.onPageLoad = function() {' ).
     lo_buf->add( '  var data = window.localStorage && JSON.parse(window.localStorage.getItem(this.pageId));' ).
     lo_buf->add( '  if (data) {' ).
     lo_buf->add( '    if (data.isDetailsDisplayed) {' ).
@@ -29455,11 +29458,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      return;' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '    var keycode = event.keyCode;' ).
-    lo_buf->add( '    var rows = Array.prototype.slice.call(self.getVisibleRows());' ).
-    lo_buf->add( '    var selected = document.querySelector(".repo-overview tr.selected");' ).
+    lo_buf->add( '    var keycode         = event.keyCode;' ).
+    lo_buf->add( '    var rows            = Array.prototype.slice.call(self.getVisibleRows());' ).
+    lo_buf->add( '    var selected        = document.querySelector(".repo-overview tr.selected");' ).
     lo_buf->add( '    var indexOfSelected = rows.indexOf(selected);' ).
-    lo_buf->add( '    var lastRow = rows.length - 1;' ).
+    lo_buf->add( '    var lastRow         = rows.length - 1;' ).
     lo_buf->add( '' ).
     lo_buf->add( '    if (keycode == 13 && document.activeElement.tagName.toLowerCase() != "input") {' ).
     lo_buf->add( '      // "enter" to open, unless command field has focus' ).
@@ -29477,13 +29480,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  });' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.openSelectedRepo = function () {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.openSelectedRepo = function() {' ).
     lo_buf->add( '  this.selectedRepoKey = document.querySelector(".repo-overview tr.selected").dataset.key;' ).
     lo_buf->add( '  this.saveLocalStorage();' ).
     lo_buf->add( '  document.querySelector(".repo-overview tr.selected td.ro-go a").click();' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.selectRowByIndex = function (index) {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.selectRowByIndex = function(index) {' ).
     lo_buf->add( '  var rows = this.getVisibleRows();' ).
     lo_buf->add( '  if (rows.length >= index) {' ).
     lo_buf->add( '    var selectedRow = rows[index];' ).
@@ -29499,9 +29502,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.selectRowByRepoKey = function (key) {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.selectRowByRepoKey = function(key) {' ).
     lo_buf->add( '  var attributeQuery = "[data-key=''" + key + "'']";' ).
-    lo_buf->add( '  var row = document.querySelector(".repo-overview tbody tr" + attributeQuery);' ).
+    lo_buf->add( '  var row            = document.querySelector(".repo-overview tbody tr" + attributeQuery);' ).
     lo_buf->add( '  // navigation to already selected repo' ).
     lo_buf->add( '  if (row.dataset.key === key && row.classList.contains("selected")) {' ).
     lo_buf->add( '    return;' ).
@@ -29514,13 +29517,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.saveLocalStorage();' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.updateActionLinks = function (selectedRow) {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.updateActionLinks = function(selectedRow) {' ).
     lo_buf->add( '  // now we have a repo selected, determine which action buttons are relevant' ).
-    lo_buf->add( '  var selectedRepoKey = selectedRow.dataset.key;' ).
+    lo_buf->add( '  var selectedRepoKey       = selectedRow.dataset.key;' ).
     lo_buf->add( '  var selectedRepoIsOffline = selectedRow.dataset.offline === "X";' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var actionLinks = document.querySelectorAll("a.action_link");' ).
-    lo_buf->add( '  actionLinks.forEach(function (link) {' ).
+    lo_buf->add( '  actionLinks.forEach(function(link) {' ).
     lo_buf->add( '    // adjust repo key in urls' ).
     lo_buf->add( '    link.href = link.href.replace(/\?key=(#|\d+)/, "?key=" + selectedRepoKey);' ).
     lo_buf->add( '' ).
@@ -29547,26 +29550,26 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  });' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.deselectAllRows = function () {' ).
-    lo_buf->add( '  document.querySelectorAll(".repo-overview tbody tr").forEach(function (x) {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.deselectAllRows = function() {' ).
+    lo_buf->add( '  document.querySelectorAll(".repo-overview tbody tr").forEach(function(x) {' ).
     lo_buf->add( '    x.classList.remove("selected");' ).
     lo_buf->add( '  });' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.getVisibleRows = function () {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.getVisibleRows = function() {' ).
     lo_buf->add( '  return document.querySelectorAll(".repo-overview tbody tr:not(.nodisplay)");' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.registerRowSelection = function () {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.registerRowSelection = function() {' ).
     lo_buf->add( '  var self = this;' ).
-    lo_buf->add( '  document.querySelectorAll(".repo-overview tr td:not(.ro-go)").forEach(function (repoListRowCell) {' ).
-    lo_buf->add( '    repoListRowCell.addEventListener("click", function () {' ).
+    lo_buf->add( '  document.querySelectorAll(".repo-overview tr td:not(.ro-go)").forEach(function(repoListRowCell) {' ).
+    lo_buf->add( '    repoListRowCell.addEventListener("click", function() {' ).
     lo_buf->add( '      self.selectRowByRepoKey(this.parentElement.dataset.key);' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '  });' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  document.querySelectorAll(".repo-overview tr td.ro-go").forEach(function (openRepoIcon) {' ).
-    lo_buf->add( '    openRepoIcon.addEventListener("click", function () {' ).
+    lo_buf->add( '  document.querySelectorAll(".repo-overview tr td.ro-go").forEach(function(openRepoIcon) {' ).
+    lo_buf->add( '    openRepoIcon.addEventListener("click", function() {' ).
     lo_buf->add( '      var selectedRow = this.parentElement;' ).
     lo_buf->add( '      self.selectRowByRepoKey(selectedRow.dataset.key);' ).
     lo_buf->add( '      self.openSelectedRepo();' ).
@@ -29574,14 +29577,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  });' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.toggleRepoListDetail = function (forceDisplay) {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.toggleRepoListDetail = function(forceDisplay) {' ).
     lo_buf->add( '  if (this.detailCssClass) {' ).
     lo_buf->add( '    this.toggleItemsDetail(forceDisplay);' ).
     lo_buf->add( '    this.saveLocalStorage();' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.toggleItemsDetail = function (forceDisplay) {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.toggleItemsDetail = function(forceDisplay) {' ).
     lo_buf->add( '  if (this.detailCssClass) {' ).
     lo_buf->add( '    this.isDetailsDisplayed = forceDisplay || !this.isDetailsDisplayed;' ).
     lo_buf->add( '' ).
@@ -29595,12 +29598,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    }' ).
     lo_buf->add( '' ).
     lo_buf->add( '    this.detailCssClass.style.display = this.isDetailsDisplayed ? "" : "none";' ).
+    lo_buf->add( '' ).
     lo_buf->add( '    var icon = document.getElementById("icon-filter-detail");' ).
     lo_buf->add( '    this.toggleFilterIcon(icon, this.isDetailsDisplayed);' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.toggleFilterIcon = function (icon, isEnabled) {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.toggleFilterIcon = function(icon, isEnabled) {' ).
     lo_buf->add( '  if (isEnabled) {' ).
     lo_buf->add( '    icon.classList.remove("grey");' ).
     lo_buf->add( '    icon.classList.add("blue");' ).
@@ -29610,16 +29614,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'RepoOverViewHelper.prototype.saveLocalStorage = function () {' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.saveLocalStorage = function() {' ).
     lo_buf->add( '  if (!window.localStorage) return;' ).
     lo_buf->add( '  var data = {' ).
-    lo_buf->add( '    isDetailsDisplayed: this.isDetailsDisplayed,' ).
+    lo_buf->add( '    isDetailsDisplayed      : this.isDetailsDisplayed,' ).
     lo_buf->add( '    isOnlyFavoritesDisplayed: this.isOnlyFavoritesDisplayed,' ).
-    lo_buf->add( '    selectedRepoKey: this.selectedRepoKey,' ).
+    lo_buf->add( '    selectedRepoKey         : this.selectedRepoKey,' ).
     lo_buf->add( '  };' ).
     lo_buf->add( '  window.localStorage.setItem(this.pageId, JSON.stringify(data));' ).
     lo_buf->add( '};' ).
-    lo_buf->add( '' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
     lo_buf->add( ' * Staging Logic' ).
@@ -29639,14 +29642,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '  // DOM nodes' ).
     lo_buf->add( '  this.dom = {' ).
-    lo_buf->add( '    stageTab:          document.getElementById(params.ids.stageTab),' ).
-    lo_buf->add( '    commitAllBtn:      document.getElementById(params.ids.commitAllBtn),' ).
+    lo_buf->add( '    stageTab         : document.getElementById(params.ids.stageTab),' ).
+    lo_buf->add( '    commitAllBtn     : document.getElementById(params.ids.commitAllBtn),' ).
     lo_buf->add( '    commitSelectedBtn: document.getElementById(params.ids.commitSelectedBtn),' ).
     lo_buf->add( '    commitFilteredBtn: document.getElementById(params.ids.commitFilteredBtn),' ).
-    lo_buf->add( '    patchBtn:          document.getElementById(params.ids.patchBtn),' ).
-    lo_buf->add( '    objectSearch:      document.getElementById(params.ids.objectSearch),' ).
-    lo_buf->add( '    selectedCounter:   null,' ).
-    lo_buf->add( '    filteredCounter:   null,' ).
+    lo_buf->add( '    patchBtn         : document.getElementById(params.ids.patchBtn),' ).
+    lo_buf->add( '    objectSearch     : document.getElementById(params.ids.objectSearch),' ).
+    lo_buf->add( '    selectedCounter  : null,' ).
+    lo_buf->add( '    filteredCounter  : null,' ).
     lo_buf->add( '  };' ).
     lo_buf->add( '  this.findCounters();' ).
     lo_buf->add( '' ).
@@ -29656,17 +29659,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '  // Constants' ).
     lo_buf->add( '  this.HIGHLIGHT_STYLE = "highlight";' ).
-    lo_buf->add( '  this.STATUS = {' ).
-    lo_buf->add( '    add:    "A",' ).
-    lo_buf->add( '    remove: "R",' ).
-    lo_buf->add( '    ignore: "I",' ).
-    lo_buf->add( '    reset:  "?",' ).
-    lo_buf->add( '    isValid: function (status) { return "ARI?".indexOf(status) == -1 }' ).
+    lo_buf->add( '  this.STATUS          = {' ).
+    lo_buf->add( '    add    : "A",' ).
+    lo_buf->add( '    remove : "R",' ).
+    lo_buf->add( '    ignore : "I",' ).
+    lo_buf->add( '    reset  : "?",' ).
+    lo_buf->add( '    isValid: function(status) { return "ARI?".indexOf(status) == -1 }' ).
     lo_buf->add( '  };' ).
     lo_buf->add( '' ).
     lo_buf->add( '  this.TEMPLATES = {' ).
-    lo_buf->add( '    cmdReset:  "<a>reset</a>",' ).
-    lo_buf->add( '    cmdLocal:  "<a>add</a>",' ).
+    lo_buf->add( '    cmdReset : "<a>reset</a>",' ).
+    lo_buf->add( '    cmdLocal : "<a>add</a>",' ).
     lo_buf->add( '    cmdRemote: "<a>ignore</a><a>remove</a>"' ).
     lo_buf->add( '  };' ).
     lo_buf->add( '' ).
@@ -29686,11 +29689,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    return; // for the case only "remove part" is displayed' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '  var changedByHead = tabFirstHead.cells[this.colIndex.user];' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  changedByHead.innerText = changedByHead.innerText + " (";' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  var a = document.createElement("A");' ).
     lo_buf->add( '  a.appendChild(document.createTextNode("me"));' ).
     lo_buf->add( '  a.onclick = this.onFilterMe.bind(this);' ).
-    lo_buf->add( '  a.href = "#";' ).
+    lo_buf->add( '  a.href    = "#";' ).
     lo_buf->add( '  changedByHead.appendChild(a);' ).
     lo_buf->add( '  changedByHead.appendChild(document.createTextNode(")"));' ).
     lo_buf->add( '};' ).
@@ -29722,7 +29727,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      event.preventDefault();' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  });' ).
-    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Detect column index' ).
@@ -29749,7 +29753,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'StageHelper.prototype.onPageLoad = function() {' ).
     lo_buf->add( '  var data = window.sessionStorage && JSON.parse(window.sessionStorage.getItem(this.pageSeed));' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  this.iterateStageTab(true, function (row) {' ).
+    lo_buf->add( '  this.iterateStageTab(true, function(row) {' ).
     lo_buf->add( '    var status = data && data[row.cells[this.colIndex["name"]].innerText];' ).
     lo_buf->add( '    this.updateRow(row, status || this.STATUS.reset);' ).
     lo_buf->add( '  });' ).
@@ -29761,7 +29765,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Table event handler, change status' ).
-    lo_buf->add( 'StageHelper.prototype.onTableClick = function (event) {' ).
+    lo_buf->add( 'StageHelper.prototype.onTableClick = function(event) {' ).
     lo_buf->add( '  var target = event.target || event.srcElement;' ).
     lo_buf->add( '  if (!target) return;' ).
     lo_buf->add( '' ).
@@ -29775,7 +29779,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    } else return;' ).
     lo_buf->add( '  } else return;' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if (["TD","TH"].indexOf(td.tagName) == -1 || td.className != "cmd") return;' ).
+    lo_buf->add( '  if (["TD", "TH"].indexOf(td.tagName) == -1 || td.className != "cmd") return;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var status    = this.STATUS[target.innerText]; // Convert anchor text to status' ).
     lo_buf->add( '  var targetRow = td.parentNode;' ).
@@ -29783,9 +29787,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  if (td.tagName === "TD") {' ).
     lo_buf->add( '    this.updateRow(targetRow, status);' ).
     lo_buf->add( '  } else { // TH' ).
-    lo_buf->add( '    this.iterateStageTab(true, function (row) {' ).
-    lo_buf->add( '      if (row.style.display !== "none"            // Not filtered out' ).
-    lo_buf->add( '        && row.className === targetRow.className  // Same context as header' ).
+    lo_buf->add( '    this.iterateStageTab(true, function(row) {' ).
+    lo_buf->add( '      if (row.style.display !== "none"           // Not filtered out' ).
+    lo_buf->add( '        && row.className === targetRow.className // Same context as header' ).
     lo_buf->add( '      ) {' ).
     lo_buf->add( '        this.updateRow(row, status);' ).
     lo_buf->add( '      }' ).
@@ -29795,10 +29799,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.updateMenu();' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'StageHelper.prototype.onCtrlEnter = function (e) {' ).
-    lo_buf->add( '  if (e.ctrlKey && (e.which === 10 || e.key === "Enter")){' ).
+    lo_buf->add( 'StageHelper.prototype.onCtrlEnter = function(e) {' ).
+    lo_buf->add( '  if (e.ctrlKey && (e.which === 10 || e.key === "Enter")) {' ).
     lo_buf->add( '    var clickMap = {' ).
-    lo_buf->add( '      "default":  this.dom.commitAllBtn,' ).
+    lo_buf->add( '      "default" : this.dom.commitAllBtn,' ).
     lo_buf->add( '      "selected": this.dom.commitSelectedBtn,' ).
     lo_buf->add( '      "filtered": this.dom.commitFilteredBtn' ).
     lo_buf->add( '    };' ).
@@ -29807,10 +29811,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Search object' ).
-    lo_buf->add( 'StageHelper.prototype.onFilter = function (e) {' ).
+    lo_buf->add( 'StageHelper.prototype.onFilter = function(e) {' ).
     lo_buf->add( '  if ( // Enter hit or clear, IE SUCKS !' ).
     lo_buf->add( '    e.type === "input" && !e.target.value && this.lastFilterValue' ).
-    lo_buf->add( '    || e.type === "keypress" && (e.which === 13 || e.key === "Enter") && !e.ctrlKey ) {' ).
+    lo_buf->add( '    || e.type === "keypress" && (e.which === 13 || e.key === "Enter") && !e.ctrlKey) {' ).
     lo_buf->add( '' ).
     lo_buf->add( '    this.applyFilterValue(e.target.value);' ).
     lo_buf->add( '    submitSapeventForm({ filterValue: e.target.value }, "stage_filter", "post");' ).
@@ -29818,27 +29822,26 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'StageHelper.prototype.applyFilterValue = function(sFilterValue) {' ).
-    lo_buf->add( '' ).
     lo_buf->add( '  this.lastFilterValue = sFilterValue;' ).
-    lo_buf->add( '  this.filteredCount = this.iterateStageTab(true, this.applyFilterToRow, sFilterValue);' ).
+    lo_buf->add( '  this.filteredCount   = this.iterateStageTab(true, this.applyFilterToRow, sFilterValue);' ).
     lo_buf->add( '  this.updateMenu();' ).
-    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Apply filter to a single stage line - hide or show' ).
-    lo_buf->add( 'StageHelper.prototype.applyFilterToRow = function (row, filter) {' ).
+    lo_buf->add( 'StageHelper.prototype.applyFilterToRow = function(row, filter) {' ).
     lo_buf->add( '  // Collect data cells' ).
     lo_buf->add( '  var targets = this.filterTargets.map(function(attr) {' ).
     lo_buf->add( '    // Get the innermost tag with the text we want to filter' ).
     lo_buf->add( '    // <td>text</td>: elem = td-tag' ).
     lo_buf->add( '    // <td><span><i></i><a>text</a></span></td>: elem = a-tag' ).
-    lo_buf->add( '    var elem = row.cells[this.colIndex[attr]];' ).
+    lo_buf->add( '    var elem  = row.cells[this.colIndex[attr]];' ).
     lo_buf->add( '    var elemA = elem.getElementsByTagName("A")[0];' ).
+    lo_buf->add( '' ).
     lo_buf->add( '    if (elemA) elem = elemA;' ).
     lo_buf->add( '    return {' ).
-    lo_buf->add( '      elem:      elem,' ).
+    lo_buf->add( '      elem     : elem,' ).
     lo_buf->add( '      plainText: elem.innerText.replace(/ /g, "\u00a0"), // without tags, with encoded spaces' ).
-    lo_buf->add( '      curHtml:   elem.innerHTML' ).
+    lo_buf->add( '      curHtml  : elem.innerHTML' ).
     lo_buf->add( '    };' ).
     lo_buf->add( '  }, this);' ).
     lo_buf->add( '' ).
@@ -29848,7 +29851,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  for (var i = targets.length - 1; i >= 0; i--) {' ).
     lo_buf->add( '    var target = targets[i];' ).
     lo_buf->add( '    // Ignore case of filter' ).
-    lo_buf->add( '    var regFilter = new RegExp("("+filter+")", "gi");' ).
+    lo_buf->add( '    var regFilter = new RegExp("(" + filter + ")", "gi");' ).
+    lo_buf->add( '' ).
     lo_buf->add( '    target.newHtml = (filter)' ).
     lo_buf->add( '      ? target.plainText.replace(regFilter, "<mark>$1</mark>")' ).
     lo_buf->add( '      : target.plainText;' ).
@@ -29865,18 +29869,18 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Get how status should affect object counter' ).
-    lo_buf->add( 'StageHelper.prototype.getStatusImpact = function (status) {' ).
+    lo_buf->add( 'StageHelper.prototype.getStatusImpact = function(status) {' ).
     lo_buf->add( '  if (typeof status !== "string"' ).
     lo_buf->add( '    || status.length !== 1' ).
-    lo_buf->add( '    || this.STATUS.isValid(status) ) {' ).
+    lo_buf->add( '    || this.STATUS.isValid(status)) {' ).
     lo_buf->add( '    alert("Unknown status");' ).
     lo_buf->add( '  } else {' ).
-    lo_buf->add( '    return (status !== this.STATUS.reset) ? 1 : 0;' ).
+    lo_buf->add( '    return (status !== this.STATUS.reset) ? 1: 0;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Update table line' ).
-    lo_buf->add( 'StageHelper.prototype.updateRow = function (row, newStatus) {' ).
+    lo_buf->add( 'StageHelper.prototype.updateRow = function(row, newStatus) {' ).
     lo_buf->add( '  var oldStatus = row.cells[this.colIndex["status"]].innerText;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  if (oldStatus !== newStatus) {' ).
@@ -29890,7 +29894,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Update Status cell (render set of commands)' ).
-    lo_buf->add( 'StageHelper.prototype.updateRowStatus = function (row, status) {' ).
+    lo_buf->add( 'StageHelper.prototype.updateRowStatus = function(row, status) {' ).
     lo_buf->add( '  row.cells[this.colIndex["status"]].innerText = status;' ).
     lo_buf->add( '  if (status === this.STATUS.reset) {' ).
     lo_buf->add( '    row.cells[this.colIndex["status"]].classList.remove(this.HIGHLIGHT_STYLE);' ).
@@ -29900,18 +29904,18 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Update Command cell (render set of commands)' ).
-    lo_buf->add( 'StageHelper.prototype.updateRowCommand = function (row, status) {' ).
+    lo_buf->add( 'StageHelper.prototype.updateRowCommand = function(row, status) {' ).
     lo_buf->add( '  var cell = row.cells[this.colIndex["cmd"]];' ).
     lo_buf->add( '  if (status === this.STATUS.reset) {' ).
     lo_buf->add( '    cell.innerHTML = (row.className == "local")' ).
     lo_buf->add( '      ? this.TEMPLATES.cmdLocal' ).
-    lo_buf->add( '      : this.TEMPLATES.cmdRemote;' ).
+    lo_buf->add( '      :     this.TEMPLATES.cmdRemote;' ).
     lo_buf->add( '  } else {' ).
     lo_buf->add( '    cell.innerHTML = this.TEMPLATES.cmdReset;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'StageHelper.prototype.calculateActiveCommitCommand = function () {' ).
+    lo_buf->add( 'StageHelper.prototype.calculateActiveCommitCommand = function() {' ).
     lo_buf->add( '  var active;' ).
     lo_buf->add( '  if (this.selectedCount > 0) {' ).
     lo_buf->add( '    active = "selected";' ).
@@ -29924,8 +29928,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Update menu items visibility' ).
-    lo_buf->add( 'StageHelper.prototype.updateMenu = function () {' ).
+    lo_buf->add( 'StageHelper.prototype.updateMenu = function() {' ).
     lo_buf->add( '  var display = this.calculateActiveCommitCommand();' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  if (display === "selected") this.dom.selectedCounter.innerText = this.selectedCount.toString();' ).
     lo_buf->add( '  if (display === "filtered") this.dom.filteredCounter.innerText = this.filteredCount.toString();' ).
     lo_buf->add( '' ).
@@ -29935,30 +29940,30 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Submit stage state to the server' ).
-    lo_buf->add( 'StageHelper.prototype.submit = function () {' ).
+    lo_buf->add( 'StageHelper.prototype.submit = function() {' ).
     lo_buf->add( '  submitSapeventForm(this.collectData(), this.formAction);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'StageHelper.prototype.submitVisible = function () {' ).
+    lo_buf->add( 'StageHelper.prototype.submitVisible = function() {' ).
     lo_buf->add( '  this.markVisiblesAsAdded();' ).
     lo_buf->add( '  submitSapeventForm(this.collectData(), this.formAction);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'StageHelper.prototype.submitPatch = function(){' ).
+    lo_buf->add( 'StageHelper.prototype.submitPatch = function() {' ).
     lo_buf->add( '  submitSapeventForm(this.collectData(), this.patchAction);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Extract data from the table' ).
-    lo_buf->add( 'StageHelper.prototype.collectData = function () {' ).
-    lo_buf->add( '  var data  = {};' ).
-    lo_buf->add( '  this.iterateStageTab(false, function (row) {' ).
+    lo_buf->add( 'StageHelper.prototype.collectData = function() {' ).
+    lo_buf->add( '  var data = {};' ).
+    lo_buf->add( '  this.iterateStageTab(false, function(row) {' ).
     lo_buf->add( '    data[row.cells[this.colIndex["name"]].innerText] = row.cells[this.colIndex["status"]].innerText;' ).
     lo_buf->add( '  });' ).
     lo_buf->add( '  return data;' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'StageHelper.prototype.markVisiblesAsAdded = function () {' ).
-    lo_buf->add( '  this.iterateStageTab(false, function (row) {' ).
+    lo_buf->add( 'StageHelper.prototype.markVisiblesAsAdded = function() {' ).
+    lo_buf->add( '  this.iterateStageTab(false, function(row) {' ).
     lo_buf->add( '    // TODO refacotr, unify updateRow logic' ).
     lo_buf->add( '    if (row.style.display === "" && row.className === "local") { // visible' ).
     lo_buf->add( '      this.updateRow(row, this.STATUS.add);' ).
@@ -29969,21 +29974,23 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Table iteration helper' ).
-    lo_buf->add( 'StageHelper.prototype.iterateStageTab = function (changeMode, cb /*, ...*/) {' ).
+    lo_buf->add( 'StageHelper.prototype.iterateStageTab = function(changeMode, cb /*, ...*/) {' ).
     lo_buf->add( '  var restArgs = Array.prototype.slice.call(arguments, 2);' ).
     lo_buf->add( '  var table    = this.dom.stageTab;' ).
     lo_buf->add( '  var retTotal = 0;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  if (changeMode) {' ).
     lo_buf->add( '    var scrollOffset = window.pageYOffset;' ).
+    lo_buf->add( '' ).
     lo_buf->add( '    this.dom.stageTab.style.display = "none";' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  for (var b = 0, bN = table.tBodies.length; b < bN; b++) {' ).
     lo_buf->add( '    var tbody = table.tBodies[b];' ).
     lo_buf->add( '    for (var r = 0, rN = tbody.rows.length; r < rN; r++) {' ).
-    lo_buf->add( '      var args = [tbody.rows[r]].concat(restArgs);' ).
+    lo_buf->add( '      var args   = [tbody.rows[r]].concat(restArgs);' ).
     lo_buf->add( '      var retVal = cb.apply(this, args); // callback' ).
+    lo_buf->add( '' ).
     lo_buf->add( '      if (typeof retVal === "number") retTotal += retVal;' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
@@ -30001,10 +30008,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function CheckListWrapper(id, cbAction, cbActionOnlyMyChanges) {' ).
-    lo_buf->add( '  this.id         = document.getElementById(id);' ).
-    lo_buf->add( '  this.cbAction   = cbAction;' ).
+    lo_buf->add( '  this.id                    = document.getElementById(id);' ).
+    lo_buf->add( '  this.cbAction              = cbAction;' ).
     lo_buf->add( '  this.cbActionOnlyMyChanges = cbActionOnlyMyChanges;' ).
-    lo_buf->add( '  this.id.onclick = this.onClick.bind(this);' ).
+    lo_buf->add( '  this.id.onclick            = this.onClick.bind(this);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'CheckListWrapper.prototype.onClick = function(e) { // eslint-disable-line no-unused-vars' ).
@@ -30037,7 +30044,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // Action callback, special handling for "Only My Changes"' ).
-    lo_buf->add( '  if(option === "Only my changes") {' ).
+    lo_buf->add( '  if (option === "Only my changes") {' ).
     lo_buf->add( '    this.cbActionOnlyMyChanges(nodeLi.getAttribute("data-aux"), newState);' ).
     lo_buf->add( '' ).
     lo_buf->add( '    // hide "Changed By" menu' ).
@@ -30058,19 +30065,19 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '  // DOM nodes' ).
     lo_buf->add( '  this.dom = {' ).
-    lo_buf->add( '    diffList:    document.getElementById(params.ids.diffList),' ).
+    lo_buf->add( '    diffList   : document.getElementById(params.ids.diffList),' ).
     lo_buf->add( '    stageButton: document.getElementById(params.ids.stageButton)' ).
     lo_buf->add( '  };' ).
     lo_buf->add( '' ).
     lo_buf->add( '  this.repoKey = this.dom.diffList.getAttribute("data-repo-key");' ).
     lo_buf->add( '  if (!this.repoKey) return; // Unexpected' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  this.dom.jump = document.getElementById(params.ids.jump);' ).
+    lo_buf->add( '  this.dom.jump         = document.getElementById(params.ids.jump);' ).
     lo_buf->add( '  this.dom.jump.onclick = this.onJump.bind(this);' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // Checklist wrapper' ).
     lo_buf->add( '  if (document.getElementById(params.ids.filterMenu)) {' ).
-    lo_buf->add( '    this.checkList = new CheckListWrapper(params.ids.filterMenu, this.onFilter.bind(this), this.onFilterOnlyMyChanges.bind(this));' ).
+    lo_buf->add( '    this.checkList        = new CheckListWrapper(params.ids.filterMenu, this.onFilter.bind(this), this.onFilterOnlyMyChanges.bind(this));' ).
     lo_buf->add( '    this.dom.filterButton = document.getElementById(params.ids.filterMenu).parentNode;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
@@ -30082,14 +30089,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Action on jump click' ).
-    lo_buf->add( 'DiffHelper.prototype.onJump = function(e){' ).
+    lo_buf->add( 'DiffHelper.prototype.onJump = function(e) {' ).
     lo_buf->add( '  var text = ((e.target && e.target.text) || e);' ).
     lo_buf->add( '  if (!text) return;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var elFile = document.querySelector("[data-file*=''" + text + "'']");' ).
     lo_buf->add( '  if (!elFile) return;' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  setTimeout(function(){' ).
+    lo_buf->add( '  setTimeout(function() {' ).
     lo_buf->add( '    elFile.scrollIntoView();' ).
     lo_buf->add( '  }, 100);' ).
     lo_buf->add( '};' ).
@@ -30104,7 +30111,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.applyOnlyMyChangesFilter(username, state);' ).
     lo_buf->add( '  this.counter = 0;' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if(state) {' ).
+    lo_buf->add( '  if (state) {' ).
     lo_buf->add( '    this.dom.filterButton.classList.add("bgorange");' ).
     lo_buf->add( '  } else {' ).
     lo_buf->add( '    this.dom.filterButton.classList.remove("bgorange");' ).
@@ -30118,11 +30125,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      var nodeIcon = item.children[0].children[0];' ).
     lo_buf->add( '' ).
     lo_buf->add( '      if (state === true) {' ).
-    lo_buf->add( '        if(item.innerText === username) { // current user' ).
+    lo_buf->add( '        if (item.innerText === username) { // current user' ).
     lo_buf->add( '          item.style.display = "";' ).
     lo_buf->add( '          item.setAttribute("data-check", "X");' ).
     lo_buf->add( '' ).
-    lo_buf->add( '          if(nodeIcon) {' ).
+    lo_buf->add( '          if (nodeIcon) {' ).
     lo_buf->add( '            nodeIcon.classList.remove("grey");' ).
     lo_buf->add( '            nodeIcon.classList.add("blue");' ).
     lo_buf->add( '          }' ).
@@ -30134,7 +30141,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '        item.style.display = "";' ).
     lo_buf->add( '        item.setAttribute("data-check", "X");' ).
     lo_buf->add( '' ).
-    lo_buf->add( '        if(nodeIcon) {' ).
+    lo_buf->add( '        if (nodeIcon) {' ).
     lo_buf->add( '          nodeIcon.classList.remove("grey");' ).
     lo_buf->add( '          nodeIcon.classList.add("blue");' ).
     lo_buf->add( '        }' ).
@@ -30142,8 +30149,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    });' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'DiffHelper.prototype.applyOnlyMyChangesFilter = function (username, state) {' ).
-    lo_buf->add( '' ).
+    lo_buf->add( 'DiffHelper.prototype.applyOnlyMyChangesFilter = function(username, state) {' ).
     lo_buf->add( '  var jumpListItems = Array.prototype.slice.call(document.querySelectorAll("[id*=li_jump]"));' ).
     lo_buf->add( '' ).
     lo_buf->add( '  this.iterateDiffList(function(div) {' ).
@@ -30160,41 +30166,40 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    // hide the file in the jump list' ).
     lo_buf->add( '    var dataFile = div.getAttribute("data-file");' ).
     lo_buf->add( '    jumpListItems' ).
-    lo_buf->add( '      .filter(function(item){ return dataFile.includes(item.text) })' ).
-    lo_buf->add( '      .map(function(item){ item.style.display = div.style.display });' ).
+    lo_buf->add( '      .filter(function(item) { return dataFile.includes(item.text) })' ).
+    lo_buf->add( '      .map(function(item) { item.style.display = div.style.display });' ).
     lo_buf->add( '  });' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Hide/show diff based on params' ).
-    lo_buf->add( 'DiffHelper.prototype.applyFilter = function (attr, target, state) {' ).
-    lo_buf->add( '' ).
+    lo_buf->add( 'DiffHelper.prototype.applyFilter = function(attr, target, state) {' ).
     lo_buf->add( '  var jumpListItems = Array.prototype.slice.call(document.querySelectorAll("[id*=li_jump]"));' ).
     lo_buf->add( '' ).
     lo_buf->add( '  this.iterateDiffList(function(div) {' ).
-    lo_buf->add( '    if (div.getAttribute("data-"+attr) === target) {' ).
+    lo_buf->add( '    if (div.getAttribute("data-" + attr) === target) {' ).
     lo_buf->add( '      div.style.display = state ? "" : "none";' ).
     lo_buf->add( '' ).
     lo_buf->add( '      // hide the file in the jump list' ).
     lo_buf->add( '      var dataFile = div.getAttribute("data-file");' ).
     lo_buf->add( '      jumpListItems' ).
-    lo_buf->add( '        .filter(function(item){ return dataFile.includes(item.text) })' ).
-    lo_buf->add( '        .map(function(item){ item.style.display = div.style.display });' ).
+    lo_buf->add( '        .filter(function(item) { return dataFile.includes(item.text) })' ).
+    lo_buf->add( '        .map(function(item) { item.style.display = div.style.display });' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  });' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Action on stage -> save visible diffs as state for stage page' ).
-    lo_buf->add( 'DiffHelper.prototype.onStage = function (e) { // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( 'DiffHelper.prototype.onStage = function(e) { // eslint-disable-line no-unused-vars' ).
     lo_buf->add( '  if (window.sessionStorage) {' ).
     lo_buf->add( '    var data = this.buildStageCache();' ).
     lo_buf->add( '    window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));' ).
     lo_buf->add( '  }' ).
-    lo_buf->add( '  var getParams = {key: this.repoKey, seed: this.pageSeed};' ).
+    lo_buf->add( '  var getParams = { key: this.repoKey, seed: this.pageSeed };' ).
     lo_buf->add( '  submitSapeventForm(getParams, this.stageAction, "get");' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Collect visible diffs' ).
-    lo_buf->add( 'DiffHelper.prototype.buildStageCache = function () {' ).
+    lo_buf->add( 'DiffHelper.prototype.buildStageCache = function() {' ).
     lo_buf->add( '  var list = {};' ).
     lo_buf->add( '  this.iterateDiffList(function(div) {' ).
     lo_buf->add( '    var filename = div.getAttribute("data-file");' ).
@@ -30206,7 +30211,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Table iterator' ).
-    lo_buf->add( 'DiffHelper.prototype.iterateDiffList = function (cb /*, ...*/) {' ).
+    lo_buf->add( 'DiffHelper.prototype.iterateDiffList = function(cb /*, ...*/) {' ).
     lo_buf->add( '  var restArgs = Array.prototype.slice.call(arguments, 1);' ).
     lo_buf->add( '  var diffList = this.dom.diffList;' ).
     lo_buf->add( '' ).
@@ -30214,7 +30219,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    var div = diffList.children[i];' ).
     lo_buf->add( '    if (div.className !== "diff") continue;' ).
     lo_buf->add( '    var args = [div].concat(restArgs);' ).
-    lo_buf->add( '    cb.apply(this, args); // callback' ).
+    lo_buf->add( '    cb.apply(this, args);// callback' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
@@ -30230,11 +30235,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '// Collapse or expand diffs' ).
     lo_buf->add( 'function onDiffCollapse(event) {' ).
-    lo_buf->add( '  var source = event.target || event.srcElement;' ).
+    lo_buf->add( '  var source          = event.target || event.srcElement;' ).
     lo_buf->add( '  var nextDiffContent = source.parentElement.nextElementSibling;' ).
     lo_buf->add( '  var hide;' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if(source.classList.contains("icon-chevron-down")){' ).
+    lo_buf->add( '  if (source.classList.contains("icon-chevron-down")) {' ).
     lo_buf->add( '    source.classList.remove("icon-chevron-down");' ).
     lo_buf->add( '    source.classList.add("icon-chevron-right");' ).
     lo_buf->add( '    hide = true;' ).
@@ -30244,11 +30249,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    hide = false;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  hide ? nextDiffContent.classList.add("nodisplay") : nextDiffContent.classList.remove("nodisplay");' ).
+    lo_buf->add( '  hide ? nextDiffContent.classList.add("nodisplay"): nextDiffContent.classList.remove("nodisplay");' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Add bottom margin, so that we can scroll to the top of the last file' ).
-    lo_buf->add( 'function addMarginBottom(){' ).
+    lo_buf->add( 'function addMarginBottom() {' ).
     lo_buf->add( '  document.getElementsByTagName("body")[0].style.marginBottom = screen.height + "px";' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -30258,7 +30263,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'function DiffColumnSelection() {' ).
     lo_buf->add( '  this.selectedColumnIdx = -1;' ).
-    lo_buf->add( '  this.lineNumColumnIdx = -1;' ).
+    lo_buf->add( '  this.lineNumColumnIdx  = -1;' ).
     lo_buf->add( '  //https://stackoverflow.com/questions/2749244/javascript-setinterval-and-this-solution' ).
     lo_buf->add( '  document.addEventListener("mousedown", this.mousedownEventListener.bind(this));' ).
     lo_buf->add( '  document.addEventListener("copy", this.copyEventListener.bind(this));' ).
@@ -30269,16 +30274,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)' ).
     lo_buf->add( '  // Process mousedown event for all TD elements -> apply CSS class at TABLE level.' ).
     lo_buf->add( '  // (https://stackoverflow.com/questions/40956717/how-to-addeventlistener-to-multiple-elements-in-a-single-line)' ).
-    lo_buf->add( '  var unifiedLineNumColumnIdx = 0;' ).
-    lo_buf->add( '  var unifiedCodeColumnIdx = 3;' ).
-    lo_buf->add( '  var splitLineNumLeftColumnIdx = 0;' ).
-    lo_buf->add( '  var splitCodeLeftColumnIdx = 2;' ).
+    lo_buf->add( '  var unifiedLineNumColumnIdx    = 0;' ).
+    lo_buf->add( '  var unifiedCodeColumnIdx       = 3;' ).
+    lo_buf->add( '  var splitLineNumLeftColumnIdx  = 0;' ).
+    lo_buf->add( '  var splitCodeLeftColumnIdx     = 2;' ).
     lo_buf->add( '  var splitLineNumRightColumnIdx = 3;' ).
-    lo_buf->add( '  var splitCodeRightColumnIdx = 5;' ).
+    lo_buf->add( '  var splitCodeRightColumnIdx    = 5;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  if (e.button !== 0) return; // function is only valid for left button, not right button' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var td = e.target;' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  while (td != undefined && td.tagName != "TD" && td.tagName != "TBODY") td = td.parentElement;' ).
     lo_buf->add( '  if (td == undefined) return;' ).
     lo_buf->add( '  var table = td.parentElement.parentElement;' ).
@@ -30291,7 +30297,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  if (td.classList.contains("diff_left")) {' ).
     lo_buf->add( '    table.classList.remove("diff_select_right");' ).
     lo_buf->add( '    table.classList.add("diff_select_left");' ).
-    lo_buf->add( '    if ( window.getSelection() && this.selectedColumnIdx != splitCodeLeftColumnIdx + patchColumnCount ) {' ).
+    lo_buf->add( '    if (window.getSelection() && this.selectedColumnIdx != splitCodeLeftColumnIdx + patchColumnCount) {' ).
     lo_buf->add( '      // De-select to avoid effect of dragging selection in case the right column was first selected' ).
     lo_buf->add( '      if (document.body.createTextRange) { // All IE but Edge' ).
     lo_buf->add( '        // document.getSelection().removeAllRanges() may trigger error' ).
@@ -30302,14 +30308,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '        range.select();' ).
     lo_buf->add( '      } else {' ).
     lo_buf->add( '        document.getSelection().removeAllRanges();' ).
-    lo_buf->add( '      }}' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    }' ).
     lo_buf->add( '    this.selectedColumnIdx = splitCodeLeftColumnIdx + patchColumnCount;' ).
-    lo_buf->add( '    this.lineNumColumnIdx = splitLineNumLeftColumnIdx + patchColumnCount;' ).
+    lo_buf->add( '    this.lineNumColumnIdx  = splitLineNumLeftColumnIdx + patchColumnCount;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  } else if (td.classList.contains("diff_right")) {' ).
     lo_buf->add( '    table.classList.remove("diff_select_left");' ).
     lo_buf->add( '    table.classList.add("diff_select_right");' ).
-    lo_buf->add( '    if ( window.getSelection() && this.selectedColumnIdx != splitCodeRightColumnIdx + patchColumnCount ) {' ).
+    lo_buf->add( '    if (window.getSelection() && this.selectedColumnIdx != splitCodeRightColumnIdx + patchColumnCount) {' ).
     lo_buf->add( '      if (document.body.createTextRange) { // All IE but Edge' ).
     lo_buf->add( '        // document.getSelection().removeAllRanges() may trigger error' ).
     lo_buf->add( '        // so use this code which is equivalent but does not fail' ).
@@ -30319,17 +30326,18 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '        range.select();' ).
     lo_buf->add( '      } else {' ).
     lo_buf->add( '        document.getSelection().removeAllRanges();' ).
-    lo_buf->add( '      }}' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    }' ).
     lo_buf->add( '    this.selectedColumnIdx = splitCodeRightColumnIdx + patchColumnCount;' ).
-    lo_buf->add( '    this.lineNumColumnIdx = splitLineNumRightColumnIdx + patchColumnCount;' ).
+    lo_buf->add( '    this.lineNumColumnIdx  = splitLineNumRightColumnIdx + patchColumnCount;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  } else if (td.classList.contains("diff_unified")) {' ).
     lo_buf->add( '    this.selectedColumnIdx = unifiedCodeColumnIdx;' ).
-    lo_buf->add( '    this.lineNumColumnIdx = unifiedLineNumColumnIdx;' ).
+    lo_buf->add( '    this.lineNumColumnIdx  = unifiedLineNumColumnIdx;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  } else {' ).
     lo_buf->add( '    this.selectedColumnIdx = -1;' ).
-    lo_buf->add( '    this.lineNumColumnIdx = -1;' ).
+    lo_buf->add( '    this.lineNumColumnIdx  = -1;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
@@ -30337,12 +30345,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // Select text in a column of an HTML table and copy to clipboard (in DIFF view)' ).
     lo_buf->add( '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)' ).
     lo_buf->add( '  var td = e.target;' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  while (td != undefined && td.tagName != "TD" && td.tagName != "TBODY") td = td.parentElement;' ).
-    lo_buf->add( '  if(td != undefined){' ).
+    lo_buf->add( '  if (td != undefined) {' ).
     lo_buf->add( '    // Use window.clipboardData instead of e.clipboardData' ).
     lo_buf->add( '    // (https://stackoverflow.com/questions/23470958/ie-10-copy-paste-issue)' ).
-    lo_buf->add( '    var clipboardData = ( e.clipboardData == undefined ? window.clipboardData : e.clipboardData );' ).
-    lo_buf->add( '    var text = this.getSelectedText();' ).
+    lo_buf->add( '    var clipboardData = (e.clipboardData == undefined ? window.clipboardData : e.clipboardData);' ).
+    lo_buf->add( '    var text          = this.getSelectedText();' ).
     lo_buf->add( '    clipboardData.setData("text", text);' ).
     lo_buf->add( '    e.preventDefault();' ).
     lo_buf->add( '  }' ).
@@ -30351,30 +30360,35 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'DiffColumnSelection.prototype.getSelectedText = function() {' ).
     lo_buf->add( '  // Select text in a column of an HTML table and copy to clipboard (in DIFF view)' ).
     lo_buf->add( '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)' ).
-    lo_buf->add( '  var sel = window.getSelection(),' ).
-    lo_buf->add( '    range = sel.getRangeAt(0),' ).
-    lo_buf->add( '    doc = range.cloneContents(),' ).
-    lo_buf->add( '    nodes = doc.querySelectorAll("tr"),' ).
-    lo_buf->add( '    text = "";' ).
+    lo_buf->add( '  var sel   = window.getSelection();' ).
+    lo_buf->add( '  var range = sel.getRangeAt(0);' ).
+    lo_buf->add( '  var doc   = range.cloneContents();' ).
+    lo_buf->add( '  var nodes = doc.querySelectorAll("tr");' ).
+    lo_buf->add( '  var text  = "";' ).
     lo_buf->add( '  if (nodes.length === 0) {' ).
     lo_buf->add( '    text = doc.textContent;' ).
     lo_buf->add( '  } else {' ).
-    lo_buf->add( '    var newline = "",' ).
-    lo_buf->add( '      realThis = this;' ).
+    lo_buf->add( '    var newline  = "";' ).
+    lo_buf->add( '    var realThis = this;' ).
     lo_buf->add( '    [].forEach.call(nodes, function(tr, i) {' ).
-    lo_buf->add( '      var cellIdx = ( i==0 ? 0 : realThis.selectedColumnIdx );' ).
+    lo_buf->add( '      var cellIdx = (i == 0 ? 0 : realThis.selectedColumnIdx);' ).
     lo_buf->add( '      if (tr.cells.length > cellIdx) {' ).
     lo_buf->add( '        var tdSelected = tr.cells[cellIdx];' ).
-    lo_buf->add( '        var tdLineNum = tr.cells[realThis.lineNumColumnIdx];' ).
+    lo_buf->add( '        var tdLineNum  = tr.cells[realThis.lineNumColumnIdx];' ).
     lo_buf->add( '        // copy is interesting for remote code, don''t copy lines which exist only locally' ).
-    lo_buf->add( '        if (i==0 || tdLineNum.getAttribute("line-num")!="") {' ).
+    lo_buf->add( '        if (i == 0 || tdLineNum.getAttribute("line-num") != "") {' ).
     lo_buf->add( '          text += newline + tdSelected.textContent;' ).
     lo_buf->add( '          // special processing for TD tag which sometimes contains newline' ).
     lo_buf->add( '          // (expl: /src/ui/zabapgit_js_common.w3mi.data.js) so don''t add newline again in that case.' ).
-    lo_buf->add( '          var lastChar = tdSelected.textContent[ tdSelected.textContent.length - 1 ];' ).
-    lo_buf->add( '          if ( lastChar == "\n" ) newline = "";' ).
+    lo_buf->add( '          var lastChar = tdSelected.textContent[tdSelected.textContent.length - 1];' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '          if (lastChar == "\n") newline = "";' ).
+    lo_buf->add( '' ).
     lo_buf->add( '          else newline = "\n";' ).
-    lo_buf->add( '        }}});}' ).
+    lo_buf->add( '        }' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '  }' ).
     lo_buf->add( '  return text;' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
@@ -30385,6 +30399,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// Toggle display of changelog (news) and message popups' ).
     lo_buf->add( 'function toggleDisplay(divId) {' ).
     lo_buf->add( '  var div = document.getElementById(divId);' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  if (div) div.style.display = (div.style.display) ? "" : "none";' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -30412,14 +30427,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  if (isHandled) event.preventDefault();' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'KeyNavigation.prototype.onEnterOrSpace = function () {' ).
+    lo_buf->add( 'KeyNavigation.prototype.onEnterOrSpace = function() {' ).
     lo_buf->add( '  if (document.activeElement.nodeName !== "A") return;' ).
     lo_buf->add( '  var anchor = document.activeElement;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  if (anchor.href.replace(/#$/, "") === document.location.href.replace(/#$/, "")' ).
     lo_buf->add( '    && !anchor.onclick' ).
     lo_buf->add( '    && anchor.parentElement' ).
-    lo_buf->add( '    && anchor.parentElement.nodeName === "LI" ) {' ).
+    lo_buf->add( '    && anchor.parentElement.nodeName === "LI") {' ).
     lo_buf->add( '    anchor.parentElement.classList.toggle("force-nav-hover");' ).
     lo_buf->add( '  } else {' ).
     lo_buf->add( '    anchor.click();' ).
@@ -30427,20 +30442,20 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  return true;' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'KeyNavigation.prototype.focusListItem = function (li) {' ).
+    lo_buf->add( 'KeyNavigation.prototype.focusListItem = function(li) {' ).
     lo_buf->add( '  var anchor = li.firstElementChild;' ).
     lo_buf->add( '  if (!anchor || anchor.nodeName !== "A") return false;' ).
     lo_buf->add( '  anchor.focus();' ).
     lo_buf->add( '  return true;' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'KeyNavigation.prototype.closeDropdown = function (dropdownLi) {' ).
+    lo_buf->add( 'KeyNavigation.prototype.closeDropdown = function(dropdownLi) {' ).
     lo_buf->add( '  dropdownLi.classList.remove("force-nav-hover");' ).
     lo_buf->add( '  if (dropdownLi.firstElementChild.nodeName === "A") dropdownLi.firstElementChild.focus();' ).
     lo_buf->add( '  return true;' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'KeyNavigation.prototype.onBackspace = function () {' ).
+    lo_buf->add( 'KeyNavigation.prototype.onBackspace = function() {' ).
     lo_buf->add( '  var activeElement = document.activeElement;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // Detect opened subsequent dropdown' ).
@@ -30464,7 +30479,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'KeyNavigation.prototype.onArrowDown = function () {' ).
+    lo_buf->add( 'KeyNavigation.prototype.onArrowDown = function() {' ).
     lo_buf->add( '  var activeElement = document.activeElement;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // Start of dropdown list: LI > selected A :: UL > LI > A' ).
@@ -30489,7 +30504,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'KeyNavigation.prototype.onArrowUp = function () {' ).
+    lo_buf->add( 'KeyNavigation.prototype.onArrowUp = function() {' ).
     lo_buf->add( '  var activeElement = document.activeElement;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // Prev item of dropdown list: ( LI > selected A ) <:: LI > A' ).
@@ -30502,7 +30517,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'KeyNavigation.prototype.getHandler = function () {' ).
+    lo_buf->add( 'KeyNavigation.prototype.getHandler = function() {' ).
     lo_buf->add( '  return this.onkeydown.bind(this);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
@@ -30516,7 +30531,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( ' * Link Hints (Vimium-like)' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function LinkHints(linkHintHotKey){' ).
+    lo_buf->add( 'function LinkHints(linkHintHotKey) {' ).
     lo_buf->add( '  this.linkHintHotKey    = linkHintHotKey;' ).
     lo_buf->add( '  this.areHintsDisplayed = false;' ).
     lo_buf->add( '  this.pendingPath       = ""; // already typed code prefix' ).
@@ -30525,12 +30540,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.yankModeActive    = false;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'LinkHints.prototype.getHintStartValue = function(targetsCount){' ).
+    lo_buf->add( 'LinkHints.prototype.getHintStartValue = function(targetsCount) {' ).
     lo_buf->add( '  // e.g. if we have 89 tooltips we start from 10' ).
     lo_buf->add( '  //      if we have 90 tooltips we start from 100' ).
     lo_buf->add( '  //      if we have 900 tooltips we start from 1000' ).
     lo_buf->add( '  var' ).
-    lo_buf->add( '    baseLength = Math.pow(10, targetsCount.toString().length - 1),' ).
+    lo_buf->add( '    baseLength          = Math.pow(10, targetsCount.toString().length - 1),' ).
     lo_buf->add( '    maxHintStringLength = (targetsCount + baseLength).toString().length;' ).
     lo_buf->add( '  return Math.pow(10, maxHintStringLength - 1);' ).
     lo_buf->add( '};' ).
@@ -30551,6 +30566,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    }' ).
     lo_buf->add( '' ).
     lo_buf->add( '    var hint = {};' ).
+    lo_buf->add( '' ).
     lo_buf->add( '    hint.container     = document.createElement("span");' ).
     lo_buf->add( '    hint.pendingSpan   = document.createElement("span");' ).
     lo_buf->add( '    hint.remainingSpan = document.createElement("span");' ).
@@ -30562,7 +30578,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '    hint.pendingSpan.classList.add("pending");' ).
     lo_buf->add( '    hint.container.classList.add("link-hint");' ).
-    lo_buf->add( '    if (hint.parent.nodeName === "INPUT" || hint.parent.nodeName === "TEXTAREA"){' ).
+    lo_buf->add( '    if (hint.parent.nodeName === "INPUT" || hint.parent.nodeName === "TEXTAREA") {' ).
     lo_buf->add( '      hint.container.classList.add("link-hint-input");' ).
     lo_buf->add( '    } else if (hint.parent.nodeName === "A") {' ).
     lo_buf->add( '      hint.container.classList.add("link-hint-a");' ).
@@ -30572,13 +30588,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      continue;' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '    hint.container.classList.add("nodisplay");            // hide by default' ).
+    lo_buf->add( '    hint.container.classList.add("nodisplay"); // hide by default' ).
     lo_buf->add( '    hint.container.dataset.code = codeCounter.toString(); // not really needed, more for debug' ).
     lo_buf->add( '' ).
     lo_buf->add( '    if (hintTargets[i].nodeName === "INPUT" || hintTargets[i].nodeName === "TEXTAREA") {' ).
     lo_buf->add( '      // does not work if inside the input node' ).
     lo_buf->add( '      if (hintTargets[i].type === "checkbox" || hintTargets[i].type === "radio") {' ).
-    lo_buf->add( '        if (hintTargets[i].nextElementSibling && hintTargets[i].nextElementSibling.nodeName === "LABEL" ) {' ).
+    lo_buf->add( '        if (hintTargets[i].nextElementSibling && hintTargets[i].nextElementSibling.nodeName === "LABEL") {' ).
     lo_buf->add( '          // insert at end of label' ).
     lo_buf->add( '          hintTargets[i].nextElementSibling.appendChild(hint.container);' ).
     lo_buf->add( '        } else {' ).
@@ -30603,8 +30619,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  return this.handleKey.bind(this);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'LinkHints.prototype.handleKey = function(event){' ).
-    lo_buf->add( '' ).
+    lo_buf->add( 'LinkHints.prototype.handleKey = function(event) {' ).
     lo_buf->add( '  if (event.defaultPrevented) {' ).
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
@@ -30626,13 +30641,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '    // the user tries to reach a hint' ).
     lo_buf->add( '    this.pendingPath += event.key;' ).
+    lo_buf->add( '' ).
     lo_buf->add( '    var hint = this.hintsMap[this.pendingPath];' ).
     lo_buf->add( '' ).
     lo_buf->add( '    if (hint) { // we are there, we have a fully specified tooltip. Let''s activate or yank it' ).
     lo_buf->add( '      this.displayHints(false);' ).
     lo_buf->add( '      event.preventDefault();' ).
     lo_buf->add( '      if (this.yankModeActive) {' ).
-    lo_buf->add( '        submitSapeventForm({ clipboard : hint.parent.firstChild.textContent },"yank_to_clipboard");' ).
+    lo_buf->add( '        submitSapeventForm({ clipboard: hint.parent.firstChild.textContent }, "yank_to_clipboard");' ).
     lo_buf->add( '        this.yankModeActive = false;' ).
     lo_buf->add( '      } else {' ).
     lo_buf->add( '        this.hintActivate(hint);' ).
@@ -30669,7 +30685,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'LinkHints.prototype.hintActivate = function (hint) {' ).
+    lo_buf->add( 'LinkHints.prototype.hintActivate = function(hint) {' ).
     lo_buf->add( '  if (hint.parent.nodeName === "A"' ).
     lo_buf->add( '    // hint.parent.href doesn`t have a # at the end while accessing dropdowns the first time.' ).
     lo_buf->add( '    // Seems like a idiosyncrasy of SAPGUI`s IE. So let`s ignore the last character.' ).
@@ -30694,7 +30710,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'LinkHints.prototype.toggleCheckbox = function (hint) {' ).
+    lo_buf->add( 'LinkHints.prototype.toggleCheckbox = function(hint) {' ).
     lo_buf->add( '  var checked = hint.parent.checked;' ).
     lo_buf->add( '  this.triggerClickHandler(hint.parent.parentElement);' ).
     lo_buf->add( '  if (checked === hint.parent.checked) {' ).
@@ -30707,7 +30723,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.triggerClickHandler(hint.parent);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'LinkHints.prototype.triggerClickHandler = function(el){' ).
+    lo_buf->add( 'LinkHints.prototype.triggerClickHandler = function(el) {' ).
     lo_buf->add( '  // ensures that onclick handler is executed' ).
     lo_buf->add( '  // https://stackoverflow.com/questions/41981509/trigger-an-event-when-a-checkbox-is-changed-programmatically-via-javascript' ).
     lo_buf->add( '  var event = document.createEvent("HTMLEvents");' ).
@@ -30715,7 +30731,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  el.dispatchEvent(event);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'LinkHints.prototype.filterHints = function () {' ).
+    lo_buf->add( 'LinkHints.prototype.filterHints = function() {' ).
     lo_buf->add( '  var visibleHints = 0;' ).
     lo_buf->add( '  for (var i = this.hintsMap.first; i <= this.hintsMap.last; i++) {' ).
     lo_buf->add( '    var hint = this.hintsMap[i];' ).
@@ -30741,12 +30757,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( ' * Hotkeys' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function Hotkeys(oKeyMap){' ).
-    lo_buf->add( '' ).
+    lo_buf->add( 'function Hotkeys(oKeyMap) {' ).
     lo_buf->add( '  this.oKeyMap = oKeyMap || {};' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // these are the hotkeys provided by the backend' ).
-    lo_buf->add( '  Object.keys(this.oKeyMap).forEach(function(sKey){' ).
+    lo_buf->add( '  Object.keys(this.oKeyMap).forEach(function(sKey) {' ).
     lo_buf->add( '' ).
     lo_buf->add( '    var action = this.oKeyMap[sKey];' ).
     lo_buf->add( '' ).
@@ -30769,13 +30784,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      }' ).
     lo_buf->add( '' ).
     lo_buf->add( '      // Or a method of the helper object for the diff page' ).
-    lo_buf->add( '      if (diffHelper[action]){' ).
+    lo_buf->add( '      if (diffHelper[action]) {' ).
     lo_buf->add( '        diffHelper[action].call(diffHelper);' ).
     lo_buf->add( '        return;' ).
     lo_buf->add( '      }' ).
     lo_buf->add( '' ).
     lo_buf->add( '      // Or a global function' ).
-    lo_buf->add( '      if (window[action] && typeof(window[action]) === "function") {' ).
+    lo_buf->add( '      if (window[action] && typeof (window[action]) === "function") {' ).
     lo_buf->add( '        window[action].call(this);' ).
     lo_buf->add( '        return;' ).
     lo_buf->add( '      }' ).
@@ -30807,7 +30822,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    };' ).
     lo_buf->add( '' ).
     lo_buf->add( '  }.bind(this));' ).
-    lo_buf->add( '' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.prototype.showHotkeys = function() {' ).
@@ -30821,76 +30835,69 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'Hotkeys.prototype.getAllSapEventsForSapEventName = function(sSapEvent) {' ).
     lo_buf->add( '  return [].slice.call(' ).
     lo_buf->add( '    document.querySelectorAll(''a[href*="sapevent:'' + sSapEvent + ''"],''' ).
-    lo_buf->add( '                            + ''a[href*="SAPEVENT:'' + sSapEvent + ''"],''' ).
-    lo_buf->add( '                            + ''input[formaction*="sapevent:'' + sSapEvent + ''"],''' ).
-    lo_buf->add( '                            + ''input[formaction*="SAPEVENT:'' + sSapEvent + ''"],''' ).
-    lo_buf->add( '                            + ''form[action*="sapevent:'' + sSapEvent + ''"] input[type="submit"].main,''' ).
-    lo_buf->add( '                            + ''form[action*="SAPEVENT:'' + sSapEvent + ''"] input[type="submit"].main''));' ).
+    lo_buf->add( '      + ''a[href*="SAPEVENT:'' + sSapEvent + ''"],''' ).
+    lo_buf->add( '      + ''input[formaction*="sapevent:'' + sSapEvent + ''"],''' ).
+    lo_buf->add( '      + ''input[formaction*="SAPEVENT:'' + sSapEvent + ''"],''' ).
+    lo_buf->add( '      + ''form[action*="sapevent:'' + sSapEvent + ''"] input[type="submit"].main,''' ).
+    lo_buf->add( '      + ''form[action*="SAPEVENT:'' + sSapEvent + ''"] input[type="submit"].main''));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.prototype.getSapEventHref = function(sSapEvent) {' ).
-    lo_buf->add( '' ).
     lo_buf->add( '  return this.getAllSapEventsForSapEventName(sSapEvent)' ).
-    lo_buf->add( '    .filter(function(el){' ).
+    lo_buf->add( '    .filter(function(el) {' ).
     lo_buf->add( '      // only anchors' ).
     lo_buf->add( '      return (!!el.href);' ).
     lo_buf->add( '    })' ).
-    lo_buf->add( '    .map(function(oSapEvent){' ).
+    lo_buf->add( '    .map(function(oSapEvent) {' ).
     lo_buf->add( '      return oSapEvent.href;' ).
     lo_buf->add( '    })' ).
     lo_buf->add( '    .filter(this.eliminateSapEventFalsePositives(sSapEvent))' ).
     lo_buf->add( '    .pop();' ).
-    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.prototype.getSapEventInputAction = function(sSapEvent) {' ).
-    lo_buf->add( '' ).
     lo_buf->add( '  return this.getAllSapEventsForSapEventName(sSapEvent)' ).
-    lo_buf->add( '    .filter(function(el){' ).
+    lo_buf->add( '    .filter(function(el) {' ).
     lo_buf->add( '      // input forms' ).
     lo_buf->add( '      return (el.type === "submit");' ).
     lo_buf->add( '    })' ).
-    lo_buf->add( '    .map(function(oSapEvent){' ).
+    lo_buf->add( '    .map(function(oSapEvent) {' ).
     lo_buf->add( '      return oSapEvent.formAction;' ).
     lo_buf->add( '    })' ).
     lo_buf->add( '    .filter(this.eliminateSapEventFalsePositives(sSapEvent))' ).
     lo_buf->add( '    .pop();' ).
-    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.prototype.getSapEventForm = function(sSapEvent) {' ).
-    lo_buf->add( '' ).
     lo_buf->add( '  return this.getAllSapEventsForSapEventName(sSapEvent)' ).
-    lo_buf->add( '    .filter(function(el){' ).
+    lo_buf->add( '    .filter(function(el) {' ).
     lo_buf->add( '      // forms' ).
     lo_buf->add( '      var parentForm = el.parentNode.parentNode.parentNode;' ).
     lo_buf->add( '      return (el.type === "submit" && parentForm.nodeName === "FORM");' ).
     lo_buf->add( '    })' ).
-    lo_buf->add( '    .map(function(oSapEvent){' ).
+    lo_buf->add( '    .map(function(oSapEvent) {' ).
     lo_buf->add( '      return oSapEvent.parentNode.parentNode.parentNode;' ).
     lo_buf->add( '    })' ).
     lo_buf->add( '    .pop();' ).
-    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Hotkeys.prototype.eliminateSapEventFalsePositives = function(sapEvent){' ).
+    lo_buf->add( 'Hotkeys.prototype.eliminateSapEventFalsePositives = function(sapEvent) {' ).
     lo_buf->add( '  return function(sapEventAttr) {' ).
     lo_buf->add( '    return sapEventAttr.match(new RegExp("\\b" + sapEvent + "\\b"));' ).
     lo_buf->add( '  };' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Hotkeys.prototype.onkeydown = function(oEvent){' ).
-    lo_buf->add( '' ).
+    lo_buf->add( 'Hotkeys.prototype.onkeydown = function(oEvent) {' ).
     lo_buf->add( '  if (oEvent.defaultPrevented) {' ).
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if (!Hotkeys.isHotkeyCallPossible()){' ).
+    lo_buf->add( '  if (!Hotkeys.isHotkeyCallPossible()) {' ).
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var' ).
-    lo_buf->add( '    sKey = oEvent.key || String.fromCharCode(oEvent.keyCode),' ).
+    lo_buf->add( '    sKey     = oEvent.key || String.fromCharCode(oEvent.keyCode),' ).
     lo_buf->add( '    fnHotkey = this.oKeyMap[sKey];' ).
     lo_buf->add( '' ).
     lo_buf->add( '  if (fnHotkey) {' ).
@@ -30898,23 +30905,23 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Hotkeys.isHotkeyCallPossible = function(){' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  var activeElementType = ((document.activeElement && document.activeElement.nodeName) || "");' ).
+    lo_buf->add( 'Hotkeys.isHotkeyCallPossible = function() {' ).
+    lo_buf->add( '  var activeElementType     = ((document.activeElement && document.activeElement.nodeName) || "");' ).
     lo_buf->add( '  var activeElementReadOnly = ((document.activeElement && document.activeElement.readOnly) || false);' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  return (activeElementReadOnly || ( activeElementType !== "INPUT" && activeElementType !== "TEXTAREA" ));' ).
+    lo_buf->add( '  return (activeElementReadOnly || (activeElementType !== "INPUT" && activeElementType !== "TEXTAREA"));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.addHotkeyToHelpSheet = function(key, description) {' ).
     lo_buf->add( '  var hotkeysUl = document.querySelector("#hotkeys ul.hotkeys");' ).
     lo_buf->add( '  if (!hotkeysUl) return;' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var li              = document.createElement("li");' ).
-    lo_buf->add( '  var spanId          = document.createElement("span");' ).
+    lo_buf->add( '  var li        = document.createElement("li");' ).
+    lo_buf->add( '  var spanId    = document.createElement("span");' ).
+    lo_buf->add( '  var spanDescr = document.createElement("span");' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  spanId.className    = "key-id";' ).
     lo_buf->add( '  spanId.innerText    = key;' ).
-    lo_buf->add( '  var spanDescr       = document.createElement("span");' ).
     lo_buf->add( '  spanDescr.className = "key-descr";' ).
     lo_buf->add( '  spanDescr.innerText = description;' ).
     lo_buf->add( '  li.appendChild(spanId);' ).
@@ -30923,16 +30930,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  hotkeysUl.appendChild(li);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function setKeyBindings(oKeyMap){' ).
-    lo_buf->add( '' ).
+    lo_buf->add( 'function setKeyBindings(oKeyMap) {' ).
     lo_buf->add( '  var oHotkeys = new Hotkeys(oKeyMap);' ).
     lo_buf->add( '' ).
     lo_buf->add( '  document.addEventListener("keypress", oHotkeys.onkeydown.bind(oHotkeys));' ).
-    lo_buf->add( '  setTimeout(function(){' ).
-    lo_buf->add( '    var div = document.getElementById("hotkeys-hint");' ).
-    lo_buf->add( '    if (div) div.style.opacity = 0.2;' ).
+    lo_buf->add( '  setTimeout(function() {' ).
+    lo_buf->add( '    var div                     = document.getElementById("hotkeys-hint");' ).
+    lo_buf->add( '    if  (div) div.style.opacity = 0.2;' ).
     lo_buf->add( '  }, 4900);' ).
-    lo_buf->add( '  setTimeout(function(){ toggleDisplay("hotkeys-hint") }, 5000);' ).
+    lo_buf->add( '  setTimeout(function() { toggleDisplay("hotkeys-hint") }, 5000);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -30961,9 +30967,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      constant prefix' ).
     lo_buf->add( '*/' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function PatchFile(sId){' ).
+    lo_buf->add( 'function PatchFile(sId) {' ).
     lo_buf->add( '  var oRegex = new RegExp("(" + this.ID + ")_(.*$)");' ).
     lo_buf->add( '  var oMatch = sId.match(oRegex);' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  this.id        = sId;' ).
     lo_buf->add( '  this.prefix    = oMatch[1];' ).
     lo_buf->add( '  this.file_name = oMatch[2];' ).
@@ -30986,9 +30993,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      constant prefix' ).
     lo_buf->add( '*/' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function PatchSection(sId){' ).
+    lo_buf->add( 'function PatchSection(sId) {' ).
     lo_buf->add( '  var oRegex = new RegExp("(" + this.ID + ")_(.*)_(\\d+$)");' ).
     lo_buf->add( '  var oMatch = sId.match(oRegex);' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  this.id        = sId;' ).
     lo_buf->add( '  this.prefix    = oMatch[1];' ).
     lo_buf->add( '  this.file_name = oMatch[2];' ).
@@ -31013,8 +31021,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      constant prefix' ).
     lo_buf->add( '*/' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function PatchLine(){' ).
-    lo_buf->add( '}' ).
+    lo_buf->add( 'function PatchLine() { }' ).
     lo_buf->add( '' ).
     lo_buf->add( 'PatchLine.prototype.ID = "patch_line";' ).
     lo_buf->add( '' ).
@@ -31025,84 +31032,80 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Patch.prototype.ACTION = {' ).
-    lo_buf->add( '  PATCH_STAGE: "patch_stage",' ).
+    lo_buf->add( '  PATCH_STAGE  : "patch_stage",' ).
     lo_buf->add( '  REFRESH_LOCAL: "refresh_local",' ).
-    lo_buf->add( '  REFRESH_ALL: "refresh_all"' ).
+    lo_buf->add( '  REFRESH_ALL  : "refresh_all"' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.escape = function(sFileName){' ).
+    lo_buf->add( 'Patch.prototype.escape = function(sFileName) {' ).
     lo_buf->add( '  return sFileName' ).
     lo_buf->add( '    .replace(/\./g, "\\.")' ).
     lo_buf->add( '    .replace(/#/g, "\\#");' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.preparePatch = function(){' ).
-    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.preparePatch = function() {' ).
     lo_buf->add( '  this.registerClickHandlerForFiles();' ).
     lo_buf->add( '  this.registerClickHandlerForSections();' ).
     lo_buf->add( '  this.registerClickHandlerForLines();' ).
-    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.buildSelectorInputStartsWithId = function(sId){' ).
+    lo_buf->add( 'Patch.prototype.buildSelectorInputStartsWithId = function(sId) {' ).
     lo_buf->add( '  return "input[id^=''" + sId + "'']";' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.registerClickHandlerForFiles = function(){' ).
+    lo_buf->add( 'Patch.prototype.registerClickHandlerForFiles = function() {' ).
     lo_buf->add( '  this.registerClickHandlerForSelectorParent(this.buildSelectorInputStartsWithId(PatchFile.prototype.ID), this.onClickFileCheckbox);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.registerClickHandlerForSections = function(){' ).
+    lo_buf->add( 'Patch.prototype.registerClickHandlerForSections = function() {' ).
     lo_buf->add( '  this.registerClickHandlerForSelectorParent(this.buildSelectorInputStartsWithId(PatchSection.prototype.ID), this.onClickSectionCheckbox);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.registerClickHandlerForLines = function(){' ).
+    lo_buf->add( 'Patch.prototype.registerClickHandlerForLines = function() {' ).
     lo_buf->add( '  this.registerClickHandlerForSelectorParent(this.buildSelectorInputStartsWithId(PatchLine.prototype.ID), this.onClickLineCheckbox);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.registerClickHandlerForSelectorParent = function(sSelector, fnCallback){' ).
-    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.registerClickHandlerForSelectorParent = function(sSelector, fnCallback) {' ).
     lo_buf->add( '  var elAll = document.querySelectorAll(sSelector);' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  [].forEach.call(elAll, function(elem){' ).
+    lo_buf->add( '  [].forEach.call(elAll, function(elem) {' ).
     lo_buf->add( '    elem.parentElement.addEventListener("click", fnCallback.bind(this));' ).
     lo_buf->add( '  }.bind(this));' ).
-    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.getAllLineCheckboxesForFile = function(oFile){' ).
+    lo_buf->add( 'Patch.prototype.getAllLineCheckboxesForFile = function(oFile) {' ).
     lo_buf->add( '  return this.getAllLineCheckboxesForId(oFile.id, PatchFile.prototype.ID);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.getAllSectionCheckboxesForFile = function(oFile){' ).
+    lo_buf->add( 'Patch.prototype.getAllSectionCheckboxesForFile = function(oFile) {' ).
     lo_buf->add( '  return this.getAllSectionCheckboxesForId(oFile.id, PatchFile.prototype.ID);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.getAllLineCheckboxesForSection = function(oSection){' ).
+    lo_buf->add( 'Patch.prototype.getAllLineCheckboxesForSection = function(oSection) {' ).
     lo_buf->add( '  return this.getAllLineCheckboxesForId(oSection.id, PatchSection.prototype.ID);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.getAllLineCheckboxesForId = function(sId, sIdPrefix){' ).
-    lo_buf->add( '  return this.getAllCheckboxesForId(sId, sIdPrefix,PatchLine.prototype.ID);' ).
+    lo_buf->add( 'Patch.prototype.getAllLineCheckboxesForId = function(sId, sIdPrefix) {' ).
+    lo_buf->add( '  return this.getAllCheckboxesForId(sId, sIdPrefix, PatchLine.prototype.ID);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.getAllSectionCheckboxesForId = function(sId, sIdPrefix){' ).
+    lo_buf->add( 'Patch.prototype.getAllSectionCheckboxesForId = function(sId, sIdPrefix) {' ).
     lo_buf->add( '  return this.getAllCheckboxesForId(sId, sIdPrefix, PatchSection.prototype.ID);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.getAllCheckboxesForId = function(sId, sIdPrefix, sNewIdPrefix){' ).
+    lo_buf->add( 'Patch.prototype.getAllCheckboxesForId = function(sId, sIdPrefix, sNewIdPrefix) {' ).
     lo_buf->add( '  var oRegex = new RegExp("^" + sIdPrefix);' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  sId = sId.replace(oRegex, sNewIdPrefix);' ).
     lo_buf->add( '  return document.querySelectorAll(this.buildSelectorInputStartsWithId(this.escape(sId)));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.getToggledCheckbox = function(oEvent){' ).
-    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.getToggledCheckbox = function(oEvent) {' ).
     lo_buf->add( '  var elCheckbox = null;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // We have either an input element or any element with input child' ).
     lo_buf->add( '  // in the latter case we have to toggle the checkbox manually' ).
-    lo_buf->add( '  if (oEvent.srcElement.nodeName === "INPUT"){' ).
+    lo_buf->add( '  if (oEvent.srcElement.nodeName === "INPUT") {' ).
     lo_buf->add( '    elCheckbox = oEvent.srcElement;' ).
     lo_buf->add( '  } else {' ).
     lo_buf->add( '    elCheckbox = this.toggleCheckbox(oEvent.srcElement.querySelector("INPUT"));' ).
@@ -31117,97 +31120,88 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Patch.prototype.onClickFileCheckbox = function(oEvent) {' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  var elCheckbox = this.getToggledCheckbox(oEvent);' ).
-    lo_buf->add( '  var oFile = new PatchFile(elCheckbox.id);' ).
-    lo_buf->add( '  var elAllLineCheckboxesOfFile = this.getAllLineCheckboxesForFile(oFile);' ).
+    lo_buf->add( '  var elCheckbox                   = this.getToggledCheckbox(oEvent);' ).
+    lo_buf->add( '  var oFile                        = new PatchFile(elCheckbox.id);' ).
+    lo_buf->add( '  var elAllLineCheckboxesOfFile    = this.getAllLineCheckboxesForFile(oFile);' ).
     lo_buf->add( '  var elAllSectionCheckboxesOfFile = this.getAllSectionCheckboxesForFile(oFile);' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  [].forEach.call(elAllLineCheckboxesOfFile,function(elem){' ).
+    lo_buf->add( '  [].forEach.call(elAllLineCheckboxesOfFile, function(elem) {' ).
     lo_buf->add( '    elem.checked = elCheckbox.checked;' ).
     lo_buf->add( '  }.bind(this));' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  [].forEach.call(elAllSectionCheckboxesOfFile,function(elem){' ).
+    lo_buf->add( '  [].forEach.call(elAllSectionCheckboxesOfFile, function(elem) {' ).
     lo_buf->add( '    elem.checked = elCheckbox.checked;' ).
     lo_buf->add( '  }.bind(this));' ).
-    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.onClickSectionCheckbox = function(oEvent){' ).
+    lo_buf->add( 'Patch.prototype.onClickSectionCheckbox = function(oEvent) {' ).
     lo_buf->add( '  var elSrcElement = this.getToggledCheckbox(oEvent);' ).
-    lo_buf->add( '  var oSection = new PatchSection(elSrcElement.id);' ).
+    lo_buf->add( '  var oSection     = new PatchSection(elSrcElement.id);' ).
     lo_buf->add( '  this.clickAllLineCheckboxesInSection(oSection, elSrcElement.checked);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.onClickLineCheckbox = function(oEvent){' ).
+    lo_buf->add( 'Patch.prototype.onClickLineCheckbox = function(oEvent) {' ).
     lo_buf->add( '  this.getToggledCheckbox(oEvent);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.clickAllLineCheckboxesInSection = function(oSection, bChecked){' ).
-    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.clickAllLineCheckboxesInSection = function(oSection, bChecked) {' ).
     lo_buf->add( '  var elAllLineCheckboxesOfSection = this.getAllLineCheckboxesForSection(oSection);' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  [].forEach.call(elAllLineCheckboxesOfSection,function(elem){' ).
+    lo_buf->add( '  [].forEach.call(elAllLineCheckboxesOfSection, function(elem) {' ).
     lo_buf->add( '    elem.checked = bChecked;' ).
     lo_buf->add( '  }.bind(this));' ).
-    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.registerStagePatch = function (){' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  var elStage = document.querySelector("#" + this.ID.STAGE);' ).
+    lo_buf->add( 'Patch.prototype.registerStagePatch = function() {' ).
+    lo_buf->add( '  var elStage        = document.querySelector("#" + this.ID.STAGE);' ).
     lo_buf->add( '  var REFRESH_PREFIX = "refresh";' ).
     lo_buf->add( '' ).
     lo_buf->add( '  elStage.addEventListener("click", this.submitPatch.bind(this, this.ACTION.PATCH_STAGE));' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var aRefresh = document.querySelectorAll("[id*=" + REFRESH_PREFIX + "]");' ).
-    lo_buf->add( '  [].forEach.call( aRefresh, function(el) {' ).
+    lo_buf->add( '  [].forEach.call(aRefresh, function(el) {' ).
     lo_buf->add( '    el.addEventListener("click", memorizeScrollPosition(this.submitPatch.bind(this, el.id)).bind(this));' ).
     lo_buf->add( '  }.bind(this));' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // for hotkeys' ).
-    lo_buf->add( '  window.stagePatch = function(){' ).
+    lo_buf->add( '  window.stagePatch = function() {' ).
     lo_buf->add( '    this.submitPatch(this.ACTION.PATCH_STAGE);' ).
     lo_buf->add( '  }.bind(this);' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  window.refreshLocal = memorizeScrollPosition(function(){' ).
+    lo_buf->add( '  window.refreshLocal = memorizeScrollPosition(function() {' ).
     lo_buf->add( '    this.submitPatch(this.ACTION.REFRESH_LOCAL);' ).
     lo_buf->add( '  }.bind(this));' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  window.refreshAll = memorizeScrollPosition(function(){' ).
+    lo_buf->add( '  window.refreshAll = memorizeScrollPosition(function() {' ).
     lo_buf->add( '    this.submitPatch(this.ACTION.REFRESH_ALL);' ).
     lo_buf->add( '  }.bind(this));' ).
-    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Patch.prototype.submitPatch = function(action) {' ).
     lo_buf->add( '  // Collect add and remove info and submit to backend' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  var aAddPatch = this.collectElementsForCheckboxId( PatchLine.prototype.ID, true);' ).
-    lo_buf->add( '  var aRemovePatch = this.collectElementsForCheckboxId( PatchLine.prototype.ID, false);' ).
+    lo_buf->add( '  var aAddPatch    = this.collectElementsForCheckboxId(PatchLine.prototype.ID, true);' ).
+    lo_buf->add( '  var aRemovePatch = this.collectElementsForCheckboxId(PatchLine.prototype.ID, false);' ).
     lo_buf->add( '' ).
     lo_buf->add( '  submitSapeventForm({ add: aAddPatch, remove: aRemovePatch }, action, "post");' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Patch.prototype.collectElementsForCheckboxId = function(sId, bChecked){' ).
-    lo_buf->add( '' ).
+    lo_buf->add( 'Patch.prototype.collectElementsForCheckboxId = function(sId, bChecked) {' ).
     lo_buf->add( '  var sSelector = this.buildSelectorInputStartsWithId(sId);' ).
     lo_buf->add( '' ).
     lo_buf->add( '  return [].slice.call(document.querySelectorAll(sSelector))' ).
-    lo_buf->add( '    .filter(function(elem){' ).
+    lo_buf->add( '    .filter(function(elem) {' ).
     lo_buf->add( '      return (elem.checked === bChecked);' ).
-    lo_buf->add( '    }).map(function(elem){' ).
+    lo_buf->add( '    }).map(function(elem) {' ).
     lo_buf->add( '      return elem.id;' ).
     lo_buf->add( '    });' ).
-    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function preparePatch(){' ).
+    lo_buf->add( 'function preparePatch() {' ).
     lo_buf->add( '  var oPatch = new Patch();' ).
     lo_buf->add( '  oPatch.preparePatch();' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function registerStagePatch(){' ).
+    lo_buf->add( 'function registerStagePatch() {' ).
     lo_buf->add( '  var oPatch = new Patch();' ).
     lo_buf->add( '  oPatch.registerStagePatch();' ).
     lo_buf->add( '}' ).
@@ -31219,7 +31213,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// fuzzy match helper' ).
     lo_buf->add( '// return non empty marked string in case it fits the filter' ).
     lo_buf->add( '// abc + b = a<mark>b</mark>c' ).
-    lo_buf->add( 'function fuzzyMatchAndMark(str, filter){' ).
+    lo_buf->add( 'function fuzzyMatchAndMark(str, filter) {' ).
     lo_buf->add( '  var markedStr   = "";' ).
     lo_buf->add( '  var filterLower = filter.toLowerCase();' ).
     lo_buf->add( '  var strLower    = str.toLowerCase();' ).
@@ -31234,8 +31228,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var matched = i === filter.length;' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  if (matched && cur < str.length) markedStr += str.substring(cur);' ).
-    lo_buf->add( '  return matched ? markedStr : null;' ).
+    lo_buf->add( '  return matched ? markedStr: null;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function CommandPalette(commandEnumerator, opts) {' ).
@@ -31260,13 +31255,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  this.hotkeyDescription = opts.hotkeyDescription;' ).
-    lo_buf->add( '  this.elements = {' ).
+    lo_buf->add( '  this.elements          = {' ).
     lo_buf->add( '    palette: null,' ).
-    lo_buf->add( '    ul:      null,' ).
-    lo_buf->add( '    input:   null' ).
+    lo_buf->add( '    ul     : null,' ).
+    lo_buf->add( '    input  : null' ).
     lo_buf->add( '  };' ).
-    lo_buf->add( '  this.selectIndex       = -1; // not selected' ).
-    lo_buf->add( '  this.filter            = "";' ).
+    lo_buf->add( '  this.selectIndex = -1; // not selected' ).
+    lo_buf->add( '  this.filter      = "";' ).
     lo_buf->add( '  this.renderAndBindElements();' ).
     lo_buf->add( '  this.hookEvents();' ).
     lo_buf->add( '  Hotkeys.addHotkeyToHelpSheet(opts.toggleKey, opts.hotkeyDescription);' ).
@@ -31277,16 +31272,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  CommandPalette.instances.push(this);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'CommandPalette.prototype.hookEvents = function(){' ).
+    lo_buf->add( 'CommandPalette.prototype.hookEvents = function() {' ).
     lo_buf->add( '  document.addEventListener("keydown", this.handleToggleKey.bind(this));' ).
     lo_buf->add( '  this.elements.input.addEventListener("keyup", this.handleInputKey.bind(this));' ).
     lo_buf->add( '  this.elements.ul.addEventListener("click", this.handleUlClick.bind(this));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'CommandPalette.prototype.renderCommandItem = function(cmd){' ).
+    lo_buf->add( 'CommandPalette.prototype.renderCommandItem = function(cmd) {' ).
     lo_buf->add( '  var li = document.createElement("li");' ).
     lo_buf->add( '  if (cmd.iconClass) {' ).
-    lo_buf->add( '    var icon       = document.createElement("i");' ).
+    lo_buf->add( '    var icon = document.createElement("i");' ).
+    lo_buf->add( '' ).
     lo_buf->add( '    icon.className = cmd.iconClass;' ).
     lo_buf->add( '    li.appendChild(icon);' ).
     lo_buf->add( '  }' ).
@@ -31297,13 +31293,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  return li;' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'CommandPalette.prototype.renderAndBindElements = function(){' ).
-    lo_buf->add( '  var div           = document.createElement("div");' ).
+    lo_buf->add( 'CommandPalette.prototype.renderAndBindElements = function() {' ).
+    lo_buf->add( '  var div   = document.createElement("div");' ).
+    lo_buf->add( '  var input = document.createElement("input");' ).
+    lo_buf->add( '  var ul    = document.createElement("ul");' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  div.className     = "cmd-palette";' ).
     lo_buf->add( '  div.style.display = "none";' ).
-    lo_buf->add( '  var input         = document.createElement("input");' ).
     lo_buf->add( '  input.placeholder = this.hotkeyDescription;' ).
-    lo_buf->add( '  var ul            = document.createElement("ul");' ).
     lo_buf->add( '  for (var i = 0; i < this.commands.length; i++) ul.appendChild(this.renderCommandItem(this.commands[i]));' ).
     lo_buf->add( '  div.appendChild(input);' ).
     lo_buf->add( '  div.appendChild(ul);' ).
@@ -31314,14 +31311,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  document.body.appendChild(div);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'CommandPalette.prototype.handleToggleKey = function(event){' ).
+    lo_buf->add( 'CommandPalette.prototype.handleToggleKey = function(event) {' ).
     lo_buf->add( '  if (event.key !== this.toggleKey) return;' ).
     lo_buf->add( '  if (this.toggleKeyCtrl && !event.ctrlKey) return;' ).
     lo_buf->add( '  this.toggleDisplay();' ).
     lo_buf->add( '  event.preventDefault();' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'CommandPalette.prototype.handleInputKey = function(event){' ).
+    lo_buf->add( 'CommandPalette.prototype.handleInputKey = function(event) {' ).
     lo_buf->add( '  if (event.key === "ArrowUp" || event.key === "Up") {' ).
     lo_buf->add( '    this.selectPrev();' ).
     lo_buf->add( '  } else if (event.key === "ArrowDown" || event.key === "Down") {' ).
@@ -31338,7 +31335,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  event.preventDefault();' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'CommandPalette.prototype.applyFilter = function(){' ).
+    lo_buf->add( 'CommandPalette.prototype.applyFilter = function() {' ).
     lo_buf->add( '  for (var i = 0; i < this.commands.length; i++) {' ).
     lo_buf->add( '    var cmd = this.commands[i];' ).
     lo_buf->add( '    if (!this.filter) {' ).
@@ -31356,7 +31353,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'CommandPalette.prototype.applySelectIndex = function(newIndex){' ).
+    lo_buf->add( 'CommandPalette.prototype.applySelectIndex = function(newIndex) {' ).
     lo_buf->add( '  if (newIndex !== this.selectIndex) {' ).
     lo_buf->add( '    if (this.selectIndex >= 0) this.commands[this.selectIndex].element.classList.remove("selected");' ).
     lo_buf->add( '    var newCmd = this.commands[newIndex];' ).
@@ -31366,7 +31363,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'CommandPalette.prototype.selectFirst = function(){' ).
+    lo_buf->add( 'CommandPalette.prototype.selectFirst = function() {' ).
     lo_buf->add( '  for (var i = 0; i < this.commands.length; i++) {' ).
     lo_buf->add( '    if (this.commands[i].element.style.display === "none") continue; // skip hidden' ).
     lo_buf->add( '    this.applySelectIndex(i);' ).
@@ -31374,7 +31371,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'CommandPalette.prototype.selectNext = function(){' ).
+    lo_buf->add( 'CommandPalette.prototype.selectNext = function() {' ).
     lo_buf->add( '  for (var i = this.selectIndex + 1; i < this.commands.length; i++) {' ).
     lo_buf->add( '    if (this.commands[i].element.style.display === "none") continue; // skip hidden' ).
     lo_buf->add( '    this.applySelectIndex(i);' ).
@@ -31382,7 +31379,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'CommandPalette.prototype.selectPrev = function(){' ).
+    lo_buf->add( 'CommandPalette.prototype.selectPrev = function() {' ).
     lo_buf->add( '  for (var i = this.selectIndex - 1; i >= 0; i--) {' ).
     lo_buf->add( '    if (this.commands[i].element.style.display === "none") continue; // skip hidden' ).
     lo_buf->add( '    this.applySelectIndex(i);' ).
@@ -31390,13 +31387,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'CommandPalette.prototype.getSelected = function(){' ).
+    lo_buf->add( 'CommandPalette.prototype.getSelected = function() {' ).
     lo_buf->add( '  return this.commands[this.selectIndex];' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'CommandPalette.prototype.adjustScrollPosition = function(itemElement){' ).
-    lo_buf->add( '  var bItem         = itemElement.getBoundingClientRect();' ).
-    lo_buf->add( '  var bContainer    = this.elements.ul.getBoundingClientRect();' ).
+    lo_buf->add( 'CommandPalette.prototype.adjustScrollPosition = function(itemElement) {' ).
+    lo_buf->add( '  var bItem      = itemElement.getBoundingClientRect();' ).
+    lo_buf->add( '  var bContainer = this.elements.ul.getBoundingClientRect();' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  bItem.top         = Math.round(bItem.top);' ).
     lo_buf->add( '  bItem.bottom      = Math.round(bItem.bottom);' ).
     lo_buf->add( '  bItem.height      = Math.round(bItem.height);' ).
@@ -31404,20 +31402,20 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  bContainer.top    = Math.round(bContainer.top);' ).
     lo_buf->add( '  bContainer.bottom = Math.round(bContainer.bottom);' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if ( bItem.mid > bContainer.bottom - 2 ) {' ).
+    lo_buf->add( '  if (bItem.mid > bContainer.bottom - 2) {' ).
     lo_buf->add( '    this.elements.ul.scrollTop += bItem.bottom - bContainer.bottom;' ).
-    lo_buf->add( '  } else if ( bItem.mid < bContainer.top + 2 ) {' ).
+    lo_buf->add( '  } else if (bItem.mid < bContainer.top + 2) {' ).
     lo_buf->add( '    this.elements.ul.scrollTop += bItem.top - bContainer.top;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'CommandPalette.prototype.toggleDisplay = function(forceState) {' ).
-    lo_buf->add( '  var isDisplayed = (this.elements.palette.style.display !== "none");' ).
+    lo_buf->add( '  var isDisplayed   = (this.elements.palette.style.display !== "none");' ).
     lo_buf->add( '  var tobeDisplayed = (forceState !== undefined) ? forceState : !isDisplayed;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  if (tobeDisplayed) {' ).
     lo_buf->add( '    // auto close other command palettes' ).
-    lo_buf->add( '    CommandPalette.instances.forEach(function(instance){' ).
+    lo_buf->add( '    CommandPalette.instances.forEach(function(instance) {' ).
     lo_buf->add( '      instance.elements.palette.style.display = "none";' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '  }' ).
@@ -31429,7 +31427,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    this.applyFilter();' ).
     lo_buf->add( '    this.selectFirst();' ).
     lo_buf->add( '  }' ).
-    lo_buf->add( '' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'CommandPalette.prototype.getCommandByElement = function(element) {' ).
@@ -31442,7 +31439,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  var element = event.target || event.srcElement;' ).
     lo_buf->add( '  if (!element) return;' ).
     lo_buf->add( '  if (element.nodeName === "SPAN") element = element.parentNode;' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  if (element.nodeName === "I") element = element.parentNode;' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  if (element.nodeName !== "LI") return;' ).
     lo_buf->add( '  this.exec(this.getCommandByElement(element));' ).
     lo_buf->add( '};' ).
@@ -31450,7 +31449,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'CommandPalette.prototype.exec = function(cmd) {' ).
     lo_buf->add( '  if (!cmd) return;' ).
     lo_buf->add( '  this.toggleDisplay(false);' ).
-    lo_buf->add( '  if (typeof cmd.action === "function"){' ).
+    lo_buf->add( '  if (typeof cmd.action === "function") {' ).
     lo_buf->add( '    cmd.action();' ).
     lo_buf->add( '  } else {' ).
     lo_buf->add( '    submitSapeventForm(null, cmd.action);' ).
@@ -31458,8 +31457,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Is any command palette visible?' ).
-    lo_buf->add( 'CommandPalette.isVisible = function(){' ).
-    lo_buf->add( '  return CommandPalette.instances.reduce(function(result, instance){ return result || instance.elements.palette.style.display !== "none" }, false);' ).
+    lo_buf->add( 'CommandPalette.isVisible = function() {' ).
+    lo_buf->add( '  return CommandPalette.instances.reduce(function(result, instance) { return result || instance.elements.palette.style.display !== "none" }, false);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -31471,24 +31470,21 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  return function() {' ).
     lo_buf->add( '    return catalog.map(function(i) {' ).
     lo_buf->add( '      return {' ).
-    lo_buf->add( '        action:    action + "?key=" + i.key,' ).
-    lo_buf->add( '        iconClass: i.isOffline' ).
-    lo_buf->add( '          ? "icon icon-plug darkgrey"' ).
-    lo_buf->add( '          : "icon icon-cloud-upload-alt blue",' ).
-    lo_buf->add( '        title: i.displayName' ).
+    lo_buf->add( '        action   : action + "?key=" + i.key,' ).
+    lo_buf->add( '        iconClass: i.isOffline ? "icon icon-plug darkgrey" : "icon icon-cloud-upload-alt blue",' ).
+    lo_buf->add( '        title    : i.displayName' ).
     lo_buf->add( '      };' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '  };' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function enumerateUiActions() {' ).
-    lo_buf->add( '' ).
     lo_buf->add( '  var items = [];' ).
     lo_buf->add( '  function processUL(ulNode, prefix) {' ).
     lo_buf->add( '    for (var i = 0; i < ulNode.children.length; i++) {' ).
     lo_buf->add( '      var item = ulNode.children[i];' ).
     lo_buf->add( '      if (item.nodeName !== "LI") continue; // unexpected node' ).
-    lo_buf->add( '      if (item.children.length >=2 && item.children[1].nodeName === "UL") {' ).
+    lo_buf->add( '      if (item.children.length >= 2 && item.children[1].nodeName === "UL") {' ).
     lo_buf->add( '        // submenu detected' ).
     lo_buf->add( '        var menutext = item.children[0].innerText;' ).
     lo_buf->add( '        // special treatment for menus without text' ).
@@ -31505,9 +31501,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '  // toolbars' ).
     lo_buf->add( '  [].slice.call(document.querySelectorAll("[id*=toolbar]"))' ).
-    lo_buf->add( '    .filter(function(toolbar){' ).
+    lo_buf->add( '    .filter(function(toolbar) {' ).
     lo_buf->add( '      return (toolbar && toolbar.nodeName === "UL");' ).
-    lo_buf->add( '    }).forEach(function(toolbar){' ).
+    lo_buf->add( '    }).forEach(function(toolbar) {' ).
     lo_buf->add( '      processUL(toolbar);' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '' ).
@@ -31515,7 +31511,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    var action = "";' ).
     lo_buf->add( '    var anchor = item[0];' ).
     lo_buf->add( '    if (anchor.href.includes("#")) {' ).
-    lo_buf->add( '      action = function(){' ).
+    lo_buf->add( '      action = function() {' ).
     lo_buf->add( '        anchor.click();' ).
     lo_buf->add( '      };' ).
     lo_buf->add( '    } else {' ).
@@ -31523,31 +31519,31 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    }' ).
     lo_buf->add( '    var prefix = item[1];' ).
     lo_buf->add( '    return {' ).
-    lo_buf->add( '      action:    action,' ).
-    lo_buf->add( '      title:     (prefix ? prefix + ": " : "") + anchor.innerText.trim()' ).
+    lo_buf->add( '      action: action,' ).
+    lo_buf->add( '      title : (prefix ? prefix + ": " : "") + anchor.innerText.trim()' ).
     lo_buf->add( '    };' ).
     lo_buf->add( '  });' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // forms' ).
     lo_buf->add( '  [].slice.call(document.querySelectorAll("input[type=''submit'']"))' ).
-    lo_buf->add( '    .forEach(function(input){' ).
+    lo_buf->add( '    .forEach(function(input) {' ).
     lo_buf->add( '      items.push({' ).
-    lo_buf->add( '        action: function(){' ).
-    lo_buf->add( '          if (input.form.action.includes(input.formAction)){' ).
+    lo_buf->add( '        action: function() {' ).
+    lo_buf->add( '          if (input.form.action.includes(input.formAction)) {' ).
     lo_buf->add( '            input.form.submit();' ).
     lo_buf->add( '          } else {' ).
     lo_buf->add( '            submitSapeventForm({}, input.formAction, "post", input.form);' ).
     lo_buf->add( '          }' ).
     lo_buf->add( '        },' ).
-    lo_buf->add( '        title: input.value + " " + input.title.replace(/\[.*\]/,"")' ).
+    lo_buf->add( '        title: input.value + " " + input.title.replace(/\[.*\]/, "")' ).
     lo_buf->add( '      });' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // radio buttons' ).
     lo_buf->add( '  [].slice.call(document.querySelectorAll("input[type=''radio'']"))' ).
-    lo_buf->add( '    .forEach(function(input){' ).
+    lo_buf->add( '    .forEach(function(input) {' ).
     lo_buf->add( '      items.push({' ).
-    lo_buf->add( '        action: function(){' ).
+    lo_buf->add( '        action: function() {' ).
     lo_buf->add( '          input.click();' ).
     lo_buf->add( '        },' ).
     lo_buf->add( '        title: document.querySelector("label[for=''" + input.id + "'']").textContent' ).
@@ -31560,14 +31556,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // - command links' ).
     lo_buf->add( '  // - other header links' ).
     lo_buf->add( '  [].slice.call(document.querySelectorAll("form a, a.command, #header ul:not([id*=''toolbar'']) a"))' ).
-    lo_buf->add( '    .filter(function(anchor){' ).
+    lo_buf->add( '    .filter(function(anchor) {' ).
     lo_buf->add( '      return !!anchor.title || !!anchor.text;' ).
-    lo_buf->add( '    }).forEach(function(anchor){' ).
+    lo_buf->add( '    }).forEach(function(anchor) {' ).
     lo_buf->add( '      items.push({' ).
-    lo_buf->add( '        action: function(){' ).
+    lo_buf->add( '        action: function() {' ).
     lo_buf->add( '          anchor.click();' ).
     lo_buf->add( '        },' ).
-    lo_buf->add( '        title: (function(){' ).
+    lo_buf->add( '        title: (function() {' ).
     lo_buf->add( '          var result = anchor.title + anchor.text;' ).
     lo_buf->add( '          if (anchor.href.includes("label")) {' ).
     lo_buf->add( '            result = "Label: " + result;' ).
@@ -31591,26 +31587,27 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      var title = listItem.children[0].childNodes[0].textContent;' ).
     lo_buf->add( '      return {' ).
     lo_buf->add( '        action: root.onclick.bind(null, title),' ).
-    lo_buf->add( '        title:  title' ).
-    lo_buf->add( '      };});' ).
+    lo_buf->add( '        title : title' ).
+    lo_buf->add( '      };' ).
+    lo_buf->add( '    });' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
     lo_buf->add( ' * Save Scroll Position' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function saveScrollPosition(){' ).
+    lo_buf->add( 'function saveScrollPosition() {' ).
     lo_buf->add( '  // Not supported by Java GUI' ).
     lo_buf->add( '  try { if (!window.sessionStorage) { return } }' ).
-    lo_buf->add( '  catch(err) { return }' ).
+    lo_buf->add( '  catch (err) { return }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  window.sessionStorage.setItem("scrollTop", document.querySelector("html").scrollTop);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function restoreScrollPosition(){' ).
+    lo_buf->add( 'function restoreScrollPosition() {' ).
     lo_buf->add( '  // Not supported by Java GUI' ).
     lo_buf->add( '  try { if (!window.sessionStorage) { return } }' ).
-    lo_buf->add( '  catch(err) { return }' ).
+    lo_buf->add( '  catch (err) { return }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var scrollTop = window.sessionStorage.getItem("scrollTop");' ).
     lo_buf->add( '  if (scrollTop) {' ).
@@ -31619,8 +31616,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  window.sessionStorage.setItem("scrollTop", 0);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'function memorizeScrollPosition(fn){' ).
-    lo_buf->add( '  return function(){' ).
+    lo_buf->add( 'function memorizeScrollPosition(fn) {' ).
+    lo_buf->add( '  return function() {' ).
     lo_buf->add( '    saveScrollPosition();' ).
     lo_buf->add( '    return fn.call(this, fn.args);' ).
     lo_buf->add( '  }.bind(this);' ).
@@ -31639,7 +31636,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// Add the sticky class to the navbar when you reach its scroll position.' ).
     lo_buf->add( '// Remove "sticky" when you leave the scroll position' ).
     lo_buf->add( 'function toggleSticky() {' ).
-    lo_buf->add( '  var body = document.getElementsByTagName("body")[0];' ).
+    lo_buf->add( '  var body   = document.getElementsByTagName("body")[0];' ).
     lo_buf->add( '  var header = document.getElementById("header");' ).
     lo_buf->add( '  var sticky = header.offsetTop;' ).
     lo_buf->add( '' ).
@@ -31649,9 +31646,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  if (window.pageYOffset >= sticky) {' ).
-    lo_buf->add( '    header.classList.add( stickyClass );' ).
+    lo_buf->add( '    header.classList.add(stickyClass);' ).
     lo_buf->add( '  } else {' ).
-    lo_buf->add( '    header.classList.remove( stickyClass );' ).
+    lo_buf->add( '    header.classList.remove(stickyClass);' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '}' ).
     lo_asset_man->register_asset(
@@ -118302,6 +118299,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.9 - 2023-02-26T17:08:11.904Z
+* abapmerge 0.14.9 - 2023-02-26T18:31:56.042Z
 ENDINTERFACE.
 ****************************************************
