@@ -29136,7 +29136,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
 * abapmerge Pragma - ZABAPGIT_JS_COMMON.W3MI.DATA.JS
 ****************************************************
     lo_buf->add( '/**********************************************************' ).
-    lo_buf->add( ' * ABAPGIT JS function library' ).
+    lo_buf->add( ' * abapGit JavaScript Function Library' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -29313,7 +29313,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  alert("JS Error, please log an issue (@" + targetName + ")");' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '// confirm JS initilization' ).
+    lo_buf->add( '// Confirm JS initilization' ).
     lo_buf->add( 'function confirmInitialized() {' ).
     lo_buf->add( '  var errorBanner = document.getElementById("js-error-banner");' ).
     lo_buf->add( '  if (errorBanner) {' ).
@@ -29589,7 +29589,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
-    lo_buf->add( ' * STAGE PAGE Logic' ).
+    lo_buf->add( ' * Staging Logic' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Stage helper constructor' ).
@@ -29964,7 +29964,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
-    lo_buf->add( ' * Check list wrapper' ).
+    lo_buf->add( ' * Check List Wrapper' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function CheckListWrapper(id, cbAction, cbActionOnlyMyChanges) {' ).
@@ -30014,7 +30014,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
-    lo_buf->add( ' * Diff page logic' ).
+    lo_buf->add( ' * Diff Page Logic' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Diff helper constructor' ).
@@ -30185,7 +30185,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( '// Highlight Filter button if filter is activate' ).
+    lo_buf->add( '// Highlight filter button if filter is activate' ).
     lo_buf->add( 'DiffHelper.prototype.highlightButton = function(state) {' ).
     lo_buf->add( '  this.counter += state ? -1 : 1;' ).
     lo_buf->add( '  if (this.counter > 0) {' ).
@@ -30195,7 +30195,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( '//Collapse/Expand diffs' ).
+    lo_buf->add( '// Collapse or expand diffs' ).
     lo_buf->add( 'function onDiffCollapse(event) {' ).
     lo_buf->add( '  var source = event.target || event.srcElement;' ).
     lo_buf->add( '  var nextDiffContent = source.parentElement.nextElementSibling;' ).
@@ -30214,14 +30214,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  hide ? nextDiffContent.classList.add("nodisplay") : nextDiffContent.classList.remove("nodisplay");' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '// Add Bottom margin, so that we can scroll to the top of the last file' ).
+    lo_buf->add( '// Add bottom margin, so that we can scroll to the top of the last file' ).
     lo_buf->add( 'function addMarginBottom(){' ).
     lo_buf->add( '  document.getElementsByTagName("body")[0].style.marginBottom = screen.height + "px";' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
-    lo_buf->add( ' * Diff page logic of column selection' ).
+    lo_buf->add( ' * Diff Page Column Selection' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function DiffColumnSelection() {' ).
@@ -30347,14 +30346,18 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
-    lo_buf->add( ' * Other functions' ).
+    lo_buf->add( ' * Display Helper' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
-    lo_buf->add( '// News announcement' ).
+    lo_buf->add( '// Toggle display of changelog (news) and message popups' ).
     lo_buf->add( 'function toggleDisplay(divId) {' ).
     lo_buf->add( '  var div = document.getElementById(divId);' ).
     lo_buf->add( '  if (div) div.style.display = (div.style.display) ? "" : "none";' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Keyboard Navigation' ).
+    lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function KeyNavigation() { }' ).
     lo_buf->add( '' ).
@@ -30476,7 +30479,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  document.addEventListener("keydown", new KeyNavigation().getHandler());' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* LINK HINTS - Vimium like link hints */' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Link Hints (Vimium-like)' ).
+    lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function LinkHints(linkHintHotKey){' ).
     lo_buf->add( '  this.linkHintHotKey    = linkHintHotKey;' ).
@@ -30633,10 +30638,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'LinkHints.prototype.hintActivate = function (hint) {' ).
     lo_buf->add( '  if (hint.parent.nodeName === "A"' ).
-    lo_buf->add( '    // hint.parent.href doesn''t have a # at the end while accessing dropdowns the first time.' ).
-    lo_buf->add( '    // Seems like a idiosyncrasy of SAPGUI''s IE. So let''s ignore the last character.' ).
-    lo_buf->add( '    && ( hint.parent.href.substr(0, hint.parent.href.length - 1) === document.location.href ) // href is #' ).
-    lo_buf->add( '    && !hint.parent.onclick                         // no handler' ).
+    lo_buf->add( '    // hint.parent.href doesn`t have a # at the end while accessing dropdowns the first time.' ).
+    lo_buf->add( '    // Seems like a idiosyncrasy of SAPGUI`s IE. So let`s ignore the last character.' ).
+    lo_buf->add( '    && (hint.parent.href.substr(0, hint.parent.href.length - 1) === document.location.href)// href is #' ).
+    lo_buf->add( '    && !hint.parent.onclick // no handler' ).
     lo_buf->add( '    && hint.parent.parentElement && hint.parent.parentElement.nodeName === "LI") {' ).
     lo_buf->add( '    // probably it is a dropdown ...' ).
     lo_buf->add( '    this.activatedDropdown = hint.parent.parentElement;' ).
@@ -30699,7 +30704,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  document.addEventListener("keypress", oLinkHint.getHandler());' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* HOTKEYS */' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Hotkeys' ).
+    lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function Hotkeys(oKeyMap){' ).
     lo_buf->add( '' ).
@@ -30895,17 +30902,16 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  setTimeout(function(){ toggleDisplay("hotkeys-hint") }, 5000);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/*' ).
-    lo_buf->add( '  Patch / git add -p' ).
-    lo_buf->add( '  */' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Patch Logic (git add -p)' ).
+    lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( '/*' ).
     lo_buf->add( '  We have three type of cascading checkboxes.' ).
     lo_buf->add( '  Which means that by clicking a file or section checkbox all corresponding line checkboxes are checked.' ).
     lo_buf->add( '' ).
     lo_buf->add( '  The id of the checkbox indicates its semantics and its membership.' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  */' ).
+    lo_buf->add( '*/' ).
     lo_buf->add( '' ).
     lo_buf->add( '/*' ).
     lo_buf->add( '  1) file links' ).
@@ -30920,8 +30926,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '          |' ).
     lo_buf->add( '          |' ).
     lo_buf->add( '      constant prefix' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  */' ).
+    lo_buf->add( '*/' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function PatchFile(sId){' ).
     lo_buf->add( '  var oRegex = new RegExp("(" + this.ID + ")_(.*$)");' ).
@@ -30946,8 +30951,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '            |                                       ------ section' ).
     lo_buf->add( '            |' ).
     lo_buf->add( '      constant prefix' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '    */' ).
+    lo_buf->add( '*/' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function PatchSection(sId){' ).
     lo_buf->add( '  var oRegex = new RegExp("(" + this.ID + ")_(.*)_(\\d+$)");' ).
@@ -30974,8 +30978,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '            |' ).
     lo_buf->add( '            |' ).
     lo_buf->add( '      constant prefix' ).
+    lo_buf->add( '*/' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  */' ).
     lo_buf->add( 'function PatchLine(){' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -31176,7 +31180,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
-    lo_buf->add( ' * Ctrl + P - command palette' ).
+    lo_buf->add( ' * Command Palette (Ctrl + P)' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( '// fuzzy match helper' ).
@@ -31425,7 +31429,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  return CommandPalette.instances.reduce(function(result, instance){ return result || instance.elements.palette.style.display !== "none" }, false);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* COMMAND ENUMERATORS */' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Command Enumerators' ).
+    lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function createRepoCatalogEnumerator(catalog, action) {' ).
     lo_buf->add( '  // expecting [{ key, isOffline, displayName }]' ).
@@ -31556,7 +31562,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      };});' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* Save Scroll Position for Diff/Patch Page */' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Save Scroll Position' ).
+    lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function saveScrollPosition(){' ).
     lo_buf->add( '  // Not supported by Java GUI' ).
@@ -31585,7 +31593,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }.bind(this);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* STICKY HEADERS */' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Sticky Header' ).
+    lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* https://www.w3schools.com/howto/howto_js_navbar_sticky.asp */' ).
     lo_buf->add( '/* Note: We have to use JS since IE does not support CSS position:sticky */' ).
@@ -118187,6 +118197,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.9 - 2023-02-26T12:03:16.418Z
+* abapmerge 0.14.9 - 2023-02-26T14:55:57.912Z
 ENDINTERFACE.
 ****************************************************
