@@ -37177,9 +37177,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
       lv_row          TYPE i,
       lv_val          TYPE string.
 
-    FIELD-SYMBOLS:
-      <lv_ignore> TYPE string.
-
     " Get settings from DB
     lo_dot = mo_repo->get_dot_abapgit( ).
     ls_dot = lo_dot->get_data( ).
@@ -40831,8 +40828,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_item_command.
 
-    DATA: lv_difflink TYPE string,
-          ls_file     LIKE LINE OF is_item-files.
+    DATA lv_difflink TYPE string.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -42692,8 +42688,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_MERGE_SEL IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD get_form_schema.
-
-    DATA lv_name TYPE string.
 
     FIELD-SYMBOLS <ls_branch> LIKE LINE OF mt_branches.
 
@@ -57368,8 +57362,6 @@ CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD delete.
-
-    DATA lv_data TYPE string.
 
     lock( iv_type  = iv_type
           iv_value = iv_value ).
@@ -106707,7 +106699,6 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
   METHOD deserialize.
     DATA lv_json    TYPE string.
     DATA lo_ajson   TYPE REF TO zif_abapgit_ajson.
-    DATA lo_mapping TYPE REF TO zif_abapgit_ajson_mapping.
 
     CLEAR ev_data.
 
@@ -106820,7 +106811,6 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize.
     DATA: lt_st_source      TYPE abap_trans_srcbind_tab,
-          lo_mapping        TYPE REF TO zif_abapgit_ajson_mapping,
           lv_json           TYPE string,
           lo_ajson          TYPE REF TO zif_abapgit_ajson,
           lo_filter         TYPE REF TO kHGwlbVxgSjWYXcuzxmbrHxeswZCbe.
@@ -115150,7 +115140,6 @@ CLASS zcl_abapgit_data_utils IMPLEMENTATION.
     DATA lo_type   TYPE REF TO cl_abap_typedescr.
     DATA lo_data   TYPE REF TO cl_abap_structdescr.
     DATA lo_table  TYPE REF TO cl_abap_tabledescr.
-    DATA lt_fields TYPE ddfields.
     DATA lt_keys   TYPE abap_table_keydescr_tab.
     DATA lt_names  TYPE ty_names.
 
@@ -118241,6 +118230,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.9 - 2023-02-26T15:31:35.542Z
+* abapmerge 0.14.9 - 2023-02-26T16:18:24.413Z
 ENDINTERFACE.
 ****************************************************
