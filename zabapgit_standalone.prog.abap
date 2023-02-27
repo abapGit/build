@@ -32508,7 +32508,7 @@ CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
+CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD add_field.
 
     FIELD-SYMBOLS: <ls_field> LIKE LINE OF ct_fields.
@@ -33306,7 +33306,7 @@ CLASS ZCL_ABAPGIT_POPUPS IMPLEMENTATION.
     lo_branches = zcl_abapgit_git_transport=>branches( iv_url ).
     lt_tags     = lo_branches->get_tags_only( ).
 
-    LOOP AT lt_tags ASSIGNING <ls_tag> WHERE name NP '*^{}'.
+    LOOP AT lt_tags ASSIGNING <ls_tag> WHERE name NP '*' && zif_abapgit_definitions=>c_git_branch-peel.
 
       APPEND INITIAL LINE TO lt_selection ASSIGNING <ls_sel>.
       <ls_sel>-varoption = zcl_abapgit_git_tag=>remove_tag_prefix( <ls_tag>-name ).
@@ -34848,13 +34848,11 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    REPLACE '^{}' IN ls_tag-name WITH ''.
-
-    lo_repo->select_branch( ls_tag-name ).
+    lo_repo->select_branch( zcl_abapgit_git_tag=>remove_peel( ls_tag-name ) ).
 
     COMMIT WORK AND WAIT.
 
-    lv_text = |Tag switched to { zcl_abapgit_git_tag=>remove_tag_prefix( ls_tag-name ) } |.
+    lv_text = |Tag switched to { ls_tag-display_name } |.
 
     MESSAGE lv_text TYPE 'S'.
 
@@ -41284,7 +41282,7 @@ CLASS kHGwlZbCwKVqbmulVBzOHKguCDENGa IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   METHOD apply_filter.
 
     DATA lv_pfxl TYPE i.
@@ -41393,7 +41391,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_OVER IMPLEMENTATION.
       iv_allow_order_by = abap_true
     )->add_column(
       iv_tech_name      = 'BRANCH'
-      iv_display_name   = 'Branch'
+      iv_display_name   = 'Branch/Tag'
       iv_allow_order_by = abap_true
     )->add_column(
       iv_tech_name      = 'DESERIALIZED_BY'
@@ -49294,6 +49292,8 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       lv_selected_commit  TYPE string,
       lv_commit_short_sha TYPE string,
       lv_text             TYPE string,
+      lv_icon             TYPE string,
+      lv_hint             TYPE string,
       lv_class            TYPE string.
 
     IF iv_repo_key IS NOT INITIAL.
@@ -49321,16 +49321,26 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Either iv_branch or io_repo must be supplied' ).
     ENDIF.
 
-    IF zcl_abapgit_git_branch_list=>get_type( lv_branch ) = zif_abapgit_definitions=>c_git_branch_type-branch.
-      lv_class = 'branch branch_branch'.
-    ELSE.
-      lv_class = 'branch'.
-    ENDIF.
+    CASE zcl_abapgit_git_branch_list=>get_type( lv_branch ).
+      WHEN zif_abapgit_definitions=>c_git_branch_type-branch.
+        lv_class = 'branch branch_branch'.
+        lv_icon  = 'code-branch/grey70'.
+        lv_hint  = 'Current branch'.
+      WHEN zif_abapgit_definitions=>c_git_branch_type-annotated_tag
+        OR zif_abapgit_definitions=>c_git_branch_type-lightweight_tag.
+        lv_class = 'branch'.
+        lv_icon  = 'tag-solid/grey70'.
+        lv_hint  = 'Current tag'.
+      WHEN OTHERS.
+        lv_class = 'branch branch_branch'.
+        lv_icon  = 'code-branch/grey70'.
+        lv_hint  = 'Current commit'.
+    ENDCASE.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     ri_html->add( |<span class="{ lv_class }">| ).
-    ri_html->add_icon( iv_name = 'code-branch/grey70'
-                       iv_hint = 'Current branch' ).
+    ri_html->add_icon( iv_name = lv_icon
+                       iv_hint = lv_hint ).
     IF iv_interactive = abap_true.
       ri_html->add_a( iv_act = |{ zif_abapgit_definitions=>c_action-git_branch_switch }?key={ lv_key }|
                       iv_txt = lv_text ).
@@ -114510,13 +114520,9 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
   ENDMETHOD.
   METHOD find_tag_by_name.
 
-    DATA: lv_branch_name TYPE string.
-
-    lv_branch_name = iv_branch_name && '^{}'.
-
     READ TABLE mt_branches INTO rs_branch
         WITH TABLE KEY name_key
-        COMPONENTS name = lv_branch_name.
+        COMPONENTS name = zcl_abapgit_git_tag=>add_peel( iv_branch_name ).
     IF sy-subrc <> 0.
 
       READ TABLE mt_branches INTO rs_branch
@@ -114549,8 +114555,7 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
     IF rv_display_name CP zif_abapgit_definitions=>c_git_branch-heads.
       REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_git_branch-heads_prefix IN rv_display_name WITH ''.
     ELSEIF rv_display_name CP zif_abapgit_definitions=>c_git_branch-tags.
-      REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_git_branch-prefix IN rv_display_name WITH ''.
-      rv_display_name = zcl_abapgit_git_tag=>remove_peel( rv_display_name ).
+      rv_display_name = zcl_abapgit_git_tag=>remove_tag_prefix( zcl_abapgit_git_tag=>remove_peel( rv_display_name ) ).
     ENDIF.
 
   ENDMETHOD.
@@ -114569,8 +114574,6 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_type.
 
-    DATA: lv_annotated_tag_with_suffix TYPE string.
-
     FIELD-SYMBOLS: <lv_result> TYPE LINE OF string_table.
 
     rv_type = zif_abapgit_definitions=>c_git_branch_type-other.
@@ -114581,11 +114584,9 @@ CLASS zcl_abapgit_git_branch_list IMPLEMENTATION.
 
     ELSEIF iv_branch_name CP zif_abapgit_definitions=>c_git_branch-tags.
 
-      lv_annotated_tag_with_suffix = iv_branch_name && '^{}'.
-
       READ TABLE it_result ASSIGNING <lv_result>
                            INDEX iv_current_row_index + 1.
-      IF sy-subrc = 0 AND <lv_result> CP '*' && lv_annotated_tag_with_suffix.
+      IF sy-subrc = 0 AND <lv_result> CP '*' && zcl_abapgit_git_tag=>add_peel( iv_branch_name ).
         rv_type = zif_abapgit_definitions=>c_git_branch_type-annotated_tag.
       ELSE.
         rv_type = zif_abapgit_definitions=>c_git_branch_type-lightweight_tag.
@@ -118201,6 +118202,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-02-27T07:34:16.500Z
+* abapmerge 0.15.0 - 2023-02-27T07:46:25.257Z
 ENDINTERFACE.
 ****************************************************
