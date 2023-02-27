@@ -26701,7 +26701,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     CREATE OBJECT lo_asset_man.
 
 ****************************************************
-* abapmerge Pragma - ZABAPGIT_CSS_COMMON.W3MI.DATA.CSS
+* abapmerge Pragma [include] - ZABAPGIT_CSS_COMMON.W3MI.DATA.CSS
 ****************************************************
     lo_buf->add( '/*' ).
     lo_buf->add( ' * ABAPGIT COMMON CSS' ).
@@ -28278,7 +28278,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
       iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
 
 ****************************************************
-* abapmerge Pragma - ZABAPGIT_CSS_THEME_DEFAULT.W3MI.DATA.CSS
+* abapmerge Pragma [include] - ZABAPGIT_CSS_THEME_DEFAULT.W3MI.DATA.CSS
 ****************************************************
     lo_buf->add( '/*' ).
     lo_buf->add( ' * ABAPGIT COLOR THEME CSS - DEFAULT' ).
@@ -28843,7 +28843,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
       iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
 
 ****************************************************
-* abapmerge Pragma - ZABAPGIT_CSS_THEME_DARK.W3MI.DATA.CSS
+* abapmerge Pragma [include] - ZABAPGIT_CSS_THEME_DARK.W3MI.DATA.CSS
 ****************************************************
     lo_buf->add( '/*' ).
     lo_buf->add( ' * ABAPGIT THEME CSS - DARK' ).
@@ -29121,7 +29121,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
       iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
 
 ****************************************************
-* abapmerge Pragma - ZABAPGIT_CSS_THEME_BELIZE_BLUE.W3MI.DATA.CSS
+* abapmerge Pragma [include] - ZABAPGIT_CSS_THEME_BELIZE_BLUE.W3MI.DATA.CSS
 ****************************************************
     lo_buf->add( '/*' ).
     lo_buf->add( ' * ABAPGIT THEME CSS - BELIZE BLUE' ).
@@ -29166,7 +29166,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
       iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
 
 ****************************************************
-* abapmerge Pragma - ZABAPGIT_JS_COMMON.W3MI.DATA.JS
+* abapmerge Pragma [include] - ZABAPGIT_JS_COMMON.W3MI.DATA.JS
 ****************************************************
     lo_buf->add( '/**********************************************************' ).
     lo_buf->add( ' * abapGit JavaScript Function Library' ).
@@ -31658,7 +31658,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
       iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
 
 ****************************************************
-* abapmerge Pragma - ZABAPGIT_ICON_FONT_CSS.W3MI.DATA.CSS
+* abapmerge Pragma [include] - ZABAPGIT_ICON_FONT_CSS.W3MI.DATA.CSS
 ****************************************************
     lo_buf->add( '@font-face {' ).
     lo_buf->add( '    font-family: "ag-icons";' ).
@@ -31747,7 +31747,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
       iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
 
 ****************************************************
-* abapmerge Pragma - ZABAPGIT_ICON_FONT.W3MI.DATA.WOFF
+* abapmerge Pragma [include-base64] - ZABAPGIT_ICON_FONT.W3MI.DATA.WOFF
 ****************************************************
     lo_buf->add( 'd09GRgABAAAAABn8AAsAAAAALawAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABH' ).
     lo_buf->add( 'U1VCAAABCAAAADsAAABUIIslek9TLzIAAAFEAAAAPwAAAFZAtU4eY21hcAAA' ).
@@ -118299,6 +118299,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.14.9 - 2023-02-26T18:31:56.042Z
+* abapmerge 0.15.0 - 2023-02-27T07:28:22.131Z
 ENDINTERFACE.
 ****************************************************
