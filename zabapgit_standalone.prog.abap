@@ -1457,7 +1457,7 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_ajson.
 
-  CONSTANTS version TYPE string VALUE 'v1.1.7'. "#EC NOTEXT
+  CONSTANTS version TYPE string VALUE 'v1.1.8'. "#EC NOTEXT
   CONSTANTS origin TYPE string VALUE 'https://github.com/sbcgua/ajson'. "#EC NOTEXT
   CONSTANTS license TYPE string VALUE 'MIT'. "#EC NOTEXT
 
@@ -107980,7 +107980,7 @@ CLASS kHGwlMWhQrsNKkKXALnpfipvepHQnc DEFINITION FINAL.
       RETURNING
         VALUE(rt_json_tree) TYPE zif_abapgit_ajson_types=>ty_nodes_tt
       RAISING
-        zcx_abapgit_ajson_error cx_sxml_error.
+        zcx_abapgit_ajson_error cx_dynamic_check. " cx_sxml_error is not released on Steampunk #153
 
     METHODS _get_location
       IMPORTING
@@ -107995,7 +107995,7 @@ CLASS kHGwlMWhQrsNKkKXALnpfipvepHQnc IMPLEMENTATION.
 
   METHOD parse.
     DATA lx_sxml_parse TYPE REF TO cx_sxml_parse_error.
-    DATA lx_sxml TYPE REF TO cx_sxml_error.
+    DATA lx_sxml TYPE REF TO cx_dynamic_check.
     DATA lv_location TYPE string.
     TRY.
       " TODO sane JSON check:
@@ -108009,7 +108009,7 @@ CLASS kHGwlMWhQrsNKkKXALnpfipvepHQnc IMPLEMENTATION.
         zcx_abapgit_ajson_error=>raise(
         iv_msg      = |Json parsing error (SXML): { lx_sxml_parse->get_text( ) }|
         iv_location = lv_location ).
-      CATCH cx_sxml_error INTO lx_sxml.
+      CATCH cx_dynamic_check INTO lx_sxml. " cx_sxml_error
         zcx_abapgit_ajson_error=>raise(
         iv_msg      = |Json parsing error (SXML): { lx_sxml->get_text( ) }|
         iv_location = '@PARSER' ).
@@ -118295,6 +118295,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-02-28T09:23:04.111Z
+* abapmerge 0.15.0 - 2023-02-28T10:51:24.620Z
 ENDINTERFACE.
 ****************************************************
