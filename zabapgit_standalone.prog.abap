@@ -4970,6 +4970,9 @@ INTERFACE zif_abapgit_sap_package .
   TYPES:
     ty_devclass_tt TYPE STANDARD TABLE OF devclass WITH DEFAULT KEY .
 
+  METHODS validate_name
+    RAISING
+      zcx_abapgit_exception .
   METHODS create
     IMPORTING
       !is_package TYPE scompkdtln
@@ -22637,22 +22640,17 @@ CLASS zcl_abapgit_migrations DEFINITION FINAL
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
-CLASS zcl_abapgit_sap_package DEFINITION CREATE PRIVATE
-    FRIENDS ZCL_ABAPGIT_factory.
+CLASS zcl_abapgit_sap_package DEFINITION
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_factory .
 
   PUBLIC SECTION.
-    METHODS:
-      constructor
-        IMPORTING iv_package TYPE devclass.
 
-    INTERFACES: zif_abapgit_sap_package.
+    INTERFACES zif_abapgit_sap_package .
 
-    CLASS-METHODS validate_name
+    METHODS constructor
       IMPORTING
-        !iv_package TYPE devclass
-      RAISING
-        zcx_abapgit_exception .
-
+        !iv_package TYPE devclass .
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: mv_package TYPE devclass.
@@ -23392,30 +23390,6 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
   METHOD constructor.
     mv_package = iv_package.
   ENDMETHOD.
-  METHOD validate_name.
-
-    IF iv_package IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Package name must not be empty' ).
-    ENDIF.
-
-    IF iv_package = '$TMP'.
-      zcx_abapgit_exception=>raise( 'It is not possible to use $TMP, use a different (local) package' ).
-    ENDIF.
-
-    " Check if package name is allowed
-    cl_package_helper=>check_package_name(
-      EXPORTING
-        i_package_name       = iv_package
-      EXCEPTIONS
-        undefined_name       = 1
-        wrong_name_prefix    = 2
-        reserved_local_name  = 3
-        invalid_package_name = 4 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Package name { iv_package } is not valid| ).
-    ENDIF.
-
-  ENDMETHOD.
   METHOD zif_abapgit_sap_package~are_changes_recorded_in_tr_req.
 
     DATA: li_package TYPE REF TO if_package.
@@ -23730,13 +23704,35 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
   METHOD zif_abapgit_sap_package~read_responsible.
     SELECT SINGLE as4user FROM tdevc
       INTO rv_responsible
-      WHERE devclass = mv_package ##SUBRC_OK. "#EC CI_GENBUFF
+      WHERE devclass = mv_package ##SUBRC_OK.           "#EC CI_GENBUFF
   ENDMETHOD.
+  METHOD zif_abapgit_sap_package~validate_name.
 
+    IF mv_package IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Package name must not be empty' ).
+    ENDIF.
+
+    IF mv_package = '$TMP'.
+      zcx_abapgit_exception=>raise( 'It is not possible to use $TMP, use a different (local) package' ).
+    ENDIF.
+
+    " Check if package name is allowed
+    cl_package_helper=>check_package_name(
+      EXPORTING
+        i_package_name       = mv_package
+      EXCEPTIONS
+        undefined_name       = 1
+        wrong_name_prefix    = 2
+        reserved_local_name  = 3
+        invalid_package_name = 4 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Package name { mv_package } is not valid| ).
+    ENDIF.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
@@ -54458,7 +54454,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
           li_repo    TYPE REF TO zif_abapgit_repo,
           lv_reason  TYPE string.
 
-    zcl_abapgit_sap_package=>validate_name( iv_package ).
+    zcl_abapgit_factory=>get_sap_package( iv_package )->validate_name( ).
 
     " Check if package owned by SAP is allowed (new packages are ok, since they are created automatically)
     lv_as4user = zcl_abapgit_factory=>get_sap_package( iv_package )->read_responsible( ).
@@ -118295,6 +118291,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-02-28T10:51:24.620Z
+* abapmerge 0.15.0 - 2023-02-28T16:53:49.601Z
 ENDINTERFACE.
 ****************************************************
