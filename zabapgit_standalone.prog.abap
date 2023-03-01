@@ -7020,15 +7020,14 @@ CLASS zcl_abapgit_login_manager DEFINITION
     CLASS-METHODS load
       IMPORTING
         !iv_uri                 TYPE string
-        !ii_client              TYPE REF TO if_http_client OPTIONAL
       RETURNING
         VALUE(rv_authorization) TYPE string
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS save
       IMPORTING
-        !iv_uri    TYPE string
-        !ii_client TYPE REF TO if_http_client
+        !iv_uri           TYPE string
+        !iv_authorization TYPE string
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS clear .
@@ -111004,30 +111003,19 @@ CLASS ZCL_ABAPGIT_LOGIN_MANAGER IMPLEMENTATION.
   ENDMETHOD.
   METHOD load.
 
-    DATA: ls_auth LIKE LINE OF gt_auth.
+    DATA ls_auth LIKE LINE OF gt_auth.
 
     READ TABLE gt_auth INTO ls_auth WITH KEY uri = zcl_abapgit_url=>host( iv_uri ).
     IF sy-subrc = 0.
       rv_authorization = ls_auth-authorization.
-
-      IF NOT ii_client IS INITIAL.
-        ii_client->request->set_header_field(
-          name  = 'authorization'
-          value = ls_auth-authorization ).
-        ii_client->propertytype_logon_popup = ii_client->co_disabled.
-      ENDIF.
     ENDIF.
 
   ENDMETHOD.
   METHOD save.
 
-    DATA: lv_auth TYPE string.
-
-    lv_auth = ii_client->request->get_header_field( 'authorization' ).
-
-    IF NOT lv_auth IS INITIAL.
+    IF NOT iv_authorization IS INITIAL.
       append( iv_uri  = iv_uri
-              iv_auth = lv_auth ).
+              iv_auth = iv_authorization ).
     ENDIF.
 
   ENDMETHOD.
@@ -111495,7 +111483,7 @@ CLASS ZCL_ABAPGIT_HTTP_AGENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_http IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
   METHOD acquire_login_details.
 
     DATA: lv_default_user TYPE string,
@@ -111558,6 +111546,7 @@ CLASS zcl_abapgit_http IMPLEMENTATION.
 
     DATA: lv_uri                 TYPE string,
           lv_scheme              TYPE string,
+          lv_authorization       TYPE string,
           li_client              TYPE REF TO if_http_client,
           lo_proxy_configuration TYPE REF TO zcl_abapgit_proxy_config,
           lv_text                TYPE string.
@@ -111625,9 +111614,13 @@ CLASS zcl_abapgit_http IMPLEMENTATION.
     " Disable internal auth dialog (due to its unclarity)
     li_client->propertytype_logon_popup = if_http_client=>co_disabled.
 
-    zcl_abapgit_login_manager=>load(
-      iv_uri    = iv_url
-      ii_client = li_client ).
+    lv_authorization = zcl_abapgit_login_manager=>load( iv_url ).
+    IF lv_authorization IS NOT INITIAL.
+      li_client->request->set_header_field(
+        name  = 'authorization'
+        value = lv_authorization ).
+      li_client->propertytype_logon_popup = li_client->co_disabled.
+    ENDIF.
 
     zcl_abapgit_exit=>get_instance( )->http_client(
       iv_url    = iv_url
@@ -111643,8 +111636,9 @@ CLASS zcl_abapgit_http IMPLEMENTATION.
     ro_client->check_http_200( ).
 
     IF lv_scheme <> c_scheme-digest.
-      zcl_abapgit_login_manager=>save( iv_uri    = iv_url
-                                       ii_client = li_client ).
+      zcl_abapgit_login_manager=>save(
+        iv_uri           = iv_url
+        iv_authorization = li_client->request->get_header_field( 'authorization' ) ).
     ENDIF.
 
   ENDMETHOD.
@@ -118300,6 +118294,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-01T13:51:48.045Z
+* abapmerge 0.15.0 - 2023-03-01T14:05:04.180Z
 ENDINTERFACE.
 ****************************************************
