@@ -22154,19 +22154,6 @@ CLASS zcl_abapgit_requirement_helper DEFINITION
 
   PUBLIC SECTION.
 
-    TYPES:
-      BEGIN OF ty_requirement_status,
-        met               TYPE abap_bool,
-        component         TYPE tdevc-dlvunit,
-        description       TYPE string,
-        installed_release TYPE saprelease,
-        installed_patch   TYPE sappatchlv,
-        required_release  TYPE saprelease,
-        required_patch    TYPE sappatchlv,
-      END OF ty_requirement_status .
-    TYPES:
-      ty_requirement_status_tt TYPE STANDARD TABLE OF ty_requirement_status WITH DEFAULT KEY .
-
     CLASS-METHODS requirements_popup
       IMPORTING
         !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
@@ -22181,6 +22168,19 @@ CLASS zcl_abapgit_requirement_helper DEFINITION
         zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_requirement_status,
+        met               TYPE abap_bool,
+        component         TYPE tdevc-dlvunit,
+        description       TYPE string,
+        installed_release TYPE saprelease,
+        installed_patch   TYPE sappatchlv,
+        required_release  TYPE saprelease,
+        required_patch    TYPE sappatchlv,
+      END OF ty_requirement_status .
+    TYPES:
+      ty_requirement_status_tt TYPE STANDARD TABLE OF ty_requirement_status WITH DEFAULT KEY .
 
     CLASS-METHODS show_requirement_popup
       IMPORTING
@@ -118294,6 +118294,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-01T14:05:04.180Z
+* abapmerge 0.15.0 - 2023-03-01T18:09:57.752Z
 ENDINTERFACE.
 ****************************************************
