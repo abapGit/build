@@ -2776,6 +2776,7 @@ INTERFACE zif_abapgit_definitions .
     BEGIN OF ty_overwrite.
       INCLUDE TYPE ty_item.
   TYPES:
+      state    TYPE c LENGTH 2,
       action   TYPE i,
       icon     TYPE icon_d,
       text     TYPE string,
@@ -4630,6 +4631,7 @@ INTERFACE zif_abapgit_popups .
       text      TYPE string,
       length    TYPE lvc_outlen,
       show_icon TYPE abap_bool,
+      center    TYPE abap_bool,
     END OF ty_alv_column,
     ty_alv_column_tt TYPE TABLE OF ty_alv_column WITH DEFAULT KEY.
 
@@ -4727,9 +4729,9 @@ INTERFACE zif_abapgit_popups .
       !iv_title              TYPE lvc_title DEFAULT space
       !iv_header_text        TYPE csequence DEFAULT space
       !iv_start_column       TYPE i DEFAULT 10
-      !iv_end_column         TYPE i DEFAULT 110
-      !iv_start_line         TYPE i DEFAULT 8
-      !iv_end_line           TYPE i DEFAULT 25
+      !iv_end_column         TYPE i DEFAULT 125
+      !iv_start_line         TYPE i DEFAULT 10
+      !iv_end_line           TYPE i DEFAULT 30
       !iv_striped_pattern    TYPE abap_bool DEFAULT abap_false
       !iv_optimize_col_width TYPE abap_bool DEFAULT abap_true
       !iv_selection_mode     TYPE salv_de_constant DEFAULT if_salv_c_selection_mode=>multiple
@@ -14814,6 +14816,21 @@ CLASS zcl_abapgit_objects_program DEFINITION
         ldbname TYPE progdir-ldbname,
         uccheck TYPE progdir-uccheck,
       END OF ty_progdir.
+    TYPES:
+      BEGIN OF ty_cua,
+        adm TYPE rsmpe_adm,
+        sta TYPE STANDARD TABLE OF rsmpe_stat WITH DEFAULT KEY,
+        fun TYPE STANDARD TABLE OF rsmpe_funt WITH DEFAULT KEY,
+        men TYPE STANDARD TABLE OF rsmpe_men WITH DEFAULT KEY,
+        mtx TYPE STANDARD TABLE OF rsmpe_mnlt WITH DEFAULT KEY,
+        act TYPE STANDARD TABLE OF rsmpe_act WITH DEFAULT KEY,
+        but TYPE STANDARD TABLE OF rsmpe_but WITH DEFAULT KEY,
+        pfk TYPE STANDARD TABLE OF rsmpe_pfk WITH DEFAULT KEY,
+        set TYPE STANDARD TABLE OF rsmpe_staf WITH DEFAULT KEY,
+        doc TYPE STANDARD TABLE OF rsmpe_atrt WITH DEFAULT KEY,
+        tit TYPE STANDARD TABLE OF rsmpe_titt WITH DEFAULT KEY,
+        biv TYPE STANDARD TABLE OF rsmpe_buts WITH DEFAULT KEY,
+      END OF ty_cua.
 
     METHODS serialize_program
       IMPORTING
@@ -14851,21 +14868,6 @@ CLASS zcl_abapgit_objects_program DEFINITION
       END OF ty_dynpro .
     TYPES:
       ty_dynpro_tt TYPE STANDARD TABLE OF ty_dynpro WITH DEFAULT KEY .
-    TYPES:
-      BEGIN OF ty_cua,
-        adm TYPE rsmpe_adm,
-        sta TYPE STANDARD TABLE OF rsmpe_stat WITH DEFAULT KEY,
-        fun TYPE STANDARD TABLE OF rsmpe_funt WITH DEFAULT KEY,
-        men TYPE STANDARD TABLE OF rsmpe_men WITH DEFAULT KEY,
-        mtx TYPE STANDARD TABLE OF rsmpe_mnlt WITH DEFAULT KEY,
-        act TYPE STANDARD TABLE OF rsmpe_act WITH DEFAULT KEY,
-        but TYPE STANDARD TABLE OF rsmpe_but WITH DEFAULT KEY,
-        pfk TYPE STANDARD TABLE OF rsmpe_pfk WITH DEFAULT KEY,
-        set TYPE STANDARD TABLE OF rsmpe_staf WITH DEFAULT KEY,
-        doc TYPE STANDARD TABLE OF rsmpe_atrt WITH DEFAULT KEY,
-        tit TYPE STANDARD TABLE OF rsmpe_titt WITH DEFAULT KEY,
-        biv TYPE STANDARD TABLE OF rsmpe_buts WITH DEFAULT KEY,
-      END OF ty_cua .
 
     METHODS strip_generation_comments
       CHANGING
@@ -15504,6 +15506,12 @@ CLASS zcl_abapgit_persist_migrate DEFINITION CREATE PUBLIC.
       RAISING
         zcx_abapgit_exception.
     CLASS-METHODS lock_exists
+      RETURNING
+        VALUE(rv_exists) TYPE abap_bool.
+    CLASS-METHODS gui_status_create
+      RAISING
+        zcx_abapgit_exception.
+    CLASS-METHODS gui_status_exists
       RETURNING
         VALUE(rv_exists) TYPE abap_bool.
 
@@ -31897,10 +31905,11 @@ CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES DEFINITION DEFERRED.
 CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES DEFINITION FINAL.
   PUBLIC SECTION.
 
-    CONSTANTS c_default_column TYPE abap_componentdescr-name VALUE `DEFAULT_COLUMN`.
-    CONSTANTS c_fieldname_selected TYPE abap_componentdescr-name VALUE `SELECTED`.
+    CONSTANTS c_default_column TYPE abap_componentdescr-name VALUE 'DEFAULT_COLUMN'.
+    CONSTANTS c_fieldname_selected TYPE abap_componentdescr-name VALUE 'SELECTED'.
     CONSTANTS c_answer_cancel      TYPE c LENGTH 1 VALUE 'A'.
-    CONSTANTS c_fieldname_obj_type TYPE abap_componentdescr-name VALUE `OBJ_TYPE`.
+    CONSTANTS c_fieldname_obj_type TYPE abap_componentdescr-name VALUE 'OBJ_TYPE'.
+    CONSTANTS c_own_pfstatus TYPE sy-pfkey VALUE 'DECIDE_DIALOG'.
 
     METHODS constructor
       IMPORTING
@@ -31970,7 +31979,7 @@ CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES DEFINITION FINAL.
         it_columns_to_display TYPE zif_abapgit_popups=>ty_alv_column_tt
       RAISING
         cx_salv_msg.
-    METHODS set_pfstatus
+    METHODS setup_toolbar
       IMPORTING
         !iv_selection_mode TYPE salv_de_constant
         !iv_object_list    TYPE abap_bool.
@@ -31980,9 +31989,10 @@ CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES DEFINITION FINAL.
     METHODS mark_category
       IMPORTING
         iv_category TYPE string.
-    METHODS mark_all_to
+    METHODS mark_all
       IMPORTING
         iv_selected TYPE abap_bool.
+    METHODS mark_visible.
 
 ENDCLASS.
 
@@ -32045,7 +32055,6 @@ CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES IMPLEMENTATION.
     CREATE DATA lr_exporting LIKE LINE OF et_list.
     ASSIGN lr_exporting->* TO <lg_exporting>.
 
-*    mo_table_descr ?= cl_abap_tabledescr=>describe_by_data( et_list ). " different export structure ?
     lo_data_descr = mo_table_descr->get_table_line_type( ).
 
     LOOP AT <lt_table> ASSIGNING <ls_line> WHERE (lv_condition).
@@ -32134,7 +32143,7 @@ CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES IMPLEMENTATION.
           iv_select_column_text = iv_select_column_text
           it_columns_to_display = it_columns_to_display ).
 
-        set_pfstatus(
+        setup_toolbar(
           iv_object_list    = lv_object_list
           iv_selection_mode = iv_selection_mode ).
 
@@ -32255,7 +32264,7 @@ CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES IMPLEMENTATION.
 
   METHOD on_select_list_function_click.
 
-    " Work for functions of SAPMSVIM and SAPLSEDI_POPUPS
+    " Work for functions of SAPMSVIM and OWN
     CASE e_salv_function.
       WHEN 'O.K.' OR 'OK'.
         mv_cancel = abap_false.
@@ -32267,14 +32276,18 @@ CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES IMPLEMENTATION.
         mo_alv->close_screen( ).
 
       WHEN 'SALL' OR 'SEL_ALL'.
-        mark_all_to( abap_true ).
+        mark_all( abap_true ).
         mo_alv->refresh( ).
 
       WHEN 'DSEL' OR 'SEL_DEL'.
-        mark_all_to( abap_false ).
+        mark_all( abap_false ).
         mo_alv->refresh( ).
 
       WHEN 'SEL_KEY'.
+        mark_visible( ).
+        mo_alv->refresh( ).
+
+      WHEN 'SEL_CAT'.
         mark_category( ask_user_for_obj_category( ) ).
         mo_alv->refresh( ).
 
@@ -32286,7 +32299,7 @@ CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD mark_all_to.
+  METHOD mark_all.
 
     FIELD-SYMBOLS:
       <lt_table>    TYPE STANDARD TABLE,
@@ -32301,6 +32314,56 @@ CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES IMPLEMENTATION.
       ASSIGN COMPONENT c_fieldname_selected OF STRUCTURE <ls_line> TO <lv_selected>.
       ASSERT sy-subrc = 0.
       <lv_selected> = iv_selected.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD mark_visible.
+
+    DATA:
+      lo_selection  TYPE REF TO cl_salv_selections,
+      lt_filters    TYPE lvc_t_filt,
+      lt_scope      TYPE lvc_t_fidx,
+      lv_index      LIKE LINE OF lt_scope.
+
+    FIELD-SYMBOLS:
+      <lt_table>    TYPE STANDARD TABLE,
+      <ls_line>     TYPE any,
+      <lv_selected> TYPE abap_bool.
+
+    ASSIGN mr_table->* TO <lt_table>.
+    ASSERT sy-subrc = 0.
+
+    " First get selection
+    lo_selection = mo_alv->get_selections( ).
+    lt_scope = lo_selection->get_selected_rows( ).
+
+    IF lines( lt_scope ) = 0.
+      " If nothing selected, select all VISIBLE
+      lt_filters = cl_salv_controller_metadata=>get_lvc_filter( mo_alv->get_filters( ) ).
+      IF lines( lt_filters ) = 0.
+        mark_all( abap_true ). " No filters - just select all
+        RETURN.
+      ENDIF.
+
+      CALL FUNCTION 'LVC_FILTER_APPLY'
+        EXPORTING
+          it_filter                    = lt_filters
+        IMPORTING
+          et_filter_index_inside       = lt_scope
+        TABLES
+          it_data                      = <lt_table>.
+    ENDIF.
+
+    LOOP AT lt_scope INTO lv_index.
+
+      READ TABLE <lt_table> ASSIGNING <ls_line> INDEX lv_index.
+      CHECK sy-subrc = 0.
+
+      ASSIGN COMPONENT c_fieldname_selected OF STRUCTURE <ls_line> TO <lv_selected>.
+      ASSERT sy-subrc = 0.
+      <lv_selected> = abap_true.
 
     ENDLOOP.
 
@@ -32468,9 +32531,12 @@ CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES IMPLEMENTATION.
             lo_column->set_icon( abap_true ).
           ENDIF.
 
+          IF <ls_column_to_display>-center = abap_true.
+            lo_column->set_alignment( if_salv_c_alignment=>centered ).
+          ENDIF.
+
         WHEN OTHERS.
-          " Hide column
-          lo_column->set_technical( abap_true ).
+          lo_column->set_technical( abap_true ). " Hide column
 
       ENDCASE.
 
@@ -32478,39 +32544,59 @@ CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD set_pfstatus.
+  METHOD setup_toolbar.
 
     DATA:
       lv_report         TYPE sy-repid,
-      lv_pfstatus       TYPE sy-pfkey.
+      lv_pfstatus       TYPE sy-pfkey,
+      lo_functions      TYPE REF TO cl_salv_functions_list,
+      lt_func_list      TYPE salv_t_ui_func,
+      lv_fn             TYPE string,
+      ls_func           LIKE LINE OF lt_func_list.
 
-    lv_report  = 'SAPMSVIM'.
+    CALL FUNCTION 'RS_CUA_STATUS_CHECK'
+      EXPORTING
+        program          = sy-cprog
+        objectname       = c_own_pfstatus
+      EXCEPTIONS
+        object_not_found = 1
+        OTHERS           = 2.
 
-    IF iv_selection_mode = if_salv_c_selection_mode=>single.
-      lv_pfstatus = '110'.
+    IF sy-subrc = 0.
+
+      mo_alv->set_screen_status(
+        report   = sy-cprog
+        pfstatus = c_own_pfstatus ).
+
     ELSE.
-      lv_pfstatus = '102'.
 
-      IF iv_object_list = abap_true.
-        " For object lists with multiple selections, try to use a PFSTATUS that includes
-        " an additional button to show other selection options
-        CALL FUNCTION 'RS_CUA_STATUS_CHECK'
-          EXPORTING
-            objectname       = 'SELECT_MULTI_WK'
-            program          = 'SAPLSEDI_POPUPS'
-          EXCEPTIONS
-            object_not_found = 1
-            OTHERS           = 2.
-        IF sy-subrc = 0.
-          lv_report   = 'SAPLSEDI_POPUPS'.
-          lv_pfstatus = 'SELECT_MULTI_WK'.
-        ENDIF.
+      lv_report  = 'SAPMSVIM'.
+
+      IF iv_selection_mode = if_salv_c_selection_mode=>single.
+        lv_pfstatus = '110'.
+      ELSE.
+        lv_pfstatus = '102'.
       ENDIF.
+
+      mo_alv->set_screen_status(
+        report   = lv_report
+        pfstatus = lv_pfstatus ).
+
     ENDIF.
 
-    mo_alv->set_screen_status(
-      pfstatus = lv_pfstatus
-      report   = lv_report ).
+    lo_functions = mo_alv->get_functions( ).
+
+    lt_func_list = lo_functions->get_functions( ).
+    LOOP AT lt_func_list INTO ls_func.
+      lv_fn = ls_func-r_function->get_name( ).
+      IF lv_fn = 'OK' OR lv_fn = 'CANCEL'.
+        ls_func-r_function->set_visible( abap_true ).
+      ELSEIF iv_object_list = abap_true.
+        ls_func-r_function->set_visible( abap_true ).
+      ELSE.
+        ls_func-r_function->set_visible( abap_false ).
+      ENDIF.
+    ENDLOOP.
 
   ENDMETHOD.
 
@@ -34416,6 +34502,10 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
     <ls_column>-name = 'DEVCLASS'.
     APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
+    <ls_column>-name = 'STATE'.
+    <ls_column>-text = 'State'.
+    <ls_column>-length = 3.
+    APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
     <ls_column>-name = 'ICON'.
     <ls_column>-text = 'Action'.
     <ls_column>-show_icon = abap_true.
@@ -34472,6 +34562,10 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     <ls_column>-name = 'OBJ_NAME'.
     APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
     <ls_column>-name = 'DEVCLASS'.
+    APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
+    <ls_column>-name = 'STATE'.
+    <ls_column>-text = 'State'.
+    <ls_column>-length = 3.
     APPEND INITIAL LINE TO lt_columns ASSIGNING <ls_column>.
     <ls_column>-name = 'ICON'.
     <ls_column>-text = 'Action'.
@@ -57585,7 +57679,434 @@ CLASS zcl_abapgit_persist_packages IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_persist_migrate IMPLEMENTATION.
+CLASS kHGwlIgZqNOMnmtzWUhGXxcERFBDQR DEFINITION DEFERRED.
+CLASS kHGwlIgZqNOMnmtzWUhGRLwWSccCqJ DEFINITION DEFERRED.
+* renamed: zcl_abapgit_persist_migrate :: lcl_cua_interface
+CLASS kHGwlIgZqNOMnmtzWUhGRLwWSccCqJ DEFINITION INHERITING FROM zcl_abapgit_objects_program FINAL.
+  PUBLIC SECTION.
+    CLASS-METHODS new
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO kHGwlIgZqNOMnmtzWUhGRLwWSccCqJ.
+    METHODS get_own_cua
+      RETURNING
+        VALUE(rs_cua) TYPE ty_cua
+      RAISING
+        zcx_abapgit_exception.
+    METHODS put_own_cua
+      IMPORTING
+        is_cua TYPE ty_cua
+      RAISING
+        zcx_abapgit_exception.
+ENDCLASS.
+
+CLASS kHGwlIgZqNOMnmtzWUhGRLwWSccCqJ IMPLEMENTATION.
+
+  METHOD new.
+
+    DATA ls_item TYPE zif_abapgit_definitions=>ty_item.
+
+    SELECT SINGLE devclass object obj_name INTO (ls_item-devclass, ls_item-obj_type, ls_item-obj_name)
+      FROM tadir
+      WHERE pgmid  = 'R3TR'
+      AND object   = 'PROG'
+      AND obj_name = sy-cprog.
+
+    CREATE OBJECT ro_instance
+      EXPORTING
+        iv_language = 'E'
+        is_item = ls_item.
+
+  ENDMETHOD.
+
+  METHOD get_own_cua.
+
+    rs_cua = serialize_cua( iv_program_name = sy-cprog ).
+
+  ENDMETHOD.
+
+  METHOD put_own_cua.
+
+    DATA li_log TYPE REF TO zif_abapgit_log.
+
+    deserialize_cua(
+      is_cua          = is_cua
+      iv_program_name = ms_item-obj_name ).
+
+    CREATE OBJECT li_log TYPE zcl_abapgit_log.
+    zcl_abapgit_objects_activation=>activate( ii_log = li_log ).
+    zcl_abapgit_objects_activation=>clear( ).
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+* renamed: zcl_abapgit_persist_migrate :: lcl_own_cua_provider
+CLASS kHGwlIgZqNOMnmtzWUhGXxcERFBDQR DEFINITION FINAL.
+  PUBLIC SECTION.
+    CLASS-METHODS get
+      RETURNING
+        VALUE(rs_cua) TYPE zcl_abapgit_objects_program=>ty_cua.
+ENDCLASS.
+
+CLASS kHGwlIgZqNOMnmtzWUhGXxcERFBDQR IMPLEMENTATION.
+  METHOD get.
+****************************************************
+* abapmerge Pragma [include-cua] - ZABAPGIT.PROG.XML
+****************************************************
+    DATA ls_sta LIKE LINE OF rs_cua-sta.
+    DATA ls_fun LIKE LINE OF rs_cua-fun.
+    DATA ls_but LIKE LINE OF rs_cua-but.
+    DATA ls_pfk LIKE LINE OF rs_cua-pfk.
+    DATA ls_set LIKE LINE OF rs_cua-set.
+    DATA ls_doc LIKE LINE OF rs_cua-doc.
+    rs_cua-adm-pfkcode = '000001'.
+    CLEAR ls_sta.
+    ls_sta-code = 'DECIDE_DIALOG'.
+    ls_sta-modal = 'P'.
+    ls_sta-pfkcode = '000001'.
+    ls_sta-butcode = '0001'.
+    ls_sta-int_note = 'Object list decide dialog toolbar'.
+    APPEND ls_sta TO rs_cua-sta.
+    CLEAR ls_fun.
+    ls_fun-code = '&ILD'.
+    ls_fun-textno = '001'.
+    ls_fun-text_type = 'S'.
+    ls_fun-text_name = 'ICON_FILTER_UNDO'.
+    ls_fun-icon_id = '@GD@'.
+    ls_fun-fun_text = 'Reset filter'.
+    APPEND ls_fun TO rs_cua-fun.
+    CLEAR ls_fun.
+    ls_fun-code = '&ILT'.
+    ls_fun-textno = '001'.
+    ls_fun-text_type = 'S'.
+    ls_fun-text_name = 'ICON_FILTER'.
+    ls_fun-icon_id = '@4G@'.
+    ls_fun-fun_text = 'Set Filter'.
+    ls_fun-path = 'F'.
+    APPEND ls_fun TO rs_cua-fun.
+    CLEAR ls_fun.
+    ls_fun-code = '&ODN'.
+    ls_fun-textno = '001'.
+    ls_fun-text_type = 'S'.
+    ls_fun-text_name = 'ICON_SORT_DOWN'.
+    ls_fun-icon_id = '@3F@'.
+    ls_fun-fun_text = 'Sort in Descending Order'.
+    ls_fun-path = 'O'.
+    APPEND ls_fun TO rs_cua-fun.
+    CLEAR ls_fun.
+    ls_fun-code = '&OUP'.
+    ls_fun-textno = '001'.
+    ls_fun-text_type = 'S'.
+    ls_fun-text_name = 'ICON_SORT_UP'.
+    ls_fun-icon_id = '@3E@'.
+    ls_fun-fun_text = 'Sort in Ascending Order'.
+    ls_fun-path = 'I'.
+    APPEND ls_fun TO rs_cua-fun.
+    CLEAR ls_fun.
+    ls_fun-code = 'CANCEL'.
+    ls_fun-textno = '001'.
+    ls_fun-type = 'E'.
+    ls_fun-text_type = 'S'.
+    ls_fun-text_name = 'ICON_CANCEL'.
+    ls_fun-icon_id = '@0W@'.
+    ls_fun-fun_text = 'Cancel'.
+    ls_fun-icon_text = 'Cancel'.
+    ls_fun-path = 'A'.
+    APPEND ls_fun TO rs_cua-fun.
+    CLEAR ls_fun.
+    ls_fun-code = 'OK'.
+    ls_fun-textno = '001'.
+    ls_fun-text_type = 'S'.
+    ls_fun-text_name = 'ICON_OKAY'.
+    ls_fun-icon_id = '@0V@'.
+    ls_fun-fun_text = 'Continue'.
+    ls_fun-icon_text = 'Continue'.
+    APPEND ls_fun TO rs_cua-fun.
+    CLEAR ls_fun.
+    ls_fun-code = 'SEL_ALL'.
+    ls_fun-textno = '001'.
+    ls_fun-text_type = 'S'.
+    ls_fun-text_name = 'ICON_SELECT_ALL'.
+    ls_fun-icon_id = '@4B@'.
+    ls_fun-fun_text = 'Select All'.
+    APPEND ls_fun TO rs_cua-fun.
+    CLEAR ls_fun.
+    ls_fun-code = 'SEL_CAT'.
+    ls_fun-textno = '001'.
+    ls_fun-text_type = 'S'.
+    ls_fun-text_name = 'ICON_WD_TOOLBAR'.
+    ls_fun-icon_id = '@TF@'.
+    ls_fun-fun_text = 'Select category'.
+    APPEND ls_fun TO rs_cua-fun.
+    CLEAR ls_fun.
+    ls_fun-code = 'SEL_DEL'.
+    ls_fun-textno = '001'.
+    ls_fun-text_type = 'S'.
+    ls_fun-text_name = 'ICON_DESELECT_ALL'.
+    ls_fun-icon_id = '@4D@'.
+    ls_fun-fun_text = 'Deselect All'.
+    APPEND ls_fun TO rs_cua-fun.
+    CLEAR ls_fun.
+    ls_fun-code = 'SEL_KEY'.
+    ls_fun-textno = '001'.
+    ls_fun-text_type = 'S'.
+    ls_fun-text_name = 'ICON_SELECT_BLOCK'.
+    ls_fun-icon_id = '@4C@'.
+    ls_fun-fun_text = 'Mark selected or all visible'.
+    APPEND ls_fun TO rs_cua-fun.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '01'.
+    ls_but-pfno = '13'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '02'.
+    ls_but-pfno = '17'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '03'.
+    ls_but-pfno = '14'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '04'.
+    ls_but-pfno = '16'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '05'.
+    ls_but-pfno = 'S'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '06'.
+    ls_but-pfno = '05'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '07'.
+    ls_but-pfno = '06'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '08'.
+    ls_but-pfno = '07'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '09'.
+    ls_but-pfno = '02'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '10'.
+    ls_but-pfno = 'S'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '11'.
+    ls_but-pfno = '00'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '12'.
+    ls_but-pfno = '12'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_pfk.
+    ls_pfk-code = '000001'.
+    ls_pfk-pfno = '00'.
+    ls_pfk-funcode = 'OK'.
+    ls_pfk-funno = '001'.
+    APPEND ls_pfk TO rs_cua-pfk.
+    CLEAR ls_pfk.
+    ls_pfk-code = '000001'.
+    ls_pfk-pfno = '02'.
+    ls_pfk-funcode = 'SEL_CAT'.
+    ls_pfk-funno = '001'.
+    APPEND ls_pfk TO rs_cua-pfk.
+    CLEAR ls_pfk.
+    ls_pfk-code = '000001'.
+    ls_pfk-pfno = '05'.
+    ls_pfk-funcode = 'SEL_ALL'.
+    ls_pfk-funno = '001'.
+    APPEND ls_pfk TO rs_cua-pfk.
+    CLEAR ls_pfk.
+    ls_pfk-code = '000001'.
+    ls_pfk-pfno = '06'.
+    ls_pfk-funcode = 'SEL_DEL'.
+    ls_pfk-funno = '001'.
+    APPEND ls_pfk TO rs_cua-pfk.
+    CLEAR ls_pfk.
+    ls_pfk-code = '000001'.
+    ls_pfk-pfno = '07'.
+    ls_pfk-funcode = 'SEL_KEY'.
+    ls_pfk-funno = '001'.
+    APPEND ls_pfk TO rs_cua-pfk.
+    CLEAR ls_pfk.
+    ls_pfk-code = '000001'.
+    ls_pfk-pfno = '12'.
+    ls_pfk-funcode = 'CANCEL'.
+    ls_pfk-funno = '001'.
+    APPEND ls_pfk TO rs_cua-pfk.
+    CLEAR ls_pfk.
+    ls_pfk-code = '000001'.
+    ls_pfk-pfno = '13'.
+    ls_pfk-funcode = '&ILT'.
+    ls_pfk-funno = '001'.
+    APPEND ls_pfk TO rs_cua-pfk.
+    CLEAR ls_pfk.
+    ls_pfk-code = '000001'.
+    ls_pfk-pfno = '14'.
+    ls_pfk-funcode = '&OUP'.
+    ls_pfk-funno = '001'.
+    APPEND ls_pfk TO rs_cua-pfk.
+    CLEAR ls_pfk.
+    ls_pfk-code = '000001'.
+    ls_pfk-pfno = '16'.
+    ls_pfk-funcode = '&ODN'.
+    ls_pfk-funno = '001'.
+    APPEND ls_pfk TO rs_cua-pfk.
+    CLEAR ls_pfk.
+    ls_pfk-code = '000001'.
+    ls_pfk-pfno = '17'.
+    ls_pfk-funcode = '&ILD'.
+    ls_pfk-funno = '001'.
+    APPEND ls_pfk TO rs_cua-pfk.
+    CLEAR ls_set.
+    ls_set-status = 'DECIDE_DIALOG'.
+    ls_set-function = '&ILD'.
+    APPEND ls_set TO rs_cua-set.
+    CLEAR ls_set.
+    ls_set-status = 'DECIDE_DIALOG'.
+    ls_set-function = '&ILT'.
+    APPEND ls_set TO rs_cua-set.
+    CLEAR ls_set.
+    ls_set-status = 'DECIDE_DIALOG'.
+    ls_set-function = '&ODN'.
+    APPEND ls_set TO rs_cua-set.
+    CLEAR ls_set.
+    ls_set-status = 'DECIDE_DIALOG'.
+    ls_set-function = '&OUP'.
+    APPEND ls_set TO rs_cua-set.
+    CLEAR ls_set.
+    ls_set-status = 'DECIDE_DIALOG'.
+    ls_set-function = 'CANCEL'.
+    APPEND ls_set TO rs_cua-set.
+    CLEAR ls_set.
+    ls_set-status = 'DECIDE_DIALOG'.
+    ls_set-function = 'OK'.
+    APPEND ls_set TO rs_cua-set.
+    CLEAR ls_set.
+    ls_set-status = 'DECIDE_DIALOG'.
+    ls_set-function = 'SEL_ALL'.
+    APPEND ls_set TO rs_cua-set.
+    CLEAR ls_set.
+    ls_set-status = 'DECIDE_DIALOG'.
+    ls_set-function = 'SEL_CAT'.
+    APPEND ls_set TO rs_cua-set.
+    CLEAR ls_set.
+    ls_set-status = 'DECIDE_DIALOG'.
+    ls_set-function = 'SEL_DEL'.
+    APPEND ls_set TO rs_cua-set.
+    CLEAR ls_set.
+    ls_set-status = 'DECIDE_DIALOG'.
+    ls_set-function = 'SEL_KEY'.
+    APPEND ls_set TO rs_cua-set.
+    CLEAR ls_doc.
+    ls_doc-obj_type = 'P'.
+    ls_doc-obj_code = '000001'.
+    ls_doc-modal = 'P'.
+    ls_doc-int_note = 'Object list decide dialog FK settings'.
+    APPEND ls_doc TO rs_cua-doc.
+    CLEAR ls_doc.
+    ls_doc-obj_type = 'B'.
+    ls_doc-obj_code = '000001'.
+    ls_doc-sub_code = '0001'.
+    ls_doc-modal = 'P'.
+    ls_doc-int_note = 'Object list decide dialog PB settings'.
+    APPEND ls_doc TO rs_cua-doc.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
+  METHOD gui_status_create.
+
+    DATA ls_cua TYPE zcl_abapgit_objects_program=>ty_cua.
+
+    IF gui_status_exists( ) = abap_true.
+      RETURN.
+    ENDIF.
+
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
+      RETURN. " No autocreation for full version
+    ENDIF.
+
+    ls_cua = kHGwlIgZqNOMnmtzWUhGXxcERFBDQR=>get( ).
+
+    IF ls_cua IS INITIAL. " Full version or Something wrong with abapmerged version
+      RETURN.
+    ENDIF.
+
+    TRY.
+        kHGwlIgZqNOMnmtzWUhGRLwWSccCqJ=>new( )->put_own_cua( ls_cua ).
+      CATCH zcx_abapgit_exception.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD gui_status_exists.
+
+    DATA ls_own_cua TYPE zcl_abapgit_objects_program=>ty_cua.
+    DATA ls_new_cua TYPE zcl_abapgit_objects_program=>ty_cua.
+    DATA lv_x_own TYPE xstring.
+    DATA lv_x_new TYPE xstring.
+    DATA lv_h_own TYPE zif_abapgit_git_definitions=>ty_sha1.
+    DATA lv_h_new TYPE zif_abapgit_git_definitions=>ty_sha1.
+
+    TRY.
+        ls_own_cua = kHGwlIgZqNOMnmtzWUhGRLwWSccCqJ=>new( )->get_own_cua( ).
+      CATCH zcx_abapgit_exception.
+    ENDTRY.
+
+    IF ls_own_cua IS INITIAL.
+      rv_exists = abap_false.
+      RETURN.
+    ENDIF.
+
+    ls_new_cua = kHGwlIgZqNOMnmtzWUhGXxcERFBDQR=>get( ).
+    IF ls_new_cua IS INITIAL.
+      rv_exists = abap_true. " own exists and new is not - nothing to compare with
+      RETURN.
+    ENDIF.
+
+    EXPORT data = ls_own_cua TO DATA BUFFER lv_x_own.
+    EXPORT data = ls_new_cua TO DATA BUFFER lv_x_new.
+
+    TRY.
+        lv_h_own = zcl_abapgit_hash=>sha1_raw( lv_x_own ).
+        lv_h_new = zcl_abapgit_hash=>sha1_raw( lv_x_new ).
+      CATCH zcx_abapgit_exception.
+        rv_exists = abap_true. " own exists and some issue with calculating hash ... assume own is OK
+        RETURN.
+    ENDTRY.
+
+    " New exists and differs from own - then it is really new, needs to be installed
+    rv_exists = boolc( lv_h_own = lv_h_new ).
+
+  ENDMETHOD.
   METHOD lock_create.
 
     DATA: lv_obj_name TYPE tadir-obj_name,
@@ -57686,6 +58207,10 @@ CLASS zcl_abapgit_persist_migrate IMPLEMENTATION.
 
     IF lock_exists( ) = abap_false.
       lock_create( ).
+    ENDIF.
+
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true AND gui_status_exists( ) = abap_false.
+      gui_status_create( ).
     ENDIF.
 
   ENDMETHOD.
@@ -57791,7 +58316,6 @@ CLASS zcl_abapgit_persist_migrate IMPLEMENTATION.
     rv_exists = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_PERSIST_FACTORY IMPLEMENTATION.
@@ -58218,7 +58742,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_program IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
   METHOD add_tpool.
 
     FIELD-SYMBOLS: <ls_tpool_in>  LIKE LINE OF it_tpool,
@@ -103598,7 +104122,7 @@ CLASS zcl_abapgit_objects_files IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_check IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS_CHECK IMPLEMENTATION.
   METHOD checks_adjust.
 
     warning_overwrite_adjust(
@@ -103745,6 +104269,8 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
         <ls_changes>-text   = 'Change package assignment'.
       ELSE.
         CONCATENATE <ls_result>-lstate <ls_result>-rstate INTO lv_status RESPECTING BLANKS.
+        <ls_changes>-state = lv_status.
+        REPLACE ALL OCCURRENCES OF ` ` IN <ls_changes>-state WITH '_'.
 
         CASE lv_status.
           WHEN '  '. " no changes
@@ -103862,6 +104388,8 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
       IF NOT ls_tadir IS INITIAL AND ls_tadir-devclass <> lv_package.
 * overwriting object from different package than expected
         CLEAR ls_overwrite.
+        CONCATENATE <ls_result>-lstate <ls_result>-rstate INTO ls_overwrite-state RESPECTING BLANKS.
+        REPLACE ALL OCCURRENCES OF ` ` IN ls_overwrite-state WITH '_'.
         ls_overwrite-obj_type = <ls_result>-obj_type.
         ls_overwrite-obj_name = <ls_result>-obj_name.
         ls_overwrite-devclass = ls_tadir-devclass.
@@ -118294,6 +118822,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-01T18:09:57.752Z
+* abapmerge 0.15.0 - 2023-03-01T19:18:23.311Z
 ENDINTERFACE.
 ****************************************************
