@@ -45945,9 +45945,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_comment_file.
 
-    DATA:
-      lv_count TYPE i,
-      lv_value TYPE c LENGTH 10.
+    DATA lv_count TYPE i.
 
     FIELD-SYMBOLS <ls_stage> LIKE LINE OF it_stage.
 
@@ -45961,8 +45959,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
       rv_text = <ls_stage>-file-filename.
     ELSE.
       " For multiple file we use the count instead
-      WRITE lv_count TO lv_value LEFT-JUSTIFIED.
-      CONCATENATE lv_value 'files' INTO rv_text SEPARATED BY space.
+      rv_text = |{ lv_count } files|.
     ENDIF.
 
   ENDMETHOD.
@@ -45970,7 +45967,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
 
     DATA:
       lv_count TYPE i,
-      lv_value TYPE c LENGTH 10,
       ls_item  TYPE zif_abapgit_definitions=>ty_item,
       lt_items TYPE zif_abapgit_definitions=>ty_items_tt.
 
@@ -45994,8 +45990,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
       CONCATENATE ls_item-obj_type ls_item-obj_name INTO rv_text SEPARATED BY space.
     ELSE.
       " For multiple objects we use the count instead
-      WRITE lv_count TO lv_value LEFT-JUSTIFIED.
-      CONCATENATE lv_value 'objects' INTO rv_text SEPARATED BY space.
+      rv_text = |{ lv_count } objects|.
     ENDIF.
 
   ENDMETHOD.
@@ -118822,6 +118817,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-02T07:45:33.135Z
+* abapmerge 0.15.0 - 2023-03-02T09:21:34.350Z
 ENDINTERFACE.
 ****************************************************
