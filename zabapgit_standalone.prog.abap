@@ -3298,6 +3298,12 @@ INTERFACE zif_abapgit_cts_api .
     RETURNING
       VALUE(rv_description) TYPE string.
 
+  METHODS read_user
+    IMPORTING
+      iv_trkorr       TYPE trkorr
+    RETURNING
+      VALUE(rv_uname) TYPE uname.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_tadir .
@@ -36492,7 +36498,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           lt_changed_by_remote LIKE rt_changed_by,
           ls_item              TYPE zif_abapgit_definitions=>ty_item,
           lv_transport         LIKE LINE OF it_transports,
-          lv_user              TYPE e070-as4user.
+          lv_user              TYPE uname.
 
     FIELD-SYMBOLS: <ls_changed_by> LIKE LINE OF rt_changed_by.
 
@@ -36528,9 +36534,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
         obj_name = <ls_changed_by>-item-obj_name
         INTO lv_transport.
       IF sy-subrc = 0.
-        SELECT SINGLE as4user FROM e070 INTO lv_user
-          WHERE trkorr = lv_transport-trkorr.
-        IF sy-subrc = 0.
+        lv_user = zcl_abapgit_factory=>get_cts_api( )->read_user( lv_transport-trkorr ).
+        IF lv_user IS NOT INITIAL.
           <ls_changed_by>-name = lv_user.
         ENDIF.
       ENDIF.
@@ -117066,7 +117071,7 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_cts_api IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_CTS_API IMPLEMENTATION.
   METHOD get_current_transport_for_obj.
     DATA: lv_object_lockable   TYPE abap_bool,
           lv_locked            TYPE abap_bool,
@@ -117299,6 +117304,12 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
       INTO rv_description
       WHERE trkorr = iv_trkorr
       AND langu = sy-langu ##SUBRC_OK.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_cts_api~read_user.
+
+    SELECT SINGLE as4user FROM e070 INTO rv_uname
+      WHERE trkorr = iv_trkorr ##SUBRC_OK.
 
   ENDMETHOD.
 ENDCLASS.
@@ -118818,6 +118829,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-02T11:22:44.595Z
+* abapmerge 0.15.0 - 2023-03-02T12:56:32.642Z
 ENDINTERFACE.
 ****************************************************
