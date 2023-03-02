@@ -15943,13 +15943,6 @@ CLASS zcl_abapgit_object_filter_tran DEFINITION
   PUBLIC SECTION.
     INTERFACES zif_abapgit_object_filter.
 
-    TYPES: BEGIN OF ty_e071_filter,
-             pgmid    TYPE tadir-pgmid,
-             object   TYPE tadir-object,
-             obj_name TYPE trobj_name,
-           END OF ty_e071_filter,
-           ty_e071_filter_tt TYPE STANDARD TABLE OF ty_e071_filter.
-
     METHODS set_filter_values
       IMPORTING
         iv_package  TYPE tadir-devclass
@@ -15963,6 +15956,13 @@ CLASS zcl_abapgit_object_filter_tran DEFINITION
         et_r_trkorr TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt.
 
   PROTECTED SECTION.
+    TYPES: BEGIN OF ty_e071_filter,
+             pgmid    TYPE tadir-pgmid,
+             object   TYPE tadir-object,
+             obj_name TYPE trobj_name,
+           END OF ty_e071_filter,
+           ty_e071_filter_tt TYPE STANDARD TABLE OF ty_e071_filter.
+
     METHODS adjust_local_filter
       IMPORTING
                 it_e071_filter   TYPE ty_e071_filter_tt
@@ -118831,6 +118831,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-02T12:58:31.274Z
+* abapmerge 0.15.0 - 2023-03-02T13:19:21.538Z
 ENDINTERFACE.
 ****************************************************
