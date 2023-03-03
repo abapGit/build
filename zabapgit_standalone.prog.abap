@@ -15019,7 +15019,7 @@ CLASS zcl_abapgit_object_clas DEFINITION
         IMPORTING ii_xml TYPE REF TO zif_abapgit_xml_input
         RAISING   zcx_abapgit_exception,
       deserialize_sotr
-        IMPORTING ii_ml      TYPE REF TO zif_abapgit_xml_input
+        IMPORTING ii_xml     TYPE REF TO zif_abapgit_xml_input
                   iv_package TYPE devclass
         RAISING   zcx_abapgit_exception,
       serialize_xml
@@ -94090,7 +94090,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     mi_object_oriented_object_fct->create_sotr(
       iv_object_name = ms_item-obj_name
       iv_package     = iv_package
-      ii_xml         = ii_ml ).
+      ii_xml         = ii_xml ).
   ENDMETHOD.
   METHOD deserialize_tpool.
 
@@ -94523,7 +94523,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
       deserialize_tpool( io_xml ).
 
-      deserialize_sotr( ii_ml     = io_xml
+      deserialize_sotr( ii_xml     = io_xml
                         iv_package = iv_package ).
 
       deserialize_docu( io_xml ).
@@ -118867,6 +118867,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-03T13:15:41.587Z
+* abapmerge 0.15.0 - 2023-03-03T19:27:27.865Z
 ENDINTERFACE.
 ****************************************************
