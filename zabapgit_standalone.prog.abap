@@ -49246,6 +49246,7 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
     rv_string = iv_string.
 
 * todo, more to be added here
+    REPLACE ALL OCCURRENCES OF '%3A' IN rv_string WITH ':' IGNORING CASE.
     REPLACE ALL OCCURRENCES OF '%3F' IN rv_string WITH '?' IGNORING CASE.
     REPLACE ALL OCCURRENCES OF '%3D' IN rv_string WITH '=' IGNORING CASE.
     REPLACE ALL OCCURRENCES OF '%2F' IN rv_string WITH '/' IGNORING CASE.
@@ -118867,6 +118868,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-03T19:27:27.865Z
+* abapmerge 0.15.0 - 2023-03-05T13:57:48.585Z
 ENDINTERFACE.
 ****************************************************
