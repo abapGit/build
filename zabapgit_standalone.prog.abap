@@ -6685,20 +6685,26 @@ CLASS zcl_abapgit_zlib_huffman DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-    TYPES: ty_lengths TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
 
-    CONSTANTS: c_maxbits TYPE i VALUE 15.
+    TYPES:
+      ty_lengths TYPE STANDARD TABLE OF i WITH DEFAULT KEY .
 
-    METHODS:
-      constructor
-        IMPORTING it_lengths TYPE ty_lengths,
-      get_count
-        IMPORTING iv_index        TYPE i
-        RETURNING VALUE(rv_value) TYPE i,
-      get_symbol
-        IMPORTING iv_index        TYPE i
-        RETURNING VALUE(rv_value) TYPE i.
+    CONSTANTS c_maxbits TYPE i VALUE 15 ##NO_TEXT.
 
+    METHODS constructor
+      IMPORTING
+        !it_lengths TYPE ty_lengths .
+    METHODS get_count
+      IMPORTING
+        !iv_index       TYPE i
+      RETURNING
+        VALUE(rv_value) TYPE i .
+    METHODS get_symbol
+      IMPORTING
+        !iv_index       TYPE i
+      RETURNING
+        VALUE(rv_value) TYPE i .
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA: mt_count  TYPE STANDARD TABLE OF i WITH DEFAULT KEY,
@@ -118868,6 +118874,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-05T13:57:48.585Z
+* abapmerge 0.15.0 - 2023-03-06T16:50:13.627Z
 ENDINTERFACE.
 ****************************************************
