@@ -38731,7 +38731,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
   METHOD choose_check_variant.
 
     DATA: lv_check_variant TYPE sci_chkv.
@@ -38873,6 +38873,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
   ENDMETHOD.
   METHOD read_settings.
 
+    DATA: li_package TYPE REF TO zif_abapgit_sap_package.
+
+    li_package = zcl_abapgit_factory=>get_sap_package( mo_repo->get_package( ) ).
+
     " Get settings from DB
     ms_settings = mo_repo->get_local_settings( ).
 
@@ -38880,9 +38884,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
     mo_form_data->set(
       iv_key = c_id-display_name
       iv_val = ms_settings-display_name ).
-    mo_form_data->set(
-      iv_key = c_id-transport_request
-      iv_val = ms_settings-transport_request ).
+
+    IF li_package->are_changes_recorded_in_tr_req( ) = abap_true.
+      mo_form_data->set(
+        iv_key = c_id-transport_request
+        iv_val = ms_settings-transport_request ).
+    ENDIF.
+
     mo_form_data->set(
       iv_key = c_id-labels
       iv_val = ms_settings-labels ).
@@ -48273,7 +48281,9 @@ CLASS zcl_abapgit_html_form_utils IMPLEMENTATION.
     ENDIF.
 
     lt_fields = mo_form->get_fields( ).
-    LOOP AT lt_fields ASSIGNING <ls_field> WHERE type <> zif_abapgit_html_form=>c_field_type-field_group.
+    LOOP AT lt_fields ASSIGNING <ls_field> WHERE type <> zif_abapgit_html_form=>c_field_type-field_group
+      AND type <> zif_abapgit_html_form=>c_field_type-hidden.
+
       CLEAR lv_value.
       lv_value = io_form_data->get( <ls_field>-name ).
       IF <ls_field>-condense = abap_true.
@@ -118988,6 +118998,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-09T10:06:02.242Z
+* abapmerge 0.15.0 - 2023-03-09T15:52:43.513Z
 ENDINTERFACE.
 ****************************************************
