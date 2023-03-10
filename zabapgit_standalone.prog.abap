@@ -10845,6 +10845,11 @@ CLASS zcl_abapgit_object_devc DEFINITION
         !iv_lock    TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
+    METHODS unlock_and_raise_error
+      IMPORTING
+        !ii_package TYPE REF TO if_package
+      RAISING
+        zcx_abapgit_exception .
     METHODS is_empty
       IMPORTING
         !iv_package_name   TYPE devclass
@@ -92444,6 +92449,25 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD unlock_and_raise_error.
+
+    DATA ls_msg TYPE bal_s_msg.
+
+    " Remember message since unlock overwrites it (for example with XT465)
+    MOVE-CORRESPONDING sy TO ls_msg.
+
+    set_lock( ii_package = ii_package
+              iv_lock    = abap_false ).
+
+    zcx_abapgit_exception=>raise_t100(
+      iv_msgid = ls_msg-msgid
+      iv_msgno = ls_msg-msgno
+      iv_msgv1 = ls_msg-msgv1
+      iv_msgv2 = ls_msg-msgv2
+      iv_msgv3 = ls_msg-msgv3
+      iv_msgv4 = ls_msg-msgv4 ).
+
+  ENDMETHOD.
   METHOD update_pinf_usages.
     DATA: lt_current_permissions TYPE tpak_permission_to_use_list,
           li_usage               TYPE REF TO if_package_permission_to_use,
@@ -92599,9 +92623,7 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
       ENDTRY.
 
       IF sy-subrc <> 0.
-        set_lock( ii_package = li_package
-                  iv_lock    = abap_false ).
-        zcx_abapgit_exception=>raise_t100( ).
+        unlock_and_raise_error( li_package ).
       ENDIF.
 
       TRY.
@@ -92630,10 +92652,9 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
               OTHERS                = 7 ).
 
       ENDTRY.
+
       IF sy-subrc <> 0.
-        set_lock( ii_package = li_package
-                  iv_lock    = abap_false ).
-        zcx_abapgit_exception=>raise_t100( ).
+        unlock_and_raise_error( li_package ).
       ENDIF.
 
     ENDIF.
@@ -92742,9 +92763,7 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
 *          superpackage_invalid       = 17  downport, does not exist in 7.30
           OTHERS                     = 18 ).
       IF sy-subrc <> 0.
-        set_lock( ii_package = li_package
-                  iv_lock    = abap_false ).
-        zcx_abapgit_exception=>raise_t100( ).
+        unlock_and_raise_error( li_package ).
       ENDIF.
 
     ELSE.
@@ -92817,9 +92836,7 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
         object_invalid        = 4
         OTHERS                = 5 ).
     IF sy-subrc <> 0.
-      set_lock( ii_package = li_package
-                iv_lock    = abap_false ).
-      zcx_abapgit_exception=>raise_t100( ).
+      unlock_and_raise_error( li_package ).
     ENDIF.
 
     set_lock( ii_package = li_package
@@ -118998,6 +119015,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-09T15:52:43.513Z
+* abapmerge 0.15.0 - 2023-03-10T08:41:00.840Z
 ENDINTERFACE.
 ****************************************************
