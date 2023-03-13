@@ -58713,84 +58713,84 @@ CLASS kHGwlIgZqNOMnmtzWUhGXxcERFBDQR IMPLEMENTATION.
     ls_but-pfk_code = '000001'.
     ls_but-code = '0001'.
     ls_but-no = '01'.
-    ls_but-pfno = '13'.
-    APPEND ls_but TO rs_cua-but.
-    CLEAR ls_but.
-    ls_but-pfk_code = '000001'.
-    ls_but-code = '0001'.
-    ls_but-no = '02'.
-    ls_but-pfno = '17'.
-    APPEND ls_but TO rs_cua-but.
-    CLEAR ls_but.
-    ls_but-pfk_code = '000001'.
-    ls_but-code = '0001'.
-    ls_but-no = '03'.
-    ls_but-pfno = '14'.
-    APPEND ls_but TO rs_cua-but.
-    CLEAR ls_but.
-    ls_but-pfk_code = '000001'.
-    ls_but-code = '0001'.
-    ls_but-no = '04'.
-    ls_but-pfno = '16'.
-    APPEND ls_but TO rs_cua-but.
-    CLEAR ls_but.
-    ls_but-pfk_code = '000001'.
-    ls_but-code = '0001'.
-    ls_but-no = '05'.
-    ls_but-pfno = 'S'.
-    APPEND ls_but TO rs_cua-but.
-    CLEAR ls_but.
-    ls_but-pfk_code = '000001'.
-    ls_but-code = '0001'.
-    ls_but-no = '06'.
-    ls_but-pfno = '05'.
-    APPEND ls_but TO rs_cua-but.
-    CLEAR ls_but.
-    ls_but-pfk_code = '000001'.
-    ls_but-code = '0001'.
-    ls_but-no = '07'.
-    ls_but-pfno = '06'.
-    APPEND ls_but TO rs_cua-but.
-    CLEAR ls_but.
-    ls_but-pfk_code = '000001'.
-    ls_but-code = '0001'.
-    ls_but-no = '08'.
-    ls_but-pfno = '07'.
-    APPEND ls_but TO rs_cua-but.
-    CLEAR ls_but.
-    ls_but-pfk_code = '000001'.
-    ls_but-code = '0001'.
-    ls_but-no = '09'.
-    ls_but-pfno = '02'.
-    APPEND ls_but TO rs_cua-but.
-    CLEAR ls_but.
-    ls_but-pfk_code = '000001'.
-    ls_but-code = '0001'.
-    ls_but-no = '10'.
-    ls_but-pfno = 'S'.
-    APPEND ls_but TO rs_cua-but.
-    CLEAR ls_but.
-    ls_but-pfk_code = '000001'.
-    ls_but-code = '0001'.
-    ls_but-no = '11'.
     ls_but-pfno = '00'.
     APPEND ls_but TO rs_cua-but.
     CLEAR ls_but.
     ls_but-pfk_code = '000001'.
     ls_but-code = '0001'.
+    ls_but-no = '02'.
+    ls_but-pfno = 'S'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '03'.
+    ls_but-pfno = '13'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '04'.
+    ls_but-pfno = '17'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '05'.
+    ls_but-pfno = '14'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '06'.
+    ls_but-pfno = '16'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '07'.
+    ls_but-pfno = 'S'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '08'.
+    ls_but-pfno = '05'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '09'.
+    ls_but-pfno = '06'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '10'.
+    ls_but-pfno = '07'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '11'.
+    ls_but-pfno = '08'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
     ls_but-no = '12'.
+    ls_but-pfno = 'S'.
+    APPEND ls_but TO rs_cua-but.
+    CLEAR ls_but.
+    ls_but-pfk_code = '000001'.
+    ls_but-code = '0001'.
+    ls_but-no = '13'.
     ls_but-pfno = '12'.
     APPEND ls_but TO rs_cua-but.
     CLEAR ls_pfk.
     ls_pfk-code = '000001'.
     ls_pfk-pfno = '00'.
     ls_pfk-funcode = 'OK'.
-    ls_pfk-funno = '001'.
-    APPEND ls_pfk TO rs_cua-pfk.
-    CLEAR ls_pfk.
-    ls_pfk-code = '000001'.
-    ls_pfk-pfno = '02'.
-    ls_pfk-funcode = 'SEL_CAT'.
     ls_pfk-funno = '001'.
     APPEND ls_pfk TO rs_cua-pfk.
     CLEAR ls_pfk.
@@ -58809,6 +58809,18 @@ CLASS kHGwlIgZqNOMnmtzWUhGXxcERFBDQR IMPLEMENTATION.
     ls_pfk-code = '000001'.
     ls_pfk-pfno = '07'.
     ls_pfk-funcode = 'SEL_KEY'.
+    ls_pfk-funno = '001'.
+    APPEND ls_pfk TO rs_cua-pfk.
+    CLEAR ls_pfk.
+    ls_pfk-code = '000001'.
+    ls_pfk-pfno = '08'.
+    ls_pfk-funcode = 'SEL_CAT'.
+    ls_pfk-funno = '001'.
+    APPEND ls_pfk TO rs_cua-pfk.
+    CLEAR ls_pfk.
+    ls_pfk-code = '000001'.
+    ls_pfk-pfno = '11'.
+    ls_pfk-funcode = 'OK'.
     ls_pfk-funno = '001'.
     APPEND ls_pfk TO rs_cua-pfk.
     CLEAR ls_pfk.
@@ -58897,22 +58909,22 @@ CLASS kHGwlIgZqNOMnmtzWUhGXxcERFBDQR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
+CLASS zcl_abapgit_persist_migrate IMPLEMENTATION.
   METHOD gui_status_create.
 
     DATA ls_cua TYPE zcl_abapgit_objects_program=>ty_cua.
-
-    IF gui_status_exists( ) = abap_true.
-      RETURN.
-    ENDIF.
 
     IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
       RETURN. " No autocreation for full version
     ENDIF.
 
+    IF gui_status_exists( ) = abap_true.
+      RETURN.
+    ENDIF.
+
     ls_cua = kHGwlIgZqNOMnmtzWUhGXxcERFBDQR=>get( ).
 
-    IF ls_cua IS INITIAL. " Full version or Something wrong with abapmerged version
+    IF ls_cua IS INITIAL. " Full version or something wrong with abapmerged version
       RETURN.
     ENDIF.
 
@@ -59064,9 +59076,7 @@ CLASS ZCL_ABAPGIT_PERSIST_MIGRATE IMPLEMENTATION.
       lock_create( ).
     ENDIF.
 
-    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true AND gui_status_exists( ) = abap_false.
-      gui_status_create( ).
-    ENDIF.
+    gui_status_create( ).
 
   ENDMETHOD.
   METHOD table_create.
@@ -119183,6 +119193,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-13T16:36:51.177Z
+* abapmerge 0.15.0 - 2023-03-13T16:40:55.165Z
 ENDINTERFACE.
 ****************************************************
