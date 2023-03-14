@@ -39,7 +39,9 @@ INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_services_repo DEFERRED.
 INTERFACE zif_abapgit_services_git DEFERRED.
+INTERFACE zif_abapgit_html_table DEFERRED.
 INTERFACE zif_abapgit_html_form DEFERRED.
+INTERFACE zif_abapgit_gui_page_title DEFERRED.
 INTERFACE zif_abapgit_gui_menu_provider DEFERRED.
 INTERFACE zif_abapgit_html_viewer DEFERRED.
 INTERFACE zif_abapgit_html DEFERRED.
@@ -120,6 +122,7 @@ CLASS zcl_abapgit_version DEFINITION DEFERRED.
 CLASS zcl_abapgit_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_user_record DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_map DEFINITION DEFERRED.
+CLASS zcl_abapgit_string_buffer DEFINITION DEFERRED.
 CLASS zcl_abapgit_requirement_helper DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_labels DEFINITION DEFERRED.
 CLASS zcl_abapgit_path DEFINITION DEFERRED.
@@ -164,8 +167,7 @@ CLASS zcl_abapgit_gui_page_ex_pckage DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_ex_object DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_debuginfo DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_db_edit DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_db_dis DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_db_entry DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_db DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_data DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_commit DEFINITION DEFERRED.
@@ -176,6 +178,7 @@ CLASS zcl_abapgit_gui_page_addofflin DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
 CLASS zcl_abapgit_log_viewer DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_toolbar DEFINITION DEFERRED.
+CLASS zcl_abapgit_html_table DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_form_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_form DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_action_utils DEFINITION DEFERRED.
@@ -2184,6 +2187,17 @@ INTERFACE zif_abapgit_gui_asset_manager .
     RAISING
       zcx_abapgit_exception.
 
+  METHODS register_asset
+    IMPORTING
+      !iv_url       TYPE string
+      !iv_type      TYPE string
+      !iv_cachable  TYPE abap_bool DEFAULT abap_true
+      !iv_mime_name TYPE wwwdatatab-objid OPTIONAL
+      !iv_base64    TYPE string OPTIONAL
+      !iv_inline    TYPE string OPTIONAL
+    RAISING
+      zcx_abapgit_exception.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_error_handler .
@@ -2284,6 +2298,18 @@ INTERFACE zif_abapgit_gui_services .
       VALUE(rv_url) TYPE string
     RAISING
       zcx_abapgit_exception .
+  METHODS register_page_asset
+    IMPORTING
+      !iv_url       TYPE string
+      !iv_type      TYPE string
+      !iv_mime_name TYPE wwwdatatab-objid OPTIONAL
+      !iv_inline    TYPE string OPTIONAL
+      " Notes:
+      " - page_asset is supposed to be not cachable
+      " - add mime64 if needed (supposedly won't be needed)
+    RAISING
+      zcx_abapgit_exception.
+
   METHODS register_event_handler
     IMPORTING
       !ii_event_handler TYPE REF TO zif_abapgit_gui_event_handler .
@@ -2401,6 +2427,7 @@ INTERFACE zif_abapgit_html.
       !iv_id      TYPE string OPTIONAL
       !iv_class   TYPE string OPTIONAL
       !iv_hint    TYPE string OPTIONAL
+      !iv_format_single_line TYPE abap_bool DEFAULT abap_false
     RETURNING
       VALUE(ri_self) TYPE REF TO zif_abapgit_html.
 
@@ -2411,6 +2438,7 @@ INTERFACE zif_abapgit_html.
       !iv_id      TYPE string OPTIONAL
       !iv_class   TYPE string OPTIONAL
       !iv_hint    TYPE string OPTIONAL
+      !iv_format_single_line TYPE abap_bool DEFAULT abap_true
       PREFERRED PARAMETER iv_content
     RETURNING
       VALUE(ri_self) TYPE REF TO zif_abapgit_html.
@@ -2422,6 +2450,7 @@ INTERFACE zif_abapgit_html.
       !iv_id      TYPE string OPTIONAL
       !iv_class   TYPE string OPTIONAL
       !iv_hint    TYPE string OPTIONAL
+      !iv_format_single_line TYPE abap_bool DEFAULT abap_true
       PREFERRED PARAMETER iv_content
     RETURNING
       VALUE(ri_self) TYPE REF TO zif_abapgit_html.
@@ -2517,6 +2546,14 @@ INTERFACE zif_abapgit_gui_menu_provider .
 
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_gui_page_title .
+
+  METHODS get_page_title
+    RETURNING
+      VALUE(rv_title) TYPE string.
+
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_html_form .
 
   TYPES:
@@ -2581,6 +2618,42 @@ INTERFACE zif_abapgit_html_form .
       table       TYPE i VALUE 7,
       hidden      TYPE i VALUE 8,
     END OF c_field_type .
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_html_table .
+
+  TYPES:
+    BEGIN OF ty_row_attrs,
+      css_class TYPE string,
+    END OF ty_row_attrs.
+
+  TYPES:
+    BEGIN OF ty_cell_render,
+      css_class TYPE string,
+      content TYPE string,
+      html TYPE REF TO zif_abapgit_html,
+    END OF ty_cell_render.
+
+  METHODS get_row_attrs
+    IMPORTING
+      iv_row_index TYPE i
+      is_row TYPE any
+    RETURNING
+      VALUE(rs_attrs) TYPE ty_row_attrs
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS render_cell
+    IMPORTING
+      iv_row_index TYPE i
+      is_row TYPE any
+      iv_column_id TYPE string
+      iv_value TYPE any
+    RETURNING
+      VALUE(rs_render) TYPE ty_cell_render
+    RAISING
+      zcx_abapgit_exception.
 
 ENDINTERFACE.
 
@@ -15548,6 +15621,12 @@ CLASS zcl_abapgit_persistence_db DEFINITION
         !iv_data  TYPE zif_abapgit_persistence=>ty_content-data_str
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS validate_entry_type
+      IMPORTING
+        !iv_type  TYPE zif_abapgit_persistence=>ty_type
+      RAISING
+        zcx_abapgit_exception .
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -17118,26 +17197,19 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
 
     INTERFACES zif_abapgit_gui_asset_manager.
 
+    ALIASES:
+      register_asset FOR zif_abapgit_gui_asset_manager~register_asset.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
     TYPES:
       BEGIN OF ty_asset_entry.
         INCLUDE TYPE zif_abapgit_gui_asset_manager~ty_web_asset.
     TYPES: mime_name TYPE wwwdatatab-objid,
-           END OF ty_asset_entry ,
-           ty_asset_register TYPE STANDARD TABLE OF ty_asset_entry WITH KEY url.
-
-    METHODS register_asset
-      IMPORTING
-        !iv_url       TYPE string
-        !iv_type      TYPE string
-        !iv_cachable  TYPE abap_bool DEFAULT abap_true
-        !iv_mime_name TYPE wwwdatatab-objid OPTIONAL
-        !iv_base64    TYPE string OPTIONAL
-        !iv_inline    TYPE string OPTIONAL
-      RAISING
-        zcx_abapgit_exception.
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
+      END OF ty_asset_entry.
+    TYPES:
+      ty_asset_register TYPE STANDARD TABLE OF ty_asset_entry WITH KEY url.
 
     DATA mt_asset_register TYPE ty_asset_register.
 
@@ -18187,11 +18259,81 @@ CLASS zcl_abapgit_html_form_utils DEFINITION
       RETURNING
         VALUE(rv_dirty) TYPE abap_bool .
 ENDCLASS.
+CLASS zcl_abapgit_html_table DEFINITION
+  INHERITING FROM zcl_abapgit_gui_component
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS create
+      IMPORTING
+        !ii_renderer    TYPE REF TO zif_abapgit_html_table
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO zcl_abapgit_html_table .
+    " probably th css_class
+    " maybe auto class for td
+    METHODS define_column
+      IMPORTING
+        !iv_column_id  TYPE string
+        !iv_column_title TYPE string OPTIONAL
+        !iv_from_field TYPE abap_compname OPTIONAL
+      RETURNING
+        VALUE(ro_self)  TYPE REF TO zcl_abapgit_html_table .
+    " Maybe also data_provider
+    " Record Limit
+    METHODS render
+      IMPORTING
+        !iv_id         TYPE csequence OPTIONAL
+        !iv_css_class  TYPE csequence OPTIONAL
+        !it_data       TYPE ANY TABLE
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_column,
+        column_id TYPE string,
+        column_title TYPE string,
+        from_field  TYPE abap_compname,
+      END OF ty_column,
+      ty_columns TYPE STANDARD TABLE OF ty_column WITH KEY column_id.
+    DATA mi_renderer TYPE REF TO zif_abapgit_html_table.
+    DATA mt_columns TYPE ty_columns.
+    DATA mi_html TYPE REF TO zif_abapgit_html.
+
+    METHODS render_thead
+      RAISING
+        zcx_abapgit_exception .
+
+    METHODS render_tbody
+      IMPORTING
+        it_data TYPE ANY TABLE
+      RAISING
+        zcx_abapgit_exception .
+
+    METHODS render_row
+      IMPORTING
+        iv_row_index TYPE i
+        is_row TYPE any
+      RAISING
+        zcx_abapgit_exception .
+
+ENDCLASS.
 CLASS zcl_abapgit_html_toolbar DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
 
+    CLASS-METHODS create
+      IMPORTING
+        !iv_id TYPE string OPTIONAL
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO zcl_abapgit_html_toolbar.
     METHODS constructor
       IMPORTING
         !iv_id TYPE string OPTIONAL .
@@ -18373,15 +18515,18 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
 
     TYPES:
       BEGIN OF ty_control,
-        page_layout TYPE string,
-        page_title TYPE string,
-        page_menu  TYPE REF TO zcl_abapgit_html_toolbar,
-        page_menu_provider TYPE REF TO zif_abapgit_gui_menu_provider,
+        page_layout         TYPE string,
+        page_title          TYPE string,
+        page_menu           TYPE REF TO zcl_abapgit_html_toolbar,
+        page_menu_provider  TYPE REF TO zif_abapgit_gui_menu_provider,
+        page_title_provider TYPE REF TO zif_abapgit_gui_page_title,
+        extra_css_url       TYPE string,
+        extra_js_url        TYPE string,
       END OF  ty_control .
 
     DATA ms_control TYPE ty_control .
 
-    METHODS render_content
+    METHODS render_content " TODO refactor, render child directly
       ABSTRACT
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
@@ -18404,6 +18549,12 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
     METHODS html_head
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+    METHODS header_stylesheet_links
+      IMPORTING
+        ii_html TYPE REF TO zif_abapgit_html .
+    METHODS header_script_links
+      IMPORTING
+        ii_html TYPE REF TO zif_abapgit_html .
     METHODS title
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
@@ -18882,21 +19033,28 @@ CLASS zcl_abapgit_gui_page_data DEFINITION
         zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_db DEFINITION
-  INHERITING FROM zcl_abapgit_gui_page
+  INHERITING FROM zcl_abapgit_gui_component
   FINAL
   CREATE PUBLIC .
 
   PUBLIC SECTION.
 
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
+    INTERFACES zif_abapgit_gui_menu_provider.
+    INTERFACES zif_abapgit_html_table.
+
+    CLASS-METHODS create
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
+
     METHODS constructor
-      RAISING zcx_abapgit_exception.
+      RAISING
+        zcx_abapgit_exception.
 
-    METHODS zif_abapgit_gui_event_handler~on_event
-        REDEFINITION .
   PROTECTED SECTION.
-
-    METHODS render_content
-        REDEFINITION .
   PRIVATE SECTION.
 
     CONSTANTS:
@@ -18906,19 +19064,40 @@ CLASS zcl_abapgit_gui_page_db DEFINITION
         restore TYPE string VALUE 'restore',
       END OF c_action.
 
+    CONSTANTS c_css_url TYPE string VALUE 'css/page_db.css'.
+
+    TYPES:
+      BEGIN OF ty_explanation,
+        value TYPE string,
+        extra TYPE string,
+      END OF ty_explanation.
+
     DATA mt_methods TYPE zcl_abapgit_background=>ty_methods.
 
-    CLASS-METHODS backup
+    METHODS register_stylesheet
       RAISING
         zcx_abapgit_exception.
-    CLASS-METHODS delete
+
+    METHODS render_table
+      IMPORTING
+        it_db_entries TYPE zif_abapgit_persistence=>ty_contents
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS do_backup_db
+      RAISING
+        zcx_abapgit_exception.
+    CLASS-METHODS do_delete_entry
       IMPORTING
         !is_key TYPE zif_abapgit_persistence=>ty_content
       RAISING
         zcx_abapgit_exception.
-    CLASS-METHODS restore
+    CLASS-METHODS do_restore_db
       RAISING
         zcx_abapgit_exception.
+
     METHODS explain_content
       IMPORTING
         !is_data       TYPE zif_abapgit_persistence=>ty_content
@@ -18926,94 +19105,116 @@ CLASS zcl_abapgit_gui_page_db DEFINITION
         VALUE(rv_text) TYPE string
       RAISING
         zcx_abapgit_exception.
-    METHODS build_menu
-      RETURNING
-        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
     METHODS explain_content_repo
       IMPORTING
         !is_data  TYPE zif_abapgit_persistence=>ty_content
-      EXPORTING
-        !ev_value TYPE string
-        !ev_extra TYPE string
+      RETURNING
+        VALUE(rs_expl) TYPE ty_explanation
       RAISING
         zcx_abapgit_exception.
     METHODS explain_content_repo_cs
       IMPORTING
         !is_data  TYPE zif_abapgit_persistence=>ty_content
-      EXPORTING
-        !ev_value TYPE string
-        !ev_extra TYPE string
+      RETURNING
+        VALUE(rs_expl) TYPE ty_explanation
       RAISING
         zcx_abapgit_exception.
     METHODS explain_content_background
       IMPORTING
         !is_data  TYPE zif_abapgit_persistence=>ty_content
-      EXPORTING
-        !ev_value TYPE string
-        !ev_extra TYPE string
+      RETURNING
+        VALUE(rs_expl) TYPE ty_explanation
       RAISING
         zcx_abapgit_exception.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_db_dis DEFINITION
-  FINAL
-  CREATE PUBLIC INHERITING FROM zcl_abapgit_gui_page.
-
-  PUBLIC SECTION.
-
-    METHODS: constructor
-      IMPORTING is_key TYPE zif_abapgit_persistence=>ty_content
-      RAISING zcx_abapgit_exception.
-
-    CLASS-METHODS: render_record_banner
-      IMPORTING is_key         TYPE zif_abapgit_persistence=>ty_content
-      RETURNING VALUE(rv_html) TYPE string.
-
-  PROTECTED SECTION.
-    METHODS render_content REDEFINITION.
-
-  PRIVATE SECTION.
-    DATA: ms_key TYPE zif_abapgit_persistence=>ty_content.
-
-ENDCLASS.
-CLASS zcl_abapgit_gui_page_db_edit DEFINITION
-  INHERITING FROM zcl_abapgit_gui_page
+CLASS zcl_abapgit_gui_page_db_entry DEFINITION
+  INHERITING FROM zcl_abapgit_gui_component
   FINAL
   CREATE PUBLIC .
 
   PUBLIC SECTION.
 
+    INTERFACES zif_abapgit_gui_event_handler .
+    INTERFACES zif_abapgit_gui_renderable .
+    INTERFACES zif_abapgit_gui_page_title .
+
+    CLASS-METHODS create
+      IMPORTING
+        !is_key        TYPE zif_abapgit_persistence=>ty_content
+        !iv_edit_mode  TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception .
     METHODS constructor
       IMPORTING
-        is_key TYPE zif_abapgit_persistence=>ty_content
-      RAISING zcx_abapgit_exception.
+        !is_key       TYPE zif_abapgit_persistence=>ty_content
+        !iv_edit_mode TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception .
 
-    METHODS zif_abapgit_gui_event_handler~on_event
-        REDEFINITION .
   PROTECTED SECTION.
+
+  PRIVATE SECTION.
+    CONSTANTS:
+      BEGIN OF c_action,
+        update      TYPE string VALUE 'update',
+        switch_mode TYPE string VALUE 'switch_mode',
+      END OF c_action .
+
+    CONSTANTS c_edit_form_id TYPE string VALUE `db_form`.
+    CONSTANTS c_css_url TYPE string VALUE 'css/page_db_entry.css'.
+
+    DATA ms_key TYPE zif_abapgit_persistence=>ty_content.
+    DATA mv_edit_mode TYPE abap_bool.
+
+    METHODS register_stylesheet
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS render_view
+      IMPORTING
+        iv_raw_db_value TYPE zif_abapgit_persistence=>ty_content-data_str
+        ii_html         TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS render_edit
+      IMPORTING
+        iv_raw_db_value TYPE zif_abapgit_persistence=>ty_content-data_str
+        ii_html         TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS render_header
+      IMPORTING
+        ii_html    TYPE REF TO zif_abapgit_html
+        io_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
+
+    METHODS build_toolbar
+      RETURNING
+        VALUE(ro_toolbar) TYPE REF TO zcl_abapgit_html_toolbar.
+
+    CLASS-METHODS render_entry_tag
+      IMPORTING
+        is_key         TYPE zif_abapgit_persistence=>ty_content
+      RETURNING
+        VALUE(rv_html) TYPE string.
 
     CLASS-METHODS dbcontent_decode
       IMPORTING
-        !ii_event TYPE REF TO zif_abapgit_gui_event
+        io_form_data      TYPE REF TO zcl_abapgit_string_map
       RETURNING
         VALUE(rs_content) TYPE zif_abapgit_persistence=>ty_content
       RAISING
         zcx_abapgit_exception .
 
-    METHODS render_content
-        REDEFINITION .
-  PRIVATE SECTION.
-
-    CONSTANTS:
-      BEGIN OF c_action,
-        update TYPE string VALUE 'update',
-      END OF c_action .
-    DATA ms_key TYPE zif_abapgit_persistence=>ty_content .
-
-    CLASS-METHODS update
+    CLASS-METHODS do_update
       IMPORTING
-        !is_content TYPE zif_abapgit_persistence=>ty_content
+        is_content TYPE zif_abapgit_persistence=>ty_content
       RAISING
         zcx_abapgit_exception .
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_debuginfo DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -19451,9 +19652,12 @@ CLASS zcl_abapgit_gui_page_hoc DEFINITION
     CLASS-METHODS create
       IMPORTING
         !ii_child_component TYPE REF TO zif_abapgit_gui_renderable
-        !iv_page_title      TYPE string
+        !iv_page_title      TYPE string OPTIONAL
         !io_page_menu       TYPE REF TO zcl_abapgit_html_toolbar OPTIONAL
         !ii_page_menu_provider TYPE REF TO zif_abapgit_gui_menu_provider OPTIONAL
+        !ii_page_title_provider TYPE REF TO zif_abapgit_gui_page_title OPTIONAL
+        !iv_extra_css_url       TYPE string OPTIONAL
+        !iv_extra_js_url        TYPE string OPTIONAL
       RETURNING
         VALUE(ri_page_wrap) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
@@ -21280,11 +21484,6 @@ CLASS zcl_abapgit_gui_router DEFINITION
         !ii_event       TYPE REF TO zif_abapgit_gui_event
       RETURNING
         VALUE(rv_state) TYPE i .
-    METHODS get_state_db_edit
-      IMPORTING
-        ii_event        TYPE REF TO zif_abapgit_gui_event
-      RETURNING
-        VALUE(rv_state) TYPE i .
     METHODS main_page
       RETURNING VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING   zcx_abapgit_exception.
@@ -22242,6 +22441,25 @@ CLASS zcl_abapgit_requirement_helper DEFINITION
         !is_status     TYPE ty_requirement_status
       RETURNING
         VALUE(rv_true) TYPE abap_bool .
+ENDCLASS.
+CLASS zcl_abapgit_string_buffer DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    METHODS add
+      IMPORTING
+        iv_str TYPE string.
+    METHODS join_and_flush
+      RETURNING
+        VALUE(rv_str) TYPE string.
+    METHODS join_w_newline_and_flush
+      RETURNING
+        VALUE(rv_str) TYPE string.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    DATA mt_buffer TYPE string_table.
 ENDCLASS.
 CLASS zcl_abapgit_string_map DEFINITION
   FINAL
@@ -25049,6 +25267,22 @@ CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_STRING_BUFFER IMPLEMENTATION.
+  METHOD add.
+    APPEND iv_str TO mt_buffer.
+  ENDMETHOD.
+  METHOD join_and_flush.
+    rv_str = concat_lines_of( table = mt_buffer ).
+    CLEAR mt_buffer.
+  ENDMETHOD.
+  METHOD join_w_newline_and_flush.
+    rv_str = concat_lines_of(
+      table = mt_buffer
+      sep = cl_abap_char_utilities=>newline ).
+    CLEAR mt_buffer.
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
   METHOD get_requirement_met_status.
 
@@ -26683,6 +26917,8 @@ CLASS kHGwlHozdwRdXiqHvuagHhZDCxeUTC IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_services~get_log.
   ENDMETHOD.
+  METHOD zif_abapgit_gui_services~register_page_asset.
+  ENDMETHOD.
 
 ENDCLASS.
 
@@ -26719,41 +26955,10 @@ CLASS zcl_abapgit_ui_injector IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS kHGwlUeWgGWXqMsZwpmucoVfByePXr DEFINITION DEFERRED.
-* renamed: zcl_abapgit_ui_factory :: lcl_string_buffer
-CLASS kHGwlUeWgGWXqMsZwpmucoVfByePXr DEFINITION FINAL.
-  PUBLIC SECTION.
-    DATA mt_buffer TYPE string_table READ-ONLY.
-    METHODS add
-      IMPORTING
-        iv_str TYPE string.
-    METHODS join_and_flush
-      RETURNING
-        VALUE(rv_str) TYPE string.
-    METHODS join_w_newline_and_flush
-      RETURNING
-        VALUE(rv_str) TYPE string.
-ENDCLASS.
-
-CLASS kHGwlUeWgGWXqMsZwpmucoVfByePXr IMPLEMENTATION.
-  METHOD add.
-    APPEND iv_str TO mt_buffer.
-  ENDMETHOD.
-  METHOD join_and_flush.
-    rv_str = concat_lines_of( table = mt_buffer ).
-    CLEAR mt_buffer.
-  ENDMETHOD.
-  METHOD join_w_newline_and_flush.
-    rv_str = concat_lines_of( table = mt_buffer
-                              sep = cl_abap_char_utilities=>newline ).
-    CLEAR mt_buffer.
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
   METHOD get_asset_manager.
 
-    DATA lo_buf TYPE REF TO kHGwlUeWgGWXqMsZwpmucoVfByePXr.
+    DATA lo_buf TYPE REF TO zcl_abapgit_string_buffer.
     DATA lo_asset_man TYPE REF TO zcl_abapgit_gui_asset_manager.
 
     CREATE OBJECT lo_buf.
@@ -27378,46 +27583,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  margin: 0px;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* DB ENTRIES */' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'div.db_list {' ).
-    lo_buf->add( '  padding: 0.5em;' ).
-    lo_buf->add( '  overflow-x: auto;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'table.db_tab {' ).
-    lo_buf->add( '  table-layout: fixed;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.db_tab pre {' ).
-    lo_buf->add( '  display: inline-block;' ).
-    lo_buf->add( '  overflow: hidden;' ).
-    lo_buf->add( '  word-wrap:break-word;' ).
-    lo_buf->add( '  white-space: pre-wrap;' ).
-    lo_buf->add( '  margin: 0px;' ).
-    lo_buf->add( '  width: 30em;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.db_tab tr.firstrow td { padding-top: 0.5em; }' ).
-    lo_buf->add( 'table.db_tab th {' ).
-    lo_buf->add( '  text-align: left;' ).
-    lo_buf->add( '  padding: 0.5em;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.db_tab thead tr {' ).
-    lo_buf->add( '  border-bottom: 1px solid;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.db_tab tfoot tr {' ).
-    lo_buf->add( '  border-top: 1px solid;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.db_tab td {' ).
-    lo_buf->add( '  padding: 4px 8px;' ).
-    lo_buf->add( '  vertical-align: middle;' ).
-    lo_buf->add( '  word-break: break-all;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.db_tab th.package {' ).
-    lo_buf->add( '    width: 45ch;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.db_tab td.data {' ).
-    lo_buf->add( '  font-style: italic;' ).
-    lo_buf->add( '}' ).
+    lo_buf->add( '/* *** */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'li.action_link.enabled{' ).
     lo_buf->add( '  visibility: visible;' ).
@@ -27430,41 +27596,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  position: fixed; /* so it does not take up space when hidden */' ).
     lo_buf->add( '  display: none;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '/* DB ENTRY DISPLAY */' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'div.db_entry {' ).
-    lo_buf->add( '  padding: 0.5em;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'div.db_entry pre {' ).
-    lo_buf->add( '  display: block;' ).
-    lo_buf->add( '  font-size: 10pt;' ).
-    lo_buf->add( '  overflow: hidden;' ).
-    lo_buf->add( '  word-wrap:break-word;' ).
-    lo_buf->add( '  white-space: pre-wrap;' ).
-    lo_buf->add( '  border: 1px  solid;' ).
-    lo_buf->add( '  border-radius: 3px;' ).
-    lo_buf->add( '  padding: 0.5em;' ).
-    lo_buf->add( '  margin: 0.5em 0em;' ).
-    lo_buf->add( '  width: 98%;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'div.db_entry textarea {' ).
-    lo_buf->add( '  margin: 0.5em 0em;' ).
-    lo_buf->add( '  width: 98%;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'div.db_entry table.toolbar {' ).
-    lo_buf->add( '  width: 100%;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'table.tag {' ).
-    lo_buf->add( '  display: inline-block;' ).
-    lo_buf->add( '  border: 1px  solid;' ).
-    lo_buf->add( '  border-radius: 3px;' ).
-    lo_buf->add( '  margin-right: 0.5em;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.tag td { padding: 0.2em 0.5em; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* TUTORIAL */' ).
     lo_buf->add( '' ).
@@ -28684,44 +28815,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.repo-overview a.remote_repo:hover { color: var(--theme-link-color); }' ).
     lo_buf->add( '.repo-overview tbody tr:hover td { background-color: hsla(214, 50%, 50%, 0.05); }' ).
     lo_buf->add( '.repo-overview tbody tr.selected { background-color: hsla(214, 50%, 75%, 0.33); }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '/* DB ENTRIES */' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'div.db_list { background-color: #fff; }' ).
-    lo_buf->add( 'table.db_tab td      { color: #333; }' ).
-    lo_buf->add( 'table.db_tab td.data { color: #888; }' ).
-    lo_buf->add( 'table.db_tab tbody tr:hover td {' ).
-    lo_buf->add( '  background-image: linear-gradient(rgba(0, 0, 0, 0.075), rgba(0, 0, 0, 0.075));' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.db_tab tbody tr:active td {' ).
-    lo_buf->add( '  background-color: #f4f4f4;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.db_tab th {' ).
-    lo_buf->add( '  color: var(--theme-link-color);' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.db_tab thead tr,' ).
-    lo_buf->add( 'table.db_tab tfoot tr {' ).
-    lo_buf->add( '  border-color: #ddd;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.db_tab a.remote_repo {' ).
-    lo_buf->add( '  color: var(--theme-primary-font-color-reduced);' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.db_tab a.remote_repo:hover { color: var(--theme-link-color); }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '/* DB ENTRY DISPLAY */' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'div.db_entry {' ).
-    lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'div.db_entry pre {' ).
-    lo_buf->add( '  background-color: #fcfcfc;' ).
-    lo_buf->add( '  border-color: #eaeaea;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.tag {' ).
-    lo_buf->add( '  border-color: #b3c1cc;' ).
-    lo_buf->add( '  background-color: #eee;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( 'table.tag td.label { background-color: #b3c1cc; }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* TUTORIAL */' ).
     lo_buf->add( '' ).
@@ -35383,7 +35476,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_router IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   METHOD abapgit_services_actions.
 
     IF ii_event->mv_action = zif_abapgit_definitions=>c_action-abapgit_home.
@@ -35406,15 +35499,13 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-db_edit.
         lo_query->to_abap( CHANGING cs_container = ls_db_key ).
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_db_edit
-          EXPORTING
-            is_key = ls_db_key.
-        rs_handled-state = get_state_db_edit( ii_event ).
+        rs_handled-page  = zcl_abapgit_gui_page_db_entry=>create(
+          is_key       = ls_db_key
+          iv_edit_mode = abap_true ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-db_display.
         lo_query->to_abap( CHANGING cs_container = ls_db_key ).
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_db_dis
-          EXPORTING
-            is_key = ls_db_key.
+        rs_handled-page  = zcl_abapgit_gui_page_db_entry=>create( ls_db_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
     ENDCASE.
 
@@ -35465,7 +35556,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
           rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
         ENDIF.
       WHEN zif_abapgit_definitions=>c_action-go_db.                          " Go DB util page
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_db.
+        rs_handled-page  = zcl_abapgit_gui_page_db=>create( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_debuginfo.                   " Go debug info
         rs_handled-page  = zcl_abapgit_gui_page_debuginfo=>create( ).
@@ -35637,16 +35728,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
       ri_page = zcl_abapgit_gui_page_repo_view=>create( lo_repo->get_key( ) ).
 
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_state_db_edit.
-
-    " In display mode, replace the page
-    IF ii_event->mv_current_page_name = 'ZCL_ABAPGIT_GUI_PAGE_DB_DIS'.
-      rv_state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
-    ELSE.
-      rv_state = zcl_abapgit_gui=>c_event_state-new_page.
     ENDIF.
 
   ENDMETHOD.
@@ -43566,10 +43647,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_HOC IMPLEMENTATION.
     DATA lo_page TYPE REF TO zcl_abapgit_gui_page_hoc.
 
     CREATE OBJECT lo_page.
-    lo_page->ms_control-page_title = iv_page_title.
-    lo_page->ms_control-page_menu  = io_page_menu.
-    lo_page->ms_control-page_menu_provider = ii_page_menu_provider.
-    lo_page->mi_child = ii_child_component.
+    lo_page->ms_control-page_title          = iv_page_title.
+    lo_page->ms_control-page_menu           = io_page_menu.
+    lo_page->ms_control-page_menu_provider  = ii_page_menu_provider.
+    lo_page->ms_control-page_title_provider = ii_page_title_provider.
+    lo_page->ms_control-extra_css_url       = iv_extra_css_url.
+    lo_page->ms_control-extra_js_url        = iv_extra_js_url.
+    lo_page->mi_child                       = ii_child_component.
 
     ri_page_wrap = lo_page.
 
@@ -45200,72 +45284,59 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_DB_ENTRY IMPLEMENTATION.
+  METHOD build_toolbar.
+
+    CREATE OBJECT ro_toolbar.
+
+    IF mv_edit_mode = abap_true.
+      ro_toolbar->add(
+        iv_act = |submitFormById('{ c_edit_form_id }');|
+        iv_txt = 'Save'
+        iv_typ = zif_abapgit_html=>c_action_type-onclick
+        iv_opt = zif_abapgit_html=>c_html_opt-strong ).
+    ELSE.
+      ro_toolbar->add(
+        iv_act = |{ c_action-switch_mode }|
+        iv_txt = 'Edit' ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD constructor.
+
     super->constructor( ).
-    ms_key = is_key.
-    ms_control-page_title = 'Config Edit'.
+    register_stylesheet( ).
+    mv_edit_mode = iv_edit_mode.
+    ms_key       = is_key.
+
+  ENDMETHOD.
+  METHOD create.
+
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_db_entry.
+
+    CREATE OBJECT lo_component
+      EXPORTING
+        iv_edit_mode = iv_edit_mode
+        is_key       = is_key.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_extra_css_url       = c_css_url
+      ii_page_title_provider = lo_component
+      ii_child_component     = lo_component ).
+
   ENDMETHOD.
   METHOD dbcontent_decode.
 
-    DATA lo_map TYPE REF TO zcl_abapgit_string_map.
-
-    lo_map = ii_event->form_data( ).
-    rs_content-type     = lo_map->get( 'TYPE' ).
-    rs_content-value    = lo_map->get( 'VALUE' ).
-    rs_content-data_str = lo_map->get( 'XMLDATA' ).
+    rs_content-type     = io_form_data->get( 'TYPE' ).
+    rs_content-value    = io_form_data->get( 'VALUE' ).
+    rs_content-data_str = io_form_data->get( 'XMLDATA' ).
 
     IF rs_content-data_str(1) <> '<' AND rs_content-data_str+1(1) = '<'. " Hmmm ???
       rs_content-data_str = rs_content-data_str+1.
     ENDIF.
 
   ENDMETHOD.
-  METHOD render_content.
-
-    DATA: lv_data    TYPE zif_abapgit_persistence=>ty_content-data_str,
-          lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
-
-    TRY.
-        lv_data = zcl_abapgit_persistence_db=>get_instance( )->read(
-          iv_type  = ms_key-type
-          iv_value = ms_key-value ).
-      CATCH zcx_abapgit_not_found ##NO_HANDLER.
-    ENDTRY.
-
-    zcl_abapgit_persistence_db=>get_instance( )->lock(
-      iv_type  = ms_key-type
-      iv_value = ms_key-value ).
-
-    lv_data = escape( val    = zcl_abapgit_xml_pretty=>print( lv_data )
-                      format = cl_abap_format=>e_html_attr ).
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    CREATE OBJECT lo_toolbar.
-    lo_toolbar->add( iv_act = 'submitFormById(''db_form'');'
-                     iv_txt = 'Save'
-                     iv_typ = zif_abapgit_html=>c_action_type-onclick
-                     iv_opt = zif_abapgit_html=>c_html_opt-strong ).
-
-    ri_html->add( '<div class="db_entry">' ).
-
-    " Banners & Toolbar
-    ri_html->add( '<table class="toolbar"><tr><td>' ).
-    ri_html->add( zcl_abapgit_gui_page_db_dis=>render_record_banner( ms_key ) ).
-    ri_html->add( '</td><td>' ).
-    ri_html->add( lo_toolbar->render( iv_right = abap_true ) ).
-    ri_html->add( '</td></tr></table>' ).
-
-    " Form
-    ri_html->add( |<form id="db_form" method="post" action="sapevent:{ c_action-update }">| ).
-    ri_html->add( |<input type="hidden" name="type" value="{ ms_key-type }">| ).
-    ri_html->add( |<input type="hidden" name="value" value="{ ms_key-value }">| ).
-    ri_html->add( |<textarea rows="20" cols="100" name="xmldata">{ lv_data }</textarea>| ).
-    ri_html->add( '</form>' ).
-
-    ri_html->add( '</div>' ). "db_entry
-
-  ENDMETHOD.
-  METHOD update.
+  METHOD do_update.
 
     ASSERT is_content-type IS NOT INITIAL.
 
@@ -45277,78 +45348,207 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_EDIT IMPLEMENTATION.
     COMMIT WORK.
 
   ENDMETHOD.
+  METHOD register_stylesheet.
+
+    DATA lo_buf TYPE REF TO zcl_abapgit_string_buffer.
+
+    CREATE OBJECT lo_buf.
+
+****************************************************
+* abapmerge Pragma [include] - ZABAPGIT_CSS_PAGE_DB_ENTRY.W3MI.DATA.CSS
+****************************************************
+    lo_buf->add( '/*' ).
+    lo_buf->add( ' * PAGE DB ENTRY CSS' ).
+    lo_buf->add( ' */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* LAYOUT */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.db-entry {' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry pre {' ).
+    lo_buf->add( '  display: block;' ).
+    lo_buf->add( '  font-size: 10pt;' ).
+    lo_buf->add( '  overflow: hidden;' ).
+    lo_buf->add( '  word-wrap:break-word;' ).
+    lo_buf->add( '  white-space: pre-wrap;' ).
+    lo_buf->add( '  border: 1px  solid;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '  margin: 0.5em 0em;' ).
+    lo_buf->add( '  width: 98%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry textarea {' ).
+    lo_buf->add( '  margin: 0.5em 0em;' ).
+    lo_buf->add( '  width: 98%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry .toolbar {' ).
+    lo_buf->add( '  padding-left: 0.5em;' ).
+    lo_buf->add( '  padding-right: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry dl.entry-tag div {' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  border: 1px solid;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  margin-right: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry dl.entry-tag div:last-child {' ).
+    lo_buf->add( '  margin-right: 0px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry dt, .db-entry dd {' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  margin-left: 0px;' ).
+    lo_buf->add( '  padding: 2px 5px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry dt::after {  content: ":" }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* COLORS */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.db-entry {' ).
+    lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry pre, .db-entry textarea {' ).
+    lo_buf->add( '  background-color: var(--theme-table-background-color);' ).
+    lo_buf->add( '  border-color: var(--theme-container-border-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry dl.entry-tag div {' ).
+    lo_buf->add( '  border-color: hsl(206, 20%, 75%);' ).
+    lo_buf->add( '  background-color: hsl(206, 20%, 90%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry dt {' ).
+    lo_buf->add( '  background-color: hsl(206, 20%, 75%);' ).
+    lo_buf->add( '}' ).
+    gui_services( )->register_page_asset(
+      iv_url       = c_css_url
+      iv_type      = 'text/css'
+      iv_mime_name = 'ZABAPGIT_CSS_PAGE_DB_ENTRY'
+      iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
+
+  ENDMETHOD.
+  METHOD render_edit.
+
+    DATA lv_formatted TYPE string.
+
+    lv_formatted = escape(
+      val    = zcl_abapgit_xml_pretty=>print( iv_raw_db_value )
+      format = cl_abap_format=>e_html_attr ).
+
+    " Form
+    ii_html->add( |<form id="{ c_edit_form_id }" method="post" action="sapevent:{ c_action-update }">| ).
+    ii_html->add( |<input type="hidden" name="type" value="{ ms_key-type }">| ).
+    ii_html->add( |<input type="hidden" name="value" value="{ ms_key-value }">| ).
+    ii_html->add( |<textarea rows="20" cols="100" name="xmldata">{ lv_formatted }</textarea>| ).
+    ii_html->add( '</form>' ).
+
+  ENDMETHOD.
+  METHOD render_entry_tag.
+
+    rv_html =
+      |<dl class="entry-tag">| &&
+      |<div><dt>Type</dt><dd>{ is_key-type }</dd></div>| &&
+      |<div><dt>Key</dt><dd>{ is_key-value }</dd></div>| &&
+      |</dl>|.
+
+  ENDMETHOD.
+  METHOD render_header.
+
+    ii_html->add( '<div class="toolbar">' ).
+    ii_html->add( io_toolbar->render( iv_right = abap_true ) ).
+    ii_html->add( render_entry_tag( ms_key ) ).
+    ii_html->add( '</div>' ).
+
+  ENDMETHOD.
+  METHOD render_view.
+
+    DATA lo_highlighter TYPE REF TO zcl_abapgit_syntax_highlighter.
+    DATA lv_formatted   TYPE string.
+
+    " Create syntax highlighter
+    lo_highlighter = zcl_abapgit_syntax_factory=>create( '*.xml' ).
+    lv_formatted   = lo_highlighter->process_line( zcl_abapgit_xml_pretty=>print( iv_raw_db_value ) ).
+
+    ii_html->add( |<pre class="syntax-hl">{ lv_formatted }</pre>| ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
-    DATA: ls_db TYPE zif_abapgit_persistence=>ty_content.
-
     CASE ii_event->mv_action.
+      WHEN c_action-switch_mode.
+        mv_edit_mode = boolc( mv_edit_mode = abap_false ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_action-update.
-        ls_db = dbcontent_decode( ii_event ).
-        update( ls_db ).
+        do_update( dbcontent_decode( ii_event->form_data( ) ) ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
-      WHEN OTHERS.
-        rs_handled = super->zif_abapgit_gui_event_handler~on_event( ii_event ).
     ENDCASE.
 
   ENDMETHOD.
-ENDCLASS.
+  METHOD zif_abapgit_gui_page_title~get_page_title.
 
-CLASS zcl_abapgit_gui_page_db_dis IMPLEMENTATION.
-  METHOD constructor.
-    super->constructor( ).
-    ms_key = is_key.
-    ms_control-page_title = 'Config Display'.
+    IF mv_edit_mode = abap_true.
+      rv_title = 'Config Edit'.
+    ELSE.
+      rv_title = 'Config Display'.
+    ENDIF.
+
   ENDMETHOD.
-  METHOD render_content.
+  METHOD zif_abapgit_gui_renderable~render.
 
-    DATA:
-      lo_highlighter TYPE REF TO zcl_abapgit_syntax_highlighter,
-      lo_toolbar     TYPE REF TO zcl_abapgit_html_toolbar,
-      lv_data        TYPE zif_abapgit_persistence=>ty_content-data_str,
-      ls_action      TYPE zif_abapgit_persistence=>ty_content,
-      lv_action      TYPE string.
+    DATA lv_raw_db_value TYPE zif_abapgit_persistence=>ty_content-data_str.
+
+    register_handlers( ).
 
     TRY.
-        lv_data = zcl_abapgit_persistence_db=>get_instance( )->read(
-          iv_type = ms_key-type
+        lv_raw_db_value = zcl_abapgit_persistence_db=>get_instance( )->read(
+          iv_type  = ms_key-type
           iv_value = ms_key-value ).
       CATCH zcx_abapgit_not_found ##NO_HANDLER.
     ENDTRY.
 
-    " Create syntax highlighter
-    lo_highlighter  = zcl_abapgit_syntax_factory=>create( '*.xml' ).
-
-    ls_action-type  = ms_key-type.
-    ls_action-value = ms_key-value.
-    lv_action       = zcl_abapgit_html_action_utils=>dbkey_encode( ls_action ).
-    lv_data         = lo_highlighter->process_line( zcl_abapgit_xml_pretty=>print( lv_data ) ).
-
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    CREATE OBJECT lo_toolbar.
-    lo_toolbar->add( iv_act = |{ zif_abapgit_definitions=>c_action-db_edit }?{ lv_action }|
-                     iv_txt = 'Edit' ).
 
-    ri_html->add( '<div class="db_entry">' ).
-    ri_html->add( '<table class="toolbar"><tr><td>' ).
-    ri_html->add( render_record_banner( ms_key ) ).
-    ri_html->add( '</td><td>' ).
-    ri_html->add( lo_toolbar->render( iv_right = abap_true ) ).
-    ri_html->add( '</td></tr></table>' ).
+    ri_html->add( '<div class="db-entry">' ).
 
-    ri_html->add( |<pre class="syntax-hl">{ lv_data }</pre>| ).
+    render_header(
+      ii_html    = ri_html
+      io_toolbar = build_toolbar( ) ).
+
+    IF mv_edit_mode = abap_true.
+      zcl_abapgit_persistence_db=>get_instance( )->lock(
+        iv_type  = ms_key-type
+        iv_value = ms_key-value ).
+      render_edit(
+        iv_raw_db_value = lv_raw_db_value
+        ii_html         = ri_html ).
+    ELSE.
+      render_view(
+        iv_raw_db_value = lv_raw_db_value
+        ii_html         = ri_html ).
+    ENDIF.
+
     ri_html->add( '</div>' ).
 
   ENDMETHOD.
-  METHOD render_record_banner.
-    rv_html = |<table class="tag"><tr><td class="label">Type:</td>|
-           && | <td>{ is_key-type }</td></tr></table>\n|
-           && |<table class="tag"><tr><td class="label">Key:</td>|
-           && |  <td>{ is_key-value }</td></tr></table>|.
-  ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
-  METHOD backup.
+CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
+  METHOD constructor.
+    super->constructor( ).
+    register_stylesheet( ).
+  ENDMETHOD.
+  METHOD create.
+
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_db.
+
+    CREATE OBJECT lo_component.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title         = 'Database Utility'
+      iv_extra_css_url      = c_css_url
+      ii_page_menu_provider = lo_component
+      ii_child_component    = lo_component ).
+
+  ENDMETHOD.
+  METHOD do_backup_db.
 
     DATA:
       lt_data     TYPE zif_abapgit_persistence=>ty_contents,
@@ -45367,8 +45567,9 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
 
     LOOP AT lt_data ASSIGNING <ls_data>.
       CONCATENATE <ls_data>-type '_' <ls_data>-value '.xml' INTO lv_filename.
-      lo_zip->add( name    = lv_filename
-                   content = zcl_abapgit_convert=>string_to_xstring_utf8( <ls_data>-data_str ) ).
+      lo_zip->add(
+        name    = lv_filename
+        content = zcl_abapgit_convert=>string_to_xstring_utf8( <ls_data>-data_str ) ).
     ENDLOOP.
 
     lv_zip = lo_zip->save( ).
@@ -45389,25 +45590,9 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
     MESSAGE 'abapGit Backup successfully saved' TYPE 'S'.
 
   ENDMETHOD.
-  METHOD build_menu.
+  METHOD do_delete_entry.
 
-    CREATE OBJECT ro_menu.
-
-    ro_menu->add( iv_txt = 'Backup'
-                  iv_act = c_action-backup ).
-
-    ro_menu->add( iv_txt = 'Restore'
-                  iv_act = c_action-restore ).
-
-  ENDMETHOD.
-  METHOD constructor.
-    super->constructor( ).
-    ms_control-page_title = 'Database Utility'.
-    ms_control-page_menu  = build_menu( ).
-  ENDMETHOD.
-  METHOD delete.
-
-    DATA: lv_answer TYPE c LENGTH 1.
+    DATA lv_answer TYPE c LENGTH 1.
 
     ASSERT is_key-type IS NOT INITIAL.
 
@@ -45438,227 +45623,15 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
 
       " Initialize repo list
       zcl_abapgit_repo_srv=>get_instance( )->init( ).
+      " TODO: think how to remove this code,
+      " maybe implement subscription in persistence_db,
+      " so that repo_srv receive a notification on add/delete
     ENDIF.
 
     COMMIT WORK.
 
   ENDMETHOD.
-  METHOD explain_content.
-
-    DATA:
-          lv_descr  TYPE string,
-          lv_value  TYPE string,
-          lv_extra  TYPE string.
-
-    CASE is_data-type.
-      WHEN zcl_abapgit_persistence_db=>c_type_repo.
-        lv_descr = 'Repo Settings'.
-
-        explain_content_repo(
-          EXPORTING
-            is_data  = is_data
-          IMPORTING
-            ev_value = lv_value
-            ev_extra = lv_extra ).
-
-      WHEN zcl_abapgit_persistence_db=>c_type_background.
-        lv_descr = 'Background Settings'.
-
-        explain_content_background(
-          EXPORTING
-            is_data  = is_data
-          IMPORTING
-            ev_value = lv_value
-            ev_extra = lv_extra ).
-
-      WHEN zcl_abapgit_persistence_db=>c_type_user.
-        lv_descr = 'Personal Settings'.
-        lv_value = zcl_abapgit_user_record=>get_instance( is_data-value )->get_name( ).
-      WHEN zcl_abapgit_persistence_db=>c_type_settings.
-        lv_descr = 'Global Settings'.
-      WHEN zcl_abapgit_persistence_db=>c_type_packages.
-        lv_descr = 'Local Package Details'.
-      WHEN zcl_abapgit_persistence_db=>c_type_repo_csum.
-        lv_descr = 'Repo Checksums'.
-
-        explain_content_repo_cs(
-          EXPORTING
-            is_data  = is_data
-          IMPORTING
-            ev_value = lv_value
-            ev_extra = lv_extra ).
-
-      WHEN OTHERS.
-        IF strlen( is_data-data_str ) >= 250.
-          lv_value = is_data-data_str(250).
-        ELSE.
-          lv_value = is_data-data_str.
-        ENDIF.
-
-        lv_value = escape(
-          val    = lv_value
-          format = cl_abap_format=>e_html_attr ).
-
-        lv_value = |<pre>{ lv_value }</pre>|.
-    ENDCASE.
-
-    IF lv_value IS NOT INITIAL.
-      lv_descr = |{ lv_descr }: |.
-    ENDIF.
-
-    IF lv_extra IS NOT INITIAL.
-      lv_extra = | ({ lv_extra })|.
-    ENDIF.
-
-    rv_text = |{ lv_descr }<strong>{ lv_value }</strong>{ lv_extra }|.
-
-    IF strlen( rv_text ) >= 250.
-      rv_text = rv_text(250) && '...'.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD explain_content_background.
-
-    DATA:
-      ls_result TYPE match_result,
-      ls_match  TYPE submatch_result,
-      lv_class  TYPE string,
-      ls_method LIKE LINE OF mt_methods.
-
-    ev_value = |{ zcl_abapgit_repo_srv=>get_instance( )->get( is_data-value )->get_name( ) }|.
-
-    FIND FIRST OCCURRENCE OF REGEX '<METHOD>(.*)</METHOD>'
-      IN is_data-data_str IGNORING CASE RESULTS ls_result.
-    READ TABLE ls_result-submatches INTO ls_match INDEX 1.
-    IF sy-subrc = 0.
-      lv_class = is_data-data_str+ls_match-offset(ls_match-length).
-    ENDIF.
-
-    IF mt_methods IS INITIAL.
-      mt_methods = zcl_abapgit_background=>list_methods( ).
-    ENDIF.
-
-    READ TABLE mt_methods INTO ls_method WITH TABLE KEY class = lv_class.
-    IF sy-subrc = 0.
-      ev_extra = ls_method-description.
-    ELSE.
-      ev_extra = lv_class.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD explain_content_repo.
-
-    DATA:
-      ls_result TYPE match_result,
-      ls_match  TYPE submatch_result,
-      lv_cnt    TYPE i.
-
-    FIND FIRST OCCURRENCE OF REGEX '<OFFLINE/>'
-      IN is_data-data_str IGNORING CASE MATCH COUNT lv_cnt.
-    IF lv_cnt > 0.
-      ev_extra = 'Online'.
-    ELSE.
-      ev_extra = 'Offline'.
-    ENDIF.
-
-    FIND FIRST OCCURRENCE OF REGEX '<DISPLAY_NAME>(.*)</DISPLAY_NAME>'
-      IN is_data-data_str IGNORING CASE RESULTS ls_result.
-    READ TABLE ls_result-submatches INTO ls_match INDEX 1.
-    IF sy-subrc = 0.
-      ev_value = is_data-data_str+ls_match-offset(ls_match-length).
-    ENDIF.
-
-    IF ev_value IS INITIAL.
-      FIND FIRST OCCURRENCE OF REGEX '<URL>(.*)</URL>'
-        IN is_data-data_str IGNORING CASE RESULTS ls_result.
-      READ TABLE ls_result-submatches INTO ls_match INDEX 1.
-      IF sy-subrc = 0.
-        ev_value = is_data-data_str+ls_match-offset(ls_match-length).
-        IF lv_cnt > 0.
-          ev_value = zcl_abapgit_url=>name( ev_value ).
-        ENDIF.
-      ENDIF.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD explain_content_repo_cs.
-
-    DATA:
-      lt_lines  TYPE string_table.
-
-    IF strlen( is_data-data_str ) > 0.
-      SPLIT is_data-data_str AT cl_abap_char_utilities=>newline INTO TABLE lt_lines.
-      ev_extra = |{ lines( lt_lines ) } lines|.
-
-      READ TABLE lt_lines INDEX 1 INTO ev_value.
-      IF sy-subrc = 0.
-        REPLACE '#repo_name#' IN ev_value WITH ''.
-        ev_value = escape(
-          val    = ev_value
-          format = cl_abap_format=>e_html_attr ).
-      ENDIF.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD render_content.
-
-    DATA: lt_data    TYPE zif_abapgit_persistence=>ty_contents,
-          lv_action  TYPE string,
-          lv_trclass TYPE string,
-          lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
-
-    FIELD-SYMBOLS: <ls_data> LIKE LINE OF lt_data.
-    lt_data = zcl_abapgit_persistence_db=>get_instance( )->list( ).
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( '<div class="db_list">' ).
-    ri_html->add( '<table class="db_tab">' ).
-
-    " Header
-    ri_html->add( '<thead>' ).
-    ri_html->add( '<tr>' ).
-    ri_html->add( '<th>Type</th>' ).
-    ri_html->add( '<th>Key</th>' ).
-    ri_html->add( '<th>Data</th>' ).
-    ri_html->add( '<th></th>' ).
-    ri_html->add( '</tr>' ).
-    ri_html->add( '</thead>' ).
-    ri_html->add( '<tbody>' ).
-
-    " Lines
-    LOOP AT lt_data ASSIGNING <ls_data>.
-      CLEAR lv_trclass.
-      IF sy-tabix = 1.
-        lv_trclass = ' class="firstrow"'.
-      ENDIF.
-
-      lv_action  = zcl_abapgit_html_action_utils=>dbkey_encode( <ls_data> ).
-
-      CREATE OBJECT lo_toolbar.
-      lo_toolbar->add( iv_txt = 'Display'
-                       iv_act = |{ zif_abapgit_definitions=>c_action-db_display }?{ lv_action }| ).
-      lo_toolbar->add( iv_txt = 'Edit'
-                       iv_act = |{ zif_abapgit_definitions=>c_action-db_edit }?{ lv_action }| ).
-      lo_toolbar->add( iv_txt = 'Delete'
-                       iv_act = |{ c_action-delete }?{ lv_action }| ).
-
-      ri_html->add( |<tr{ lv_trclass }>| ).
-      ri_html->add( |<td>{ <ls_data>-type }</td>| ).
-      ri_html->add( |<td>{ <ls_data>-value }</td>| ).
-      ri_html->add( |<td class="data">{ explain_content( <ls_data> ) }</td>| ).
-      ri_html->add( '<td>' ).
-      ri_html->add( lo_toolbar->render( ) ).
-      ri_html->add( '</td>' ).
-      ri_html->add( '</tr>' ).
-    ENDLOOP.
-
-    ri_html->add( '</tbody>' ).
-    ri_html->add( '</table>' ).
-    ri_html->add( '</div>' ).
-
-  ENDMETHOD.
-  METHOD restore.
+  METHOD do_restore_db.
 
     DATA:
       lv_answer   TYPE c LENGTH 1,
@@ -45703,13 +45676,11 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
       SPLIT lv_filename AT '_' INTO ls_data-type ls_data-value.
 
       " Validate DB key
-      IF ls_data-type <> zcl_abapgit_persistence_db=>c_type_repo AND
-         ls_data-type <> zcl_abapgit_persistence_db=>c_type_user AND
-         ls_data-type <> zcl_abapgit_persistence_db=>c_type_settings AND
-         ls_data-type <> zcl_abapgit_persistence_db=>c_type_background AND
-         ls_data-type <> zcl_abapgit_persistence_db=>c_type_packages.
-        zcx_abapgit_exception=>raise( |Invalid DB key. This is not an abapGit Backup| ).
-      ENDIF.
+      TRY.
+          zcl_abapgit_persistence_db=>validate_entry_type( ls_data-type ).
+        CATCH zcx_abapgit_exception.
+          zcx_abapgit_exception=>raise( |Invalid DB entry type. This is not an abapGit Backup| ).
+      ENDTRY.
 
       lo_zip->get(
         EXPORTING
@@ -45763,6 +45734,217 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
     MESSAGE 'abapGit Backup successfully restored' TYPE 'S'.
 
   ENDMETHOD.
+  METHOD explain_content.
+
+    DATA lv_descr TYPE string.
+    DATA ls_explanation TYPE ty_explanation.
+
+    CASE is_data-type.
+      WHEN zcl_abapgit_persistence_db=>c_type_repo.
+        lv_descr       = 'Repo Settings'.
+        ls_explanation = explain_content_repo( is_data ).
+
+      WHEN zcl_abapgit_persistence_db=>c_type_background.
+        lv_descr       = 'Background Settings'.
+        ls_explanation = explain_content_background( is_data ).
+
+      WHEN zcl_abapgit_persistence_db=>c_type_user.
+        lv_descr       = 'Personal Settings'.
+        ls_explanation-value = zcl_abapgit_user_record=>get_instance( is_data-value )->get_name( ).
+
+      WHEN zcl_abapgit_persistence_db=>c_type_settings.
+        lv_descr       = 'Global Settings'.
+
+      WHEN zcl_abapgit_persistence_db=>c_type_packages.
+        lv_descr       = 'Local Package Details'.
+
+      WHEN zcl_abapgit_persistence_db=>c_type_repo_csum.
+        lv_descr       = 'Repo Checksums'.
+        ls_explanation = explain_content_repo_cs( is_data ).
+
+      WHEN OTHERS.
+        IF strlen( is_data-data_str ) >= 250.
+          ls_explanation-value = is_data-data_str(250).
+        ELSE.
+          ls_explanation-value = is_data-data_str.
+        ENDIF.
+
+        ls_explanation-value = escape(
+          val    = ls_explanation-value
+          format = cl_abap_format=>e_html_attr ).
+        ls_explanation-value = |<pre>{ ls_explanation-value }</pre>|.
+
+    ENDCASE.
+
+    IF ls_explanation-value IS NOT INITIAL.
+      lv_descr = |{ lv_descr }: |.
+    ENDIF.
+
+    IF ls_explanation-extra IS NOT INITIAL.
+      ls_explanation-extra = | ({ ls_explanation-extra })|.
+    ENDIF.
+
+    rv_text = |{ lv_descr }<strong>{ ls_explanation-value }</strong>{ ls_explanation-extra }|.
+
+    IF strlen( rv_text ) >= 250.
+      rv_text = rv_text(250) && '...'.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD explain_content_background.
+
+    DATA:
+      ls_result TYPE match_result,
+      ls_match  TYPE submatch_result,
+      lv_class  TYPE string,
+      ls_method LIKE LINE OF mt_methods.
+
+    rs_expl-value = |{ zcl_abapgit_repo_srv=>get_instance( )->get( is_data-value )->get_name( ) }|.
+
+    FIND FIRST OCCURRENCE OF REGEX '<METHOD>(.*)</METHOD>'
+      IN is_data-data_str IGNORING CASE RESULTS ls_result.
+    READ TABLE ls_result-submatches INTO ls_match INDEX 1.
+    IF sy-subrc = 0.
+      lv_class = is_data-data_str+ls_match-offset(ls_match-length).
+    ENDIF.
+
+    IF mt_methods IS INITIAL.
+      mt_methods = zcl_abapgit_background=>list_methods( ).
+    ENDIF.
+
+    READ TABLE mt_methods INTO ls_method WITH TABLE KEY class = lv_class.
+    IF sy-subrc = 0.
+      rs_expl-extra = ls_method-description.
+    ELSE.
+      rs_expl-extra = lv_class.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD explain_content_repo.
+
+    DATA:
+      ls_result TYPE match_result,
+      ls_match  TYPE submatch_result,
+      lv_cnt    TYPE i.
+
+    FIND FIRST OCCURRENCE OF REGEX '<OFFLINE/>'
+      IN is_data-data_str IGNORING CASE MATCH COUNT lv_cnt.
+    IF lv_cnt > 0.
+      rs_expl-extra = 'Online'.
+    ELSE.
+      rs_expl-extra = 'Offline'.
+    ENDIF.
+
+    FIND FIRST OCCURRENCE OF REGEX '<DISPLAY_NAME>(.*)</DISPLAY_NAME>'
+      IN is_data-data_str IGNORING CASE RESULTS ls_result.
+    READ TABLE ls_result-submatches INTO ls_match INDEX 1.
+    IF sy-subrc = 0.
+      rs_expl-value = is_data-data_str+ls_match-offset(ls_match-length).
+    ENDIF.
+
+    IF rs_expl-value IS INITIAL.
+      FIND FIRST OCCURRENCE OF REGEX '<URL>(.*)</URL>'
+        IN is_data-data_str IGNORING CASE RESULTS ls_result.
+      READ TABLE ls_result-submatches INTO ls_match INDEX 1.
+      IF sy-subrc = 0.
+        rs_expl-value = is_data-data_str+ls_match-offset(ls_match-length).
+        IF lv_cnt > 0.
+          rs_expl-value = zcl_abapgit_url=>name( rs_expl-value ).
+        ENDIF.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD explain_content_repo_cs.
+
+    DATA lt_lines TYPE string_table.
+
+    IF strlen( is_data-data_str ) > 0.
+      SPLIT is_data-data_str AT cl_abap_char_utilities=>newline INTO TABLE lt_lines.
+      rs_expl-extra = |{ lines( lt_lines ) } lines|.
+
+      READ TABLE lt_lines INDEX 1 INTO rs_expl-value.
+      IF sy-subrc = 0.
+        REPLACE '#repo_name#' IN rs_expl-value WITH ''.
+        rs_expl-value = escape(
+          val    = rs_expl-value
+          format = cl_abap_format=>e_html_attr ).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD register_stylesheet.
+
+    DATA lo_buf TYPE REF TO zcl_abapgit_string_buffer.
+
+    CREATE OBJECT lo_buf.
+
+****************************************************
+* abapmerge Pragma [include] - ZABAPGIT_CSS_PAGE_DB.W3MI.DATA.CSS
+****************************************************
+    lo_buf->add( '/*' ).
+    lo_buf->add( ' * PAGE DB CSS' ).
+    lo_buf->add( ' */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* LAYOUT */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.db-list {' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '  overflow-x: auto;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-list table { table-layout: fixed; }' ).
+    lo_buf->add( '.db-list table pre {' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  overflow: hidden;' ).
+    lo_buf->add( '  word-wrap:break-word;' ).
+    lo_buf->add( '  white-space: pre-wrap;' ).
+    lo_buf->add( '  margin: 0px;' ).
+    lo_buf->add( '  width: 30em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-list table th {' ).
+    lo_buf->add( '  text-align: left;' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-list table thead tr { border-bottom: 1px solid; }' ).
+    lo_buf->add( '.db-list table td {' ).
+    lo_buf->add( '  padding: 4px 0.5em;' ).
+    lo_buf->add( '  vertical-align: middle;' ).
+    lo_buf->add( '  word-break: break-all;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-list table td.data { font-style: italic; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* COLORS */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.db-list { background-color: var(--theme-table-background-color); }' ).
+    lo_buf->add( '.db-list table td      { color: var(--theme-primary-font-color); }' ).
+    lo_buf->add( '.db-list table td.data { color: var(--theme-greyscale-dark); }' ).
+    lo_buf->add( '.db-list table tbody tr:hover td  { background-color: rgba(0, 0, 0, 0.075); }' ).
+    lo_buf->add( '.db-list table tbody tr:active td { background-color: #f4f4f4; } /* Needed? */' ).
+    lo_buf->add( '.db-list table th { color: var(--theme-link-color); }' ).
+    lo_buf->add( '.db-list table thead tr { border-color: var(--theme-table-border-color); }' ).
+    gui_services( )->register_page_asset(
+      iv_url       = c_css_url
+      iv_type      = 'text/css'
+      iv_mime_name = 'ZABAPGIT_CSS_PAGE_DB'
+      iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
+
+  ENDMETHOD.
+  METHOD render_table.
+
+    ri_html = zcl_abapgit_html_table=>create( ii_renderer = me
+      )->define_column(
+        iv_column_id = 'type'
+        iv_column_title = 'Type'
+      )->define_column(
+        iv_column_id = 'value'
+        iv_column_title = 'Key'
+      )->define_column(
+        iv_column_id = 'expl'
+        iv_column_title = 'Data'
+      )->define_column( 'cmd'
+      )->render( it_db_entries ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA ls_db TYPE zif_abapgit_persistence=>ty_content.
@@ -45772,16 +45954,71 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
     CASE ii_event->mv_action.
       WHEN c_action-delete.
         lo_query->to_abap( CHANGING cs_container = ls_db ).
-        delete( ls_db ).
+        do_delete_entry( ls_db ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_action-backup.
-        backup( ).
+        do_backup_db( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_action-restore.
-        restore( ).
+        do_restore_db( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN OTHERS.
-        rs_handled = super->zif_abapgit_gui_event_handler~on_event( ii_event ).
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_menu_provider~get_menu.
+
+    CREATE OBJECT ro_toolbar.
+
+    ro_toolbar->add(
+      iv_txt = 'Backup'
+      iv_act = c_action-backup ).
+    ro_toolbar->add(
+      iv_txt = 'Restore'
+      iv_act = c_action-restore ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    DATA lt_db_entries TYPE zif_abapgit_persistence=>ty_contents.
+
+    register_handlers( ).
+
+    lt_db_entries = zcl_abapgit_persistence_db=>get_instance( )->list( ).
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( '<div class="db-list">' ).
+    ri_html->add( render_table( lt_db_entries ) ).
+    ri_html->add( '</div>' ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_html_table~get_row_attrs.
+  ENDMETHOD.
+  METHOD zif_abapgit_html_table~render_cell.
+
+    DATA lv_action  TYPE string.
+    DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
+
+    CASE iv_column_id.
+      WHEN 'type' OR 'value'.
+        rs_render-content = |{ iv_value }|.
+      WHEN 'expl'.
+        rs_render-content   = explain_content( is_row ).
+        rs_render-css_class = 'data'.
+      WHEN 'cmd'.
+        lv_action  = zcl_abapgit_html_action_utils=>dbkey_encode( is_row ).
+        lo_toolbar = zcl_abapgit_html_toolbar=>create(
+          )->add(
+            iv_txt = 'Display'
+            iv_act = |{ zif_abapgit_definitions=>c_action-db_display }?{ lv_action }|
+          )->add(
+            iv_txt = 'Edit'
+            iv_act = |{ zif_abapgit_definitions=>c_action-db_edit }?{ lv_action }|
+          )->add(
+            iv_txt = 'Delete'
+            iv_act = |{ c_action-delete }?{ lv_action }| ).
+        rs_render-html = lo_toolbar->render( ).
+
     ENDCASE.
 
   ENDMETHOD.
@@ -47416,6 +47653,35 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ri_html->add( '</div>' ).
 
   ENDMETHOD.
+  METHOD header_script_links.
+
+    ii_html->add( '<script src="js/common.js"></script>' ).
+
+    IF ms_control-extra_js_url IS NOT INITIAL.
+      ii_html->add( |<script src="{ ms_control-extra_js_url }"></script>| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD header_stylesheet_links.
+
+    ii_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
+    ii_html->add( '<link rel="stylesheet" type="text/css" href="css/ag-icons.css">' ).
+
+    " Themes
+    ii_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-default.css">' ). " Theme basis
+    CASE mo_settings->get_ui_theme( ).
+      WHEN zcl_abapgit_settings=>c_ui_theme-dark.
+        ii_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-dark.css">' ).
+      WHEN zcl_abapgit_settings=>c_ui_theme-belize.
+        ii_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-belize-blue.css">' ).
+    ENDCASE.
+
+    " Page stylesheets
+    IF ms_control-extra_css_url IS NOT INITIAL.
+      ii_html->add( |<link rel="stylesheet" type="text/css" href="{ ms_control-extra_css_url }">| ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD html_head.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
@@ -47426,19 +47692,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ri_html->add( '<meta http-equiv="X-UA-Compatible" content="IE=11,10,9,8" />' ).
 
     ri_html->add( '<title>abapGit</title>' ).
-    ri_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
-    ri_html->add( '<link rel="stylesheet" type="text/css" href="css/ag-icons.css">' ).
 
-    " Themes
-    ri_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-default.css">' ). " Theme basis
-    CASE mo_settings->get_ui_theme( ).
-      WHEN zcl_abapgit_settings=>c_ui_theme-dark.
-        ri_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-dark.css">' ).
-      WHEN zcl_abapgit_settings=>c_ui_theme-belize.
-        ri_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-belize-blue.css">' ).
-    ENDCASE.
-
-    ri_html->add( '<script src="js/common.js"></script>' ).
+    header_stylesheet_links( ri_html ).
+    header_script_links( ri_html ).
 
     CASE mo_settings->get_icon_scaling( ). " Enforce icon scaling
       WHEN mo_settings->c_icon_scaling-large.
@@ -47534,10 +47790,16 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   METHOD title.
 
     DATA lo_page_menu LIKE ms_control-page_menu.
+    DATA lv_page_title TYPE string.
 
     lo_page_menu = ms_control-page_menu.
     IF lo_page_menu IS NOT BOUND AND ms_control-page_menu_provider IS BOUND.
       lo_page_menu = ms_control-page_menu_provider->get_menu( ).
+    ENDIF.
+
+    lv_page_title = ms_control-page_title.
+    IF ms_control-page_title_provider IS BOUND.
+      lv_page_title = ms_control-page_title_provider->get_page_title( ).
     ENDIF.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
@@ -47545,13 +47807,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     ri_html->add( '<div id="header">' ).
 
     ri_html->add( '<div class="logo">' ).
-    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-abapgit_home
-                    iv_txt = ri_html->icon( 'git-alt' ) ).
-    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-abapgit_home
-                    iv_txt = ri_html->icon( 'abapgit' ) ).
+    ri_html->add_a(
+      iv_act = zif_abapgit_definitions=>c_action-abapgit_home
+      iv_txt = ri_html->icon( 'git-alt' ) ).
+    ri_html->add_a(
+      iv_act = zif_abapgit_definitions=>c_action-abapgit_home
+      iv_txt = ri_html->icon( 'abapgit' ) ).
     ri_html->add( '</div>' ).
 
-    ri_html->add( |<div class="page-title"><span class="spacer">&#x25BA;</span>{ ms_control-page_title }</div>| ).
+    ri_html->add( |<div class="page-title"><span class="spacer">&#x25BA;</span>{ lv_page_title }</div>| ).
 
     IF lo_page_menu IS BOUND.
       ri_html->add( '<div class="float-right">' ).
@@ -48092,6 +48356,12 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
   METHOD constructor.
     mv_id = iv_id.
   ENDMETHOD.
+
+  METHOD create.
+    CREATE OBJECT ro_instance
+      EXPORTING
+        iv_id = iv_id.
+  ENDMETHOD.
   METHOD count_items.
     rv_count = lines( mt_items ).
   ENDMETHOD.
@@ -48227,6 +48497,127 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
     ENDLOOP.
 
     ri_html->add( '</ul>' ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_HTML_TABLE IMPLEMENTATION.
+  METHOD create.
+    ASSERT ii_renderer IS BOUND.
+    CREATE OBJECT ro_instance.
+    ro_instance->mi_renderer = ii_renderer.
+  ENDMETHOD.
+  METHOD define_column.
+
+    FIELD-SYMBOLS <ls_c> LIKE LINE OF mt_columns.
+
+    ASSERT iv_column_id IS NOT INITIAL.
+    ro_self = me.
+
+    APPEND INITIAL LINE TO mt_columns ASSIGNING <ls_c>.
+    <ls_c>-column_id    = iv_column_id.
+    <ls_c>-column_title = iv_column_title.
+    <ls_c>-from_field   = to_upper( iv_from_field ).
+
+  ENDMETHOD.
+  METHOD render.
+
+    DATA lv_attrs TYPE string.
+
+    IF iv_id IS NOT INITIAL.
+      lv_attrs = lv_attrs && | id="{ iv_id }"|.
+    ENDIF.
+
+    IF iv_css_class IS NOT INITIAL.
+      lv_attrs = lv_attrs && | class="{ iv_css_class }"|.
+    ENDIF.
+
+    CREATE OBJECT mi_html TYPE zcl_abapgit_html.
+    ri_html = mi_html.
+
+    mi_html->add( |<table{ lv_attrs }>| ).
+    render_thead( ).
+    render_tbody( it_data ).
+    mi_html->add( '</table>' ).
+
+  ENDMETHOD.
+  METHOD render_row.
+
+    DATA ls_render TYPE zif_abapgit_html_table=>ty_cell_render.
+    DATA lv_dummy TYPE string.
+    FIELD-SYMBOLS <ls_col> LIKE LINE OF mt_columns.
+    FIELD-SYMBOLS <lv_val> TYPE any.
+
+    LOOP AT mt_columns ASSIGNING <ls_col>.
+      IF <ls_col>-from_field IS NOT INITIAL AND <ls_col>-from_field <> '-'.
+        ASSIGN COMPONENT <ls_col>-from_field OF STRUCTURE is_row TO <lv_val>.
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( |html_table: cannot assign field [{ <ls_col>-from_field }]| ).
+        ENDIF.
+      ELSEIF <ls_col>-from_field <> '-'.
+        <ls_col>-from_field = to_upper( <ls_col>-column_id ). " Try column_id
+        ASSIGN COMPONENT <ls_col>-from_field OF STRUCTURE is_row TO <lv_val>.
+        IF sy-subrc <> 0.
+          <ls_col>-from_field = '-'. " Don't try assignments anymore
+          ASSIGN lv_dummy TO <lv_val>.
+        ENDIF.
+      ELSE.
+        ASSIGN lv_dummy TO <lv_val>.
+      ENDIF.
+      ls_render = mi_renderer->render_cell(
+        iv_row_index = iv_row_index
+        is_row       = is_row
+        iv_column_id = <ls_col>-column_id
+        iv_value     = <lv_val> ).
+      mi_html->td(
+        iv_content = ls_render-content
+        ii_content = ls_render-html
+        iv_class   = ls_render-css_class ).
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD render_tbody.
+
+    DATA ls_row_attrs TYPE zif_abapgit_html_table=>ty_row_attrs.
+    DATA lv_row_attrs TYPE string.
+    DATA lv_index TYPE i.
+
+    FIELD-SYMBOLS <ls_i> TYPE any.
+
+    mi_html->add( '<tbody>' ).
+
+    LOOP AT it_data ASSIGNING <ls_i>.
+      lv_index = sy-tabix.
+      ls_row_attrs = mi_renderer->get_row_attrs(
+        iv_row_index = lv_index
+        is_row       = <ls_i> ).
+      CLEAR lv_row_attrs.
+      IF ls_row_attrs-css_class IS NOT INITIAL.
+        lv_row_attrs = lv_row_attrs && | class="{ ls_row_attrs-css_class }"|.
+      ENDIF.
+      mi_html->add( |<tr{ lv_row_attrs }>| ).
+      render_row(
+        iv_row_index = lv_index
+        is_row       = <ls_i> ).
+      mi_html->add( '</tr>' ).
+    ENDLOOP.
+
+    mi_html->add( '</tbody>' ).
+
+  ENDMETHOD.
+  METHOD render_thead.
+
+    FIELD-SYMBOLS <ls_col> LIKE LINE OF mt_columns.
+
+    mi_html->add( '<thead>' ).
+    mi_html->add( '<tr>' ).
+
+    LOOP AT mt_columns ASSIGNING <ls_col>.
+      mi_html->th( iv_content = <ls_col>-column_title ).
+    ENDLOOP.
+
+    mi_html->add( '</tr>' ).
+    mi_html->add( '</thead>' ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -51352,6 +51743,7 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_html~td.
     zif_abapgit_html~wrap(
+      iv_format_single_line = iv_format_single_line
       iv_tag   = 'td'
       iv_content = iv_content
       ii_content = ii_content
@@ -51362,6 +51754,7 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_html~th.
     zif_abapgit_html~wrap(
+      iv_format_single_line = iv_format_single_line
       iv_tag   = 'th'
       iv_content = iv_content
       ii_content = ii_content
@@ -51399,14 +51792,18 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
       CLEAR lv_close_tag.
     ENDIF.
 
-    zif_abapgit_html~add( lv_open_tag ).
-    IF ii_content IS BOUND.
-      zif_abapgit_html~add( ii_content ).
-    ELSEIF iv_content IS NOT INITIAL.
-      zif_abapgit_html~add( iv_content ).
-    ENDIF.
-    IF lv_close_tag IS NOT INITIAL.
-      zif_abapgit_html~add( `</` && iv_tag && `>` ).
+    IF iv_format_single_line = abap_true AND iv_content IS NOT INITIAL.
+      zif_abapgit_html~add( lv_open_tag && iv_content && lv_close_tag ).
+    ELSE.
+      zif_abapgit_html~add( lv_open_tag ).
+      IF ii_content IS BOUND.
+        zif_abapgit_html~add( ii_content ).
+      ELSEIF iv_content IS NOT INITIAL.
+        zif_abapgit_html~add( iv_content ).
+      ENDIF.
+      IF lv_close_tag IS NOT INITIAL.
+        zif_abapgit_html~add( lv_close_tag ).
+      ENDIF.
     ENDIF.
 
     ri_self = me.
@@ -51869,7 +52266,7 @@ CLASS ZCL_ABAPGIT_GUI_CSS_PROCESSOR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
   METHOD get_mime_asset.
 
     DATA: ls_key    TYPE wwwdatatab,
@@ -51930,23 +52327,6 @@ CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD register_asset.
-
-    DATA ls_asset LIKE LINE OF mt_asset_register.
-
-    SPLIT iv_type AT '/' INTO ls_asset-type ls_asset-subtype.
-    ls_asset-url          = iv_url.
-    ls_asset-mime_name    = iv_mime_name.
-    ls_asset-is_cacheable = iv_cachable.
-    IF iv_base64 IS NOT INITIAL.
-      ls_asset-content = zcl_abapgit_convert=>base64_to_xstring( iv_base64 ).
-    ELSEIF iv_inline IS NOT INITIAL.
-      ls_asset-content = zcl_abapgit_convert=>string_to_xstring( iv_inline ).
-    ENDIF.
-
-    APPEND ls_asset TO mt_asset_register.
-
-  ENDMETHOD.
   METHOD zif_abapgit_gui_asset_manager~get_all_assets.
 
     FIELD-SYMBOLS <ls_a> LIKE LINE OF mt_asset_register.
@@ -51983,9 +52363,28 @@ CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
     rv_asset = zcl_abapgit_convert=>xstring_to_string_utf8( ls_asset-content ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_asset_manager~register_asset.
+
+    DATA ls_asset LIKE LINE OF mt_asset_register.
+
+    SPLIT iv_type AT '/' INTO ls_asset-type ls_asset-subtype.
+    ls_asset-url          = iv_url.
+    ls_asset-mime_name    = iv_mime_name.
+    ls_asset-is_cacheable = iv_cachable.
+    IF iv_base64 IS NOT INITIAL.
+      ls_asset-content = zcl_abapgit_convert=>base64_to_xstring( iv_base64 ).
+    ELSEIF iv_inline IS NOT INITIAL.
+      ls_asset-content = zcl_abapgit_convert=>string_to_xstring( iv_inline ).
+    ENDIF.
+
+    DELETE mt_asset_register WHERE url = iv_url.
+    " TODO: Maybe forbid averwriting cachable assets as they were probably already cached ... agrueable
+    APPEND ls_asset TO mt_asset_register.
+
+  ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   METHOD back.
 
     DATA: lv_index TYPE i,
@@ -52343,6 +52742,19 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
   METHOD zif_abapgit_gui_services~register_event_handler.
     ASSERT ii_event_handler IS BOUND.
     INSERT ii_event_handler INTO mt_event_handlers INDEX 1.
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_services~register_page_asset.
+
+    " Maybe forbid registering cachable existing assets, maybe this is the right place (see also asset_man commments)
+
+    mi_asset_man->register_asset(
+      iv_url = iv_url
+      iv_type = iv_type
+      iv_mime_name = iv_mime_name
+      iv_inline = iv_inline
+      " This registering will happen after initialization so all cachable already cached
+      iv_cachable = abap_false ).
+
   ENDMETHOD.
 ENDCLASS.
 
@@ -58243,11 +58655,12 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
   METHOD add.
 
     DATA ls_table TYPE zif_abapgit_persistence=>ty_content.
 
+    validate_entry_type( iv_type ).
     ls_table-type  = iv_type.
     ls_table-value = iv_value.
     ls_table-data_str = iv_data.
@@ -58387,6 +58800,19 @@ CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
       iv_xml           = iv_xml
       iv_unpretty      = abap_true
       iv_ignore_errors = abap_false ).
+
+  ENDMETHOD.
+  METHOD validate_entry_type.
+
+    IF NOT (
+      iv_type = c_type_repo OR
+      iv_type = c_type_repo_csum OR
+      iv_type = c_type_user OR
+      iv_type = c_type_settings OR
+      iv_type = c_type_background OR
+      iv_type = c_type_packages ).
+      zcx_abapgit_exception=>raise( |Invalid DB entry type [{ iv_type }]| ).
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -119193,6 +119619,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-13T16:40:55.165Z
+* abapmerge 0.15.0 - 2023-03-14T17:05:23.052Z
 ENDINTERFACE.
 ****************************************************
