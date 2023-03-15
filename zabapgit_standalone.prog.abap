@@ -57256,9 +57256,14 @@ CLASS kHGwlUmyfmivKtGMyFDtQzYvAOqpyr IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_result> LIKE LINE OF it_results.
 
-    " Collect all namespaces based on name of xml-files
+    " Collect all namespaces based on name of xml- and json-files
     LOOP AT it_results ASSIGNING <ls_result>.
       FIND REGEX '^#([a-zA-Z0-9]+)#.*\..*\.xml$' IN <ls_result>-filename SUBMATCHES lv_namespace.
+      IF sy-subrc = 0.
+        lv_namespace = '/' && to_upper( lv_namespace ) && '/'.
+        COLLECT lv_namespace INTO lt_namespace.
+      ENDIF.
+      FIND REGEX '^\(([a-zA-Z0-9]+)\).*\..*\.json$' IN <ls_result>-filename SUBMATCHES lv_namespace.
       IF sy-subrc = 0.
         lv_namespace = '/' && to_upper( lv_namespace ) && '/'.
         COLLECT lv_namespace INTO lt_namespace.
@@ -119624,6 +119629,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-15T08:28:59.950Z
+* abapmerge 0.15.0 - 2023-03-15T10:38:52.302Z
 ENDINTERFACE.
 ****************************************************
