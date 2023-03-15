@@ -17197,8 +17197,9 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
 
     INTERFACES zif_abapgit_gui_asset_manager.
 
-    ALIASES:
-      register_asset FOR zif_abapgit_gui_asset_manager~register_asset.
+    CLASS-METHODS create
+      RETURNING
+        VALUE(ro_asset_manager) TYPE REF TO zcl_abapgit_gui_asset_manager.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -26955,14 +26956,15 @@ CLASS zcl_abapgit_ui_injector IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
+CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
   METHOD get_asset_manager.
 
     DATA lo_buf TYPE REF TO zcl_abapgit_string_buffer.
-    DATA lo_asset_man TYPE REF TO zcl_abapgit_gui_asset_manager.
+    DATA li_asset_man TYPE REF TO zif_abapgit_gui_asset_manager.
 
     CREATE OBJECT lo_buf.
-    CREATE OBJECT lo_asset_man.
+
+    li_asset_man = zcl_abapgit_gui_asset_manager=>create( ).
 
 ****************************************************
 * abapmerge Pragma [include] - ZABAPGIT_CSS_COMMON.W3MI.DATA.CSS
@@ -28461,7 +28463,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  padding-left: 0;' ).
     lo_buf->add( '  border-left: none;' ).
     lo_buf->add( '}' ).
-    lo_asset_man->register_asset(
+    li_asset_man->register_asset(
       iv_url       = 'css/common.css'
       iv_type      = 'text/css'
       iv_mime_name = 'ZABAPGIT_CSS_COMMON'
@@ -28987,7 +28989,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  background-color: #f4f4f4;' ).
     lo_buf->add( '  color: var(--theme-greyscale-dark);' ).
     lo_buf->add( '}' ).
-    lo_asset_man->register_asset(
+    li_asset_man->register_asset(
       iv_url       = 'css/theme-default.css'
       iv_type      = 'text/css'
       iv_cachable  = abap_false
@@ -29265,7 +29267,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '  background-color: var(--theme-greyscale-dark);' ).
     lo_buf->add( '  color: var(--theme-greyscale-medium);' ).
     lo_buf->add( '}' ).
-    lo_asset_man->register_asset(
+    li_asset_man->register_asset(
       iv_url       = 'css/theme-dark.css'
       iv_type      = 'text/css'
       iv_cachable  = abap_false
@@ -29310,7 +29312,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '#header a, #header a:visited {' ).
     lo_buf->add( '  color: #346187;' ).
     lo_buf->add( '}' ).
-    lo_asset_man->register_asset(
+    li_asset_man->register_asset(
       iv_url       = 'css/theme-belize-blue.css'
       iv_type      = 'text/css'
       iv_cachable  = abap_false
@@ -31803,7 +31805,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '    header.classList.remove(stickyClass);' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '}' ).
-    lo_asset_man->register_asset(
+    li_asset_man->register_asset(
       iv_url       = 'js/common.js'
       iv_type      = 'text/javascript'
       iv_mime_name = 'ZABAPGIT_JS_COMMON'
@@ -31892,7 +31894,7 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '.icon-user-cog-solid:before { content: "\f130"; }' ).
     lo_buf->add( '.icon-user-solid:before { content: "\f131"; }' ).
     lo_buf->add( '.icon-vial-solid:before { content: "\f132"; }' ).
-    lo_asset_man->register_asset(
+    li_asset_man->register_asset(
       iv_url       = 'css/ag-icons.css'
       iv_type      = 'text/css'
       iv_mime_name = 'ZABAPGIT_ICON_FONT_CSS'
@@ -32049,13 +32051,13 @@ CLASS ZCL_ABAPGIT_UI_FACTORY IMPLEMENTATION.
     lo_buf->add( '1zLdYbhCw5XjyuhS0iy83U6uGsnJMZK115zOVVcZdtjeiQ4OPmSJMtVGrBc9' ).
     lo_buf->add( 't26/0WtfX/3x0h4UOYaSLM3OY3woK2kjKYrMhkmSZU1mO7OtNF/L1DpOmePj' ).
     lo_buf->add( '9yycaqXdszH6nsmL9WjhQ9LQ7xiSDzLiRnEdMUn+Aa3v0MYAAA==' ).
-    lo_asset_man->register_asset(
+    li_asset_man->register_asset(
       iv_url       = 'font/ag-icons.woff'
       iv_type      = 'font/woff'
       iv_mime_name = 'ZABAPGIT_ICON_FONT'
       iv_base64    = lo_buf->join_and_flush( ) ).
 
-    ri_asset_man = lo_asset_man.
+    ri_asset_man = li_asset_man.
 
   ENDMETHOD.
   METHOD get_frontend_services.
@@ -52266,7 +52268,10 @@ CLASS ZCL_ABAPGIT_GUI_CSS_PROCESSOR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_ASSET_MANAGER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
+  METHOD create.
+    CREATE OBJECT ro_asset_manager.
+  ENDMETHOD.
   METHOD get_mime_asset.
 
     DATA: ls_key    TYPE wwwdatatab,
@@ -119619,6 +119624,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-15T07:14:37.472Z
+* abapmerge 0.15.0 - 2023-03-15T08:28:59.950Z
 ENDINTERFACE.
 ****************************************************
