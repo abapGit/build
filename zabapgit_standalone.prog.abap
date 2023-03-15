@@ -41788,7 +41788,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
         iv_only_favorites = iv_only_favorites.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
-      iv_page_title         = 'Repository Overview'
+      iv_page_title         = 'Repository List'
       ii_page_menu_provider = lo_component
       ii_child_component    = lo_component ).
 
@@ -119619,6 +119619,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-14T17:05:23.052Z
+* abapmerge 0.15.0 - 2023-03-15T06:28:48.266Z
 ENDINTERFACE.
 ****************************************************
