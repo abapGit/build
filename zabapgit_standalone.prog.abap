@@ -121,6 +121,7 @@ CLASS zcl_abapgit_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_version DEFINITION DEFERRED.
 CLASS zcl_abapgit_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_user_record DEFINITION DEFERRED.
+CLASS zcl_abapgit_timer DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_map DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_buffer DEFINITION DEFERRED.
 CLASS zcl_abapgit_requirement_helper DEFINITION DEFERRED.
@@ -1414,9 +1415,14 @@ INTERFACE zif_abapgit_code_inspector .
       VALUE(rt_list) TYPE scit_alvlist
     RAISING
       zcx_abapgit_exception .
+
   METHODS is_successful
     RETURNING
       VALUE(rv_success) TYPE abap_bool .
+
+  METHODS get_summary
+    RETURNING
+      VALUE(rv_summary) TYPE string.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_ajson_types.
@@ -7328,6 +7334,7 @@ CLASS zcl_abapgit_code_inspector DEFINITION
   PRIVATE SECTION.
 
     DATA mv_success TYPE abap_bool .
+    DATA mv_summary TYPE string.
 
     TYPES: ty_run_mode TYPE c LENGTH 1.
 
@@ -18535,8 +18542,6 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
         zcx_abapgit_exception .
   PRIVATE SECTION.
 
-    TYPES: ty_time TYPE p LENGTH 10 DECIMALS 2.
-
     DATA mo_settings TYPE REF TO zcl_abapgit_settings .
     DATA mx_error TYPE REF TO zcx_abapgit_exception .
     DATA mo_exception_viewer TYPE REF TO zcl_abapgit_exception_viewer .
@@ -18563,7 +18568,7 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
         zcx_abapgit_exception .
     METHODS footer
       IMPORTING
-        !iv_time       TYPE ty_time
+        !iv_time       TYPE string
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_link_hints
@@ -18742,10 +18747,12 @@ CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_aba
       END OF c_actions .
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
     DATA mt_result TYPE scit_alvlist .
+    DATA mv_summary TYPE string.
 
     METHODS render_variant
       IMPORTING
         !iv_variant    TYPE sci_chkv
+        !iv_summary    TYPE string
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_result
@@ -22536,6 +22543,43 @@ CLASS zcl_abapgit_string_map DEFINITION
     DATA mv_case_insensitive TYPE abap_bool.
 
 ENDCLASS.
+CLASS zcl_abapgit_timer DEFINITION
+  FINAL
+  CREATE PRIVATE.
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS create
+      IMPORTING
+        !iv_text        TYPE string OPTIONAL
+        !iv_count       TYPE i OPTIONAL
+          PREFERRED PARAMETER iv_text
+      RETURNING
+        VALUE(ro_timer) TYPE REF TO zcl_abapgit_timer.
+
+    METHODS constructor
+      IMPORTING
+        !iv_text  TYPE string OPTIONAL
+        !iv_count TYPE i OPTIONAL.
+
+    METHODS start
+      RETURNING
+        VALUE(ro_timer) TYPE REF TO zcl_abapgit_timer.
+
+    METHODS end
+      IMPORTING
+        !iv_output_as_status_message TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(rv_result)             TYPE string.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA mv_text TYPE string.
+    DATA mv_count TYPE i.
+    DATA mv_timer TYPE timestampl.
+
+ENDCLASS.
 CLASS zcl_abapgit_user_record DEFINITION
   FINAL
   CREATE PRIVATE.
@@ -25145,6 +25189,64 @@ CLASS zcl_abapgit_user_record IMPLEMENTATION.
   ENDMETHOD.
   METHOD reset.
     CLEAR gt_user.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_timer IMPLEMENTATION.
+  METHOD constructor.
+    mv_text  = iv_text.
+    mv_count = iv_count.
+  ENDMETHOD.
+  METHOD create.
+    CREATE OBJECT ro_timer
+      EXPORTING
+        iv_text  = iv_text
+        iv_count = iv_count.
+  ENDMETHOD.
+  METHOD end.
+
+    DATA:
+      lv_timestamp TYPE timestampl,
+      lv_runtime   TYPE timestampl,
+      lv_sec       TYPE p LENGTH 11 DECIMALS 2.
+
+    IF mv_timer IS INITIAL.
+      rv_result = 'Runtime measurement has not been started'.
+    ELSE.
+      GET TIME STAMP FIELD lv_timestamp.
+
+      TRY.
+          lv_runtime = cl_abap_tstmp=>subtract(
+            tstmp1 = lv_timestamp
+            tstmp2 = mv_timer ).
+
+          lv_sec = lv_runtime. " round to 2 decimal places
+
+          IF mv_count = 1.
+            rv_result = |1 object, |.
+          ELSEIF mv_count > 1.
+            rv_result = |{ mv_count } objects, |.
+          ENDIF.
+
+          rv_result = rv_result && |{ lv_sec } seconds|.
+
+        CATCH cx_parameter_invalid.
+          rv_result = 'Error getting runtime measurement'.
+      ENDTRY.
+    ENDIF.
+
+    IF iv_output_as_status_message = abap_true.
+      MESSAGE s000(oo) WITH mv_text rv_result.
+    ENDIF.
+
+    IF mv_text IS NOT INITIAL.
+      rv_result = |{ mv_text } { rv_result }|.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD start.
+    GET TIME STAMP FIELD mv_timer.
+    ro_timer = me.
   ENDMETHOD.
 ENDCLASS.
 
@@ -36536,7 +36638,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TAGS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
   METHOD build_menu.
 
     ro_menu = build_base_menu( ).
@@ -36559,7 +36661,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
 
     ri_html->add( '<div class="toc">' ).
 
-    ri_html->add( render_variant( c_variant ) ).
+    ri_html->add( render_variant(
+      iv_variant = c_variant
+      iv_summary = mv_summary ) ).
 
     IF lines( mt_result ) = 0.
       ri_html->add( '<div class="dummydiv success">' ).
@@ -36584,6 +36688,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SYNTAX IMPLEMENTATION.
         " Variant SYNTAX_CHECK does not exist in 702
         mt_result = li_syntax_check->run( 'VERI_' && c_variant ).
     ENDTRY.
+
+    mv_summary = li_syntax_check->get_summary( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -46888,7 +46994,8 @@ CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( '<div class="ci-head">' ).
-    ri_html->add( |Code inspector check variant: <span class="ci-variant">{ iv_variant }</span>| ).
+    ri_html->add( |Code inspector check variant <span class="ci-variant">{ iv_variant }</span>|
+               && | completed ({ iv_summary })| ).
     ri_html->add( `</div>` ).
 
   ENDMETHOD.
@@ -46943,7 +47050,7 @@ CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
   METHOD ask_user_for_check_variant.
 
     rv_check_variant = zcl_abapgit_ui_factory=>get_popups( )->choose_code_insp_check_variant( ).
@@ -47036,7 +47143,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
 
     register_handlers( ).
 
-    ri_html->add( render_variant( mv_check_variant ) ).
+    ri_html->add( render_variant(
+      iv_variant = mv_check_variant
+      iv_summary = mv_summary ) ).
 
     IF lines( mt_result ) = 0.
       ri_html->add( '<div class="dummydiv success">' ).
@@ -47059,6 +47168,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_CODE_INSP IMPLEMENTATION.
     mt_result = li_code_inspector->run(
       iv_variant = |{ mv_check_variant }|
       iv_save    = abap_true ).
+
+    mv_summary = li_code_inspector->get_summary( ).
 
     DELETE mt_result WHERE kind = 'N'.
 
@@ -47608,7 +47719,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -47644,7 +47755,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
                     iv_txt = ri_html->icon( 'git-alt' ) ).
     ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-homepage
                     iv_txt = ri_html->icon( iv_name = 'abapgit'
-                                            iv_hint = |{ iv_time } sec| ) ).
+                                            iv_hint = iv_time ) ).
     ri_html->add( '</div>' ).
     ri_html->add( |<div class="version">{ zif_abapgit_version=>c_abap_version }{ lv_version_detail }</div>| ).
     ri_html->add( '</td>' ).
@@ -47865,13 +47976,11 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     DATA:
       li_script TYPE REF TO zif_abapgit_html,
-      lv_start  TYPE i,
-      lv_end    TYPE i,
-      lv_total  TYPE ty_time.
+      lo_timer  TYPE REF TO zcl_abapgit_timer.
 
     register_handlers( ).
 
-    GET RUN TIME FIELD lv_start.
+    lo_timer = zcl_abapgit_timer=>create( )->start( ).
 
     " Real page
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
@@ -47894,10 +48003,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
       ii_html          = ri_html
       iv_part_category = c_html_parts-hidden_forms ).
 
-    GET RUN TIME FIELD lv_end.
-    lv_total = ( lv_end - lv_start ) / 1000 / 1000.
-
-    ri_html->add( footer( lv_total ) ).
+    ri_html->add( footer( lo_timer->end( ) ) ).
 
     ri_html->add( '</div>' ).
 
@@ -61640,7 +61746,7 @@ CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
+CLASS zcl_abapgit_objects IMPLEMENTATION.
   METHOD changed_by.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -62025,6 +62131,7 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
           lx_exc      TYPE REF TO zcx_abapgit_exception.
     DATA lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
     DATA ls_i18n_params TYPE zif_abapgit_definitions=>ty_i18n_params.
+    DATA lo_timer TYPE REF TO zcl_abapgit_timer.
 
     FIELD-SYMBOLS: <ls_result>  TYPE zif_abapgit_definitions=>ty_result,
                    <lv_step_id> TYPE LINE OF zif_abapgit_definitions=>ty_deserialization_step_tt,
@@ -62061,6 +62168,10 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     li_progress = zcl_abapgit_progress=>get_instance( lines( lt_results ) ).
 
     lt_items = map_results_to_items( lt_results ).
+
+    lo_timer = zcl_abapgit_timer=>create(
+      iv_text  = 'Deserialize:'
+      iv_count = lines( lt_items ) )->start( ).
 
     check_objects_locked( iv_language = io_repo->get_dot_abapgit( )->get_main_language( )
                           it_items    = lt_items ).
@@ -62193,6 +62304,8 @@ CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
     DELETE ADJACENT DUPLICATES FROM rt_accessed_files. " Just in case
 
     zcl_abapgit_default_transport=>get_instance( )->reset( ).
+
+    lo_timer->end( abap_true ).
 
   ENDMETHOD.
   METHOD deserialize_checks.
@@ -105257,8 +105370,10 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
 * serializes only objects
 
     DATA: lv_max      TYPE i,
+          lv_count    TYPE i,
           li_progress TYPE REF TO zif_abapgit_progress,
           li_exit     TYPE REF TO zif_abapgit_exit,
+          lo_timer    TYPE REF TO zcl_abapgit_timer,
           lt_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt.
 
     FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
@@ -105277,7 +105392,13 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
       CHANGING
         ct_tadir   = lt_tadir ).
 
-    li_progress = zcl_abapgit_progress=>get_instance( lines( lt_tadir ) ).
+    lv_count = lines( lt_tadir ).
+
+    li_progress = zcl_abapgit_progress=>get_instance( lv_count ).
+
+    lo_timer = zcl_abapgit_timer=>create(
+      iv_text  = 'Serialize:'
+      iv_count = lv_count )->start( ).
 
     LOOP AT lt_tadir ASSIGNING <ls_tadir>.
 
@@ -105295,6 +105416,8 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
+    li_progress->off( ).
+
     WAIT UNTIL mv_free = lv_max UP TO 120 SECONDS.
     rt_files = mt_files.
     FREE mt_files.
@@ -105308,6 +105431,8 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
         ii_log     = ii_log
       CHANGING
         ct_files   = rt_files ).
+
+    lo_timer->end( abap_true ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -112072,6 +112197,9 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_code_inspector~get_summary.
+    rv_summary = mv_summary.
+  ENDMETHOD.
   METHOD zif_abapgit_code_inspector~is_successful.
 
     rv_success = mv_success.
@@ -112081,14 +112209,20 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
 
     DATA: lo_set     TYPE REF TO cl_ci_objectset,
           lo_variant TYPE REF TO cl_ci_checkvariant,
+          lv_count   TYPE i,
+          lo_timer   TYPE REF TO zcl_abapgit_timer,
           lx_error   TYPE REF TO zcx_abapgit_exception.
+
     TRY.
         lo_set = create_objectset( ).
 
-        IF lines( lo_set->iobjlst-objects ) = 0.
+        lv_count = lines( lo_set->iobjlst-objects ).
+        IF lv_count = 0.
           " no objects, nothing to check
           RETURN.
         ENDIF.
+
+        lo_timer = zcl_abapgit_timer=>create( iv_count = lv_count )->start( ).
 
         lo_variant = create_variant( iv_variant ).
 
@@ -112112,6 +112246,8 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
 
     ENDTRY.
+
+    mv_summary = lo_timer->end( ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -119629,6 +119765,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-16T11:39:02.447Z
+* abapmerge 0.15.0 - 2023-03-16T15:55:17.516Z
 ENDINTERFACE.
 ****************************************************
