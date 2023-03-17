@@ -364,6 +364,7 @@ CLASS zcl_abapgit_object_avar DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_asfc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_area DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_aqbg DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_amsd DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_aifc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_acid DEFINITION DEFERRED.
@@ -2075,6 +2076,7 @@ INTERFACE zif_abapgit_field_rules .
       timestamp TYPE ty_fill_rule VALUE 'TS',
       user      TYPE ty_fill_rule VALUE 'UR',
       client    TYPE ty_fill_rule VALUE 'CT',
+      package   TYPE ty_fill_rule VALUE 'PK',
     END OF c_fill_rule.
 
   METHODS add
@@ -2091,9 +2093,10 @@ INTERFACE zif_abapgit_field_rules .
       ct_data  TYPE STANDARD TABLE.
   METHODS apply_fill_logic
     IMPORTING
-      iv_table TYPE tabname
+      iv_table   TYPE tabname
+      iv_package TYPE devclass
     CHANGING
-      ct_data  TYPE STANDARD TABLE.
+      ct_data    TYPE STANDARD TABLE.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_lxe_texts .
@@ -9588,9 +9591,10 @@ CLASS zcl_abapgit_field_rules DEFINITION
 
     METHODS fill_value
       IMPORTING
-        iv_rule  TYPE zif_abapgit_field_rules=>ty_fill_rule
+        iv_rule    TYPE zif_abapgit_field_rules=>ty_fill_rule
+        iv_package TYPE devclass
       CHANGING
-        cv_value TYPE any.
+        cv_value   TYPE any.
 ENDCLASS.
 CLASS zcl_abapgit_longtexts DEFINITION
   CREATE PRIVATE
@@ -10115,7 +10119,8 @@ CLASS zcl_abapgit_objects_generic DEFINITION
         zcx_abapgit_exception .
     METHODS deserialize_data
       IMPORTING
-        !io_xml TYPE REF TO zif_abapgit_xml_input
+        !io_xml     TYPE REF TO zif_abapgit_xml_input
+        !iv_package TYPE devclass
       RAISING
         zcx_abapgit_exception .
     METHODS distribute_name_to_components
@@ -10162,18 +10167,20 @@ CLASS zcl_abapgit_objects_generic DEFINITION
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
-    DATA mo_field_rules TYPE REF TO zif_abapgit_field_rules.
+
+    DATA mo_field_rules TYPE REF TO zif_abapgit_field_rules .
 
     METHODS apply_clear_logic
       IMPORTING
-        iv_table TYPE objsl-tobj_name
+        !iv_table TYPE objsl-tobj_name
       CHANGING
-        ct_data  TYPE STANDARD TABLE.
+        !ct_data  TYPE STANDARD TABLE .
     METHODS apply_fill_logic
       IMPORTING
-        iv_table TYPE objsl-tobj_name
+        !iv_table   TYPE objsl-tobj_name
+        !iv_package TYPE devclass
       CHANGING
-        ct_data  TYPE STANDARD TABLE.
+        !ct_data    TYPE STANDARD TABLE .
 ENDCLASS.
 CLASS zcl_abapgit_objects_super DEFINITION
   ABSTRACT
@@ -10530,6 +10537,26 @@ CLASS zcl_abapgit_object_amsd DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       mv_logical_db_schema_key TYPE seu_objkey,
       mi_persistence           TYPE REF TO if_wb_object_persist,
       mi_wb_object_operator    TYPE REF TO object.
+ENDCLASS.
+CLASS zcl_abapgit_object_aqbg DEFINITION
+  INHERITING FROM zcl_abapgit_objects_super
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_object .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    METHODS get_generic
+      RETURNING
+        VALUE(ro_generic) TYPE REF TO zcl_abapgit_objects_generic
+      RAISING
+        zcx_abapgit_exception .
+
+    METHODS get_field_rules
+      RETURNING
+        VALUE(ro_result) TYPE REF TO zif_abapgit_field_rules.
 ENDCLASS.
 CLASS zcl_abapgit_object_area DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
@@ -61033,7 +61060,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
   METHOD after_import.
 
     DATA: lt_cts_object_entry TYPE STANDARD TABLE OF e071 WITH DEFAULT KEY,
@@ -61072,8 +61099,12 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
   ENDMETHOD.
   METHOD apply_fill_logic.
     IF mo_field_rules IS BOUND.
-      mo_field_rules->apply_fill_logic( EXPORTING iv_table = |{ iv_table }|
-                                        CHANGING  ct_data  = ct_data ).
+      mo_field_rules->apply_fill_logic(
+        EXPORTING
+          iv_table   = |{ iv_table }|
+          iv_package = iv_package
+        CHANGING
+          ct_data    = ct_data ).
     ENDIF.
   ENDMETHOD.
   METHOD before_export.
@@ -61190,7 +61221,9 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
 
     delete( iv_package ).
 
-    deserialize_data( io_xml ).
+    deserialize_data(
+      io_xml     = io_xml
+      iv_package = iv_package ).
 
     after_import( ).
 
@@ -61208,13 +61241,17 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
       CREATE DATA lr_ref TYPE STANDARD TABLE OF (<ls_table>-tobj_name).
       ASSIGN lr_ref->* TO <lt_data>.
 
-      apply_fill_logic( EXPORTING iv_table = <ls_table>-tobj_name
-                        CHANGING  ct_data  = <lt_data> ).
       io_xml->read(
         EXPORTING
           iv_name = <ls_table>-tobj_name
         CHANGING
           cg_data = <lt_data> ).
+      apply_fill_logic(
+        EXPORTING
+          iv_table   = <ls_table>-tobj_name
+          iv_package = iv_package
+        CHANGING
+          ct_data    = <lt_data> ).
 
       INSERT (<ls_table>-tobj_name) FROM TABLE <lt_data>.
       IF sy-subrc <> 0.
@@ -98038,6 +98075,117 @@ CLASS zcl_abapgit_object_area IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_OBJECT_AQBG IMPLEMENTATION.
+  METHOD get_field_rules.
+
+    ro_result = zcl_abapgit_field_rules=>create( ).
+
+    ro_result->add(
+      iv_table     = 'AQGDBBG'
+      iv_field     = 'BGCNAM'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user
+    )->add(
+      iv_table     = 'AQGDBBG'
+      iv_field     = 'BGUNAM'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-user ).
+
+    ro_result->add(
+      iv_table     = 'AQGDBBG'
+      iv_field     = 'BGCDAT'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-date
+    )->add(
+      iv_table     = 'AQGDBBG'
+      iv_field     = 'BGUDAT'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-date ).
+
+    ro_result->add(
+      iv_table     = 'AQGDBBG'
+      iv_field     = 'DEVC'
+      iv_fill_rule = zif_abapgit_field_rules=>c_fill_rule-package ).
+
+  ENDMETHOD.
+  METHOD get_generic.
+    " transaction SQ03
+    CREATE OBJECT ro_generic
+      EXPORTING
+        is_item        = ms_item
+        io_field_rules = get_field_rules( )
+        iv_language    = mv_language.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~changed_by.
+    SELECT SINGLE bgunam FROM aqgdbbg INTO rv_user WHERE num = ms_item-obj_name.
+    IF sy-subrc <> 0.
+      rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+    ENDIF.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~delete.
+
+    set_default_transport( iv_transport ).
+
+    get_generic( )->delete( iv_package ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~deserialize.
+
+    set_default_transport( iv_transport ).
+
+    get_generic( )->deserialize(
+      iv_package = iv_package
+      io_xml     = io_xml ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~exists.
+
+    rv_bool = get_generic( )->exists( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_comparator.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_steps.
+    APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~get_metadata.
+    rs_metadata = get_metadata( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_active.
+    rv_active = is_active( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_object~is_locked.
+
+    rv_is_locked = abap_false.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~jump.
+
+    DATA lt_bdcdata TYPE TABLE OF bdcdata.
+
+    FIELD-SYMBOLS <ls_bdcdata> LIKE LINE OF lt_bdcdata.
+
+    APPEND INITIAL LINE TO lt_bdcdata ASSIGNING <ls_bdcdata>.
+    <ls_bdcdata>-program  = 'SAPMS38S'.
+    <ls_bdcdata>-dynpro   = '0050'.
+    <ls_bdcdata>-dynbegin = abap_true.
+
+    APPEND INITIAL LINE TO lt_bdcdata ASSIGNING <ls_bdcdata>.
+    <ls_bdcdata>-fnam = 'RS38S-BGNUM'.
+    <ls_bdcdata>-fval = ms_item-obj_name.
+
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode      = 'SQ03'
+      it_bdcdata    = lt_bdcdata ).
+
+    rv_exit = abap_true.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+
+    get_generic( )->serialize( io_xml ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
   METHOD clear_field.
 
@@ -99855,12 +100003,26 @@ CLASS zcl_abapgit_longtexts IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_field_rules IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_FIELD_RULES IMPLEMENTATION.
   METHOD create.
     CREATE OBJECT ro_result TYPE zcl_abapgit_field_rules.
   ENDMETHOD.
-
+  METHOD fill_value.
+    CASE iv_rule.
+      WHEN zif_abapgit_field_rules=>c_fill_rule-date.
+        cv_value = sy-datum.
+      WHEN zif_abapgit_field_rules=>c_fill_rule-time.
+        cv_value = sy-uzeit.
+      WHEN zif_abapgit_field_rules=>c_fill_rule-timestamp.
+        GET TIME STAMP FIELD cv_value.
+      WHEN zif_abapgit_field_rules=>c_fill_rule-user.
+        cv_value = sy-uname.
+      WHEN zif_abapgit_field_rules=>c_fill_rule-client.
+        cv_value = sy-mandt.
+      WHEN zif_abapgit_field_rules=>c_fill_rule-package.
+        cv_value = iv_package.
+    ENDCASE.
+  ENDMETHOD.
   METHOD zif_abapgit_field_rules~add.
     DATA ls_item TYPE ty_item.
 
@@ -99890,7 +100052,6 @@ CLASS zcl_abapgit_field_rules IMPLEMENTATION.
       ENDLOOP.
     ENDLOOP.
   ENDMETHOD.
-
   METHOD zif_abapgit_field_rules~apply_fill_logic.
     DATA ls_item TYPE ty_item.
 
@@ -99905,27 +100066,16 @@ CLASS zcl_abapgit_field_rules IMPLEMENTATION.
       LOOP AT mt_item INTO ls_item WHERE tabname = iv_table.
         ASSIGN COMPONENT ls_item-fieldname OF STRUCTURE <ls_data> TO <lv_value>.
         IF sy-subrc = 0.
-          fill_value( EXPORTING iv_rule  = ls_item-fill_rule
-                      CHANGING  cv_value = <lv_value> ).
+          fill_value(
+            EXPORTING
+              iv_rule    = ls_item-fill_rule
+              iv_package = iv_package
+            CHANGING
+              cv_value   = <lv_value> ).
         ENDIF.
       ENDLOOP.
     ENDLOOP.
   ENDMETHOD.
-  METHOD fill_value.
-    CASE iv_rule.
-      WHEN zif_abapgit_field_rules=>c_fill_rule-date.
-        cv_value = sy-datum.
-      WHEN zif_abapgit_field_rules=>c_fill_rule-time.
-        cv_value = sy-uzeit.
-      WHEN zif_abapgit_field_rules=>c_fill_rule-timestamp.
-        GET TIME STAMP FIELD cv_value.
-      WHEN zif_abapgit_field_rules=>c_fill_rule-user.
-        cv_value = sy-uname.
-      WHEN zif_abapgit_field_rules=>c_fill_rule-client.
-        cv_value = sy-mandt.
-    ENDCASE.
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_oo_serializer IMPLEMENTATION.
@@ -119765,6 +119915,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-16T15:55:17.516Z
+* abapmerge 0.15.0 - 2023-03-17T13:19:31.461Z
 ENDINTERFACE.
 ****************************************************
