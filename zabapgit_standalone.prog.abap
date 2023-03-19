@@ -100722,7 +100722,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
   ENDMETHOD.
   METHOD repair_redefinitions.
 
-    " Same logic as SE24 > Utilities > Clean-up > lt_redefinitions (LSEODCCO)
+    " Same logic as SE24 > Utilities > Clean-up > Redefinitions (LSEODCCO)
 
     DATA:
       lt_inheritance     TYPE vseoextend,
@@ -119931,6 +119931,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-19T10:56:22.198Z
+* abapmerge 0.15.0 - 2023-03-19T11:05:04.771Z
 ENDINTERFACE.
 ****************************************************
