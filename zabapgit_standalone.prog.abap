@@ -416,6 +416,7 @@ CLASS zcl_abapgit_dependencies DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_smbc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_ront DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_nont DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_gsmp DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_evtb DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_common_aff DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_chkv DEFINITION DEFERRED.
@@ -10352,6 +10353,16 @@ CLASS zcl_abapgit_object_evtb DEFINITION
   PRIVATE SECTION.
     CONSTANTS:
     co_table_name TYPE tabname VALUE 'EVTB_HEADER'.
+ENDCLASS.
+CLASS zcl_abapgit_object_gsmp DEFINITION
+    INHERITING FROM zcl_abapgit_object_common_aff
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    METHODS zif_abapgit_object~changed_by REDEFINITION.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_object_nont DEFINITION
   INHERITING FROM zcl_abapgit_object_common_aff
@@ -107601,6 +107612,34 @@ CLASS zcl_abapgit_object_nont IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_OBJECT_GSMP IMPLEMENTATION.
+  METHOD zif_abapgit_object~changed_by.
+
+    DATA lv_name TYPE c LENGTH 180.
+    DATA lv_user  TYPE string.
+    DATA lx_root TYPE REF TO cx_root.
+    TRY.
+        lv_name = ms_item-obj_name.
+
+        SELECT SINGLE changed_by INTO lv_user
+          FROM ('GSM_MD_PRV_W')
+          WHERE provider_id = lv_name AND version = 'I'.
+
+        IF lv_user IS INITIAL.
+          SELECT SINGLE changed_by INTO lv_user
+            FROM ('GSM_MD_PRV_W')
+            WHERE provider_id = lv_name AND version = 'A'.
+        ENDIF.
+
+        rv_user = lv_user.
+      CATCH cx_root INTO lx_root.
+        zcx_abapgit_exception=>raise( iv_text     = lx_root->get_text( )
+                                     ix_previous = lx_root ).
+    ENDTRY.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_object_evtb IMPLEMENTATION.
 
   METHOD zif_abapgit_object~changed_by.
@@ -108517,6 +108556,7 @@ CLASS zcl_abapgit_aff_registry IMPLEMENTATION.
     register( iv_obj_type = 'CHKO' ).
     register( iv_obj_type = 'CHKV' ).
     register( iv_obj_type = 'EVTB' ).
+    register( iv_obj_type = 'GSMP' ).
     register( iv_obj_type     = 'INTF'
               iv_experimental = abap_true ).
     register( iv_obj_type = 'SMBC' ).
@@ -119931,6 +119971,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-19T11:05:04.771Z
+* abapmerge 0.15.0 - 2023-03-21T15:01:01.837Z
 ENDINTERFACE.
 ****************************************************
