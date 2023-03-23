@@ -119836,6 +119836,21 @@ CLASS lcl_password_dialog IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+FORM password_popup
+      USING
+        pv_repo_url TYPE string
+      CHANGING
+        cv_user     TYPE string
+        cv_pass     TYPE string.
+
+  lcl_password_dialog=>popup(
+    EXPORTING
+      iv_repo_url     = pv_repo_url
+    CHANGING
+      cv_user         = cv_user
+      cv_pass         = cv_pass ).
+
+ENDFORM.
 * create class ZCL_ABAPGIT_AUTH_EXIT implementing ZIF_ABAPGIT_AUTH in following include,
 * if using the development version of abapGit create a global class instead
 * place the object in a different package than ZABAPGIT
@@ -119943,22 +119958,6 @@ FORM exit.
 
 ENDFORM.
 
-FORM password_popup
-      USING
-        pv_repo_url TYPE string
-      CHANGING
-        cv_user     TYPE string
-        cv_pass     TYPE string.
-
-  lcl_password_dialog=>popup(
-    EXPORTING
-      iv_repo_url     = pv_repo_url
-    CHANGING
-      cv_user         = cv_user
-      cv_pass         = cv_pass ).
-
-ENDFORM.
-
 FORM adjust_toolbar USING pv_dynnr TYPE sy-dynnr.
 
   DATA: ls_header               TYPE rpy_dyhead,
@@ -120048,6 +120047,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-23T12:08:40.736Z
+* abapmerge 0.15.0 - 2023-03-23T20:40:45.390Z
 ENDINTERFACE.
 ****************************************************
