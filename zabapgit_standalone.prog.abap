@@ -57559,7 +57559,7 @@ CLASS kHGwlUmyfmivKtGMyFDtQzYvAOqpyr IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
+CLASS zcl_abapgit_file_status IMPLEMENTATION.
   METHOD build_existing.
 
     DATA ls_file_sig LIKE LINE OF it_state.
@@ -57569,6 +57569,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     rs_result-obj_name  = is_local-item-obj_name.
     rs_result-package   = is_local-item-devclass.
     rs_result-srcsystem = is_local-item-srcsystem.
+    rs_result-inactive  = is_local-item-inactive.
 
     " File
     rs_result-path     = is_local-file-path.
@@ -57610,6 +57611,7 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
     rs_result-obj_name  = is_local-item-obj_name.
     rs_result-package   = is_local-item-devclass.
     rs_result-srcsystem = is_local-item-srcsystem.
+    rs_result-inactive  = is_local-item-inactive.
 
     " File
     rs_result-path     = is_local-file-path.
@@ -57856,7 +57858,6 @@ CLASS ZCL_ABAPGIT_FILE_STATUS IMPLEMENTATION.
       ENDIF.
 
       APPEND INITIAL LINE TO ct_results ASSIGNING <ls_result>.
-      <ls_result>-inactive = <ls_local>-item-inactive.
 
       " Find a match in remote
       READ TABLE ct_remote ASSIGNING <ls_remote>
@@ -120061,6 +120062,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-24T09:07:33.387Z
+* abapmerge 0.15.0 - 2023-03-24T10:54:34.126Z
 ENDINTERFACE.
 ****************************************************
