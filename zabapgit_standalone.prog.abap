@@ -370,6 +370,7 @@ CLASS zcl_abapgit_object_aqbg DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_amsd DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_aifc DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_acid DEFINITION DEFERRED.
+CLASS zcl_abapgit_sots_handler DEFINITION DEFERRED.
 CLASS zcl_abapgit_sotr_handler DEFINITION DEFERRED.
 CLASS zcl_abapgit_lxe_texts DEFINITION DEFERRED.
 CLASS zcl_abapgit_longtexts DEFINITION DEFERRED.
@@ -8687,6 +8688,11 @@ CLASS zcl_abapgit_tadir DEFINITION
         !ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception ##NEEDED.
+    METHODS is_sots_excluded
+      IMPORTING
+        !it_packages      TYPE zif_abapgit_sap_package=>ty_devclass_tt
+      RETURNING
+        VALUE(rv_exclude) TYPE abap_bool.
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_config_downl DEFINITION
   INHERITING FROM cl_apl_ecatt_config_download
@@ -9822,6 +9828,77 @@ CLASS zcl_abapgit_sotr_handler DEFINITION
       RETURNING
         VALUE(rs_sotr) TYPE ty_sotr .
   PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_sots_handler DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    TYPES:
+      BEGIN OF ty_sots,
+        header  TYPE sotr_headu,
+        entries TYPE sotr_textl_tt,
+      END OF ty_sots.
+    TYPES:
+      ty_sots_tt TYPE STANDARD TABLE OF ty_sots WITH DEFAULT KEY.
+    TYPES:
+      ty_sots_use_tt TYPE STANDARD TABLE OF sotr_useu WITH DEFAULT KEY.
+
+    CLASS-METHODS read_sots
+      IMPORTING
+        !iv_pgmid    TYPE pgmid DEFAULT 'R3TR'
+        !iv_object   TYPE trobjtype
+        !iv_obj_name TYPE csequence
+        !io_xml      TYPE REF TO zif_abapgit_xml_output OPTIONAL
+        !iv_language TYPE spras OPTIONAL
+      EXPORTING
+        !et_sots     TYPE ty_sots_tt
+        !et_sots_use TYPE ty_sots_use_tt
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS create_sots
+      IMPORTING
+        !iv_package TYPE devclass
+        !io_xml     TYPE REF TO zif_abapgit_xml_input OPTIONAL
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS create_sots_from_data
+      IMPORTING
+        !iv_package  TYPE devclass
+        !it_sots     TYPE ty_sots_tt OPTIONAL
+        !it_sots_use TYPE ty_sots_use_tt OPTIONAL
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS delete_sots
+      IMPORTING
+        !iv_pgmid    TYPE pgmid DEFAULT 'R3TR'
+        !iv_object   TYPE trobjtype
+        !iv_obj_name TYPE csequence
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+
+    CLASS-METHODS get_sots_usage
+      IMPORTING
+        !iv_pgmid          TYPE pgmid
+        !iv_object         TYPE trobjtype
+        !iv_obj_name       TYPE csequence
+      RETURNING
+        VALUE(rt_sots_use) TYPE ty_sots_use_tt.
+
+    CLASS-METHODS get_sots_4_concept
+      IMPORTING
+        !iv_concept    TYPE sotr_conc
+      RETURNING
+        VALUE(rs_sots) TYPE ty_sots.
+
+  PRIVATE SECTION.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_tabl_compar DEFINITION
   CREATE PUBLIC .
@@ -13167,6 +13244,17 @@ CLASS zcl_abapgit_object_sicf DEFINITION
         icfparguid TYPE icfservice-icfparguid,
       END OF ty_sicf_key .
 
+    METHODS serialize_otr
+      IMPORTING
+        !io_xml TYPE REF TO zif_abapgit_xml_output
+      RAISING
+        zcx_abapgit_exception .
+    METHODS deserialize_otr
+      IMPORTING
+        !iv_package TYPE devclass
+        !io_xml     TYPE REF TO zif_abapgit_xml_input
+      RAISING
+        zcx_abapgit_exception .
     METHODS read
       IMPORTING
         !iv_clear      TYPE abap_bool DEFAULT abap_true
@@ -13175,6 +13263,7 @@ CLASS zcl_abapgit_object_sicf DEFINITION
         !es_icfdocu    TYPE icfdocu
         !et_icfhandler TYPE ty_icfhandler_tt
         !ev_url        TYPE string
+        !ev_obj_name   TYPE sobj_name
       RAISING
         zcx_abapgit_exception .
     METHODS insert_sicf
@@ -74789,6 +74878,8 @@ CLASS zcl_abapgit_object_sots IMPLEMENTATION.
   METHOD read_sots.
 
     DATA: lt_sotr_head TYPE STANDARD TABLE OF sotr_headu,
+          lt_objects   TYPE sotr_objects,
+          lv_object    LIKE LINE OF lt_objects,
           ls_sots      LIKE LINE OF rt_sots.
 
     FIELD-SYMBOLS: <ls_sotr_head> TYPE sotr_head,
@@ -74799,6 +74890,24 @@ CLASS zcl_abapgit_object_sots IMPLEMENTATION.
              ORDER BY PRIMARY KEY.
 
     LOOP AT lt_sotr_head ASSIGNING <ls_sotr_head>.
+
+      CALL FUNCTION 'SOTR_OBJECT_GET_OBJECTS'
+        EXPORTING
+          object_vector    = <ls_sotr_head>-objid_vec
+        IMPORTING
+          objects          = lt_objects
+        EXCEPTIONS
+          object_not_found = 1
+          OTHERS           = 2.
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+
+      READ TABLE lt_objects INDEX 1 INTO lv_object.
+      ASSERT sy-subrc = 0.
+
+      " Handled by object serializer
+      CHECK lv_object <> 'SICF'.
 
       CLEAR: ls_sots.
 
@@ -75875,6 +75984,33 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD deserialize_otr.
+
+    DATA:
+      lv_obj_name TYPE sobj_name,
+      lt_sots     TYPE zcl_abapgit_sots_handler=>ty_sots_tt,
+      lt_sots_use TYPE zcl_abapgit_sots_handler=>ty_sots_use_tt.
+
+    FIELD-SYMBOLS:
+      <ls_sots_use> LIKE LINE OF lt_sots_use.
+
+    read( IMPORTING ev_obj_name = lv_obj_name ).
+
+    io_xml->read( EXPORTING iv_name = 'SOTS'
+                  CHANGING cg_data = lt_sots ).
+    io_xml->read( EXPORTING iv_name = 'SOTS_USE'
+                  CHANGING cg_data = lt_sots_use ).
+
+    LOOP AT lt_sots_use ASSIGNING <ls_sots_use>.
+      <ls_sots_use>-obj_name = lv_obj_name.
+    ENDLOOP.
+
+    zcl_abapgit_sots_handler=>create_sots_from_data(
+      iv_package  = iv_package
+      it_sots     = lt_sots
+      it_sots_use = lt_sots_use ).
+
+  ENDMETHOD.
   METHOD find_parent.
 
     cl_icf_tree=>if_icf_tree~service_from_url(
@@ -75967,6 +76103,7 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
     CLEAR ev_url.
 
     ls_key = read_tadir_sicf( ms_item-obj_name )-obj_name.
+    ev_obj_name = ls_key.
 
     cl_icf_tree=>if_icf_tree~get_info_from_serv(
       EXPORTING
@@ -76064,6 +76201,36 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD serialize_otr.
+
+    DATA:
+      lv_obj_name TYPE sobj_name,
+      lt_sots     TYPE zcl_abapgit_sots_handler=>ty_sots_tt,
+      lt_sots_use TYPE zcl_abapgit_sots_handler=>ty_sots_use_tt.
+
+    FIELD-SYMBOLS:
+      <ls_sots_use> LIKE LINE OF lt_sots_use.
+
+    read( IMPORTING ev_obj_name = lv_obj_name ).
+
+    zcl_abapgit_sots_handler=>read_sots(
+      EXPORTING
+        iv_object   = ms_item-obj_type
+        iv_obj_name = lv_obj_name
+      IMPORTING
+        et_sots     = lt_sots
+        et_sots_use = lt_sots_use ).
+
+    LOOP AT lt_sots_use ASSIGNING <ls_sots_use>.
+      CLEAR <ls_sots_use>-obj_name.
+    ENDLOOP.
+
+    io_xml->add( iv_name = 'SOTS'
+                 ig_data = lt_sots ).
+    io_xml->add( iv_name = 'SOTS_USE'
+                 ig_data = lt_sots_use ).
+
+  ENDMETHOD.
   METHOD to_icfhndlist.
 
     FIELD-SYMBOLS: <ls_list> LIKE LINE OF it_list.
@@ -76088,9 +76255,12 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
-    DATA ls_icfservice TYPE icfservice.
+    DATA:
+      ls_icfservice TYPE icfservice,
+      lv_obj_name   TYPE sobj_name.
 
-    read( IMPORTING es_icfservice = ls_icfservice ).
+    read( IMPORTING es_icfservice = ls_icfservice
+                    ev_obj_name   = lv_obj_name ).
 
     IF ls_icfservice IS INITIAL.
       " It seems that the ICF service doesn't exist anymore.
@@ -76105,12 +76275,17 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'SICF - cannot delete root node, delete node manually' ).
     ENDIF.
 
+    " OTR long texts
+    zcl_abapgit_sots_handler=>delete_sots(
+      iv_object   = ms_item-obj_type
+      iv_obj_name = lv_obj_name ).
+
     " Delete Application Customizing Data the hard way, as it isn't done by the API.
     " If we wouldn't we would get errors from the API if entrys exist.
     " Transaction SICF does the same.
     DELETE FROM icfapplcust
-           WHERE icf_name = ls_icfservice-icf_name
-           AND icfparguid = ls_icfservice-icfparguid.
+      WHERE icf_name = ls_icfservice-icf_name
+      AND icfparguid = ls_icfservice-icfparguid.
 
     cl_icf_tree=>if_icf_tree~delete_node(
       EXPORTING
@@ -76143,6 +76318,7 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
           lv_url        TYPE string,
           lv_exists     TYPE abap_bool,
           lt_icfhandler TYPE TABLE OF icfhandler.
+
     io_xml->read( EXPORTING iv_name = 'URL'
                   CHANGING cg_data = lv_url ).
     io_xml->read( EXPORTING iv_name = 'ICFSERVICE'
@@ -76151,6 +76327,7 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
                   CHANGING cg_data = ls_icfdocu ).
     io_xml->read( EXPORTING iv_name = 'ICFHANDLER_TABLE'
                   CHANGING cg_data = lt_icfhandler ).
+
     lv_exists = zif_abapgit_object~exists( ).
     IF lv_exists = abap_false.
       insert_sicf( is_icfservice = ls_icfservice
@@ -76166,6 +76343,11 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
                    iv_package    = iv_package
                    iv_parent     = ls_read-icfparguid ).
     ENDIF.
+
+    " OTR long texts
+    deserialize_otr(
+      iv_package = iv_package
+      io_xml     = io_xml ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -76238,10 +76420,12 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
           ls_icfdocu    TYPE icfdocu,
           lv_url        TYPE string,
           lt_icfhandler TYPE TABLE OF icfhandler.
+
     read( IMPORTING es_icfservice = ls_icfservice
                     es_icfdocu    = ls_icfdocu
                     et_icfhandler = lt_icfhandler
                     ev_url        = lv_url ).
+
     IF ls_icfservice IS INITIAL.
       RETURN.
     ENDIF.
@@ -76265,6 +76449,9 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
                  ig_data = ls_icfdocu ).
     io_xml->add( iv_name = 'ICFHANDLER_TABLE'
                  ig_data = lt_icfhandler ).
+
+    " OTR long texts
+    serialize_otr( io_xml ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -99349,6 +99536,251 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_sots_handler IMPLEMENTATION.
+  METHOD create_sots.
+
+    DATA:
+      lt_sots     TYPE ty_sots_tt,
+      lt_sots_use TYPE ty_sots_use_tt.
+
+    io_xml->read( EXPORTING iv_name = 'SOTS'
+                  CHANGING  cg_data = lt_sots ).
+    io_xml->read( EXPORTING iv_name = 'SOTS_USE'
+                  CHANGING  cg_data = lt_sots_use ).
+
+    create_sots_from_data(
+      iv_package  = iv_package
+      it_sots     = lt_sots
+      it_sots_use = lt_sots_use ).
+
+  ENDMETHOD.
+  METHOD create_sots_from_data.
+
+    DATA:
+      lt_objects         TYPE sotr_objects,
+      lv_object          LIKE LINE OF lt_objects,
+      lv_subrc           TYPE sy-subrc,
+      ls_header          TYPE btfr_head,
+      lt_text_tab        TYPE sotr_text_tt,
+      lt_string_tab      TYPE sotr_textl_tt,
+      ls_entry           LIKE LINE OF lt_string_tab,
+      lv_concept         TYPE sotr_conc,
+      lv_concept_default TYPE sotr_conc.
+
+    FIELD-SYMBOLS <ls_sots> LIKE LINE OF it_sots.
+
+    LOOP AT it_sots ASSIGNING <ls_sots>.
+
+      CALL FUNCTION 'SOTR_OBJECT_GET_OBJECTS'
+        EXPORTING
+          object_vector    = <ls_sots>-header-objid_vec
+        IMPORTING
+          objects          = lt_objects
+        EXCEPTIONS
+          object_not_found = 1
+          OTHERS           = 2.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+
+      READ TABLE lt_objects INDEX 1 INTO lv_object.
+      ASSERT sy-subrc = 0.
+
+      " Reimplementation of SOTR_STRING_CREATE_CONCEPT because we can't supply
+      " concept and it would then be generated.
+
+      LOOP AT <ls_sots>-entries INTO ls_entry.
+        ls_entry-langu   = <ls_sots>-header-crea_lan.
+        ls_entry-concept = <ls_sots>-header-concept.
+        INSERT ls_entry INTO TABLE lt_string_tab.
+      ENDLOOP.
+
+      MOVE-CORRESPONDING <ls_sots>-header TO ls_header.
+      ls_header-paket = iv_package.
+
+      lv_concept = <ls_sots>-header-concept.
+
+      PERFORM btfr_create IN PROGRAM saplsotr_db_string
+        USING    lv_object
+                 sy-langu
+                 abap_false
+                 abap_true
+        CHANGING lt_text_tab
+                 lt_string_tab
+                 ls_header
+                 lv_concept
+                 lv_concept_default
+                 lv_subrc.
+
+      CASE lv_subrc.
+        WHEN 1.
+          MESSAGE e100(sotr_mess) INTO zcx_abapgit_exception=>null.
+        WHEN 2.
+          MESSAGE e101(sotr_mess) INTO zcx_abapgit_exception=>null.
+        WHEN 3.
+          MESSAGE i305(sotr_mess) INTO zcx_abapgit_exception=>null.
+        WHEN 4.
+          " The concept will be created in the non-original system (not an error)
+        WHEN 5.
+          MESSAGE e504(sotr_mess) INTO zcx_abapgit_exception=>null.
+        WHEN 6.
+          MESSAGE e035(sotr_mess) INTO zcx_abapgit_exception=>null.
+        WHEN 7.
+          MESSAGE e170(sotr_mess) INTO zcx_abapgit_exception=>null.
+        WHEN 9.
+          MESSAGE e102(sotr_mess) INTO zcx_abapgit_exception=>null.
+      ENDCASE.
+
+      IF lv_subrc <> 0 AND lv_subrc <> 4.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+
+    ENDLOOP.
+
+    CALL FUNCTION 'SOTR_USAGE_STRING_MODIFY'
+      EXPORTING
+        sotr_usage = it_sots_use.
+
+  ENDMETHOD.
+  METHOD delete_sots.
+
+    DATA:
+      ls_sots     TYPE ty_sots,
+      lt_sots_use TYPE ty_sots_use_tt.
+
+    FIELD-SYMBOLS <ls_sots_use> LIKE LINE OF lt_sots_use.
+
+    lt_sots_use = get_sots_usage( iv_pgmid    = iv_pgmid
+                                  iv_object   = iv_object
+                                  iv_obj_name = iv_obj_name ).
+
+    " Remove any usage to ensure deletion, see function module BTFR_CHECK
+    DELETE sotr_useu FROM TABLE lt_sots_use ##SUBRC_OK.
+
+    LOOP AT lt_sots_use ASSIGNING <ls_sots_use> WHERE concept IS NOT INITIAL.
+
+      CALL FUNCTION 'BTFR_DELETE_SINGLE_TEXT'
+        EXPORTING
+          concept             = <ls_sots_use>-concept
+          flag_string         = abap_true
+        EXCEPTIONS
+          text_not_found      = 1 "ok
+          invalid_package     = 3
+          text_not_changeable = 4
+          text_enqueued       = 5
+          no_correction       = 6
+          parameter_error     = 7
+          OTHERS              = 8.
+      IF sy-subrc > 2.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD get_sots_4_concept.
+
+    DATA: ls_header  TYPE ty_sots-header,
+          lt_entries TYPE ty_sots-entries.
+
+    FIELD-SYMBOLS <ls_entry> LIKE LINE OF lt_entries.
+
+    CALL FUNCTION 'SOTR_STRING_GET_CONCEPT'
+      EXPORTING
+        concept        = iv_concept
+      IMPORTING
+        header         = ls_header
+        entries        = lt_entries
+      EXCEPTIONS
+        no_entry_found = 1
+        OTHERS         = 2.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    CLEAR: ls_header-paket,
+           ls_header-crea_name,
+           ls_header-crea_tstut,
+           ls_header-chan_name,
+           ls_header-chan_tstut,
+           ls_header-system_id.
+
+    LOOP AT lt_entries ASSIGNING <ls_entry>.
+      CLEAR: <ls_entry>-version,
+             <ls_entry>-crea_name,
+             <ls_entry>-crea_tstut,
+             <ls_entry>-chan_name,
+             <ls_entry>-chan_tstut.
+    ENDLOOP.
+
+    rs_sots-header  = ls_header.
+    rs_sots-entries = lt_entries.
+
+  ENDMETHOD.
+  METHOD get_sots_usage.
+
+    DATA: lv_obj_name TYPE trobj_name.
+
+    lv_obj_name = iv_obj_name.
+
+    " Objects with multiple components
+    IF iv_pgmid = 'LIMU' AND ( iv_object CP 'WDY*' OR iv_object = 'WAPP' ).
+      lv_obj_name+30 = '%'.
+    ENDIF.
+
+    CALL FUNCTION 'SOTR_USAGE_STRING_READ'
+      EXPORTING
+        pgmid          = iv_pgmid
+        object         = iv_object
+        obj_name       = lv_obj_name
+      IMPORTING
+        sotr_usage     = rt_sots_use
+      EXCEPTIONS
+        no_entry_found = 1
+        error_in_pgmid = 2
+        OTHERS         = 3.
+    IF sy-subrc = 0.
+      SORT rt_sots_use.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD read_sots.
+
+    FIELD-SYMBOLS <ls_sots_use> LIKE LINE OF et_sots_use.
+
+    DATA ls_sots TYPE ty_sots.
+
+    " OTR long text (string) usage: see TABLE BTFR_OBJ_IDS
+    " LIMU: CPUB, WAPP
+    " R3TR: SICF, SMIF, XSLT
+
+    et_sots_use = get_sots_usage( iv_pgmid    = iv_pgmid
+                                  iv_object   = iv_object
+                                  iv_obj_name = iv_obj_name ).
+
+    LOOP AT et_sots_use ASSIGNING <ls_sots_use> WHERE concept IS NOT INITIAL.
+      ls_sots = get_sots_4_concept( <ls_sots_use>-concept ).
+
+      IF io_xml IS BOUND AND
+         io_xml->i18n_params( )-main_language_only = abap_true AND
+         iv_language IS SUPPLIED.
+        DELETE ls_sots-entries WHERE langu <> iv_language.
+        CHECK ls_sots-entries IS NOT INITIAL.
+      ENDIF.
+
+      INSERT ls_sots INTO TABLE et_sots.
+    ENDLOOP.
+
+    IF io_xml IS BOUND.
+      io_xml->add( iv_name = 'SOTS'
+                   ig_data = et_sots ).
+      io_xml->add( iv_name = 'SOTS_USE'
+                   ig_data = et_sots_use ).
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
   METHOD create_sotr.
 
@@ -99622,9 +100054,9 @@ CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
     DATA: lv_sotr            TYPE ty_sotr,
           lt_language_filter TYPE zif_abapgit_environment=>ty_system_language_filter.
 
-    " SOTR usage (see LSOTR_SYSTEM_SETTINGSF01, FORM GET_OBJECT_TABLE)
+    " OTR short text usage: see TABLE BTFR_OBJ_IDS
     " LIMU: CPUB, WAPP, WDYC, WDYD, WDYV
-    " R3TR: ENHC, ENHD, ENHO, ENHS, ENSC, SCGR, SICF, WDCA, WDCC, WDYA, WEBI, WEBS, XSLT
+    " R3TR: ENHC, ENHO, ENHS, ENSC, SCGR, SMIF, WDCA, WDCC, WEBI, WEBS
 
     et_sotr_use = get_sotr_usage( iv_pgmid    = iv_pgmid
                                   iv_object   = iv_object
@@ -105161,6 +105593,37 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
 
     ENDLOOP.
   ENDMETHOD.
+  METHOD is_sots_excluded.
+
+    " Todo: once all OTR longtexts are handled by object-specific class,
+    " we can exclude SOTS completely (just like SOTR)
+    " Until then, we need an object-type specific check here
+
+    DATA:
+      lt_concepts TYPE STANDARD TABLE OF sotr_headu-concept,
+      lv_count    TYPE i.
+
+    ASSERT it_packages IS NOT INITIAL.
+
+    rv_exclude = abap_false.
+
+    " Get all OTR longtexts
+    SELECT concept FROM sotr_headu INTO TABLE lt_concepts
+      FOR ALL ENTRIES IN it_packages WHERE paket = it_packages-table_line.
+    IF lines( lt_concepts ) > 0.
+      " Check if there are any texts related to objects that do not serialize these texts (yet)
+      " If yes, we need to keep processing SOTS
+      SELECT COUNT(*) FROM sotr_useu INTO lv_count
+        FOR ALL ENTRIES IN lt_concepts WHERE concept = lt_concepts-table_line AND object <> 'SICF'.
+      IF lv_count > 0.
+        RETURN.
+      ENDIF.
+    ENDIF.
+
+    " If no, SOTS can be excluded from the TADIR selection
+    rv_exclude = abap_true.
+
+  ENDMETHOD.
   METHOD select_objects.
 
     DATA:
@@ -105178,7 +105641,7 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
     " Exclude object types with tadir entries that are included elsewhere
     ls_exclude-sign   = 'I'.
     ls_exclude-option = 'EQ'.
-    ls_exclude-low    = 'SOTR'. " automatically create for sap packages (DEVC)
+    ls_exclude-low    = 'SOTR'. " automatically created for SAP packages (DEVC)
     APPEND ls_exclude TO lt_excludes.
     ls_exclude-low    = 'SFB1'. " covered by business function sets (SFBS)
     APPEND ls_exclude TO lt_excludes.
@@ -105186,6 +105649,11 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
     APPEND ls_exclude TO lt_excludes.
     ls_exclude-low    = 'STOB'. " auto generated by core data services (DDLS)
     APPEND ls_exclude TO lt_excludes.
+
+    IF is_sots_excluded( et_packages ) = abap_true.
+      ls_exclude-low = 'SOTS'.
+      APPEND ls_exclude TO lt_excludes.
+    ENDIF.
 
     " Limit to objects belonging to this system
     IF iv_only_local_objects = abap_true.
@@ -120216,6 +120684,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-26T07:29:11.560Z
+* abapmerge 0.15.0 - 2023-03-26T07:32:45.140Z
 ENDINTERFACE.
 ****************************************************
