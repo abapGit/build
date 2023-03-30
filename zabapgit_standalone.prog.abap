@@ -3283,12 +3283,15 @@ INTERFACE zif_abapgit_definitions .
     END OF c_method .
 
   TYPES:
+    ty_sap_langu_tab TYPE STANDARD TABLE OF langu WITH DEFAULT KEY.
+  TYPES:
     ty_languages TYPE STANDARD TABLE OF laiso WITH DEFAULT KEY.
   TYPES:
     BEGIN OF ty_i18n_params,
       main_language         TYPE sy-langu,
       main_language_only    TYPE abap_bool,
       translation_languages TYPE ty_languages,
+      use_lxe               TYPE abap_bool,
     END OF ty_i18n_params .
   TYPES ty_trrngtrkor_tt TYPE RANGE OF trkorr.
 ENDINTERFACE.
@@ -3830,6 +3833,7 @@ INTERFACE zif_abapgit_dot_abapgit.
     BEGIN OF ty_dot_abapgit,
       master_language              TYPE spras,
       i18n_languages               TYPE zif_abapgit_definitions=>ty_languages,
+      use_lxe                      TYPE abap_bool,
       starting_folder              TYPE string,
       folder_logic                 TYPE string,
       ignore                       TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
@@ -8572,6 +8576,15 @@ CLASS zcl_abapgit_serialize DEFINITION
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
+    CLASS-METHODS determine_i18n_params
+      IMPORTING
+        !io_dot TYPE REF TO zcl_abapgit_dot_abapgit
+        !iv_main_language_only TYPE abap_bool
+      RETURNING
+        VALUE(rs_i18n_params) TYPE zif_abapgit_definitions=>ty_i18n_params
+      RAISING
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_skip_objects DEFINITION FINAL CREATE PUBLIC.
 
@@ -9668,6 +9681,29 @@ CLASS zcl_abapgit_lxe_texts DEFINITION
         VALUE(rt_unsupported_languages) TYPE zif_abapgit_definitions=>ty_languages
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS trim_saplangu_by_iso
+      IMPORTING
+        it_iso_filter TYPE zif_abapgit_definitions=>ty_languages
+      CHANGING
+        ct_sap_langs TYPE zif_abapgit_definitions=>ty_sap_langu_tab
+      RAISING
+        zcx_abapgit_exception.
+    CLASS-METHODS trim_tab_w_saplang_by_iso
+      IMPORTING
+        it_iso_filter TYPE zif_abapgit_definitions=>ty_languages
+        iv_lang_field_name TYPE abap_compname
+        iv_keep_master_lang TYPE sy-langu OPTIONAL
+      CHANGING
+        ct_tab TYPE STANDARD TABLE
+      RAISING
+        zcx_abapgit_exception.
+    CLASS-METHODS add_iso_langs_to_lang_filter
+      IMPORTING
+        it_iso_filter TYPE zif_abapgit_definitions=>ty_languages
+      CHANGING
+        ct_language_filter TYPE zif_abapgit_environment=>ty_system_language_filter
+      RAISING
+        zcx_abapgit_exception.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -9952,6 +9988,7 @@ CLASS zcl_abapgit_objects DEFINITION
         !iv_language             TYPE spras
         !iv_main_language_only   TYPE abap_bool DEFAULT abap_false
         !it_translation_langs    TYPE zif_abapgit_definitions=>ty_languages OPTIONAL
+        !iv_use_lxe              TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(rs_files_and_item) TYPE ty_serialization
       RAISING
@@ -14006,12 +14043,12 @@ CLASS zcl_abapgit_object_tabl DEFINITION
         !cs_dd03p TYPE dd03p .
     METHODS serialize_texts
       IMPORTING
-        !io_xml TYPE REF TO zif_abapgit_xml_output
+        !ii_xml TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_texts
       IMPORTING
-        !io_xml   TYPE REF TO zif_abapgit_xml_input
+        !ii_xml   TYPE REF TO zif_abapgit_xml_input
         !is_dd02v TYPE dd02v
       RAISING
         zcx_abapgit_exception .
@@ -14117,12 +14154,12 @@ CLASS zcl_abapgit_object_tran DEFINITION
         !cg_value TYPE any .
     METHODS serialize_texts
       IMPORTING
-        !io_xml TYPE REF TO zif_abapgit_xml_output
+        !ii_xml TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_texts
       IMPORTING
-        !io_xml TYPE REF TO zif_abapgit_xml_input
+        !ii_xml TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_oo_transaction
@@ -14472,13 +14509,13 @@ CLASS zcl_abapgit_object_view DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
       serialize_texts
         IMPORTING
-          io_xml TYPE REF TO zif_abapgit_xml_output
+          ii_xml TYPE REF TO zif_abapgit_xml_output
         RAISING
           zcx_abapgit_exception,
 
       deserialize_texts
         IMPORTING
-          io_xml   TYPE REF TO zif_abapgit_xml_input
+          ii_xml   TYPE REF TO zif_abapgit_xml_input
           is_dd25v TYPE dd25v
         RAISING
           zcx_abapgit_exception.
@@ -16047,6 +16084,11 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
         VALUE(rs_signature) TYPE zif_abapgit_git_definitions=>ty_file_signature
       RAISING
         zcx_abapgit_exception .
+    METHODS use_lxe
+      IMPORTING
+        iv_yes TYPE abap_bool DEFAULT abap_undefined
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool.
     METHODS get_requirements
       RETURNING
         VALUE(rt_requirements) TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt .
@@ -21218,6 +21260,7 @@ CLASS zcl_abapgit_gui_page_sett_repo DEFINITION
         dot              TYPE string VALUE 'dot',
         main_language    TYPE string VALUE 'main_language',
         i18n_langs       TYPE string VALUE 'i18n_langs',
+        use_lxe          TYPE string VALUE 'use_lxe',
         starting_folder  TYPE string VALUE 'starting_folder',
         folder_logic     TYPE string VALUE 'folder_logic',
         ignore           TYPE string VALUE 'ignore',
@@ -37712,8 +37755,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
       iv_readonly    = abap_true
     )->text(
       iv_name        = c_id-i18n_langs
-      iv_label       = 'Serialize Translations (experimental LXE approach)'
+      iv_label       = 'Serialize Translations for These Languages'
       iv_hint        = 'Comma-separate 2-letter ISO language codes e.g. "DE,ES,..." - should not include main language'
+    )->checkbox(
+      iv_name        = c_id-use_lxe
+      iv_label       = 'Use experimental LXE approach for translations'
+      iv_hint        = 'It''s mandatory to specify the list of languages above in addition to this setting'
     )->radio(
       iv_name        = c_id-folder_logic
       iv_default_value = zif_abapgit_dot_abapgit=>c_folder_logic-prefix
@@ -37797,6 +37844,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
       iv_key = c_id-i18n_langs
       iv_val = zcl_abapgit_lxe_texts=>convert_table_to_lang_string( lo_dot->get_i18n_languages( ) ) ).
     mo_form_data->set(
+      iv_key = c_id-use_lxe
+      iv_val = lo_dot->use_lxe( ) ).
+    mo_form_data->set(
       iv_key = c_id-folder_logic
       iv_val = ls_dot-folder_logic ).
     mo_form_data->set(
@@ -37878,6 +37928,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
       zcl_abapgit_lxe_texts=>convert_lang_string_to_table(
         iv_langs              = mo_form_data->get( c_id-i18n_langs )
         iv_skip_main_language = lo_dot->get_main_language( ) ) ).
+    lo_dot->use_lxe( boolc( mo_form_data->get( c_id-use_lxe ) = 'X' ) ).
 
     " Remove all ignores
     lt_ignore = lo_dot->get_data( )-ignore.
@@ -37923,6 +37974,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
   METHOD validate_form.
 
     DATA:
+      lt_lang_list        TYPE zif_abapgit_definitions=>ty_languages,
       lv_folder           TYPE string,
       lv_len              TYPE i,
       lv_component        TYPE zif_abapgit_dot_abapgit=>ty_requirement-component,
@@ -37975,6 +38027,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
           iv_key = c_id-version_constant
           iv_val = lx_exception->get_text( ) ).
     ENDTRY.
+
+    lt_lang_list = zcl_abapgit_lxe_texts=>convert_lang_string_to_table(
+      iv_langs              = io_form_data->get( c_id-i18n_langs )
+      iv_skip_main_language = mo_repo->get_dot_abapgit( )->get_main_language( ) ).
+    IF io_form_data->get( c_id-use_lxe ) = abap_true AND lt_lang_list IS INITIAL.
+      ro_validation_log->set(
+        iv_key = c_id-i18n_langs
+        iv_val = 'LXE approach requires a non-empy list of languages' ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -58158,7 +58219,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
   METHOD add_ignore.
 
     DATA: lv_name TYPE string.
@@ -58338,6 +58399,15 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
       IN rv_xml
       WITH '<?xml version="1.0" encoding="utf-8"?>'.
     ASSERT sy-subrc = 0.
+
+  ENDMETHOD.
+  METHOD use_lxe.
+
+    IF iv_yes <> abap_undefined.
+      ms_data-use_lxe = iv_yes.
+    ENDIF.
+
+    rv_yes = ms_data-use_lxe.
 
   ENDMETHOD.
 ENDCLASS.
@@ -60087,7 +60157,7 @@ CLASS ZCL_ABAPGIT_PERSIST_BACKGROUND IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_super IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
   METHOD constructor.
     ms_item = is_item.
     ASSERT NOT ms_item IS INITIAL.
@@ -60274,6 +60344,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   METHOD serialize_lxe_texts.
 
     IF ii_xml->i18n_params( )-main_language_only = abap_true OR
+       ii_xml->i18n_params( )-use_lxe = abap_false OR
        ii_xml->i18n_params( )-translation_languages IS INITIAL.
       RETURN.
     ENDIF.
@@ -62001,7 +62072,7 @@ CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS IMPLEMENTATION.
   METHOD changed_by.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -62640,8 +62711,11 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
   ENDMETHOD.
   METHOD determine_i18n_params.
 
+    " TODO: unify with ZCL_ABAPGIT_SERIALIZE=>DETERMINE_I18N_PARAMS, same code
+
     IF io_dot IS BOUND.
       rs_i18n_params-main_language         = io_dot->get_main_language( ).
+      rs_i18n_params-use_lxe               = io_dot->use_lxe( ).
       rs_i18n_params-main_language_only    = iv_main_language_only.
       rs_i18n_params-translation_languages = zcl_abapgit_lxe_texts=>get_translation_languages(
         iv_main_language  = io_dot->get_main_language( )
@@ -62871,6 +62945,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     ls_i18n_params-main_language         = iv_language.
     ls_i18n_params-main_language_only    = iv_main_language_only.
     ls_i18n_params-translation_languages = it_translation_langs.
+    ls_i18n_params-use_lxe               = iv_use_lxe.
 
     li_xml->i18n_params( ls_i18n_params ).
 
@@ -66719,11 +66794,15 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
 
     lv_name = ms_item-obj_name.
 
-    io_xml->read( EXPORTING iv_name = 'I18N_LANGS'
+    ii_xml->read( EXPORTING iv_name = 'I18N_LANGS'
                   CHANGING  cg_data = lt_i18n_langs ).
 
-    io_xml->read( EXPORTING iv_name = 'DD25_TEXTS'
+    ii_xml->read( EXPORTING iv_name = 'DD25_TEXTS'
                   CHANGING  cg_data = lt_dd25_texts ).
+
+    zcl_abapgit_lxe_texts=>trim_saplangu_by_iso(
+      EXPORTING it_iso_filter = ii_xml->i18n_params( )-translation_languages
+      CHANGING ct_sap_langs   = lt_i18n_langs ).
 
     SORT lt_i18n_langs.
     SORT lt_dd25_texts BY ddlanguage.
@@ -66796,12 +66875,17 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
       <lv_lang>      LIKE LINE OF lt_i18n_langs,
       <ls_dd25_text> LIKE LINE OF lt_dd25_texts.
 
-    IF io_xml->i18n_params( )-main_language_only = abap_true.
+    IF ii_xml->i18n_params( )-main_language_only = abap_true.
       RETURN.
     ENDIF.
 
     " Collect additional languages, skip main lang - it was serialized already
     lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
+
+    zcl_abapgit_lxe_texts=>add_iso_langs_to_lang_filter(
+      EXPORTING it_iso_filter      = ii_xml->i18n_params( )-translation_languages
+      CHANGING  ct_language_filter = lt_language_filter ).
+
     SELECT DISTINCT ddlanguage AS langu INTO TABLE lt_i18n_langs
       FROM dd25v
       WHERE viewname = ms_item-obj_name
@@ -66837,10 +66921,10 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
     SORT lt_dd25_texts BY ddlanguage ASCENDING.
 
     IF lines( lt_i18n_langs ) > 0.
-      io_xml->add( iv_name = 'I18N_LANGS'
+      ii_xml->add( iv_name = 'I18N_LANGS'
                    ig_data = lt_i18n_langs ).
 
-      io_xml->add( iv_name = 'DD25_TEXTS'
+      ii_xml->add( iv_name = 'DD25_TEXTS'
                    ig_data = lt_dd25_texts ).
     ENDIF.
 
@@ -66928,9 +67012,9 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    IF io_xml->i18n_params( )-translation_languages IS INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
       deserialize_texts(
-        io_xml   = io_xml
+        ii_xml   = io_xml
         is_dd25v = ls_dd25v ).
     ELSE.
       deserialize_lxe_texts( io_xml ).
@@ -67065,7 +67149,7 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
     io_xml->add( ig_data = lt_dd28v
                  iv_name = 'DD28V_TABLE' ).
 
-    IF io_xml->i18n_params( )-translation_languages IS INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
       serialize_texts( io_xml ).
     ELSE.
       serialize_lxe_texts( io_xml ).
@@ -69176,9 +69260,17 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
     DATA lt_tpool_i18n TYPE TABLE OF tstct.
 
     FIELD-SYMBOLS <ls_tpool> LIKE LINE OF lt_tpool_i18n.
+
     " Read XML-files data
-    io_xml->read( EXPORTING iv_name = 'I18N_TPOOL'
+    ii_xml->read( EXPORTING iv_name = 'I18N_TPOOL'
                   CHANGING  cg_data = lt_tpool_i18n ).
+
+    zcl_abapgit_lxe_texts=>trim_tab_w_saplang_by_iso(
+      EXPORTING
+        it_iso_filter = ii_xml->i18n_params( )-translation_languages
+        iv_lang_field_name = 'SPRSL'
+      CHANGING
+        ct_tab = lt_tpool_i18n ).
 
     " Force t-code name (security reasons)
     LOOP AT lt_tpool_i18n ASSIGNING <ls_tpool>.
@@ -69219,7 +69311,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
 
     DATA lt_tpool_i18n TYPE TABLE OF tstct.
 
-    IF io_xml->i18n_params( )-main_language_only = abap_true.
+    IF ii_xml->i18n_params( )-main_language_only = abap_true.
       RETURN.
     ENDIF.
 
@@ -69231,9 +69323,16 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
       WHERE sprsl <> mv_language
       AND   tcode = ms_item-obj_name ##TOO_MANY_ITAB_FIELDS. "#EC CI_GENBUFF
 
+    zcl_abapgit_lxe_texts=>trim_tab_w_saplang_by_iso(
+      EXPORTING
+        it_iso_filter = ii_xml->i18n_params( )-translation_languages
+        iv_lang_field_name = 'SPRSL'
+      CHANGING
+        ct_tab = lt_tpool_i18n ).
+
     IF lines( lt_tpool_i18n ) > 0.
       SORT lt_tpool_i18n BY sprsl ASCENDING.
-      io_xml->add( iv_name = 'I18N_TPOOL'
+      ii_xml->add( iv_name = 'I18N_TPOOL'
                    ig_data = lt_tpool_i18n ).
     ENDIF.
 
@@ -69564,7 +69663,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
                            it_authorizations = lt_tstca ).
     ENDIF.
 
-    IF io_xml->i18n_params( )-translation_languages IS INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
       deserialize_texts( io_xml ).
     ELSE.
       deserialize_lxe_texts( io_xml ).
@@ -69670,7 +69769,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
     io_xml->add( iv_name = 'AUTHORIZATIONS'
                  ig_data = lt_tstca ).
 
-    IF io_xml->i18n_params( )-translation_languages IS INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
       serialize_texts( io_xml ).
     ELSE.
       serialize_lxe_texts( io_xml ).
@@ -70418,11 +70517,15 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
 
     lv_name = ms_item-obj_name.
 
-    io_xml->read( EXPORTING iv_name = 'I18N_LANGS'
+    ii_xml->read( EXPORTING iv_name = 'I18N_LANGS'
                   CHANGING  cg_data = lt_i18n_langs ).
 
-    io_xml->read( EXPORTING iv_name = 'DD02_TEXTS'
+    ii_xml->read( EXPORTING iv_name = 'DD02_TEXTS'
                   CHANGING  cg_data = lt_dd02_texts ).
+
+    zcl_abapgit_lxe_texts=>trim_saplangu_by_iso(
+      EXPORTING it_iso_filter = ii_xml->i18n_params( )-translation_languages
+      CHANGING ct_sap_langs   = lt_i18n_langs ).
 
     SORT lt_i18n_langs.
     SORT lt_dd02_texts BY ddlanguage. " Optimization
@@ -70553,7 +70656,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
     FIELD-SYMBOLS: <lv_lang>      LIKE LINE OF lt_i18n_langs,
                    <ls_dd02_text> LIKE LINE OF lt_dd02_texts.
 
-    IF io_xml->i18n_params( )-main_language_only = abap_true.
+    IF ii_xml->i18n_params( )-main_language_only = abap_true.
       RETURN.
     ENDIF.
 
@@ -70561,6 +70664,11 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
 
     " Collect additional languages, skip main lang - it was serialized already
     lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
+
+    zcl_abapgit_lxe_texts=>add_iso_langs_to_lang_filter(
+      EXPORTING it_iso_filter      = ii_xml->i18n_params( )-translation_languages
+      CHANGING  ct_language_filter = lt_language_filter ).
+
     SELECT DISTINCT ddlanguage AS langu INTO TABLE lt_i18n_langs
       FROM dd02v
       WHERE tabname = lv_name
@@ -70592,10 +70700,10 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
     SORT lt_dd02_texts BY ddlanguage ASCENDING.
 
     IF lines( lt_i18n_langs ) > 0.
-      io_xml->add( iv_name = 'I18N_LANGS'
+      ii_xml->add( iv_name = 'I18N_LANGS'
                    ig_data = lt_i18n_langs ).
 
-      io_xml->add( iv_name = 'DD02_TEXTS'
+      ii_xml->add( iv_name = 'DD02_TEXTS'
                    ig_data = lt_dd02_texts ).
     ENDIF.
 
@@ -70817,9 +70925,9 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
 
       deserialize_indexes( io_xml ).
 
-      IF io_xml->i18n_params( )-translation_languages IS INITIAL.
+      IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
         deserialize_texts(
-          io_xml   = io_xml
+          ii_xml   = io_xml
           is_dd02v = ls_dd02v ).
       ELSE.
         deserialize_lxe_texts( io_xml ).
@@ -71032,7 +71140,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL IMPLEMENTATION.
     io_xml->add( iv_name = 'DD36M'
                  ig_data = lt_dd36m ).
 
-    IF io_xml->i18n_params( )-translation_languages IS INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
       serialize_texts( io_xml ).
     ELSE.
       serialize_lxe_texts( io_xml ).
@@ -77437,6 +77545,19 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'TREE_TEXTS'
                   CHANGING  cg_data = lt_texts ).
 
+    zcl_abapgit_lxe_texts=>trim_tab_w_saplang_by_iso(
+      EXPORTING
+        it_iso_filter = io_xml->i18n_params( )-translation_languages
+        iv_lang_field_name = 'SPRAS'
+      CHANGING
+        ct_tab = lt_titles ).
+    zcl_abapgit_lxe_texts=>trim_tab_w_saplang_by_iso(
+      EXPORTING
+        it_iso_filter = io_xml->i18n_params( )-translation_languages
+        iv_lang_field_name = 'SPRAS'
+      CHANGING
+        ct_tab = lt_texts ).
+
     IF zif_abapgit_object~exists( ) = abap_true.
       delete_tree_structure( mv_tree_id ).
     ENDIF.
@@ -77477,7 +77598,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
       MODIFY ttree FROM ls_ttree.
     ENDIF.
 
-    IF io_xml->i18n_params( )-translation_languages IS NOT INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS NOT INITIAL AND io_xml->i18n_params( )-use_lxe = abap_true.
       deserialize_lxe_texts( io_xml ).
     ENDIF.
 
@@ -77559,12 +77680,20 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
         structure_header = ls_head
       TABLES
         description      = lt_titles.
+
     IF io_xml->i18n_params( )-main_language_only = abap_true
-      OR io_xml->i18n_params( )-translation_languages IS NOT INITIAL.
+      OR io_xml->i18n_params( )-translation_languages IS NOT INITIAL AND io_xml->i18n_params( )-use_lxe = abap_true.
       lv_all_languages = abap_false.
       DELETE lt_titles WHERE spras <> mv_language.
     ELSE.
       lv_all_languages = abap_true.
+      zcl_abapgit_lxe_texts=>trim_tab_w_saplang_by_iso(
+        EXPORTING
+          it_iso_filter = io_xml->i18n_params( )-translation_languages
+          iv_lang_field_name = 'SPRAS'
+          iv_keep_master_lang = mv_language
+        CHANGING
+          ct_tab = lt_titles ).
     ENDIF.
 
     CALL FUNCTION 'STREE_HIERARCHY_READ'
@@ -77589,6 +77718,14 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
     SORT lt_texts BY spras.
     DELETE ADJACENT DUPLICATES FROM lt_texts COMPARING spras node_id.
 
+    zcl_abapgit_lxe_texts=>trim_tab_w_saplang_by_iso(
+      EXPORTING
+        it_iso_filter = io_xml->i18n_params( )-translation_languages
+        iv_lang_field_name = 'SPRAS'
+        iv_keep_master_lang = mv_language
+      CHANGING
+        ct_tab = lt_texts ).
+
     io_xml->add( iv_name = 'TREE_HEAD'
                  ig_data = ls_head ).
     io_xml->add( iv_name = 'TREE_TITLES'
@@ -77600,7 +77737,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
     io_xml->add( iv_name = 'TREE_TEXTS'
                  ig_data = lt_texts ).
 
-    IF io_xml->i18n_params( )-translation_languages IS NOT INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS NOT INITIAL AND io_xml->i18n_params( )-use_lxe = abap_true.
       serialize_lxe_texts( io_xml ).
     ENDIF.
 
@@ -79681,7 +79818,7 @@ CLASS zcl_abapgit_object_samc IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_prog IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lt_tpool_i18n TYPE ty_tpools_i18n,
@@ -79755,6 +79892,11 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
     " Select all active translations of program texts
     " Skip main language - it was already serialized
     lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
+
+    zcl_abapgit_lxe_texts=>add_iso_langs_to_lang_filter(
+      EXPORTING it_iso_filter      = ii_xml->i18n_params( )-translation_languages
+      CHANGING  ct_language_filter = lt_language_filter ).
+
     SELECT DISTINCT language
       INTO CORRESPONDING FIELDS OF TABLE lt_tpool_i18n
       FROM d010tinf
@@ -79940,11 +80082,9 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
                        io_files = zif_abapgit_object~mo_files ).
 
     " Texts serializing (translations)
-    IF io_xml->i18n_params( )-translation_languages IS INITIAL.
-      " Old I18N option
+    IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
       serialize_texts( io_xml ).
     ELSE.
-      " New LXE option
       serialize_lxe_texts( io_xml ).
     ENDIF.
 
@@ -81493,7 +81633,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
     MODIFY tparat FROM ls_tparat.                         "#EC CI_SUBRC
     ASSERT sy-subrc = 0.
 
-    IF io_xml->i18n_params( )-translation_languages IS NOT INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS NOT INITIAL AND io_xml->i18n_params( )-use_lxe = abap_true.
       deserialize_lxe_texts( io_xml ).
     ENDIF.
 
@@ -81557,7 +81697,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
     " Here only the original language is serialized,
     " so it should be present for the moment. LXEs are just translations
 
-    IF io_xml->i18n_params( )-translation_languages IS NOT INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS NOT INITIAL AND io_xml->i18n_params( )-use_lxe = abap_true.
       serialize_lxe_texts( io_xml ).
     ENDIF.
 
@@ -83016,6 +83156,19 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
     ii_xml->read( EXPORTING iv_name = 'T100T'
                   CHANGING  cg_data = lt_t100t ).
 
+    zcl_abapgit_lxe_texts=>trim_tab_w_saplang_by_iso(
+      EXPORTING
+        it_iso_filter = ii_xml->i18n_params( )-translation_languages
+        iv_lang_field_name = 'SPRSL'
+      CHANGING
+        ct_tab = lt_t100_texts ).
+    zcl_abapgit_lxe_texts=>trim_tab_w_saplang_by_iso(
+      EXPORTING
+        it_iso_filter = ii_xml->i18n_params( )-translation_languages
+        iv_lang_field_name = 'SPRSL'
+      CHANGING
+        ct_tab = lt_t100t ).
+
     MODIFY t100t FROM TABLE lt_t100t.                     "#EC CI_SUBRC
 
     LOOP AT lt_t100_texts ASSIGNING <ls_t100_text>.
@@ -83107,6 +83260,11 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
     " Collect additional languages
     " Skip main lang - it has been already serialized and also technical languages
     lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
+
+    zcl_abapgit_lxe_texts=>add_iso_langs_to_lang_filter(
+      EXPORTING it_iso_filter      = ii_xml->i18n_params( )-translation_languages
+      CHANGING  ct_language_filter = lt_language_filter ).
+
     SELECT DISTINCT sprsl AS langu INTO TABLE lt_i18n_langs
       FROM t100t
       WHERE arbgb = lv_msg_id
@@ -83118,12 +83276,13 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
     IF lines( lt_i18n_langs ) > 0.
 
       SELECT * FROM t100t INTO CORRESPONDING FIELDS OF TABLE lt_t100t
-        WHERE sprsl <> mv_language
+*        FOR ALL ENTRIES IN lt_i18n_langs
+        WHERE sprsl IN lt_language_filter " = lt_i18n_langs-table_line
         AND arbgb = lv_msg_id.                          "#EC CI_GENBUFF
 
       SELECT * FROM t100 INTO CORRESPONDING FIELDS OF TABLE lt_t100_texts
-        FOR ALL ENTRIES IN lt_i18n_langs
-        WHERE sprsl = lt_i18n_langs-table_line
+*        FOR ALL ENTRIES IN lt_i18n_langs
+        WHERE sprsl IN lt_language_filter " = lt_i18n_langs-table_line
         AND arbgb = lv_msg_id
         ORDER BY PRIMARY KEY.             "#EC CI_SUBRC "#EC CI_GENBUFF
 
@@ -83279,7 +83438,7 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
     deserialize_longtexts( ii_xml         = io_xml
                            iv_longtext_id = c_longtext_id_msag ).
 
-    IF io_xml->i18n_params( )-translation_languages IS INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
       deserialize_texts( io_xml ).
     ELSE.
       deserialize_lxe_texts( io_xml ).
@@ -83352,7 +83511,7 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
     serialize_longtexts_msag( it_t100 = lt_source
                               ii_xml  = io_xml ).
 
-    IF io_xml->i18n_params( )-translation_languages IS INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
       serialize_texts( io_xml ).
     ELSE.
       serialize_lxe_texts( io_xml ).
@@ -87480,7 +87639,7 @@ CLASS zcl_abapgit_object_g4ba IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
   METHOD check_rfc_parameters.
 
 * function module RS_FUNCTIONMODULE_INSERT does the same deep down, but the right error
@@ -88254,6 +88413,13 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
       AND prog = iv_prog_name
       AND language <> mv_language ##TOO_MANY_ITAB_FIELDS.
 
+    zcl_abapgit_lxe_texts=>trim_tab_w_saplang_by_iso(
+      EXPORTING
+        it_iso_filter = ii_xml->i18n_params( )-translation_languages
+        iv_lang_field_name = 'LANGUAGE'
+      CHANGING
+        ct_tab = lt_tpool_i18n ).
+
     SORT lt_tpool_i18n BY language ASCENDING.
     LOOP AT lt_tpool_i18n ASSIGNING <ls_tpool>.
       READ TEXTPOOL iv_prog_name
@@ -88542,12 +88708,11 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
     lv_program_name = main_name( ).
     ls_progdir = read_progdir( lv_program_name ).
 
-    IF io_xml->i18n_params( )-translation_languages IS INITIAL.
-      " Old I18N option
-      serialize_texts( iv_prog_name = lv_program_name
-                       ii_xml       = io_xml ).
+    IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
+      serialize_texts(
+        iv_prog_name = lv_program_name
+        ii_xml       = io_xml ).
     ELSE.
-      " New LXE option
       serialize_lxe_texts( io_xml ).
     ENDIF.
 
@@ -91274,6 +91439,10 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
     ii_xml->read( EXPORTING iv_name = 'DD04_TEXTS'
                   CHANGING  cg_data = lt_dd04_texts ).
 
+    zcl_abapgit_lxe_texts=>trim_saplangu_by_iso(
+      EXPORTING it_iso_filter = ii_xml->i18n_params( )-translation_languages
+      CHANGING ct_sap_langs   = lt_i18n_langs ).
+
     SORT lt_i18n_langs.
     SORT lt_dd04_texts BY ddlanguage. " Optimization
 
@@ -91323,6 +91492,11 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
 
     " Collect additional languages, skip main lang - it was serialized already
     lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
+
+    zcl_abapgit_lxe_texts=>add_iso_langs_to_lang_filter(
+      EXPORTING it_iso_filter      = ii_xml->i18n_params( )-translation_languages
+      CHANGING  ct_language_filter = lt_language_filter ).
+
     SELECT DISTINCT ddlanguage AS langu INTO TABLE lt_i18n_langs
       FROM dd04v
       WHERE rollname = lv_name
@@ -91411,7 +91585,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    IF io_xml->i18n_params( )-translation_languages IS INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
       deserialize_texts(
         ii_xml   = io_xml
         is_dd04v = ls_dd04v ).
@@ -91522,7 +91696,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
     io_xml->add( iv_name = 'DD04V'
                  ig_data = ls_dd04v ).
 
-    IF io_xml->i18n_params( )-translation_languages IS INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
       serialize_texts( io_xml ).
     ELSE.
       serialize_lxe_texts( io_xml ).
@@ -92520,6 +92694,10 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
     ii_xml->read( EXPORTING iv_name = 'DD07_TEXTS'
                   CHANGING  cg_data = lt_dd07_texts ).
 
+    zcl_abapgit_lxe_texts=>trim_saplangu_by_iso(
+      EXPORTING it_iso_filter = ii_xml->i18n_params( )-translation_languages
+      CHANGING ct_sap_langs   = lt_i18n_langs ).
+
     SORT lt_i18n_langs.
     SORT lt_dd07_texts BY ddlanguage. " Optimization
 
@@ -92614,6 +92792,11 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
 
     " Collect additional languages, skip main lang - it was serialized already
     lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
+
+    zcl_abapgit_lxe_texts=>add_iso_langs_to_lang_filter(
+      EXPORTING it_iso_filter      = ii_xml->i18n_params( )-translation_languages
+      CHANGING  ct_language_filter = lt_language_filter ).
+
     SELECT DISTINCT ddlanguage AS langu INTO TABLE lt_i18n_langs
       FROM dd01v
       WHERE domname = lv_name
@@ -92766,7 +92949,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    IF io_xml->i18n_params( )-translation_languages IS INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
       deserialize_texts(
         ii_xml   = io_xml
         is_dd01v = ls_dd01v
@@ -92873,7 +93056,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
     io_xml->add( iv_name = 'DD07V_TAB'
                  ig_data = lt_dd07v ).
 
-    IF io_xml->i18n_params( )-translation_languages IS INITIAL.
+    IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
       serialize_texts(
         ii_xml   = io_xml
         it_dd07v = lt_dd07v ).
@@ -95996,6 +96179,13 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
     ii_xml->read( EXPORTING iv_name = 'I18N_TPOOL'
                   CHANGING  cg_data = lt_i18n_tpool ).
 
+    zcl_abapgit_lxe_texts=>trim_tab_w_saplang_by_iso(
+      EXPORTING
+        it_iso_filter = ii_xml->i18n_params( )-translation_languages
+        iv_lang_field_name = 'LANGUAGE'
+      CHANGING
+        ct_tab = lt_i18n_tpool ).
+
     LOOP AT lt_i18n_tpool INTO ls_i18n_tpool.
       lt_tpool = read_tpool( ls_i18n_tpool-textpool ).
       mi_object_oriented_object_fct->insert_text_pool(
@@ -96295,6 +96485,11 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
     " Select all active translations of program texts
     " Skip main language - it was already serialized
     lt_language_filter = zcl_abapgit_factory=>get_environment( )->get_system_language_filter( ).
+
+    zcl_abapgit_lxe_texts=>add_iso_langs_to_lang_filter(
+      EXPORTING it_iso_filter      = ii_xml->i18n_params( )-translation_languages
+      CHANGING  ct_language_filter = lt_language_filter ).
+
     SELECT DISTINCT language
       INTO TABLE lt_langu_additional
       FROM d010tinf
@@ -96310,7 +96505,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
       ii_xml     = ii_xml
       iv_clsname = ls_clskey-clsname ).
 
-    IF ii_xml->i18n_params( )-translation_languages IS INITIAL.
+    IF ii_xml->i18n_params( )-translation_languages IS INITIAL OR ii_xml->i18n_params( )-use_lxe = abap_false.
       serialize_tpool_i18n(
         ii_xml              = ii_xml
         it_langu_additional = lt_langu_additional
@@ -96420,7 +96615,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
 
       deserialize_tpool( io_xml ).
 
-      IF io_xml->i18n_params( )-translation_languages IS INITIAL.
+      IF io_xml->i18n_params( )-translation_languages IS INITIAL OR io_xml->i18n_params( )-use_lxe = abap_false.
         deserialize_tpool_i18n( io_xml ).
       ELSE.
         deserialize_lxe_texts( io_xml ).
@@ -100080,6 +100275,35 @@ CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_LXE_TEXTS IMPLEMENTATION.
+  METHOD add_iso_langs_to_lang_filter.
+
+    DATA lv_laiso LIKE LINE OF it_iso_filter.
+    DATA lv_langu TYPE sy-langu.
+    DATA ls_range LIKE LINE OF ct_language_filter.
+
+    ls_range-sign = 'I'.
+    ls_range-option = 'EQ'.
+
+    LOOP AT it_iso_filter INTO lv_laiso.
+
+      cl_i18n_languages=>sap2_to_sap1(
+        EXPORTING
+          im_lang_sap2  = lv_laiso
+        RECEIVING
+          re_lang_sap1  = lv_langu
+        EXCEPTIONS
+          no_assignment = 1
+          OTHERS        = 2 ).
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+
+      ls_range-low = lv_langu.
+      APPEND ls_range TO ct_language_filter.
+
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD check_langs_versus_installed.
 
     DATA lt_installed_hash TYPE HASHED TABLE OF laiso WITH UNIQUE KEY table_line.
@@ -100326,6 +100550,82 @@ CLASS ZCL_ABAPGIT_LXE_TEXTS IMPLEMENTATION.
             lt_pcx_s1 = rt_text_pairs_tmp.
 
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD trim_saplangu_by_iso.
+
+    DATA lv_langu TYPE sy-langu.
+    DATA lv_laiso TYPE laiso.
+    DATA lv_index TYPE i.
+
+    IF it_iso_filter IS INITIAL.
+      RETURN. " Nothing to filter
+    ENDIF.
+
+    LOOP AT ct_sap_langs INTO lv_langu.
+      lv_index = sy-tabix.
+
+      cl_i18n_languages=>sap1_to_sap2(
+        EXPORTING
+          im_lang_sap1  = lv_langu
+        RECEIVING
+          re_lang_sap2  = lv_laiso
+        EXCEPTIONS
+          no_assignment = 1
+          OTHERS        = 2 ).
+      IF sy-subrc <> 0.
+        DELETE ct_sap_langs INDEX lv_index. " Not in the list anyway ...
+        CONTINUE.
+      ENDIF.
+
+      " Not a sorted table, but presumably the list is small, so no significant performance flow
+      READ TABLE it_iso_filter TRANSPORTING NO FIELDS WITH KEY table_line = lv_laiso.
+      IF sy-subrc <> 0.
+        DELETE ct_sap_langs INDEX lv_index.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD trim_tab_w_saplang_by_iso.
+
+    DATA lv_laiso TYPE laiso.
+    DATA lv_index TYPE i.
+
+    FIELD-SYMBOLS <ls_i> TYPE any.
+    FIELD-SYMBOLS <lv_langu> TYPE sy-langu.
+
+    IF it_iso_filter IS INITIAL OR iv_lang_field_name IS INITIAL.
+      RETURN. " Nothing to filter
+    ENDIF.
+
+    LOOP AT ct_tab ASSIGNING <ls_i>.
+      lv_index = sy-tabix.
+      ASSIGN COMPONENT iv_lang_field_name OF STRUCTURE <ls_i> TO <lv_langu>.
+      ASSERT sy-subrc = 0.
+
+      IF <lv_langu> = iv_keep_master_lang.
+        CONTINUE. " Just keep it
+      ENDIF.
+
+      cl_i18n_languages=>sap1_to_sap2(
+        EXPORTING
+          im_lang_sap1  = <lv_langu>
+        RECEIVING
+          re_lang_sap2  = lv_laiso
+        EXCEPTIONS
+          no_assignment = 1
+          OTHERS        = 2 ).
+      IF sy-subrc <> 0.
+        DELETE ct_tab INDEX lv_index. " Not in the list anyway ...
+        CONTINUE.
+      ENDIF.
+
+      " Not a sorted table, but presumably the list is small, so no significant performance flow
+      READ TABLE it_iso_filter TRANSPORTING NO FIELDS WITH KEY table_line = lv_laiso.
+      IF sy-subrc <> 0.
+        DELETE ct_tab INDEX lv_index.
+      ENDIF.
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD write_lxe_object_text_pair.
@@ -105786,7 +106086,7 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_serialize IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
   METHOD add_apack.
 
     DATA ls_apack_file TYPE zif_abapgit_git_definitions=>ty_file.
@@ -105911,17 +106211,26 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
     mo_dot_abapgit = io_dot_abapgit.
     ms_local_settings = is_local_settings.
 
-    " Determine I18N parameters
-    IF io_dot_abapgit IS NOT INITIAL.
-      ms_i18n_params-main_language         = io_dot_abapgit->get_main_language( ).
-      ms_i18n_params-main_language_only    = is_local_settings-main_language_only.
-      ms_i18n_params-translation_languages = zcl_abapgit_lxe_texts=>get_translation_languages(
-        iv_main_language  = io_dot_abapgit->get_main_language( )
-        it_i18n_languages = io_dot_abapgit->get_i18n_languages( ) ).
+    ms_i18n_params = determine_i18n_params(
+      io_dot = io_dot_abapgit
+      iv_main_language_only = is_local_settings-main_language_only ).
+
+  ENDMETHOD.
+  METHOD determine_i18n_params.
+
+    " TODO: unify with ZCL_ABAPGIT_OBJECTS=>DETERMINE_I18N_PARAMS, same code
+
+    IF io_dot IS BOUND.
+      rs_i18n_params-main_language         = io_dot->get_main_language( ).
+      rs_i18n_params-use_lxe               = io_dot->use_lxe( ).
+      rs_i18n_params-main_language_only    = iv_main_language_only.
+      rs_i18n_params-translation_languages = zcl_abapgit_lxe_texts=>get_translation_languages(
+        iv_main_language  = io_dot->get_main_language( )
+        it_i18n_languages = io_dot->get_i18n_languages( ) ).
     ENDIF.
 
-    IF ms_i18n_params-main_language IS INITIAL.
-      ms_i18n_params-main_language = sy-langu.
+    IF rs_i18n_params-main_language IS INITIAL.
+      rs_i18n_params-main_language = sy-langu.
     ENDIF.
 
   ENDMETHOD.
@@ -106191,6 +106500,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
           iv_language           = ms_i18n_params-main_language
           iv_main_language_only = ms_i18n_params-main_language_only
           it_translation_langs  = ms_i18n_params-translation_languages
+          iv_use_lxe            = ms_i18n_params-use_lxe
         EXCEPTIONS
           system_failure        = 1 MESSAGE lv_msg
           communication_failure = 2 MESSAGE lv_msg
@@ -106223,6 +106533,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
           is_item               = ls_file_item-item
           iv_language           = ms_i18n_params-main_language
           iv_main_language_only = ms_i18n_params-main_language_only
+          iv_use_lxe            = ms_i18n_params-use_lxe
           it_translation_langs  = ms_i18n_params-translation_languages ).
 
         add_to_return( is_file_item = ls_file_item
@@ -120691,6 +121002,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-28T08:24:44.419Z
+* abapmerge 0.15.0 - 2023-03-30T13:18:24.803Z
 ENDINTERFACE.
 ****************************************************
