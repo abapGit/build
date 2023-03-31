@@ -99,6 +99,7 @@ INTERFACE zif_abapgit_http_agent DEFERRED.
 INTERFACE zif_abapgit_pr_enum_provider DEFERRED.
 INTERFACE zif_abapgit_git_definitions DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
+INTERFACE zif_abapgit_data_supporter DEFERRED.
 INTERFACE zif_abapgit_data_serializer DEFERRED.
 INTERFACE zif_abapgit_data_deserializer DEFERRED.
 INTERFACE zif_abapgit_data_config DEFERRED.
@@ -459,6 +460,7 @@ CLASS zcl_abapgit_git_branch_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_add_patch DEFINITION DEFERRED.
 CLASS zcl_abapgit_exit DEFINITION DEFERRED.
 CLASS zcl_abapgit_data_utils DEFINITION DEFERRED.
+CLASS zcl_abapgit_data_supporter DEFINITION DEFERRED.
 CLASS zcl_abapgit_data_serializer DEFINITION DEFERRED.
 CLASS zcl_abapgit_data_injector DEFINITION DEFERRED.
 CLASS zcl_abapgit_data_factory DEFINITION DEFERRED.
@@ -1293,32 +1295,6 @@ INTERFACE zif_abapgit_data_config .
       zcx_abapgit_exception .
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_data_deserializer .
-  TYPES: BEGIN OF ty_result,
-           table   TYPE tadir-obj_name,
-           deletes TYPE REF TO data,
-           updates TYPE REF TO data,
-           inserts TYPE REF TO data,
-         END OF ty_result.
-  TYPES: ty_results TYPE STANDARD TABLE OF ty_result WITH KEY table.
-
-  METHODS deserialize
-    IMPORTING
-      !ii_config       TYPE REF TO zif_abapgit_data_config
-      !it_files        TYPE zif_abapgit_git_definitions=>ty_files_tt
-    RETURNING
-      VALUE(rt_result) TYPE ty_results
-    RAISING
-      zcx_abapgit_exception .
-
-  METHODS actualize
-    IMPORTING
-      it_result TYPE ty_results
-    RAISING
-      zcx_abapgit_exception .
-
-ENDINTERFACE.
-
 INTERFACE zif_abapgit_data_serializer .
   METHODS serialize
     IMPORTING
@@ -1327,6 +1303,25 @@ INTERFACE zif_abapgit_data_serializer .
       VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_files_tt
     RAISING
       zcx_abapgit_exception .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_data_supporter.
+
+  TYPES:
+    BEGIN OF ty_object,
+      type TYPE zif_abapgit_data_config=>ty_config-type,
+      name TYPE zif_abapgit_data_config=>ty_config-name,
+    END OF ty_object.
+  TYPES:
+    ty_objects TYPE SORTED TABLE OF ty_object WITH UNIQUE KEY type name.
+
+  METHODS is_object_supported
+    IMPORTING
+      !iv_type            TYPE ty_object-type
+      !iv_name            TYPE ty_object-name
+    RETURNING
+      VALUE(rv_supported) TYPE abap_bool.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_pr_enum_provider .
@@ -3397,6 +3392,33 @@ INTERFACE zif_abapgit_cts_api .
 
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_data_deserializer .
+  TYPES: BEGIN OF ty_result,
+           type    TYPE zif_abapgit_data_config=>ty_config-type,
+           name    TYPE zif_abapgit_data_config=>ty_config-name,
+           deletes TYPE REF TO data,
+           updates TYPE REF TO data,
+           inserts TYPE REF TO data,
+         END OF ty_result.
+  TYPES: ty_results TYPE STANDARD TABLE OF ty_result WITH KEY type name.
+
+  METHODS deserialize
+    IMPORTING
+      !ii_config       TYPE REF TO zif_abapgit_data_config
+      !it_files        TYPE zif_abapgit_git_definitions=>ty_files_tt
+    RETURNING
+      VALUE(rt_result) TYPE ty_results
+    RAISING
+      zcx_abapgit_exception .
+
+  METHODS actualize
+    IMPORTING
+      !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
+      !it_result TYPE ty_results
+    RAISING
+      zcx_abapgit_exception .
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_tadir .
   METHODS get_object_package
     IMPORTING
@@ -3940,9 +3962,6 @@ INTERFACE zif_abapgit_exit .
   TYPES:
     ty_object_types TYPE STANDARD TABLE OF tadir-object WITH DEFAULT KEY .
 
-  METHODS change_supported_object_types
-    CHANGING
-      !ct_types TYPE ty_object_types .
   METHODS adjust_display_commit_url
     IMPORTING
       !iv_repo_url    TYPE csequence
@@ -3979,6 +3998,12 @@ INTERFACE zif_abapgit_exit .
       !iv_repo_url  TYPE csequence
     CHANGING
       !cv_proxy_url TYPE string .
+  METHODS change_supported_data_objects
+    CHANGING
+      !ct_objects TYPE zif_abapgit_data_supporter=>ty_objects.
+  METHODS change_supported_object_types
+    CHANGING
+      !ct_types TYPE ty_object_types .
   METHODS change_tadir
     IMPORTING
       !iv_package TYPE devclass
@@ -5775,6 +5800,16 @@ CLASS zcl_abapgit_data_deserializer DEFINITION
         VALUE(rr_data) TYPE REF TO data
       RAISING
         zcx_abapgit_exception .
+    METHODS is_table_allowed_to_edit
+      IMPORTING
+        !is_result                TYPE zif_abapgit_data_deserializer=>ty_result
+      RETURNING
+        VALUE(rv_allowed_to_edit) TYPE abap_bool .
+    METHODS is_customizing_table
+      IMPORTING
+        !iv_name              TYPE tadir-obj_name
+      RETURNING
+        VALUE(rv_customizing) TYPE abap_bool .
 ENDCLASS.
 CLASS zcl_abapgit_data_factory DEFINITION
   CREATE PUBLIC
@@ -5782,6 +5817,9 @@ CLASS zcl_abapgit_data_factory DEFINITION
 
   PUBLIC SECTION.
 
+    CLASS-METHODS get_supporter
+      RETURNING
+        VALUE(ri_supporter) TYPE REF TO zif_abapgit_data_supporter .
     CLASS-METHODS get_serializer
       RETURNING
         VALUE(ri_serializer) TYPE REF TO zif_abapgit_data_serializer .
@@ -5794,6 +5832,7 @@ CLASS zcl_abapgit_data_factory DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
+    CLASS-DATA gi_supporter TYPE REF TO zif_abapgit_data_supporter .
     CLASS-DATA gi_serializer TYPE REF TO zif_abapgit_data_serializer .
     CLASS-DATA gi_deserializer TYPE REF TO zif_abapgit_data_deserializer .
 ENDCLASS.
@@ -5802,6 +5841,9 @@ CLASS zcl_abapgit_data_injector DEFINITION
 
   PUBLIC SECTION.
 
+    METHODS set_supporter
+      IMPORTING
+        !ii_supporter TYPE REF TO zif_abapgit_data_supporter .
     METHODS set_serializer
       IMPORTING
         !ii_serializer TYPE REF TO zif_abapgit_data_serializer .
@@ -5825,11 +5867,6 @@ CLASS zcl_abapgit_data_serializer DEFINITION
 
     CONSTANTS c_max_records TYPE i VALUE 20000 ##NO_TEXT.
 
-    METHODS does_table_exist
-      IMPORTING
-        !iv_name         TYPE tadir-obj_name
-      RETURNING
-        VALUE(rv_exists) TYPE abap_bool .
     METHODS convert_itab_to_json
       IMPORTING
         !ir_data         TYPE REF TO data
@@ -5846,6 +5883,22 @@ CLASS zcl_abapgit_data_serializer DEFINITION
         VALUE(rr_data) TYPE REF TO data
       RAISING
         zcx_abapgit_exception .
+ENDCLASS.
+CLASS zcl_abapgit_data_supporter DEFINITION
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_data_factory .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_data_supporter.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA mt_supported_objects TYPE zif_abapgit_data_supporter=>ty_objects.
+
+    METHODS get_supported_objects.
+
 ENDCLASS.
 CLASS zcl_abapgit_data_utils DEFINITION
   CREATE PUBLIC.
@@ -5871,14 +5924,21 @@ CLASS zcl_abapgit_data_utils DEFINITION
         VALUE(rv_exit) TYPE abap_bool
       RAISING
         zcx_abapgit_exception.
+    CLASS-METHODS does_table_exist
+      IMPORTING
+        !iv_name         TYPE tadir-obj_name
+      RETURNING
+        VALUE(rv_exists) TYPE abap_bool.
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES ty_names TYPE STANDARD TABLE OF abap_compname WITH DEFAULT KEY .
     CLASS-METHODS list_key_fields
       IMPORTING
-        !iv_name TYPE tadir-obj_name
+        !iv_name        TYPE tadir-obj_name
       RETURNING
-        VALUE(rt_names) TYPE ty_names .
+        VALUE(rt_names) TYPE ty_names
+      RAISING
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_exit DEFINITION
   CREATE PUBLIC .
@@ -57224,10 +57284,15 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     zif_abapgit_repo~checksums( )->update( lt_updated_files ).
 
-    " Deserialize data (no save to database, just test for now)
+    "Deserialize data
     lt_result = zcl_abapgit_data_factory=>get_deserializer( )->deserialize(
       ii_config  = get_data_config( )
       it_files   = get_files_remote( ) ).
+
+    "Save deserialized data to DB and add entries to transport requests)
+    zcl_abapgit_data_factory=>get_deserializer( )->actualize(
+      it_result = lt_result
+      is_checks = is_checks ).
 
     CLEAR: mt_local.
 
@@ -117595,16 +117660,6 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD zif_abapgit_exit~change_supported_object_types.
-
-    IF gi_exit IS NOT INITIAL.
-      TRY.
-          gi_exit->change_supported_object_types( CHANGING ct_types = ct_types ).
-        CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
-      ENDTRY.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD zif_abapgit_exit~change_proxy_authentication.
 
     IF gi_exit IS NOT INITIAL.
@@ -117642,6 +117697,26 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
               iv_repo_url  = iv_repo_url
             CHANGING
               cv_proxy_url = cv_proxy_url ).
+        CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+      ENDTRY.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~change_supported_data_objects.
+
+    IF gi_exit IS NOT INITIAL.
+      TRY.
+          gi_exit->change_supported_data_objects( CHANGING ct_objects = ct_objects ).
+        CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+      ENDTRY.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~change_supported_object_types.
+
+    IF gi_exit IS NOT INITIAL.
+      TRY.
+          gi_exit->change_supported_object_types( CHANGING ct_types = ct_types ).
         CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
       ENDTRY.
     ENDIF.
@@ -117845,52 +117920,6 @@ CLASS zcl_abapgit_data_utils IMPLEMENTATION.
     REPLACE ALL OCCURRENCES OF '/' IN rv_filename WITH '#'.
 
   ENDMETHOD.
-
-  METHOD list_key_fields.
-    DATA lo_obj        TYPE REF TO object.
-    DATA lv_tabname    TYPE c LENGTH 16.
-    DATA lr_ddfields   TYPE REF TO data.
-    DATA lv_workaround TYPE c LENGTH 20.
-    DATA lr_struct     TYPE REF TO cl_abap_structdescr.
-    FIELD-SYMBOLS <lg_any> TYPE any.
-    FIELD-SYMBOLS <lv_field> TYPE simple.
-    FIELD-SYMBOLS <lt_ddfields> TYPE ANY TABLE.
-
-* convert to correct type,
-    lv_tabname = iv_name.
-
-    TRY.
-        CALL METHOD ('XCO_CP_ABAP_DICTIONARY')=>database_table
-          EXPORTING
-            iv_name           = lv_tabname
-          RECEIVING
-            ro_database_table = lo_obj.
-        ASSIGN lo_obj->('IF_XCO_DATABASE_TABLE~FIELDS->IF_XCO_DBT_FIELDS_FACTORY~KEY') TO <lg_any>.
-        ASSERT sy-subrc = 0.
-        lo_obj = <lg_any>.
-        CALL METHOD lo_obj->('IF_XCO_DBT_FIELDS~GET_NAMES')
-          RECEIVING
-            rt_names = rt_names.
-      CATCH cx_sy_dyn_call_illegal_class.
-        lv_workaround = 'DDFIELDS'.
-        CREATE DATA lr_ddfields TYPE (lv_workaround).
-        ASSIGN lr_ddfields->* TO <lt_ddfields>.
-        ASSERT sy-subrc = 0.
-        lr_struct ?= cl_abap_typedescr=>describe_by_name( lv_tabname ).
-        <lt_ddfields> = lr_struct->get_ddic_field_list( ).
-        LOOP AT <lt_ddfields> ASSIGNING <lg_any>.
-          ASSIGN COMPONENT 'KEYFLAG' OF STRUCTURE <lg_any> TO <lv_field>.
-          IF sy-subrc <> 0 OR <lv_field> <> abap_true.
-            CONTINUE.
-          ENDIF.
-          ASSIGN COMPONENT 'FIELDNAME' OF STRUCTURE <lg_any> TO <lv_field>.
-          ASSERT sy-subrc = 0.
-          APPEND <lv_field> TO rt_names.
-        ENDLOOP.
-    ENDTRY.
-
-  ENDMETHOD.
-
   METHOD build_table_itab.
 
     DATA lo_type   TYPE REF TO cl_abap_typedescr.
@@ -117948,6 +117977,17 @@ CLASS zcl_abapgit_data_utils IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD does_table_exist.
+
+    " This is slow but ensures that the table actually exists and is not just buffered by RTTI
+    " If we just rely on RTTI, uninstalling and reinstalling a table in the same session will lead to dumps
+    TRY.
+        build_table_itab( iv_name ).
+        rv_exists = abap_true.
+      CATCH zcx_abapgit_exception ##NO_HANDLER.
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD jump.
 
     " Run SE16 with authorization check
@@ -117967,9 +118007,120 @@ CLASS zcl_abapgit_data_utils IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD list_key_fields.
+    DATA lo_obj        TYPE REF TO object.
+    DATA lv_tabname    TYPE c LENGTH 16.
+    DATA lr_ddfields   TYPE REF TO data.
+    DATA lv_workaround TYPE c LENGTH 20.
+    DATA lr_struct     TYPE REF TO cl_abap_structdescr.
+    FIELD-SYMBOLS <lg_any> TYPE any.
+    FIELD-SYMBOLS <lv_field> TYPE simple.
+    FIELD-SYMBOLS <lt_ddfields> TYPE ANY TABLE.
+
+* convert to correct type,
+    lv_tabname = iv_name.
+
+    TRY.
+        CALL METHOD ('XCO_CP_ABAP_DICTIONARY')=>database_table
+          EXPORTING
+            iv_name           = lv_tabname
+          RECEIVING
+            ro_database_table = lo_obj.
+        ASSIGN lo_obj->('IF_XCO_DATABASE_TABLE~FIELDS->IF_XCO_DBT_FIELDS_FACTORY~KEY') TO <lg_any>.
+        ASSERT sy-subrc = 0.
+        lo_obj = <lg_any>.
+        CALL METHOD lo_obj->('IF_XCO_DBT_FIELDS~GET_NAMES')
+          RECEIVING
+            rt_names = rt_names.
+      CATCH cx_sy_dyn_call_illegal_class cx_no_check.
+        lv_workaround = 'DDFIELDS'.
+        CREATE DATA lr_ddfields TYPE (lv_workaround).
+        ASSIGN lr_ddfields->* TO <lt_ddfields>.
+        ASSERT sy-subrc = 0.
+        lr_struct ?= cl_abap_typedescr=>describe_by_name( lv_tabname ).
+        lr_struct->get_ddic_field_list(
+          RECEIVING
+            p_field_list = <lt_ddfields>
+          EXCEPTIONS
+            not_found    = 1
+            no_ddic_type = 2 ).
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( |Table { iv_name } not found| ).
+        ENDIF.
+        LOOP AT <lt_ddfields> ASSIGNING <lg_any>.
+          ASSIGN COMPONENT 'KEYFLAG' OF STRUCTURE <lg_any> TO <lv_field>.
+          IF sy-subrc <> 0 OR <lv_field> <> abap_true.
+            CONTINUE.
+          ENDIF.
+          ASSIGN COMPONENT 'FIELDNAME' OF STRUCTURE <lg_any> TO <lv_field>.
+          ASSERT sy-subrc = 0.
+          APPEND <lv_field> TO rt_names.
+        ENDLOOP.
+    ENDTRY.
+
+  ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
+CLASS zcl_abapgit_data_supporter IMPLEMENTATION.
+  METHOD get_supported_objects.
+
+    DATA:
+      lt_tables  TYPE STANDARD TABLE OF tabname,
+      lv_tabname TYPE tabname,
+      ls_object  LIKE LINE OF mt_supported_objects,
+      li_exit    TYPE REF TO zif_abapgit_exit.
+
+    " For safety reasons, by default only customer-defined customizing tables are supported
+    SELECT dd02l~tabname
+      FROM dd09l JOIN dd02l
+        ON dd09l~tabname = dd02l~tabname
+        AND dd09l~as4local = dd02l~as4local
+        AND dd09l~as4vers = dd02l~as4vers
+      INTO TABLE lt_tables
+      WHERE dd02l~tabclass = 'TRANSP'
+        AND dd09l~tabart = 'APPL2'
+        AND dd09l~as4user <> 'SAP'
+        AND dd09l~as4local = 'A' "Only active tables
+        AND dd02l~contflag = 'C'. "Only customizing tables
+
+    LOOP AT lt_tables INTO lv_tabname.
+      ls_object-type = zif_abapgit_data_config=>c_data_type-tabu.
+      ls_object-name = lv_tabname.
+      INSERT ls_object INTO TABLE mt_supported_objects.
+    ENDLOOP.
+
+    " The list of supported objects can be enhanced using an exit
+    " Name patterns are allowed. For example, TABU T009*
+    li_exit = zcl_abapgit_exit=>get_instance( ).
+    li_exit->change_supported_data_objects( CHANGING ct_objects =  mt_supported_objects ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_data_supporter~is_object_supported.
+
+    FIELD-SYMBOLS <ls_object> LIKE LINE OF mt_supported_objects.
+
+    IF mt_supported_objects IS INITIAL.
+      get_supported_objects( ).
+    ENDIF.
+
+    READ TABLE mt_supported_objects TRANSPORTING NO FIELDS
+      WITH TABLE KEY type = iv_type name = iv_name.
+    IF sy-subrc = 0.
+      rv_supported = abap_true.
+    ELSE.
+      " Check if object name matches pattern
+      LOOP AT mt_supported_objects ASSIGNING <ls_object> WHERE type = iv_type.
+        IF iv_name CP <ls_object>-name.
+          rv_supported = abap_true.
+          RETURN.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_data_serializer IMPLEMENTATION.
   METHOD convert_itab_to_json.
 
     DATA lo_ajson  TYPE REF TO zcl_abapgit_ajson.
@@ -117999,17 +118150,6 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
     ENDTRY.
 
     rv_data = zcl_abapgit_convert=>string_to_xstring_utf8( lv_string ).
-
-  ENDMETHOD.
-  METHOD does_table_exist.
-
-    cl_abap_typedescr=>describe_by_name(
-      EXPORTING
-        p_name         = iv_name
-      EXCEPTIONS
-        type_not_found = 1
-        OTHERS         = 2 ).
-    rv_exists = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
   METHOD read_database_table.
@@ -118049,7 +118189,7 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
     DATA ls_config  LIKE LINE OF lt_configs.
     DATA ls_file    LIKE LINE OF rt_files.
     DATA lr_data    TYPE REF TO data.
-    DATA lv_exists  TYPE abap_bool.
+
     ls_file-path = zif_abapgit_data_config=>c_default_path.
     lt_configs = ii_config->get_configs( ).
 
@@ -118057,8 +118197,7 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
       ASSERT ls_config-type = zif_abapgit_data_config=>c_data_type-tabu. " todo
       ASSERT ls_config-name IS NOT INITIAL.
 
-      lv_exists = does_table_exist( ls_config-name ).
-      IF lv_exists = abap_true.
+      IF zcl_abapgit_data_utils=>does_table_exist( ls_config-name ) = abap_true.
         lr_data = read_database_table(
           iv_name  = ls_config-name
           it_where = ls_config-where ).
@@ -118078,16 +118217,19 @@ CLASS ZCL_ABAPGIT_DATA_SERIALIZER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_DATA_INJECTOR IMPLEMENTATION.
+CLASS zcl_abapgit_data_injector IMPLEMENTATION.
   METHOD set_deserializer.
     zcl_abapgit_data_factory=>gi_deserializer = ii_deserializer.
   ENDMETHOD.
   METHOD set_serializer.
     zcl_abapgit_data_factory=>gi_serializer = ii_serializer.
   ENDMETHOD.
+  METHOD set_supporter.
+    zcl_abapgit_data_factory=>gi_supporter = ii_supporter.
+  ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_DATA_FACTORY IMPLEMENTATION.
+CLASS zcl_abapgit_data_factory IMPLEMENTATION.
   METHOD get_config.
     CREATE OBJECT ri_config TYPE zcl_abapgit_data_config.
   ENDMETHOD.
@@ -118109,9 +118251,18 @@ CLASS ZCL_ABAPGIT_DATA_FACTORY IMPLEMENTATION.
     ri_serializer = gi_serializer.
 
   ENDMETHOD.
+  METHOD get_supporter.
+
+    IF gi_supporter IS INITIAL.
+      CREATE OBJECT gi_supporter TYPE zcl_abapgit_data_supporter.
+    ENDIF.
+
+    ri_supporter = gi_supporter.
+
+  ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
+CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
   METHOD convert_json_to_itab.
 
     DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
@@ -118127,6 +118278,24 @@ CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
       CATCH zcx_abapgit_ajson_error INTO lx_ajson.
         zcx_abapgit_exception=>raise( lx_ajson->get_text( ) ).
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD is_customizing_table.
+
+    DATA lv_contflag TYPE c LENGTH 1.
+
+    SELECT SINGLE contflag FROM dd02l INTO lv_contflag WHERE tabname = iv_name.
+    IF sy-subrc = 0 AND lv_contflag = 'C'.
+      rv_customizing = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD is_table_allowed_to_edit.
+
+    " Is the object supported (by default or based on exit)?
+    rv_allowed_to_edit = zcl_abapgit_data_factory=>get_supporter( )->is_object_supported(
+      iv_type = is_result-type
+      iv_name = is_result-name ).
 
   ENDMETHOD.
   METHOD preview_database_changes.
@@ -118150,9 +118319,11 @@ CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
     ASSIGN lr_data->* TO <lg_old>.
     ASSIGN ir_data->* TO <lg_new>.
 
-    rs_result-table = iv_name.
+    rs_result-type = zif_abapgit_data_config=>c_data_type-tabu.
+    rs_result-name = iv_name.
     rs_result-deletes = zcl_abapgit_data_utils=>build_table_itab( iv_name ).
     rs_result-inserts = zcl_abapgit_data_utils=>build_table_itab( iv_name ).
+    rs_result-updates = zcl_abapgit_data_utils=>build_table_itab( iv_name ).
     ASSIGN rs_result-deletes->* TO <lg_del>.
     ASSIGN rs_result-inserts->* TO <lg_ins>.
 
@@ -118191,6 +118362,10 @@ CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
     FIELD-SYMBOLS <lg_del> TYPE ANY TABLE.
     FIELD-SYMBOLS <lg_ins> TYPE ANY TABLE.
 
+    IF zcl_abapgit_data_utils=>does_table_exist( iv_name ) = abap_false.
+      zcx_abapgit_exception=>raise( |Table { iv_name } not found for data deserialization| ).
+    ENDIF.
+
     ASSIGN ir_del->* TO <lg_del>.
     ASSIGN ir_ins->* TO <lg_ins>.
 
@@ -118213,14 +118388,66 @@ CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
 
 * this method updates the database
 
-    DATA ls_result LIKE LINE OF it_result.
+    DATA ls_result        LIKE LINE OF it_result.
+    DATA lt_tables        TYPE tredt_objects.
+    DATA lt_table_keys    TYPE STANDARD TABLE OF e071k.
+    DATA lv_table_name    TYPE tabname.
+    DATA lt_tadir_entries TYPE scts_tadir.
+
+    FIELD-SYMBOLS:
+      <lt_ins> TYPE ANY TABLE,
+      <lt_del> TYPE ANY TABLE,
+      <lt_upd> TYPE ANY TABLE.
 
     LOOP AT it_result INTO ls_result.
+      ASSERT ls_result-type = zif_abapgit_data_config=>c_data_type-tabu. " todo
+      ASSERT ls_result-name IS NOT INITIAL.
+
+      " Did the user flagged this object for update?
+      READ TABLE is_checks-overwrite TRANSPORTING NO FIELDS
+        WITH KEY object_type_and_name
+        COMPONENTS
+          obj_type = ls_result-type
+          obj_name = ls_result-name
+          decision = zif_abapgit_definitions=>c_yes.
+      IF sy-subrc <>  0.
+        RETURN.
+      ENDIF.
+
+      IF is_table_allowed_to_edit( ls_result ) = abap_false.
+        zcx_abapgit_exception=>raise( |Table { ls_result-name } not supported for updating data| ).
+      ENDIF.
+
       write_database_table(
-        iv_name = ls_result-table
+        iv_name = ls_result-name
         ir_del  = ls_result-deletes
         ir_ins  = ls_result-inserts ).
+
+      ASSIGN ls_result-inserts->* TO <lt_ins>.
+      ASSIGN ls_result-deletes->* TO <lt_del>.
+      ASSIGN ls_result-updates->* TO <lt_upd>.
+
+      IF is_customizing_table( ls_result-name ) = abap_true.
+        cl_table_utilities_brf=>create_transport_entries(
+          EXPORTING
+            it_table_ins = <lt_ins>
+            it_table_upd = <lt_upd>
+            it_table_del = <lt_del>
+            iv_tabname   = |{ ls_result-name }|
+          CHANGING
+            ct_e071      = lt_tables
+            ct_e071k     = lt_table_keys ).
+      ENDIF.
+
     ENDLOOP.
+
+    IF lt_tables IS NOT INITIAL AND lt_table_keys IS NOT INITIAL.
+      cl_table_utilities_brf=>write_transport_entries(
+        CHANGING
+          ct_e071  = lt_tables
+          ct_e071k = lt_table_keys
+          ct_tadir = lt_tadir_entries ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_data_deserializer~deserialize.
@@ -118228,15 +118455,16 @@ CLASS ZCL_ABAPGIT_DATA_DESERIALIZER IMPLEMENTATION.
 * this method does not persist any changes to the database
 
     DATA lt_configs TYPE zif_abapgit_data_config=>ty_config_tt.
-    DATA ls_config  LIKE LINE OF lt_configs.
-    DATA lr_data    TYPE REF TO data.
-    DATA ls_file    LIKE LINE OF it_files.
-    DATA ls_result  LIKE LINE OF rt_result.
+    DATA ls_config LIKE LINE OF lt_configs.
+    DATA lr_data  TYPE REF TO data.
+    DATA ls_file LIKE LINE OF it_files.
+    DATA ls_result LIKE LINE OF rt_result.
 
-    ASSERT ii_config IS NOT INITIAL.
     lt_configs = ii_config->get_configs( ).
 
     LOOP AT lt_configs INTO ls_config.
+      ASSERT ls_config-type = zif_abapgit_data_config=>c_data_type-tabu. " todo
+      ASSERT ls_config-name IS NOT INITIAL.
 
       lr_data = zcl_abapgit_data_utils=>build_table_itab( ls_config-name ).
 
@@ -121002,6 +121230,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-03-30T13:18:24.803Z
+* abapmerge 0.15.0 - 2023-03-31T11:26:09.543Z
 ENDINTERFACE.
 ****************************************************
