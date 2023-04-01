@@ -98712,7 +98712,26 @@ CLASS zcl_abapgit_object_aqsg IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    RETURN.
+
+    DATA lt_bdcdata TYPE TABLE OF bdcdata.
+
+    FIELD-SYMBOLS <ls_bdcdata> LIKE LINE OF lt_bdcdata.
+
+    APPEND INITIAL LINE TO lt_bdcdata ASSIGNING <ls_bdcdata>.
+    <ls_bdcdata>-program  = 'SAPMS38O'.
+    <ls_bdcdata>-dynpro   = '0050'.
+    <ls_bdcdata>-dynbegin = abap_true.
+
+    APPEND INITIAL LINE TO lt_bdcdata ASSIGNING <ls_bdcdata>.
+    <ls_bdcdata>-fnam = 'RS38Q-NAME'.
+    <ls_bdcdata>-fval = ms_item-obj_name.
+
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode      = 'SQ02'
+      it_bdcdata    = lt_bdcdata ).
+
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
     get_generic( )->serialize( io_xml ).
@@ -98772,7 +98791,26 @@ CLASS zcl_abapgit_object_aqqu IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    RETURN.
+
+    DATA lt_bdcdata TYPE TABLE OF bdcdata.
+
+    FIELD-SYMBOLS <ls_bdcdata> LIKE LINE OF lt_bdcdata.
+
+    APPEND INITIAL LINE TO lt_bdcdata ASSIGNING <ls_bdcdata>.
+    <ls_bdcdata>-program  = 'SAPMS38R'.
+    <ls_bdcdata>-dynpro   = '0050'.
+    <ls_bdcdata>-dynbegin = abap_true.
+
+    APPEND INITIAL LINE TO lt_bdcdata ASSIGNING <ls_bdcdata>.
+    <ls_bdcdata>-fnam = 'RS38R-QNUM'.
+    <ls_bdcdata>-fval = ms_item-obj_name.
+
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+      iv_tcode      = 'SQ01'
+      it_bdcdata    = lt_bdcdata ).
+
+    rv_exit = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
     get_generic( )->serialize( io_xml ).
@@ -121230,6 +121268,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-01T08:56:13.426Z
+* abapmerge 0.15.0 - 2023-04-01T14:33:12.315Z
 ENDINTERFACE.
 ****************************************************
