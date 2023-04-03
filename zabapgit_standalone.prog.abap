@@ -3390,6 +3390,13 @@ INTERFACE zif_abapgit_cts_api .
     RETURNING
       VALUE(rv_uname) TYPE uname.
 
+  METHODS create_transport_entries
+    IMPORTING
+      it_table_ins TYPE ANY TABLE
+      it_table_upd TYPE ANY TABLE
+      it_table_del TYPE ANY TABLE
+      iv_tabname   TYPE tabname.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_data_deserializer .
@@ -118447,16 +118454,15 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
 
 * this method updates the database
 
-    DATA ls_result        LIKE LINE OF it_result.
-    DATA lt_tables        TYPE tredt_objects.
-    DATA lt_table_keys    TYPE STANDARD TABLE OF e071k.
-    DATA lv_table_name    TYPE tabname.
-    DATA lt_tadir_entries TYPE scts_tadir.
+    DATA ls_result  LIKE LINE OF it_result.
+    DATA li_cts_api TYPE REF TO zif_abapgit_cts_api.
 
     FIELD-SYMBOLS:
       <lt_ins> TYPE ANY TABLE,
       <lt_del> TYPE ANY TABLE,
       <lt_upd> TYPE ANY TABLE.
+
+    li_cts_api = zcl_abapgit_factory=>get_cts_api( ).
 
     LOOP AT it_result INTO ls_result.
       ASSERT ls_result-type = zif_abapgit_data_config=>c_data_type-tabu. " todo
@@ -118487,26 +118493,14 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
       ASSIGN ls_result-updates->* TO <lt_upd>.
 
       IF is_customizing_table( ls_result-name ) = abap_true.
-        cl_table_utilities_brf=>create_transport_entries(
-          EXPORTING
-            it_table_ins = <lt_ins>
-            it_table_upd = <lt_upd>
-            it_table_del = <lt_del>
-            iv_tabname   = |{ ls_result-name }|
-          CHANGING
-            ct_e071      = lt_tables
-            ct_e071k     = lt_table_keys ).
+        li_cts_api->create_transport_entries(
+          it_table_ins = <lt_ins>
+          it_table_upd = <lt_upd>
+          it_table_del = <lt_del>
+          iv_tabname   = |{ ls_result-name }| ).
       ENDIF.
 
     ENDLOOP.
-
-    IF lt_tables IS NOT INITIAL AND lt_table_keys IS NOT INITIAL.
-      cl_table_utilities_brf=>write_transport_entries(
-        CHANGING
-          ct_e071  = lt_tables
-          ct_e071k = lt_table_keys
-          ct_tadir = lt_tadir_entries ).
-    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_data_deserializer~deserialize.
@@ -119773,6 +119767,31 @@ CLASS ZCL_ABAPGIT_CTS_API IMPLEMENTATION.
       WHERE trkorr = iv_trkorr ##SUBRC_OK.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_cts_api~create_transport_entries.
+
+    DATA lt_tables        TYPE tredt_objects.
+    DATA lt_table_keys    TYPE STANDARD TABLE OF e071k.
+    DATA lt_tadir_entries TYPE scts_tadir.
+
+    cl_table_utilities_brf=>create_transport_entries(
+      EXPORTING
+        it_table_ins = it_table_ins
+        it_table_upd = it_table_upd
+        it_table_del = it_table_del
+        iv_tabname   = iv_tabname
+      CHANGING
+        ct_e071      = lt_tables
+        ct_e071k     = lt_table_keys ).
+
+    cl_table_utilities_brf=>write_transport_entries(
+      CHANGING
+        ct_e071  = lt_tables
+        ct_e071k = lt_table_keys
+        ct_tadir = lt_tadir_entries ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_background_push_fi IMPLEMENTATION.
@@ -121289,6 +121308,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-02T06:42:58.303Z
+* abapmerge 0.15.0 - 2023-04-03T18:41:54.494Z
 ENDINTERFACE.
 ****************************************************
