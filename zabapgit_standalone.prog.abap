@@ -75078,7 +75078,7 @@ CLASS zcl_abapgit_object_sots IMPLEMENTATION.
       ASSERT sy-subrc = 0.
 
       " Handled by object serializer
-      CHECK lv_object <> 'SICF'.
+      CHECK lv_object <> 'SICF' AND lv_object <> 'CPUB'.
 
       CLEAR: ls_sots.
 
@@ -102149,6 +102149,9 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
     zcl_abapgit_sotr_handler=>create_sotr(
       iv_package = iv_package
       io_xml     = ii_xml ).
+    zcl_abapgit_sots_handler=>create_sots(
+      iv_package = iv_package
+      io_xml     = ii_xml ).
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~delete.
     CALL FUNCTION 'SEO_CLASS_DELETE_COMPLETE'
@@ -102409,6 +102412,11 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~read_sotr.
     zcl_abapgit_sotr_handler=>read_sotr(
+      iv_pgmid    = 'LIMU'
+      iv_object   = 'CPUB'
+      iv_obj_name = iv_object_name
+      io_xml      = ii_xml ).
+    zcl_abapgit_sots_handler=>read_sots(
       iv_pgmid    = 'LIMU'
       iv_object   = 'CPUB'
       iv_obj_name = iv_object_name
@@ -106015,7 +106023,9 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
       " Check if there are any texts related to objects that do not serialize these texts (yet)
       " If yes, we need to keep processing SOTS
       SELECT COUNT(*) FROM sotr_useu INTO lv_count
-        FOR ALL ENTRIES IN lt_concepts WHERE concept = lt_concepts-table_line AND object <> 'SICF'.
+        FOR ALL ENTRIES IN lt_concepts WHERE concept = lt_concepts-table_line
+        AND NOT ( pgmid = 'R3TR' AND object = 'SICF' )
+        AND NOT ( pgmid = 'LIMU' AND object = 'CPUB' ).
       IF lv_count > 0.
         RETURN.
       ENDIF.
@@ -121308,6 +121318,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-03T18:41:54.494Z
+* abapmerge 0.15.0 - 2023-04-05T12:51:31.814Z
 ENDINTERFACE.
 ****************************************************
