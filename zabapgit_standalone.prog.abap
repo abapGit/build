@@ -58953,11 +58953,8 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-    CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'
-      EXPORTING
-        input  = rv_next_repo_id
-      IMPORTING
-        output = rv_next_repo_id.
+    SHIFT rv_next_repo_id RIGHT DELETING TRAILING space.
+    TRANSLATE rv_next_repo_id USING ' 0'.
 
   ENDMETHOD.
   METHOD get_repo_from_content.
@@ -121318,6 +121315,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-05T14:27:15.780Z
+* abapmerge 0.15.0 - 2023-04-05T14:40:01.961Z
 ENDINTERFACE.
 ****************************************************
