@@ -407,7 +407,6 @@ CLASS zcl_abapgit_ecatt_data_downl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_config_upl DEFINITION DEFERRED.
 CLASS zcl_abapgit_ecatt_config_downl DEFINITION DEFERRED.
 CLASS zcl_abapgit_tadir DEFINITION DEFERRED.
-CLASS zcl_abapgit_skip_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_serialize DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_files DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_check DEFINITION DEFERRED.
@@ -8698,26 +8697,6 @@ CLASS zcl_abapgit_serialize DEFINITION
         zcx_abapgit_exception.
 
 ENDCLASS.
-CLASS zcl_abapgit_skip_objects DEFINITION FINAL CREATE PUBLIC.
-
-  PUBLIC SECTION.
-    METHODS:
-      skip_sadl_generated_objects
-        IMPORTING
-          it_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt
-          ii_log          TYPE REF TO zif_abapgit_log OPTIONAL
-        RETURNING
-          VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    METHODS:
-      has_sadl_superclass
-        IMPORTING
-          is_class         TYPE zif_abapgit_definitions=>ty_tadir
-        RETURNING
-          VALUE(rv_return) TYPE abap_bool.
-
-ENDCLASS.
 CLASS zcl_abapgit_tadir DEFINITION
   FINAL
   CREATE PRIVATE
@@ -8757,15 +8736,6 @@ CLASS zcl_abapgit_tadir DEFINITION
         !et_tadir              TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
-    METHODS skip_objects
-      IMPORTING
-        !iv_package TYPE tadir-devclass
-        !io_dot     TYPE REF TO zcl_abapgit_dot_abapgit
-        !ii_log     TYPE REF TO zif_abapgit_log OPTIONAL
-      CHANGING
-        !ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RAISING
-        zcx_abapgit_exception ##NEEDED.
     METHODS add_local_packages
       IMPORTING
         !it_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt
@@ -15309,8 +15279,8 @@ CLASS zcl_abapgit_object_clas DEFINITION
           zcx_abapgit_exception,
       serialize_tpool
         IMPORTING
-          !ii_xml              TYPE REF TO zif_abapgit_xml_output
-          !iv_clsname          TYPE seoclsname
+          !ii_xml         TYPE REF TO zif_abapgit_xml_output
+          !iv_clsname     TYPE seoclsname
         RETURNING
           VALUE(rt_tpool) TYPE textpool_table
         RAISING
@@ -15348,7 +15318,6 @@ CLASS zcl_abapgit_object_clas DEFINITION
         events     TYPE string VALUE 'LONGTEXTS_CE',
         types      TYPE string VALUE 'LONGTEXTS_CT',
       END OF c_longtext_name.
-
     CONSTANTS:
       BEGIN OF c_longtext_id,
         class      TYPE dokil-id VALUE 'CL',
@@ -15360,20 +15329,24 @@ CLASS zcl_abapgit_object_clas DEFINITION
 
     METHODS deserialize_pre_ddic
       IMPORTING
-        ii_xml     TYPE REF TO zif_abapgit_xml_input
-        iv_package TYPE devclass
+        !ii_xml     TYPE REF TO zif_abapgit_xml_input
+        !iv_package TYPE devclass
       RAISING
         zcx_abapgit_exception.
-    METHODS:
-      is_class_locked
-        RETURNING VALUE(rv_is_class_locked) TYPE abap_bool
-        RAISING   zcx_abapgit_exception.
+
+    METHODS is_class_locked
+      RETURNING
+        VALUE(rv_is_class_locked) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception.
+
     METHODS interface_replacement
       IMPORTING
         !iv_from_interface TYPE seoclsname
         !iv_to_interface   TYPE seoclsname
       CHANGING
-        !ct_source         TYPE seop_source_string .
+        !ct_source         TYPE seop_source_string.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_program FINAL.
 
@@ -96271,7 +96244,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CMOD IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
+CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
@@ -96444,9 +96417,9 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
   ENDMETHOD.
   METHOD deserialize_tpool.
 
-    DATA: lv_clsname    TYPE seoclsname,
-          lt_tpool_ext  TYPE zif_abapgit_definitions=>ty_tpool_tt,
-          lt_tpool      TYPE textpool_table.
+    DATA: lv_clsname   TYPE seoclsname,
+          lt_tpool_ext TYPE zif_abapgit_definitions=>ty_tpool_tt,
+          lt_tpool     TYPE textpool_table.
 
     ii_xml->read( EXPORTING iv_name = 'TPOOL'
                   CHANGING cg_data = lt_tpool_ext ).
@@ -96697,7 +96670,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_tpool_i18n.
 
-    DATA: lt_tpool TYPE textpool_table,
+    DATA: lt_tpool      TYPE textpool_table,
           lv_index      TYPE i,
           lv_langu      TYPE sy-langu,
           lt_i18n_tpool TYPE zif_abapgit_lang_definitions=>ty_i18n_tpools,
@@ -96939,10 +96912,19 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
-    DATA: ls_class_key TYPE seoclskey.
+
+    DATA ls_class_key TYPE seoclskey.
+
     ls_class_key-clsname = ms_item-obj_name.
 
     rv_bool = mi_object_oriented_object_fct->exists( ls_class_key ).
+
+    " Skip classes generated by DDLS (SADL)
+    IF rv_bool = abap_true AND
+      mi_object_oriented_object_fct->read_superclass( ls_class_key-clsname ) = 'CL_SADL_GTK_EXPOSURE_MPC'.
+      rv_bool = abap_false.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
@@ -106134,14 +106116,6 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
         et_tadir              = rt_tadir
         et_packages           = lt_packages ).
 
-    skip_objects(
-      EXPORTING
-        iv_package = iv_package
-        io_dot     = io_dot
-        ii_log     = ii_log
-      CHANGING
-        ct_tadir   = rt_tadir ).
-
     add_local_packages(
       EXPORTING
         it_packages = lt_packages
@@ -106313,19 +106287,6 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
     SORT et_tadir BY devclass pgmid object obj_name.
 
   ENDMETHOD.
-  METHOD skip_objects.
-
-    " Todo, replace with solution that will work with any object type (might depend on iv_package and io_dot)
-
-    DATA lo_skip_objects TYPE REF TO zcl_abapgit_skip_objects.
-
-    CREATE OBJECT lo_skip_objects.
-
-    ct_tadir = lo_skip_objects->skip_sadl_generated_objects(
-      it_tadir = ct_tadir
-      ii_log   = ii_log ).
-
-  ENDMETHOD.
   METHOD zif_abapgit_tadir~get_object_package.
 
     DATA: ls_tadir TYPE zif_abapgit_definitions=>ty_tadir,
@@ -106382,52 +106343,6 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
       AND obj_name = iv_obj_name.                         "#EC CI_SUBRC
     CLEAR rs_tadir-korrnum.
 
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
-  METHOD has_sadl_superclass.
-
-    DATA: li_oo_functions TYPE REF TO zif_abapgit_oo_object_fnc,
-          lv_class_name   TYPE seoclsname,
-          lv_superclass   TYPE seoclsname.
-    li_oo_functions = zcl_abapgit_oo_factory=>make( is_class-object ).
-    lv_class_name = is_class-obj_name.
-    lv_superclass = li_oo_functions->read_superclass( lv_class_name ).
-    IF lv_superclass = 'CL_SADL_GTK_EXPOSURE_MPC'.
-      rv_return = abap_true.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD skip_sadl_generated_objects.
-
-    DATA: ls_tadir_class     LIKE LINE OF rt_tadir,
-          ls_tadir           LIKE LINE OF rt_tadir,
-          lt_candidates      LIKE rt_tadir,
-          lt_lines_to_delete TYPE zif_abapgit_definitions=>ty_tadir_tt.
-
-    lt_candidates = it_tadir.
-    DELETE lt_candidates WHERE object <> 'CLAS' OR genflag = abap_false.
-
-    LOOP AT it_tadir INTO ls_tadir WHERE object = 'DDLS'.
-      LOOP AT lt_candidates INTO ls_tadir_class
-          WHERE object = 'CLAS' AND obj_name CS ls_tadir-obj_name.
-        IF has_sadl_superclass( ls_tadir_class ) = abap_true.
-          APPEND ls_tadir_class TO lt_lines_to_delete.
-        ENDIF.
-      ENDLOOP.
-    ENDLOOP.
-
-    rt_tadir = it_tadir.
-    DELETE ADJACENT DUPLICATES FROM lt_lines_to_delete.
-    LOOP AT lt_lines_to_delete INTO ls_tadir_class.
-      DELETE TABLE rt_tadir FROM ls_tadir_class.
-      IF ii_log IS BOUND.
-        ii_log->add(
-          iv_msg = |{ ls_tadir_class-obj_name } skipped: generated by SADL|
-          iv_type = 'W' ).
-      ENDIF.
-    ENDLOOP.
   ENDMETHOD.
 ENDCLASS.
 
@@ -121626,6 +121541,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-06T08:17:09.924Z
+* abapmerge 0.15.0 - 2023-04-06T09:20:25.573Z
 ENDINTERFACE.
 ****************************************************
