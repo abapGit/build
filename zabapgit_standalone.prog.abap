@@ -110787,6 +110787,9 @@ CLASS kHGwlMWhQrsNKkKXALnpzByNvbZmNu IMPLEMENTATION.
   METHOD string_to_xstring_utf8.
 
     DATA lo_conv TYPE REF TO object.
+    DATA lv_out_ce TYPE string.
+
+    lv_out_ce = 'CL_ABAP_CONV_OUT_CE'.
 
     TRY.
         CALL METHOD ('CL_ABAP_CONV_CODEPAGE')=>create_out
@@ -110798,7 +110801,7 @@ CLASS kHGwlMWhQrsNKkKXALnpzByNvbZmNu IMPLEMENTATION.
         RECEIVING
           result = rv_xstr.
       CATCH cx_sy_dyn_call_illegal_class.
-        CALL METHOD ('CL_ABAP_CONV_OUT_CE')=>create
+        CALL METHOD (lv_out_ce)=>create
         EXPORTING
           encoding = 'UTF-8'
         RECEIVING
@@ -121541,6 +121544,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-06T09:20:25.573Z
+* abapmerge 0.15.0 - 2023-04-06T09:23:44.612Z
 ENDINTERFACE.
 ****************************************************
