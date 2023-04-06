@@ -20663,45 +20663,55 @@ CLASS zcl_abapgit_gui_page_run_bckg DEFINITION
     METHODS run.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_runit DEFINITION
-  INHERITING FROM zcl_abapgit_gui_page
+  INHERITING FROM zcl_abapgit_gui_component
   FINAL
-  CREATE PUBLIC .
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
 
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
+    INTERFACES zif_abapgit_gui_menu_provider.
+
+    CLASS-METHODS create
+      IMPORTING
+        !io_repo       TYPE REF TO zcl_abapgit_repo
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
+
     METHODS constructor
       IMPORTING
-        !iv_devclass TYPE devclass
+        !io_repo TYPE REF TO zcl_abapgit_repo
       RAISING
-        zcx_abapgit_exception .
-
-    METHODS:
-      zif_abapgit_gui_event_handler~on_event
-        REDEFINITION.
+        zcx_abapgit_exception.
 
   PROTECTED SECTION.
-    METHODS render_content
-        REDEFINITION .
   PRIVATE SECTION.
 
-    TYPES: BEGIN OF ty_key,
-             obj_name TYPE tadir-obj_name,
-             obj_type TYPE tadir-object,
-           END OF ty_key.
-    TYPES ty_keys_tt TYPE STANDARD TABLE OF ty_key WITH DEFAULT KEY.
+    TYPES:
+      BEGIN OF ty_key,
+        obj_name TYPE tadir-obj_name,
+        obj_type TYPE tadir-object,
+      END OF ty_key,
+      ty_keys_tt TYPE STANDARD TABLE OF ty_key WITH DEFAULT KEY.
 
-    DATA mv_devclass TYPE devclass .
+    DATA mo_repo TYPE REF TO zcl_abapgit_repo.
+    DATA mv_summary TYPE string.
 
     METHODS build_tadir
       RETURNING
         VALUE(rt_tadir) TYPE ty_keys_tt
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
+
     METHODS run
       RETURNING
         VALUE(ro_result) TYPE REF TO object
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_sett_bckg DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -40665,7 +40675,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_BCKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_RUNIT IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
   METHOD build_tadir.
 
     DATA lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
@@ -40673,7 +40683,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_RUNIT IMPLEMENTATION.
     DATA ls_row   LIKE LINE OF rt_tadir.
 
     lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
-      iv_package            = mv_devclass
+      iv_package            = mo_repo->get_package( )
       iv_only_local_objects = abap_true ).
 
     LOOP AT lt_tadir INTO ls_tadir.
@@ -40686,12 +40696,70 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_RUNIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
     super->constructor( ).
-
-    ms_control-page_title = |Run Unit Tests { iv_devclass }|.
-
-    mv_devclass = iv_devclass.
+    mo_repo = io_repo.
   ENDMETHOD.
-  METHOD render_content.
+  METHOD create.
+
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_runit.
+
+    CREATE OBJECT lo_component EXPORTING io_repo = io_repo.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title         = |Unit Tests|
+      ii_page_menu_provider = lo_component
+      ii_child_component    = lo_component ).
+
+  ENDMETHOD.
+  METHOD run.
+
+    DATA lo_passport TYPE REF TO object.
+    DATA lo_runner   TYPE REF TO object.
+    DATA lo_timer    TYPE REF TO zcl_abapgit_timer.
+    DATA lt_keys     TYPE ty_keys_tt.
+    DATA li_result   TYPE REF TO data.
+    FIELD-SYMBOLS <li_result> TYPE any.
+
+    lt_keys = build_tadir( ).
+
+    lo_timer = zcl_abapgit_timer=>create( iv_count = lines( lt_keys ) )->start( ).
+
+    TRY.
+        CALL METHOD ('\PROGRAM=SAPLSAUCV_GUI_RUNNER\CLASS=PASSPORT')=>get
+          RECEIVING
+            result = lo_passport.
+
+        CALL METHOD ('CL_AUCV_TEST_RUNNER_STANDARD')=>create
+          EXPORTING
+            i_passport = lo_passport
+          RECEIVING
+            result     = lo_runner.
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( |Not supported in your NW release| ).
+    ENDTRY.
+
+    CREATE DATA li_result TYPE REF TO ('IF_SAUNIT_INTERNAL_RESULT').
+    ASSIGN li_result->* TO <li_result>.
+
+    CALL METHOD lo_runner->('RUN_FOR_PROGRAM_KEYS')
+      EXPORTING
+        i_limit_on_duration_category = '36' " long
+        i_limit_on_risk_level        = '33' " critical
+        i_program_keys               = lt_keys
+      IMPORTING
+        e_aunit_result               = <li_result>.
+
+    mv_summary = lo_timer->end( ).
+
+    ro_result = <li_result>.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_menu_provider~get_menu.
+    ro_toolbar = zcl_abapgit_gui_chunk_lib=>back_toolbar( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
 
     DATA lo_result         TYPE REF TO object.
     DATA lv_program_ndx    TYPE i.
@@ -40717,6 +40785,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_RUNIT IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( '<div class="repo">' ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( io_repo        = mo_repo
+                                                              iv_show_commit = abap_false ) ).
 
     lo_result = run( ).
 
@@ -40736,7 +40806,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_RUNIT IMPLEMENTATION.
       ENDLOOP.
     ENDLOOP.
 
-    ri_html->add( |<b>{ lv_count } Errors</b><br>| ).
+    ri_html->add( '<div class="ci-head">' ).
+    ri_html->add( |Unit tests completed with <strong>{ lv_count } errors</strong> ({ mv_summary })| ).
+    ri_html->add( `</div>` ).
 
     ri_html->add( |<hr><table>| ).
 
@@ -40793,47 +40865,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_RUNIT IMPLEMENTATION.
 
     ri_html->add( '</table></div>' ).
 
-  ENDMETHOD.
-  METHOD run.
-
-    DATA lo_passport TYPE REF TO object.
-    DATA lo_runner   TYPE REF TO object.
-    DATA lt_keys     TYPE ty_keys_tt.
-    DATA li_result   TYPE REF TO data.
-    FIELD-SYMBOLS <li_result> TYPE any.
-
-    lt_keys = build_tadir( ).
-
-    TRY.
-        CALL METHOD ('\PROGRAM=SAPLSAUCV_GUI_RUNNER\CLASS=PASSPORT')=>get
-          RECEIVING
-            result = lo_passport.
-
-        CALL METHOD ('CL_AUCV_TEST_RUNNER_STANDARD')=>create
-          EXPORTING
-            i_passport = lo_passport
-          RECEIVING
-            result     = lo_runner.
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( |Not supported in your NW release| ).
-    ENDTRY.
-
-    CREATE DATA li_result TYPE REF TO ('IF_SAUNIT_INTERNAL_RESULT').
-    ASSIGN li_result->* TO <li_result>.
-
-    CALL METHOD lo_runner->('RUN_FOR_PROGRAM_KEYS')
-      EXPORTING
-        i_limit_on_duration_category = '36' " long
-        i_limit_on_risk_level        = '33' " critical
-        i_program_keys               = lt_keys
-      IMPORTING
-        e_aunit_result               = <li_result>.
-
-    ro_result = <li_result>.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_event_handler~on_event.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -40898,7 +40929,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_RUN_BCKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
   METHOD apply_order_by.
 
     DATA:
@@ -41760,9 +41791,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_REPO_VIEW IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN c_actions-go_unit.
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_runit
-          EXPORTING
-            iv_devclass = mo_repo->get_package( ).
+        rs_handled-page  = zcl_abapgit_gui_page_runit=>create( mo_repo ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
 
       WHEN c_actions-toggle_hide_files. " Toggle file diplay
@@ -121326,6 +121355,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-05T15:05:32.844Z
+* abapmerge 0.15.0 - 2023-04-06T08:04:11.488Z
 ENDINTERFACE.
 ****************************************************
