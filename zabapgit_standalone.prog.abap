@@ -2896,6 +2896,7 @@ INTERFACE zif_abapgit_definitions .
       requirements    TYPE ty_requirements,
       dependencies    TYPE ty_dependencies,
       transport       TYPE ty_transport,
+      customizing     TYPE ty_transport,
     END OF ty_deserialize_checks .
   TYPES:
     BEGIN OF ty_delete_checks,
@@ -3331,6 +3332,21 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_cts_api .
 
+  CONSTANTS:
+    BEGIN OF c_transport_type,
+      wb_request   TYPE c LENGTH 1 VALUE 'K', "workbench request
+      wb_repair    TYPE c LENGTH 1 VALUE 'R', "workbench repair
+      wb_task      TYPE c LENGTH 1 VALUE 'S', "workbench task
+      cust_request TYPE c LENGTH 1 VALUE 'W', "customizing request
+      cust_task    TYPE c LENGTH 1 VALUE 'Q', "customizing task
+    END OF c_transport_type.
+
+  CONSTANTS:
+    BEGIN OF c_transport_category,
+      workbench   TYPE c LENGTH 4 VALUE 'SYST',
+      customizing TYPE c LENGTH 4 VALUE 'CUST',
+    END OF c_transport_category.
+
   TYPES: BEGIN OF ty_transport,
            obj_type TYPE tadir-object,
            obj_name TYPE tadir-obj_name,
@@ -3392,10 +3408,13 @@ INTERFACE zif_abapgit_cts_api .
 
   METHODS create_transport_entries
     IMPORTING
+      iv_transport TYPE trkorr
       it_table_ins TYPE ANY TABLE
       it_table_upd TYPE ANY TABLE
       it_table_del TYPE ANY TABLE
-      iv_tabname   TYPE tabname.
+      iv_tabname   TYPE tabname
+    RAISING
+      zcx_abapgit_exception.
 
 ENDINTERFACE.
 
@@ -3406,8 +3425,19 @@ INTERFACE zif_abapgit_data_deserializer .
            deletes TYPE REF TO data,
            updates TYPE REF TO data,
            inserts TYPE REF TO data,
+           file    TYPE zif_abapgit_git_definitions=>ty_file_signature,
+           config  TYPE zif_abapgit_git_definitions=>ty_file_signature,
          END OF ty_result.
   TYPES: ty_results TYPE STANDARD TABLE OF ty_result WITH KEY type name.
+
+  METHODS deserialize_check
+    IMPORTING
+      !io_repo         TYPE REF TO zcl_abapgit_repo
+      !ii_config       TYPE REF TO zif_abapgit_data_config
+    RETURNING
+      VALUE(rs_checks) TYPE zif_abapgit_definitions=>ty_deserialize_checks-customizing
+    RAISING
+      zcx_abapgit_exception .
 
   METHODS deserialize
     IMPORTING
@@ -3420,8 +3450,10 @@ INTERFACE zif_abapgit_data_deserializer .
 
   METHODS actualize
     IMPORTING
-      !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
-      !it_result TYPE ty_results
+      !is_checks               TYPE zif_abapgit_definitions=>ty_deserialize_checks
+      !it_result               TYPE ty_results
+    RETURNING
+      VALUE(rt_accessed_files) TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
@@ -3910,6 +3942,7 @@ INTERFACE zif_abapgit_persistence.
       main_language_only           TYPE abap_bool,
       labels                       TYPE string,
       transport_request            TYPE trkorr,
+      customizing_request          TYPE trkorr,
     END OF ty_local_settings.
 
   TYPES: ty_local_checksum_tt TYPE STANDARD TABLE OF ty_local_checksum WITH DEFAULT KEY.
@@ -5807,16 +5840,18 @@ CLASS zcl_abapgit_data_deserializer DEFINITION
         VALUE(rr_data) TYPE REF TO data
       RAISING
         zcx_abapgit_exception .
+    METHODS determine_transport_request
+      IMPORTING
+        io_repo                     TYPE REF TO zcl_abapgit_repo
+        iv_transport_type           TYPE zif_abapgit_definitions=>ty_transport_type
+      RETURNING
+        VALUE(rv_transport_request) TYPE trkorr.
     METHODS is_table_allowed_to_edit
       IMPORTING
         !is_result                TYPE zif_abapgit_data_deserializer=>ty_result
       RETURNING
         VALUE(rv_allowed_to_edit) TYPE abap_bool .
-    METHODS is_customizing_table
-      IMPORTING
-        !iv_name              TYPE tadir-obj_name
-      RETURNING
-        VALUE(rv_customizing) TYPE abap_bool .
+
 ENDCLASS.
 CLASS zcl_abapgit_data_factory DEFINITION
   CREATE PUBLIC
@@ -5919,7 +5954,12 @@ CLASS zcl_abapgit_data_utils DEFINITION
         VALUE(rr_data) TYPE REF TO data
       RAISING
         zcx_abapgit_exception.
-    CLASS-METHODS build_filename
+    CLASS-METHODS build_data_filename
+      IMPORTING
+        !is_config         TYPE zif_abapgit_data_config=>ty_config
+      RETURNING
+        VALUE(rv_filename) TYPE string.
+    CLASS-METHODS build_config_filename
       IMPORTING
         !is_config         TYPE zif_abapgit_data_config=>ty_config
       RETURNING
@@ -5936,6 +5976,11 @@ CLASS zcl_abapgit_data_utils DEFINITION
         !iv_name         TYPE tadir-obj_name
       RETURNING
         VALUE(rv_exists) TYPE abap_bool.
+    CLASS-METHODS is_customizing_table
+      IMPORTING
+        !iv_name              TYPE tadir-obj_name
+      RETURNING
+        VALUE(rv_customizing) TYPE abap_bool.
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES ty_names TYPE STANDARD TABLE OF abap_compname WITH DEFAULT KEY .
@@ -16397,7 +16442,7 @@ CLASS zcl_abapgit_repo DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS has_remote_source
-          ABSTRACT
+      ABSTRACT
       RETURNING
         VALUE(rv_yes) TYPE abap_bool .
     METHODS status
@@ -16442,7 +16487,7 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
     METHODS check_and_create_package
       IMPORTING
-         iv_package TYPE devclass
+        iv_package TYPE devclass
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -16483,6 +16528,29 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
     METHODS reset_remote .
   PRIVATE SECTION.
+
+    METHODS deserialize_dot_abapgit
+      CHANGING
+        ct_files TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS deserialize_objects
+      IMPORTING
+        !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
+        !ii_log    TYPE REF TO zif_abapgit_log
+      CHANGING
+        ct_files   TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS deserialize_data
+      IMPORTING
+        !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
+      CHANGING
+        ct_files   TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS notify_listener
       IMPORTING
@@ -20997,6 +21065,7 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
         local                        TYPE string VALUE 'local',
         display_name                 TYPE string VALUE 'display_name',
         transport_request            TYPE string VALUE 'transport_request',
+        customizing_request          TYPE string VALUE 'customizing_request',
         labels                       TYPE string VALUE 'labels',
         ignore_subpackages           TYPE string VALUE 'ignore_subpackages',
         write_protected              TYPE string VALUE 'write_protected',
@@ -21008,10 +21077,11 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
       END OF c_id .
     CONSTANTS:
       BEGIN OF c_event,
-        save                     TYPE string VALUE 'save',
-        choose_transport_request TYPE string VALUE 'choose_transport_request',
-        choose_labels            TYPE string VALUE 'choose-labels',
-        choose_check_variant     TYPE string VALUE 'choose_check_variant',
+        save                       TYPE string VALUE 'save',
+        choose_transport_request   TYPE string VALUE 'choose_transport_request',
+        choose_customizing_request TYPE string VALUE 'choose_customizing_request',
+        choose_labels              TYPE string VALUE 'choose-labels',
+        choose_check_variant       TYPE string VALUE 'choose_check_variant',
       END OF c_event .
 
     DATA mo_form TYPE REF TO zcl_abapgit_html_form .
@@ -21047,6 +21117,14 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
       RAISING
         zcx_abapgit_exception.
     METHODS choose_transport_request
+      RAISING
+        zcx_abapgit_exception.
+    METHODS choose_customizing_request
+      RAISING
+        zcx_abapgit_exception.
+    METHODS is_customizing_included
+      RETURNING
+        VALUE(rv_result) TYPE abap_bool
       RAISING
         zcx_abapgit_exception.
 
@@ -34044,6 +34122,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
           lt_e071k   TYPE STANDARD TABLE OF e071k,
           lv_order   TYPE trkorr,
           ls_e070use TYPE e070use.
+    DATA lv_category TYPE e070-korrdev.
 
     " If default transport is set and its type matches, then use it as default for the popup
     ls_e070use = zcl_abapgit_default_transport=>get_instance( )->get( ).
@@ -34053,10 +34132,18 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       lv_order = ls_e070use-ordernum.
     ENDIF.
 
+    " Differentiate between customizing and WB requests
+    IF is_transport_type-request = zif_abapgit_cts_api=>c_transport_type-cust_request.
+      lv_category = zif_abapgit_cts_api=>c_transport_category-customizing.
+    ELSE.
+      lv_category = zif_abapgit_cts_api=>c_transport_category-workbench.
+    ENDIF.
+
     CALL FUNCTION 'TRINT_ORDER_CHOICE'
       EXPORTING
         wi_order_type          = is_transport_type-request
         wi_task_type           = is_transport_type-task
+        wi_category            = lv_category
         wi_order               = lv_order
       IMPORTING
         we_order               = rv_transport
@@ -39364,6 +39451,24 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD choose_customizing_request.
+
+    DATA:
+      ls_transport_type      TYPE zif_abapgit_definitions=>ty_transport_type,
+      lv_customizing_request TYPE trkorr.
+
+    ls_transport_type-request = zif_abapgit_cts_api=>c_transport_type-cust_request.
+    ls_transport_type-task    = zif_abapgit_cts_api=>c_transport_type-cust_task.
+
+    lv_customizing_request = zcl_abapgit_ui_factory=>get_popups( )->popup_transport_request( ls_transport_type ).
+
+    IF lv_customizing_request IS NOT INITIAL.
+      mo_form_data->set(
+        iv_key = c_id-customizing_request
+        iv_val = lv_customizing_request ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD choose_labels.
 
     DATA:
@@ -39387,8 +39492,8 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
 
     IF lv_transport_request IS NOT INITIAL.
       mo_form_data->set(
-          iv_key = c_id-transport_request
-          iv_val = lv_transport_request ).
+        iv_key = c_id-transport_request
+        iv_val = lv_transport_request ).
     ENDIF.
 
   ENDMETHOD.
@@ -39443,8 +39548,16 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
       ro_form->text(
         iv_name        = c_id-transport_request
         iv_side_action = c_event-choose_transport_request
-        iv_label       = |Transport request|
+        iv_label       = |Transport Request|
         iv_hint        = 'Transport request; All changes are recorded therein and no transport popup appears|' ).
+    ENDIF.
+
+    IF is_customizing_included( ) = abap_true.
+      ro_form->text(
+        iv_name        = c_id-customizing_request
+        iv_side_action = c_event-choose_customizing_request
+        iv_label       = |Customizing Request|
+        iv_hint        = 'Customizing request; All changes are recorded therein and no customizing popup appears|' ).
     ENDIF.
 
     ro_form->text(
@@ -39490,6 +39603,19 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
       iv_action      = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
+  METHOD is_customizing_included.
+
+    DATA lt_files TYPE zif_abapgit_definitions=>ty_files_item_tt.
+
+    lt_files = mo_repo->get_files_local( ).
+
+    READ TABLE lt_files TRANSPORTING NO FIELDS
+      WITH KEY item-obj_type = zif_abapgit_data_config=>c_data_type-tabu. "todo
+    IF sy-subrc = 0.
+      rv_result = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD read_settings.
 
     DATA: li_package TYPE REF TO zif_abapgit_sap_package.
@@ -39508,6 +39634,12 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
       mo_form_data->set(
         iv_key = c_id-transport_request
         iv_val = ms_settings-transport_request ).
+    ENDIF.
+
+    IF is_customizing_included( ) = abap_true.
+      mo_form_data->set(
+        iv_key = c_id-customizing_request
+        iv_val = ms_settings-customizing_request ).
     ENDIF.
 
     mo_form_data->set(
@@ -39540,6 +39672,7 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
 
     ms_settings-display_name                 = mo_form_data->get( c_id-display_name ).
     ms_settings-transport_request            = mo_form_data->get( c_id-transport_request ).
+    ms_settings-customizing_request          = mo_form_data->get( c_id-customizing_request ).
     ms_settings-labels                       = zcl_abapgit_repo_labels=>normalize( mo_form_data->get( c_id-labels ) ).
     ms_settings-ignore_subpackages           = mo_form_data->get( c_id-ignore_subpackages ).
     ms_settings-main_language_only           = mo_form_data->get( c_id-main_language_only ).
@@ -39560,9 +39693,10 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
   METHOD validate_form.
 
     DATA:
-      lx_error             TYPE REF TO zcx_abapgit_exception,
-      lv_transport_request TYPE trkorr,
-      lv_check_variant     TYPE sci_chkv.
+      lx_error               TYPE REF TO zcx_abapgit_exception,
+      lv_transport_request   TYPE trkorr,
+      lv_customizing_request TYPE trkorr,
+      lv_check_variant       TYPE sci_chkv.
 
     ro_validation_log = mo_form_util->validate( io_form_data ).
 
@@ -39573,6 +39707,17 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
         CATCH zcx_abapgit_exception INTO lx_error.
           ro_validation_log->set(
             iv_key = c_id-transport_request
+            iv_val = lx_error->get_text( ) ).
+      ENDTRY.
+    ENDIF.
+
+    lv_customizing_request = io_form_data->get( c_id-customizing_request ).
+    IF lv_customizing_request IS NOT INITIAL.
+      TRY.
+          zcl_abapgit_transport=>validate_transport_request( lv_customizing_request ).
+        CATCH zcx_abapgit_exception INTO lx_error.
+          ro_validation_log->set(
+            iv_key = c_id-customizing_request
             iv_val = lx_error->get_text( ) ).
       ENDTRY.
     ENDIF.
@@ -39616,10 +39761,16 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
         choose_transport_request( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
+      WHEN c_event-choose_customizing_request.
+
+        choose_customizing_request( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+
       WHEN c_event-choose_labels.
 
         choose_labels( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+
       WHEN c_event-choose_check_variant.
 
         choose_check_variant( ).
@@ -46536,7 +46687,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_data IMPLEMENTATION.
   METHOD add_via_transport.
 
     DATA lt_trkorr  TYPE trwbo_request_headers.
@@ -46578,8 +46729,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
 
     CREATE OBJECT ro_menu.
 
-    ro_menu->add( iv_txt = 'Add via transport'
+    ro_menu->add( iv_txt = 'Add Via Transport'
                   iv_act = c_event-add_via_transport ).
+    ro_menu->add( iv_txt = 'Back'
+                  iv_act = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
   METHOD build_where.
@@ -46643,10 +46796,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
 
     lo_map = ii_event->form_data( ).
 
-    ls_config-type = zif_abapgit_data_config=>c_data_type-tabu.
-    ls_config-name = to_upper( lo_map->get( c_id-table ) ).
+    ls_config-type         = zif_abapgit_data_config=>c_data_type-tabu.
+    ls_config-name         = to_upper( lo_map->get( c_id-table ) ).
     ls_config-skip_initial = lo_map->get( c_id-skip_initial ).
-    ls_config-where = build_where( lo_map ).
+    ls_config-where        = build_where( lo_map ).
 
     mi_config->add_config( ls_config ).
 
@@ -46671,10 +46824,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
 
     lo_map = ii_event->form_data( ).
 
-    ls_config-type = zif_abapgit_data_config=>c_data_type-tabu.
-    ls_config-name = to_upper( lo_map->get( c_id-table ) ).
+    ls_config-type         = zif_abapgit_data_config=>c_data_type-tabu.
+    ls_config-name         = to_upper( lo_map->get( c_id-table ) ).
     ls_config-skip_initial = lo_map->has( to_upper( c_id-skip_initial ) ).
-    ls_config-where = build_where( lo_map ).
+    ls_config-where        = build_where( lo_map ).
 
     mi_config->update_config( ls_config ).
 
@@ -46694,7 +46847,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
       iv_required = abap_true ).
 
     lo_form->checkbox(
-      iv_label = 'Skip initial values'
+      iv_label = 'Skip Initial Values'
       iv_name  = c_id-skip_initial ).
 
     lo_form->textarea(
@@ -46746,7 +46899,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DATA IMPLEMENTATION.
         iv_key = c_id-skip_initial
         iv_val = ls_config-skip_initial ).
       lo_form->checkbox(
-        iv_label = 'Skip initial values'
+        iv_label = 'Skip Initial Values'
         iv_name  = c_id-skip_initial ).
 
       lo_form_data->set(
@@ -56869,7 +57022,7 @@ CLASS ZCL_ABAPGIT_REPO_CHECKSUMS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -56982,6 +57135,49 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     li_package = zcl_abapgit_factory=>get_sap_package( get_package( ) ).
     rs_checks-transport-required = li_package->are_changes_recorded_in_tr_req( ).
+
+  ENDMETHOD.
+  METHOD deserialize_data.
+
+    DATA:
+      lt_updated_files TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt,
+      lt_result        TYPE zif_abapgit_data_deserializer=>ty_results.
+
+    "Deserialize data
+    lt_result = zcl_abapgit_data_factory=>get_deserializer( )->deserialize(
+      ii_config  = get_data_config( )
+      it_files   = get_files_remote( ) ).
+
+    "Save deserialized data to DB and add entries to transport requests
+    lt_updated_files = zcl_abapgit_data_factory=>get_deserializer( )->actualize(
+      it_result = lt_result
+      is_checks = is_checks ).
+
+    INSERT LINES OF lt_updated_files INTO TABLE ct_files.
+
+  ENDMETHOD.
+  METHOD deserialize_dot_abapgit.
+    INSERT get_dot_abapgit( )->get_signature( ) INTO TABLE ct_files.
+  ENDMETHOD.
+  METHOD deserialize_objects.
+
+    DATA:
+      lt_updated_files TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt,
+      lx_error         TYPE REF TO zcx_abapgit_exception.
+
+    TRY.
+        lt_updated_files = zcl_abapgit_objects=>deserialize(
+          io_repo   = me
+          is_checks = is_checks
+          ii_log    = ii_log ).
+      CATCH zcx_abapgit_exception INTO lx_error.
+        " Ensure to reset default transport request task
+        zcl_abapgit_default_transport=>get_instance( )->reset( ).
+        refresh( iv_drop_log = abap_false ).
+        RAISE EXCEPTION lx_error.
+    ENDTRY.
+
+    INSERT LINES OF lt_updated_files INTO TABLE ct_files.
 
   ENDMETHOD.
   METHOD find_remote_dot_abapgit.
@@ -57292,9 +57488,7 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo~deserialize.
 
-    DATA: lt_updated_files TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt,
-          lt_result        TYPE zif_abapgit_data_deserializer=>ty_results,
-          lx_error         TYPE REF TO zcx_abapgit_exception.
+    DATA lt_updated_files TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt.
 
     find_remote_dot_abapgit( ).
     find_remote_dot_apack( ).
@@ -57314,32 +57508,22 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |No transport request was supplied| ).
     ENDIF.
 
-    " Deserialize objects
-    TRY.
-        lt_updated_files = zcl_abapgit_objects=>deserialize(
-          io_repo   = me
-          is_checks = is_checks
-          ii_log    = ii_log ).
-      CATCH zcx_abapgit_exception INTO lx_error.
-        " Ensure to reset default transport request task
-        zcl_abapgit_default_transport=>get_instance( )->reset( ).
-        refresh( iv_drop_log = abap_false ).
-        RAISE EXCEPTION lx_error.
-    ENDTRY.
+    deserialize_dot_abapgit( CHANGING ct_files = lt_updated_files ).
 
-    APPEND get_dot_abapgit( )->get_signature( ) TO lt_updated_files.
+    deserialize_objects(
+      EXPORTING
+        is_checks = is_checks
+        ii_log    = ii_log
+      CHANGING
+        ct_files  = lt_updated_files ).
+
+    deserialize_data(
+      EXPORTING
+        is_checks = is_checks
+      CHANGING
+        ct_files  = lt_updated_files ).
 
     zif_abapgit_repo~checksums( )->update( lt_updated_files ).
-
-    "Deserialize data
-    lt_result = zcl_abapgit_data_factory=>get_deserializer( )->deserialize(
-      ii_config  = get_data_config( )
-      it_files   = get_files_remote( ) ).
-
-    "Save deserialized data to DB and add entries to transport requests)
-    zcl_abapgit_data_factory=>get_deserializer( )->actualize(
-      it_result = lt_result
-      is_checks = is_checks ).
 
     CLEAR: mt_local.
 
@@ -57369,6 +57553,10 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
 
     lt_dependencies = get_dot_apack( )->get_manifest_descriptor( )-dependencies.
     rs_checks-dependencies-met = zcl_abapgit_apack_helper=>are_dependencies_met( lt_dependencies ).
+
+    rs_checks-customizing = zcl_abapgit_data_factory=>get_deserializer( )->deserialize_check(
+      io_repo   = me
+      ii_config = get_data_config( ) ).
 
   ENDMETHOD.
   METHOD zif_abapgit_repo~get_dot_abapgit.
@@ -106243,7 +106431,7 @@ CLASS ZCL_ABAPGIT_SKIP_OBJECTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
+CLASS zcl_abapgit_serialize IMPLEMENTATION.
   METHOD add_apack.
 
     DATA ls_apack_file TYPE zif_abapgit_git_definitions=>ty_file.
@@ -106281,7 +106469,7 @@ CLASS ZCL_ABAPGIT_SERIALIZE IMPLEMENTATION.
         IMPORTING
           es_item     = <ls_return>-item ).
 
-      <ls_return>-item-obj_type = zif_abapgit_data_config=>c_data_type-tabu.
+      <ls_return>-item-obj_type = zif_abapgit_data_config=>c_data_type-tabu. " todo
     ENDLOOP.
 
     lt_files = zcl_abapgit_data_factory=>get_serializer( )->serialize( ii_data_config ).
@@ -118005,9 +118193,18 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_data_utils IMPLEMENTATION.
-  METHOD build_filename.
+  METHOD build_config_filename.
 
-    rv_filename = to_lower( |{ is_config-name }.{ is_config-type }.{ zif_abapgit_data_config=>c_default_format }| ).
+    rv_filename = to_lower( |{ is_config-name }.{ zif_abapgit_data_config=>c_config }|
+      && |.{ zif_abapgit_data_config=>c_default_format }| ).
+
+    REPLACE ALL OCCURRENCES OF '/' IN rv_filename WITH '#'.
+
+  ENDMETHOD.
+  METHOD build_data_filename.
+
+    rv_filename = to_lower( |{ is_config-name }.{ is_config-type }|
+      && |.{ zif_abapgit_data_config=>c_default_format }| ).
 
     REPLACE ALL OCCURRENCES OF '/' IN rv_filename WITH '#'.
 
@@ -118078,6 +118275,41 @@ CLASS zcl_abapgit_data_utils IMPLEMENTATION.
         rv_exists = abap_true.
       CATCH zcx_abapgit_exception ##NO_HANDLER.
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD is_customizing_table.
+
+    DATA lv_contflag       TYPE c LENGTH 1.
+    DATA lo_table          TYPE REF TO object.
+    DATA lo_content        TYPE REF TO object.
+    DATA lo_delivery_class TYPE REF TO object.
+    FIELD-SYMBOLS <ls_any> TYPE any.
+
+    TRY.
+        CALL METHOD ('XCO_CP_ABAP_DICTIONARY')=>database_table
+          EXPORTING
+            iv_name           = iv_name
+          RECEIVING
+            ro_database_table = lo_table.
+        CALL METHOD lo_table->('IF_XCO_DATABASE_TABLE~CONTENT')
+          RECEIVING
+            ro_content = lo_content.
+        CALL METHOD lo_content->('IF_XCO_DBT_CONTENT~GET_DELIVERY_CLASS')
+          RECEIVING
+            ro_delivery_class = lo_delivery_class.
+        ASSIGN lo_delivery_class->('VALUE') TO <ls_any>.
+        lv_contflag = <ls_any>.
+      CATCH cx_sy_dyn_call_illegal_class.
+        SELECT SINGLE contflag FROM ('DD02L') INTO lv_contflag WHERE tabname = iv_name.
+    ENDTRY.
+
+    IF lv_contflag = 'C'.
+      rv_customizing = abap_true.
+    ELSEIF lv_contflag IS NOT INITIAL.
+      rv_customizing = abap_false.
+    ELSE.
+      rv_customizing = abap_undefined. " table does not exist
+    ENDIF.
 
   ENDMETHOD.
   METHOD jump.
@@ -118301,7 +118533,7 @@ CLASS zcl_abapgit_data_serializer IMPLEMENTATION.
         ls_file-data = zcl_abapgit_convert=>string_to_xstring_utf8( '[]' ).
       ENDIF.
 
-      ls_file-filename = zcl_abapgit_data_utils=>build_filename( ls_config ).
+      ls_file-filename = zcl_abapgit_data_utils=>build_data_filename( ls_config ).
       ls_file-sha1 = zcl_abapgit_hash=>sha1_blob( ls_file-data ).
       APPEND ls_file TO rt_files.
     ENDLOOP.
@@ -118372,35 +118604,22 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD is_customizing_table.
+  METHOD determine_transport_request.
 
-    DATA lv_contflag       TYPE c LENGTH 1.
-    DATA lo_table          TYPE REF TO object.
-    DATA lo_content        TYPE REF TO object.
-    DATA lo_delivery_class TYPE REF TO object.
-    FIELD-SYMBOLS <ls_any> TYPE any.
+    DATA li_exit TYPE REF TO zif_abapgit_exit.
 
-    TRY.
-        CALL METHOD ('XCO_CP_ABAP_DICTIONARY')=>database_table
-          EXPORTING
-            iv_name           = iv_name
-          RECEIVING
-            ro_database_table = lo_table.
-        CALL METHOD lo_table->('IF_XCO_DATABASE_TABLE~CONTENT')
-          RECEIVING
-            ro_content = lo_content.
-        CALL METHOD lo_content->('IF_XCO_DBT_CONTENT~GET_DELIVERY_CLASS')
-          RECEIVING
-            ro_delivery_class = lo_delivery_class.
-        ASSIGN lo_delivery_class->('VALUE') TO <ls_any>.
-        lv_contflag = <ls_any>.
-      CATCH cx_sy_dyn_call_illegal_class.
-        SELECT SINGLE contflag FROM ('DD02L') INTO lv_contflag WHERE tabname = iv_name.
-    ENDTRY.
+    li_exit = zcl_abapgit_exit=>get_instance( ).
 
-    IF lv_contflag = 'C'.
-      rv_customizing = abap_true.
-    ENDIF.
+    " Use transport from repo settings if maintained, or determine via user exit.
+    " If transport keeps empty here, it'll requested later via popup.
+    rv_transport_request = io_repo->get_local_settings( )-customizing_request.
+
+    li_exit->determine_transport_request(
+      EXPORTING
+        io_repo              = io_repo
+        iv_transport_type    = iv_transport_type
+      CHANGING
+        cv_transport_request = rv_transport_request ).
 
   ENDMETHOD.
   METHOD is_table_allowed_to_edit.
@@ -118503,6 +118722,7 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
 
     DATA ls_result  LIKE LINE OF it_result.
     DATA li_cts_api TYPE REF TO zif_abapgit_cts_api.
+    DATA ls_file LIKE LINE OF rt_accessed_files.
 
     FIELD-SYMBOLS:
       <lt_ins> TYPE ANY TABLE,
@@ -118537,16 +118757,19 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
 
       ASSIGN ls_result-inserts->* TO <lt_ins>.
       ASSIGN ls_result-deletes->* TO <lt_del>.
-      ASSIGN ls_result-updates->* TO <lt_upd>.
+      ASSIGN ls_result-updates->* TO <lt_upd>. " not used
 
-      IF is_customizing_table( ls_result-name ) = abap_true.
+      IF zcl_abapgit_data_utils=>is_customizing_table( ls_result-name ) = abap_true.
         li_cts_api->create_transport_entries(
+          iv_transport = is_checks-customizing-transport
           it_table_ins = <lt_ins>
           it_table_upd = <lt_upd>
           it_table_del = <lt_del>
           iv_tabname   = |{ ls_result-name }| ).
       ENDIF.
 
+      INSERT ls_result-file INTO TABLE rt_accessed_files. " data file
+      INSERT ls_result-config INTO TABLE rt_accessed_files. " config file
     ENDLOOP.
 
   ENDMETHOD.
@@ -118571,7 +118794,7 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
       READ TABLE it_files INTO ls_file
         WITH KEY file_path
         COMPONENTS path     = zif_abapgit_data_config=>c_default_path
-                   filename = zcl_abapgit_data_utils=>build_filename( ls_config ).
+                   filename = zcl_abapgit_data_utils=>build_data_filename( ls_config ).
       IF sy-subrc = 0.
         convert_json_to_itab(
           ir_data = lr_data
@@ -118582,15 +118805,41 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
           it_where = ls_config-where
           ir_data  = lr_data ).
 
+        MOVE-CORRESPONDING ls_file TO ls_result-file. " data file
+
+        READ TABLE it_files INTO ls_file
+          WITH KEY file_path
+          COMPONENTS path     = zif_abapgit_data_config=>c_default_path
+                     filename = zcl_abapgit_data_utils=>build_config_filename( ls_config ).
+        ASSERT sy-subrc = 0.
+
+        MOVE-CORRESPONDING ls_file TO ls_result-config. " config file
+
         INSERT ls_result INTO TABLE rt_result.
       ENDIF.
 
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD zif_abapgit_data_deserializer~deserialize_check.
+
+    DATA lt_configs TYPE zif_abapgit_data_config=>ty_config_tt.
+
+    lt_configs = ii_config->get_configs( ).
+
+    IF lt_configs IS NOT INITIAL.
+      rs_checks-required     = abap_true.
+      rs_checks-type-request = zif_abapgit_cts_api=>c_transport_type-cust_request.
+      rs_checks-type-task    = zif_abapgit_cts_api=>c_transport_type-cust_task.
+      rs_checks-transport    = determine_transport_request(
+                                 io_repo           = io_repo
+                                 iv_transport_type = rs_checks-type ).
+    ENDIF.
+
+  ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
+CLASS zcl_abapgit_data_config IMPLEMENTATION.
   METHOD dump.
 
     DATA lo_ajson TYPE REF TO zcl_abapgit_ajson.
@@ -118680,7 +118929,7 @@ CLASS ZCL_ABAPGIT_DATA_CONFIG IMPLEMENTATION.
       ls_file-data = dump( ls_config ).
       ls_file-sha1 = zcl_abapgit_hash=>sha1_blob( ls_file-data ).
       ls_config-type = zif_abapgit_data_config=>c_config.
-      ls_file-filename = zcl_abapgit_data_utils=>build_filename( ls_config ).
+      ls_file-filename = zcl_abapgit_data_utils=>build_data_filename( ls_config ).
       APPEND ls_file TO rt_files.
     ENDLOOP.
 
@@ -119573,7 +119822,7 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_CTS_API IMPLEMENTATION.
+CLASS zcl_abapgit_cts_api IMPLEMENTATION.
   METHOD get_current_transport_for_obj.
     DATA: lv_object_lockable   TYPE abap_bool,
           lv_locked            TYPE abap_bool,
@@ -119691,6 +119940,53 @@ CLASS ZCL_ABAPGIT_CTS_API IMPLEMENTATION.
         pe_result = lv_type_check_result.
 
     rv_transportable = boolc( lv_type_check_result CA 'RTL' ).
+  ENDMETHOD.
+  METHOD zif_abapgit_cts_api~create_transport_entries.
+
+    DATA lt_tables      TYPE tredt_objects.
+    DATA lt_table_keys  TYPE STANDARD TABLE OF e071k.
+    DATA lv_with_dialog TYPE abap_bool.
+
+    cl_table_utilities_brf=>create_transport_entries(
+      EXPORTING
+        it_table_ins = it_table_ins
+        it_table_upd = it_table_upd
+        it_table_del = it_table_del
+        iv_tabname   = iv_tabname
+      CHANGING
+        ct_e071      = lt_tables
+        ct_e071k     = lt_table_keys ).
+
+    " cl_table_utilities_brf=>write_transport_entries does not allow passing a request
+
+    CALL FUNCTION 'TR_OBJECTS_CHECK'
+      TABLES
+        wt_ko200                = lt_tables
+      EXCEPTIONS
+        cancel_edit_other_error = 1
+        show_only_other_error   = 2
+        OTHERS                  = 3.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    IF iv_transport IS INITIAL.
+      lv_with_dialog = abap_true.
+    ENDIF.
+
+    CALL FUNCTION 'TRINT_OBJECTS_CHECK_AND_INSERT'
+      EXPORTING
+        iv_order       = iv_transport
+        iv_with_dialog = lv_with_dialog
+      CHANGING
+        ct_ko200       = lt_tables
+        ct_e071k       = lt_table_keys
+      EXCEPTIONS
+        OTHERS         = 1.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_cts_api~get_r3tr_obj_for_limu_obj.
 
@@ -119814,31 +120110,6 @@ CLASS ZCL_ABAPGIT_CTS_API IMPLEMENTATION.
       WHERE trkorr = iv_trkorr ##SUBRC_OK.
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_cts_api~create_transport_entries.
-
-    DATA lt_tables        TYPE tredt_objects.
-    DATA lt_table_keys    TYPE STANDARD TABLE OF e071k.
-    DATA lt_tadir_entries TYPE scts_tadir.
-
-    cl_table_utilities_brf=>create_transport_entries(
-      EXPORTING
-        it_table_ins = it_table_ins
-        it_table_upd = it_table_upd
-        it_table_del = it_table_del
-        iv_tabname   = iv_tabname
-      CHANGING
-        ct_e071      = lt_tables
-        ct_e071k     = lt_table_keys ).
-
-    cl_table_utilities_brf=>write_transport_entries(
-      CHANGING
-        ct_e071  = lt_tables
-        ct_e071k = lt_table_keys
-        ct_tadir = lt_tadir_entries ).
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_background_push_fi IMPLEMENTATION.
@@ -121355,6 +121626,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-06T08:04:11.488Z
+* abapmerge 0.15.0 - 2023-04-06T08:14:12.266Z
 ENDINTERFACE.
 ****************************************************
