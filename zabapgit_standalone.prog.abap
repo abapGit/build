@@ -9311,6 +9311,12 @@ CLASS zcl_abapgit_adt_link DEFINITION
       RAISING
         zcx_abapgit_exception.
 
+    CLASS-METHODS link_transport
+      IMPORTING
+        iv_transport TYPE trkorr
+      RETURNING
+        VALUE(rv_link) TYPE string.
+
   PROTECTED SECTION.
 
     CLASS-METHODS generate
@@ -36325,27 +36331,13 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   METHOD jump_display_transport.
 
     DATA:
-      lv_transport_adt_uri TYPE string,
-      lv_adt_link          TYPE string,
-      lv_adt_jump_enabled  TYPE abap_bool.
+      lv_adt_link         TYPE string,
+      lv_adt_jump_enabled TYPE abap_bool.
 
     lv_adt_jump_enabled = zcl_abapgit_persist_factory=>get_settings( )->read( )->get_adt_jump_enabled( ).
     IF lv_adt_jump_enabled = abap_true.
-      TRY.
-          CALL METHOD ('CL_CTS_ADT_TM_URI_BUILDER')=>('CREATE_ADT_URI')
-            EXPORTING
-              trnumber = iv_transport
-            RECEIVING
-              result   = lv_transport_adt_uri.
-
-          lv_adt_link = |adt://{ sy-sysid }{ lv_transport_adt_uri }|.
-          zcl_abapgit_ui_factory=>get_frontend_services( )->execute( iv_document = lv_adt_link ).
-
-        CATCH cx_root.
-          CALL FUNCTION 'TR_DISPLAY_REQUEST'
-            EXPORTING
-              i_trkorr = iv_transport.
-      ENDTRY.
+      lv_adt_link = zcl_abapgit_adt_link=>link_transport( iv_transport ).
+      zcl_abapgit_ui_factory=>get_frontend_services( )->execute( iv_document = lv_adt_link ).
     ELSE.
       CALL FUNCTION 'TR_DISPLAY_REQUEST'
         EXPORTING
@@ -103077,6 +103069,12 @@ CLASS zcl_abapgit_gui_jumper IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_adt_link IMPLEMENTATION.
+
+  METHOD link_transport.
+* call to CL_CTS_ADT_TM_URI_BUILDER=>CREATE_ADT_URI replaced with logic that works on all systems,
+    rv_link = |adt://{ sy-sysid }/sap/bc/adt/cts/transportrequests/{ iv_transport }|.
+  ENDMETHOD.
+
   METHOD generate.
 
     DATA: lv_adt_link       TYPE string.
@@ -121546,6 +121544,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-06T12:36:19.429Z
+* abapmerge 0.15.0 - 2023-04-10T09:51:19.264Z
 ENDINTERFACE.
 ****************************************************
