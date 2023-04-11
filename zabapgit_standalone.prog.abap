@@ -52286,7 +52286,7 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
 
     FIELD-SYMBOLS: <lt_tab> TYPE string_table.
 
-    DESCRIBE FIELD ig_chunk TYPE lv_type. " Describe is faster than RTTI classes
+    lv_type = cl_abap_typedescr=>describe_by_data( ig_chunk )->type_kind.
 
     CASE lv_type.
       WHEN 'C' OR 'g'.  " Char or string
@@ -121544,6 +121544,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-10T09:51:19.264Z
+* abapmerge 0.15.0 - 2023-04-11T13:11:58.840Z
 ENDINTERFACE.
 ****************************************************
