@@ -1406,12 +1406,29 @@ INTERFACE zif_abapgit_http_response .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_code_inspector .
+
+  TYPES: BEGIN OF ty_result,
+           objtype  TYPE tadir-object,
+           objname  TYPE tadir-obj_name,
+           sobjtype TYPE c LENGTH 4,
+           sobjname TYPE c LENGTH 40,
+           kind     TYPE c LENGTH 1,
+           line     TYPE n LENGTH 6,
+           col      TYPE n LENGTH 4,
+           code     TYPE c LENGTH 10,
+           test     TYPE c LENGTH 30,
+           text     TYPE string,
+           param1   TYPE c LENGTH 80,
+         END OF ty_result.
+
+  TYPES ty_results TYPE STANDARD TABLE OF ty_result WITH DEFAULT KEY.
+
   METHODS run
     IMPORTING
       !iv_variant    TYPE sci_chkv
       !iv_save       TYPE abap_bool DEFAULT abap_false
     RETURNING
-      VALUE(rt_list) TYPE scit_alvlist
+      VALUE(rt_list) TYPE ty_results
     RAISING
       zcx_abapgit_exception .
 
@@ -19059,7 +19076,7 @@ CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_aba
         commit TYPE string VALUE 'commit' ##NO_TEXT,
       END OF c_actions .
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
-    DATA mt_result TYPE scit_alvlist .
+    DATA mt_result TYPE zif_abapgit_code_inspector=>ty_results .
     DATA mv_summary TYPE string.
 
     METHODS render_variant
@@ -19071,14 +19088,14 @@ CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_aba
     METHODS render_result
       IMPORTING
         !ii_html   TYPE REF TO zif_abapgit_html
-        !it_result TYPE scit_alvlist .
+        !it_result TYPE zif_abapgit_code_inspector=>ty_results .
     METHODS render_result_line
       IMPORTING
         !ii_html   TYPE REF TO zif_abapgit_html
-        !is_result TYPE scir_alvlist .
+        !is_result TYPE zif_abapgit_code_inspector=>ty_result .
     METHODS build_nav_link
       IMPORTING
-        !is_result     TYPE scir_alvlist
+        !is_result     TYPE zif_abapgit_code_inspector=>ty_result
       RETURNING
         VALUE(rv_link) TYPE string .
     METHODS jump
@@ -47315,7 +47332,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_CODI_BASE IMPLEMENTATION.
   METHOD build_base_menu.
 
     DATA:
@@ -47361,7 +47378,7 @@ CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
           ls_item             TYPE zif_abapgit_definitions=>ty_item,
           ls_sub_item         TYPE zif_abapgit_definitions=>ty_item.
 
-    FIELD-SYMBOLS: <ls_result> TYPE scir_alvlist.
+    FIELD-SYMBOLS: <ls_result> LIKE LINE OF mt_result.
     IF is_sub_item IS NOT INITIAL.
       READ TABLE mt_result WITH KEY objtype  = is_item-obj_type
                                     objname  = is_item-obj_name
@@ -47422,7 +47439,7 @@ CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
   METHOD render_result.
 
     CONSTANTS: lc_limit TYPE i VALUE 500.
-    FIELD-SYMBOLS: <ls_result> TYPE scir_alvlist.
+    FIELD-SYMBOLS: <ls_result> LIKE LINE OF it_result.
 
     ii_html->add( '<div class="ci-result">' ).
 
@@ -113686,6 +113703,9 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
     DATA: lo_set     TYPE REF TO cl_ci_objectset,
           lo_variant TYPE REF TO cl_ci_checkvariant,
           lv_count   TYPE i,
+          lt_list    TYPE scit_alvlist,
+          ls_list    LIKE LINE OF lt_list,
+          ls_result  LIKE LINE OF rt_list,
           lo_timer   TYPE REF TO zcl_abapgit_timer,
           lx_error   TYPE REF TO zcx_abapgit_exception.
 
@@ -113706,9 +113726,14 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
           io_set     = lo_set
           io_variant = lo_variant ).
 
-        rt_list = run_inspection( mo_inspection ).
+        lt_list = run_inspection( mo_inspection ).
 
         cleanup( lo_set ).
+
+        LOOP AT lt_list INTO ls_list.
+          MOVE-CORRESPONDING ls_list TO ls_result.
+          INSERT ls_result INTO TABLE rt_list.
+        ENDLOOP.
 
         IF iv_save = abap_true.
           READ TABLE rt_list TRANSPORTING NO FIELDS WITH KEY kind = 'E'.
@@ -121542,6 +121567,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-12T05:07:42.586Z
+* abapmerge 0.15.0 - 2023-04-12T12:38:24.931Z
 ENDINTERFACE.
 ****************************************************
