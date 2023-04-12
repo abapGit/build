@@ -22921,9 +22921,6 @@ CLASS zcl_abapgit_user_record DEFINITION
   CREATE PRIVATE.
 
   PUBLIC SECTION.
-
-    CONSTANTS c_cc_category TYPE string VALUE 'C'.
-
     CLASS-METHODS reset.
     CLASS-METHODS get_instance
       IMPORTING
@@ -22939,6 +22936,11 @@ CLASS zcl_abapgit_user_record DEFINITION
     METHODS get_email
       RETURNING
         VALUE(rv_email) TYPE zif_abapgit_git_definitions=>ty_git_user-email.
+    CLASS-METHODS get_title
+      IMPORTING
+        iv_username     TYPE sy-uname
+      RETURNING
+        VALUE(rv_title) TYPE string.
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES:
@@ -25413,6 +25415,25 @@ CLASS zcl_abapgit_utils IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_user_record IMPLEMENTATION.
+  METHOD get_title.
+* the queried username might not exist, so this method is static
+
+    DATA ls_user_address TYPE addr3_val.
+
+    CALL FUNCTION 'SUSR_USER_ADDRESS_READ'
+      EXPORTING
+        user_name              = iv_username
+      IMPORTING
+        user_address           = ls_user_address
+      EXCEPTIONS
+        user_address_not_found = 1
+        OTHERS                 = 2.
+    IF sy-subrc = 0.
+      rv_title = ls_user_address-name_text.
+    ENDIF.
+
+  ENDMETHOD.
+
   METHOD check_user_exists.
 
     DATA lt_return TYPE STANDARD TABLE OF bapiret2 WITH DEFAULT KEY.
@@ -25497,13 +25518,15 @@ CLASS zcl_abapgit_user_record IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_user_dtls_from_other_clnt.
 
+    CONSTANTS lc_cc_category TYPE string VALUE 'C'.
+
     DATA lt_dev_clients TYPE ty_dev_clients.
 
     FIELD-SYMBOLS: <lv_dev_client> LIKE LINE OF lt_dev_clients.
 
     " Could not find the user Try other development clients
     SELECT mandt FROM t000 INTO TABLE lt_dev_clients
-        WHERE cccategory = c_cc_category AND mandt <> sy-mandt
+        WHERE cccategory = lc_cc_category AND mandt <> sy-mandt
         ORDER BY PRIMARY KEY.
 
     LOOP AT lt_dev_clients ASSIGNING <lv_dev_client>.
@@ -39842,9 +39865,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
   ENDMETHOD.
   METHOD format_user.
 
-    DATA:
-      ls_user_address TYPE addr3_val,
-      lv_title        TYPE string.
+    DATA lv_title TYPE string.
 
     IF iv_username IS INITIAL.
       rv_user = 'n/a'.
@@ -39852,17 +39873,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
     ENDIF.
 
     IF iv_username <> zcl_abapgit_objects_super=>c_user_unknown.
-      CALL FUNCTION 'SUSR_USER_ADDRESS_READ'
-        EXPORTING
-          user_name              = iv_username
-        IMPORTING
-          user_address           = ls_user_address
-        EXCEPTIONS
-          user_address_not_found = 1
-          OTHERS                 = 2.
-      IF sy-subrc = 0.
-        lv_title = ls_user_address-name_text.
-      ENDIF.
+      lv_title = zcl_abapgit_user_record=>get_title( iv_username ).
     ENDIF.
 
     rv_user = iv_username.
@@ -51444,7 +51455,6 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD render_user_name.
 
     DATA:
-      ls_user_address TYPE addr3_val,
       lv_title        TYPE string,
       lv_jump         TYPE string.
 
@@ -51455,17 +51465,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ENDIF.
 
     IF iv_username <> zcl_abapgit_objects_super=>c_user_unknown AND iv_suppress_title = abap_false.
-      CALL FUNCTION 'SUSR_USER_ADDRESS_READ'
-        EXPORTING
-          user_name              = iv_username
-        IMPORTING
-          user_address           = ls_user_address
-        EXCEPTIONS
-          user_address_not_found = 1
-          OTHERS                 = 2.
-      IF sy-subrc = 0.
-        lv_title = ls_user_address-name_text.
-      ENDIF.
+      lv_title = zcl_abapgit_user_record=>get_title( iv_username ).
     ENDIF.
 
     lv_jump = |{ zif_abapgit_definitions=>c_action-jump_user }?user={ iv_username }|.
@@ -121542,6 +121542,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-11T18:35:10.926Z
+* abapmerge 0.15.0 - 2023-04-12T05:07:42.586Z
 ENDINTERFACE.
 ****************************************************
