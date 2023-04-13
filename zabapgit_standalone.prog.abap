@@ -56840,7 +56840,7 @@ CLASS kHGwlIAZUQfihQNtbCZJXaTWQDiHod IMPLEMENTATION.
       IF sy-subrc <> 0.
         " The file should be in locals, however:
         " if the deserialization fails, the local file might not be there
-        " in this case now new CS added, and the file will appear to be remote+new
+        " in this case no new CS added, and the file will appear to be remote+new
         CONTINUE.
       ENDIF.
 
@@ -57002,7 +57002,7 @@ CLASS ZCL_ABAPGIT_REPO_CHECKSUMS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -57503,9 +57503,9 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       CHANGING
         ct_files  = lt_updated_files ).
 
-    zif_abapgit_repo~checksums( )->update( lt_updated_files ).
+    CLEAR mt_local. " Should be before CS update which uses NEW local
 
-    CLEAR: mt_local.
+    zif_abapgit_repo~checksums( )->update( lt_updated_files ).
 
     update_last_deserialize( ).
     reset_status( ).
@@ -121567,6 +121567,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-12T12:38:24.931Z
+* abapmerge 0.15.0 - 2023-04-13T16:20:14.772Z
 ENDINTERFACE.
 ****************************************************
