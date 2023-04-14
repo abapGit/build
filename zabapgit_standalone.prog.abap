@@ -77999,7 +77999,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
                            ct_nodes = lt_nodes ).
 
     SORT lt_titles BY id.
-    DELETE ADJACENT DUPLICATES FROM lt_titles COMPARING id.
+    DELETE ADJACENT DUPLICATES FROM lt_titles COMPARING spras id.
 
     SORT lt_texts BY spras.
     DELETE ADJACENT DUPLICATES FROM lt_texts COMPARING spras node_id.
@@ -121576,6 +121576,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-14T07:26:19.920Z
+* abapmerge 0.15.0 - 2023-04-14T13:08:57.076Z
 ENDINTERFACE.
 ****************************************************
