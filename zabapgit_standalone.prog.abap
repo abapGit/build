@@ -57777,7 +57777,7 @@ CLASS kHGwlUmyfmivKtGMyFDtQzYvAOqpyr DEFINITION FINAL.
 
     METHODS run_checks
       IMPORTING
-        it_results TYPE zif_abapgit_definitions=>ty_results_tt
+        it_results    TYPE zif_abapgit_definitions=>ty_results_tt
       RETURNING
         VALUE(ri_log) TYPE REF TO zif_abapgit_log
       RAISING
@@ -57819,7 +57819,8 @@ CLASS kHGwlUmyfmivKtGMyFDtQzYvAOqpyr DEFINITION FINAL.
         zcx_abapgit_exception .
     METHODS check_namespace
       IMPORTING
-        !it_results TYPE zif_abapgit_definitions=>ty_results_tt
+        !it_results      TYPE zif_abapgit_definitions=>ty_results_tt
+        !iv_root_package TYPE devclass
       RAISING
         zcx_abapgit_exception .
 
@@ -57857,7 +57858,9 @@ CLASS kHGwlUmyfmivKtGMyFDtQzYvAOqpyr IMPLEMENTATION.
     check_multiple_files( it_results ).
 
     " Check if namespaces exist already
-    check_namespace( it_results ).
+    check_namespace(
+      it_results      = it_results
+      iv_root_package = mv_root_package ).
 
     ri_log = mi_log.
 
@@ -57964,9 +57967,15 @@ CLASS kHGwlUmyfmivKtGMyFDtQzYvAOqpyr IMPLEMENTATION.
     li_namespace = zcl_abapgit_factory=>get_sap_namespace( ).
 
     LOOP AT lt_namespace INTO lv_namespace.
+      IF iv_root_package NS lv_namespace.
+        mi_log->add_error( |Package { iv_root_package } is not in namespace { lv_namespace }.|
+          && | Remove repository and use a different package| ).
+        RETURN.
+      ENDIF.
+
       IF li_namespace->exists( lv_namespace ) = abap_false.
         mi_log->add(
-          iv_msg  = |Namespace { lv_namespace } does not exist. Create it in transaction SE03|
+          iv_msg  = |Namespace { lv_namespace } does not exist. Pull it first (or create it in transaction SE03)|
           iv_type = 'W' ).
       ELSEIF li_namespace->is_editable( lv_namespace ) = abap_false.
         mi_log->add(
@@ -121567,6 +121576,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-13T16:20:14.772Z
+* abapmerge 0.15.0 - 2023-04-14T07:26:19.920Z
 ENDINTERFACE.
 ****************************************************
