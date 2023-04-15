@@ -77835,12 +77835,14 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
       EXPORTING
         it_iso_filter = io_xml->i18n_params( )-translation_languages
         iv_lang_field_name = 'SPRAS'
+        iv_keep_master_lang = io_xml->i18n_params( )-main_language
       CHANGING
         ct_tab = lt_titles ).
     zcl_abapgit_lxe_texts=>trim_tab_w_saplang_by_iso(
       EXPORTING
         it_iso_filter = io_xml->i18n_params( )-translation_languages
         iv_lang_field_name = 'SPRAS'
+        iv_keep_master_lang = io_xml->i18n_params( )-main_language
       CHANGING
         ct_tab = lt_texts ).
 
@@ -121576,6 +121578,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-14T13:08:57.076Z
+* abapmerge 0.15.0 - 2023-04-15T06:25:50.757Z
 ENDINTERFACE.
 ****************************************************
