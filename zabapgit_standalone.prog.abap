@@ -31013,20 +31013,22 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  } else {' ).
     lo_buf->add( '    var newline  = "";' ).
     lo_buf->add( '    var realThis = this;' ).
+    lo_buf->add( '    var copySide = "";' ).
     lo_buf->add( '    [].forEach.call(nodes, function(tr, i) {' ).
     lo_buf->add( '      var cellIdx = (i == 0 ? 0 : realThis.selectedColumnIdx);' ).
     lo_buf->add( '      if (tr.cells.length > cellIdx) {' ).
     lo_buf->add( '        var tdSelected = tr.cells[cellIdx];' ).
-    lo_buf->add( '        var tdLineNum  = tr.cells[realThis.lineNumColumnIdx];' ).
-    lo_buf->add( '        // copy is interesting for remote code, don''t copy lines which exist only locally' ).
-    lo_buf->add( '        if (i == 0 || tdLineNum.getAttribute("line-num") != "") {' ).
+    lo_buf->add( '        // decide which side to copy based on first line of selection' ).
+    lo_buf->add( '        if (i == 0) {' ).
+    lo_buf->add( '          copySide = (tdSelected.classList.contains("new") ? "new" : "old" );' ).
+    lo_buf->add( '        }' ).
+    lo_buf->add( '        // copy is interesting only for one side of code, do not copy lines which exist on other side' ).
+    lo_buf->add( '        if (i == 0 || copySide == "new" && !tdSelected.classList.contains("old") || copySide == "old" && !tdSelected.classList.contains("new")) {' ).
     lo_buf->add( '          text += newline + tdSelected.textContent;' ).
     lo_buf->add( '          // special processing for TD tag which sometimes contains newline' ).
-    lo_buf->add( '          // (expl: /src/ui/zabapgit_js_common.w3mi.data.js) so don''t add newline again in that case.' ).
+    lo_buf->add( '          // (expl: /src/ui/zabapgit_js_common.w3mi.data.js) so do not add newline again in that case.' ).
     lo_buf->add( '          var lastChar = tdSelected.textContent[tdSelected.textContent.length - 1];' ).
-    lo_buf->add( '' ).
     lo_buf->add( '          if (lastChar == "\n") newline = "";' ).
-    lo_buf->add( '' ).
     lo_buf->add( '          else newline = "\n";' ).
     lo_buf->add( '        }' ).
     lo_buf->add( '      }' ).
@@ -31287,7 +31289,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '    var hint = this.hintsMap[this.pendingPath];' ).
     lo_buf->add( '' ).
-    lo_buf->add( '    if (hint) { // we are there, we have a fully specified tooltip. Let''s activate or yank it' ).
+    lo_buf->add( '    if (hint) { // we are there, we have a fully specified tooltip. Let us activate or yank it' ).
     lo_buf->add( '      this.displayHints(false);' ).
     lo_buf->add( '      event.preventDefault();' ).
     lo_buf->add( '      if (this.yankModeActive) {' ).
@@ -31297,7 +31299,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '        this.hintActivate(hint);' ).
     lo_buf->add( '      }' ).
     lo_buf->add( '    } else {' ).
-    lo_buf->add( '      // we are not there yet, but let''s filter the link so that only' ).
+    lo_buf->add( '      // we are not there yet, but let us filter the link so that only' ).
     lo_buf->add( '      // the partially matched are shown' ).
     lo_buf->add( '      var visibleHints = this.filterHints();' ).
     lo_buf->add( '      if (!visibleHints) {' ).
@@ -44522,7 +44524,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EX_OBJECT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   METHOD add_filter_sub_menu.
 
     DATA:
@@ -45280,6 +45282,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
+    " Note: CSS classes "new" and "old" are used to enable column-based copy to clipboard
+
     " New line
     lv_mark = ` `.
     IF is_diff_line-result IS NOT INITIAL.
@@ -45293,7 +45297,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ENDIF.
     lv_new = |<td class="num diff_others" line-num="{ is_diff_line-new_num }"></td>|
           && |<td class="mark diff_others">{ lv_mark }</td>|
-          && |<td class="code{ lv_bg } diff_left">{ is_diff_line-new }</td>|.
+          && |<td class="code{ lv_bg } diff_left new">{ is_diff_line-new }</td>|.
 
     " Old line
     CLEAR lv_bg.
@@ -45309,7 +45313,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
     ENDIF.
     lv_old = |<td class="num diff_others" line-num="{ is_diff_line-old_num }"></td>|
           && |<td class="mark diff_others">{ lv_mark }</td>|
-          && |<td class="code{ lv_bg } diff_right">{ is_diff_line-old }</td>|.
+          && |<td class="code{ lv_bg } diff_right old">{ is_diff_line-old }</td>|.
 
     " render line, inverse sides if remote is newer
     ri_html->add( '<tr class="diff_line">' ).
@@ -45343,6 +45347,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
+    " Note: CSS classes "new" and "old" are used to enable column-based copy to clipboard
+
     " Release delayed subsequent update lines
     IF is_diff_line-result <> zif_abapgit_definitions=>c_diff-update.
       LOOP AT mt_delayed_lines ASSIGNING <ls_diff_line>.
@@ -45350,7 +45356,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
         ri_html->add( |<td class="num diff_others" line-num="{ <ls_diff_line>-old_num }"></td>|
                    && |<td class="num diff_others" line-num=""></td>|
                    && |<td class="mark diff_others">-</td>|
-                   && |<td class="code diff_del diff_unified">{ <ls_diff_line>-old }</td>| ).
+                   && |<td class="code diff_del diff_unified old">{ <ls_diff_line>-old }</td>| ).
         ri_html->add( '</tr>' ).
       ENDLOOP.
       LOOP AT mt_delayed_lines ASSIGNING <ls_diff_line>.
@@ -45358,7 +45364,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
         ri_html->add( |<td class="num diff_others" line-num=""></td>|
                    && |<td class="num diff_others" line-num="{ <ls_diff_line>-new_num }"></td>|
                    && |<td class="mark diff_others">+</td>|
-                   && |<td class="code diff_ins diff_others">{ <ls_diff_line>-new }</td>| ).
+                   && |<td class="code diff_ins diff_unified new">{ <ls_diff_line>-new }</td>| ).
         ri_html->add( '</tr>' ).
       ENDLOOP.
       CLEAR mt_delayed_lines.
@@ -45372,12 +45378,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DIFF IMPLEMENTATION.
         ri_html->add( |<td class="num diff_others" line-num=""></td>|
                    && |<td class="num diff_others" line-num="{ is_diff_line-new_num }"></td>|
                    && |<td class="mark diff_others">+</td>|
-                   && |<td class="code diff_ins diff_others">{ is_diff_line-new }</td>| ).
+                   && |<td class="code diff_ins diff_unified new">{ is_diff_line-new }</td>| ).
       WHEN zif_abapgit_definitions=>c_diff-delete.
         ri_html->add( |<td class="num diff_others" line-num="{ is_diff_line-old_num }"></td>|
                    && |<td class="num diff_others" line-num=""></td>|
                    && |<td class="mark diff_others">-</td>|
-                   && |<td class="code diff_del diff_unified">{ is_diff_line-old }</td>| ).
+                   && |<td class="code diff_del diff_unified old">{ is_diff_line-old }</td>| ).
       WHEN OTHERS. "none
         ri_html->add( |<td class="num diff_others" line-num="{ is_diff_line-old_num }"></td>|
                    && |<td class="num diff_others" line-num="{ is_diff_line-new_num }"></td>|
@@ -121594,6 +121600,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-16T09:26:08.258Z
+* abapmerge 0.15.0 - 2023-04-16T22:07:16.840Z
 ENDINTERFACE.
 ****************************************************
