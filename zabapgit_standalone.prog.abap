@@ -18043,9 +18043,9 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     CLASS-METHODS render_repo_palette
       IMPORTING
-        iv_action         TYPE string
+        iv_action      TYPE string
       RETURNING
-        VALUE(ri_html)    TYPE REF TO zif_abapgit_html
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS advanced_submenu
@@ -18080,10 +18080,10 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS render_repo_url
       IMPORTING
-        iv_url TYPE zif_abapgit_persistence=>ty_repo-url
+        iv_url                        TYPE zif_abapgit_persistence=>ty_repo-url
         iv_render_remote_edit_for_key TYPE zif_abapgit_persistence=>ty_repo-key OPTIONAL
       RETURNING
-        VALUE(ri_html)  TYPE REF TO zif_abapgit_html
+        VALUE(ri_html)                TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS render_package_name
@@ -18116,7 +18116,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS render_sci_result
       IMPORTING
-        ii_html TYPE REF TO zif_abapgit_html
+        ii_html       TYPE REF TO zif_abapgit_html
         iv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result.
 
     CLASS-METHODS render_path
@@ -18130,7 +18130,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
 
     CLASS-METHODS render_timestamp
       IMPORTING
-        iv_timestamp TYPE timestampl
+        iv_timestamp       TYPE timestampl
       RETURNING
         VALUE(rv_rendered) TYPE string.
 
@@ -18140,7 +18140,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         iv_label       TYPE string
         iv_value       TYPE string OPTIONAL
         iv_max_length  TYPE string OPTIONAL
-        iv_autofocus  TYPE abap_bool DEFAULT abap_false
+        iv_autofocus   TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html.
 
@@ -18153,15 +18153,27 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
 
     CLASS-METHODS render_label_list
       IMPORTING
-        it_labels TYPE string_table
-        io_label_colors TYPE REF TO zcl_abapgit_string_map
+        it_labels           TYPE string_table
+        io_label_colors     TYPE REF TO zcl_abapgit_string_map
         iv_clickable_action TYPE string OPTIONAL
       RETURNING
-        VALUE(rv_html) TYPE string.
+        VALUE(rv_html)      TYPE string.
 
     CLASS-METHODS render_help_hint
       IMPORTING
         iv_text_to_wrap TYPE string
+      RETURNING
+        VALUE(rv_html)  TYPE string.
+
+    CLASS-METHODS get_item_icon
+      IMPORTING
+        !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
+    CLASS-METHODS get_item_link
+      IMPORTING
+        !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -20601,11 +20613,6 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
         iv_is_object_row TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(rv_html)   TYPE string .
-    METHODS get_item_icon
-      IMPORTING
-        !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
-      RETURNING
-        VALUE(rv_html) TYPE string .
     METHODS render_item_transport
       IMPORTING
         !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
@@ -20618,11 +20625,6 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
-    METHODS build_obj_jump_link
-      IMPORTING
-        !is_item       TYPE zif_abapgit_definitions=>ty_repo_item
-      RETURNING
-        VALUE(rv_html) TYPE string .
     METHODS build_dir_jump_link
       IMPORTING
         !iv_path       TYPE string
@@ -28730,6 +28732,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( 'settings_tab tr:first-child td { border-top: 0px; }' ).
     lo_buf->add( '' ).
+    lo_buf->add( '/* UNIT TESTS */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'table.unit_tests {' ).
+    lo_buf->add( '  line-height: 1.5;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/* DIALOGS */' ).
     lo_buf->add( '' ).
     lo_buf->add( '.dialog {' ).
@@ -28943,7 +28951,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.toolbar-light a:first-child {' ).
     lo_buf->add( '  padding-left: 0;' ).
     lo_buf->add( '  border-left: none;' ).
-    lo_buf->add( '}' ).
+    lo_buf->add( '}' ).
     li_asset_man->register_asset(
       iv_url       = 'css/common.css'
       iv_type      = 'text/css'
@@ -40910,6 +40918,7 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
     DATA lv_text           TYPE string.
     DATA lv_count          TYPE i.
     DATA lv_params         TYPE string.
+    DATA ls_item           TYPE zif_abapgit_definitions=>ty_repo_item.
 
     FIELD-SYMBOLS <ls_task_data>      TYPE any.
     FIELD-SYMBOLS <lt_programs>       TYPE ANY TABLE.
@@ -40936,31 +40945,38 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
     ASSIGN COMPONENT 'ALERTS_BY_INDICIES' OF STRUCTURE <ls_task_data> TO <lt_indices>.
     ASSIGN COMPONENT 'PROGRAMS' OF STRUCTURE <ls_task_data> TO <lt_programs>.
 
+    ri_html->add( |<table class="unit_tests">| ).
+
     LOOP AT <lt_indices> ASSIGNING <ls_alert_by_index>.
       ASSIGN COMPONENT 'ALERTS' OF STRUCTURE <ls_alert_by_index> TO <lt_alerts>.
-      LOOP AT <lt_alerts> ASSIGNING <ls_alert> WHERE ('KIND = ''F'' OR KIND = ''S''').  " check level=F(ail?) instead?
+      LOOP AT <lt_alerts> ASSIGNING <ls_alert> WHERE ('KIND = ''F'' OR KIND = ''S'' OR KIND = ''E''').
         ASSIGN COMPONENT 'HEADER-PARAMS' OF STRUCTURE <ls_alert> TO <lt_params>.
         LOOP AT <lt_params> INTO lv_params.
           lv_text = lv_params.
         ENDLOOP.
-        ri_html->add( |<span class="boxed red-filled-set">{ lv_text }</span><br>| ).
+        ri_html->add( |<tr><td><span class="boxed red-filled-set">{ lv_text }</span></td></tr>| ).
         lv_count = lv_count + 1.
       ENDLOOP.
     ENDLOOP.
+
+    ri_html->add( '</table>' ).
 
     ri_html->add( '<div class="ci-head">' ).
     ri_html->add( |Unit tests completed with <strong>{ lv_count } errors</strong> ({ mv_summary })| ).
     ri_html->add( `</div>` ).
 
-    ri_html->add( |<hr><table>| ).
+    ri_html->add( |<hr><table class="unit_tests">| ).
 
     LOOP AT <lt_programs> ASSIGNING <ls_program>.
+      CLEAR ls_item.
       lv_program_ndx = sy-tabix.
       ASSIGN COMPONENT 'INFO-KEY-OBJ_TYPE' OF STRUCTURE <ls_program> TO <lv_any>.
       IF sy-subrc = 0.
-        ri_html->add( |<tr><td>{ <lv_any> } | ).
+        ls_item-obj_type = <lv_any>.
         ASSIGN COMPONENT 'INFO-KEY-OBJ_NAME' OF STRUCTURE <ls_program> TO <lv_any>.
-        ri_html->add( |{ <lv_any> }</td><td></td></tr>| ).
+        ls_item-obj_name = <lv_any>.
+        ri_html->add( |<tr><td>{ zcl_abapgit_gui_chunk_lib=>get_item_icon( ls_item ) } { ls_item-obj_type }|
+          && | { zcl_abapgit_gui_chunk_lib=>get_item_link( ls_item ) }</td><td></td></tr>| ).
       ELSE.
 * KEY field does not exist in 750
         ASSIGN COMPONENT 'INFO-NAME' OF STRUCTURE <ls_program> TO <lv_any>.
@@ -41350,22 +41366,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
                      iv_title = `Repository Settings` ).
 
   ENDMETHOD.
-  METHOD build_obj_jump_link.
-
-    DATA lv_encode TYPE string.
-    DATA li_html TYPE REF TO zif_abapgit_html.
-
-    CREATE OBJECT li_html TYPE zcl_abapgit_html.
-
-    lv_encode = zcl_abapgit_html_action_utils=>jump_encode(
-      iv_obj_type = is_item-obj_type
-      iv_obj_name = is_item-obj_name ).
-
-    rv_html = li_html->a(
-      iv_txt = |{ is_item-obj_name }|
-      iv_act = |{ zif_abapgit_definitions=>c_action-jump }?{ lv_encode }| ).
-
-  ENDMETHOD.
   METHOD build_srcsystem_code.
 
     IF is_item-srcsystem IS NOT INITIAL AND is_item-srcsystem <> sy-sysid.
@@ -41508,30 +41508,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     IF lines( lt_class ) > 0.
       rv_html = | class="{ concat_lines_of( table = lt_class
                                             sep = ` ` ) }"|.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_item_icon.
-
-    CASE is_item-obj_type.
-      WHEN 'PROG' OR 'CLAS' OR 'FUGR' OR 'INTF' OR 'TYPE'.
-        rv_html = zcl_abapgit_html=>icon( iv_name = 'file-code/darkgrey'
-                                          iv_hint = 'Code' ).
-      WHEN 'W3MI' OR 'W3HT' OR 'SFPF'.
-        rv_html = zcl_abapgit_html=>icon( iv_name = 'file-image/darkgrey'
-                                          iv_hint = 'Binary' ).
-      WHEN 'DEVC'.
-        rv_html = zcl_abapgit_html=>icon( iv_name = 'box/darkgrey'
-                                          iv_hint = 'Package' ).
-      WHEN ''.
-        rv_html = space. " no icon
-      WHEN OTHERS.
-        rv_html = zcl_abapgit_html=>icon( 'file-alt/darkgrey' ).
-    ENDCASE.
-
-    IF is_item-is_dir = abap_true.
-      rv_html = zcl_abapgit_html=>icon( iv_name = 'folder/darkgrey'
-                                        iv_hint = 'Folder' ).
     ENDIF.
 
   ENDMETHOD.
@@ -41697,13 +41673,13 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
                  && '<i class="grey">non-code and meta files</i>'
                  && '</td>' ).
     ELSE.
-      ri_html->add( |<td class="icon">{ get_item_icon( is_item ) }</td>| ).
+      ri_html->add( |<td class="icon">{ zcl_abapgit_gui_chunk_lib=>get_item_icon( is_item ) }</td>| ).
 
       IF is_item-is_dir = abap_true. " Subdir
         lv_link = build_dir_jump_link( is_item-path ).
         ri_html->add( |<td class="dir" colspan="2">{ lv_link }</td>| ).
       ELSE.
-        lv_link = build_obj_jump_link( is_item ).
+        lv_link = zcl_abapgit_gui_chunk_lib=>get_item_link( is_item ).
         ri_html->add( |<td class="type">{ is_item-obj_type }</td>| ).
         ri_html->add( |<td class="object">{ lv_link } { build_inactive_object_code( is_item )
                       } { build_srcsystem_code( is_item ) }</td>| ).
@@ -50551,6 +50527,46 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD get_item_icon.
+
+    CASE is_item-obj_type.
+      WHEN 'PROG' OR 'CLAS' OR 'FUGR' OR 'INTF' OR 'TYPE'.
+        rv_html = zcl_abapgit_html=>icon( iv_name = 'file-code/darkgrey'
+                                          iv_hint = 'Code' ).
+      WHEN 'W3MI' OR 'W3HT' OR 'SFPF'.
+        rv_html = zcl_abapgit_html=>icon( iv_name = 'file-image/darkgrey'
+                                          iv_hint = 'Binary' ).
+      WHEN 'DEVC'.
+        rv_html = zcl_abapgit_html=>icon( iv_name = 'box/darkgrey'
+                                          iv_hint = 'Package' ).
+      WHEN ''.
+        rv_html = space. " no icon
+      WHEN OTHERS.
+        rv_html = zcl_abapgit_html=>icon( 'file-alt/darkgrey' ).
+    ENDCASE.
+
+    IF is_item-is_dir = abap_true.
+      rv_html = zcl_abapgit_html=>icon( iv_name = 'folder/darkgrey'
+                                        iv_hint = 'Folder' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_item_link.
+
+    DATA lv_encode TYPE string.
+    DATA li_html TYPE REF TO zif_abapgit_html.
+
+    CREATE OBJECT li_html TYPE zcl_abapgit_html.
+
+    lv_encode = zcl_abapgit_html_action_utils=>jump_encode(
+      iv_obj_type = is_item-obj_type
+      iv_obj_name = is_item-obj_name ).
+
+    rv_html = li_html->a(
+      iv_txt = |{ is_item-obj_name }|
+      iv_act = |{ zif_abapgit_definitions=>c_action-jump }?{ lv_encode }| ).
+
+  ENDMETHOD.
   METHOD get_t100_text.
 
     MESSAGE ID iv_msgid TYPE 'S' NUMBER iv_msgno WITH '&1' '&2' '&3' '&4' INTO rv_text.
@@ -51472,8 +51488,8 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD render_user_name.
 
     DATA:
-      lv_title        TYPE string,
-      lv_jump         TYPE string.
+      lv_title TYPE string,
+      lv_jump  TYPE string.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -121578,6 +121594,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-15T06:25:50.757Z
+* abapmerge 0.15.0 - 2023-04-16T08:48:54.987Z
 ENDINTERFACE.
 ****************************************************
