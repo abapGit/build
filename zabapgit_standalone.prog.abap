@@ -17536,7 +17536,7 @@ CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
 
     CLASS-METHODS create
       RETURNING
-        VALUE(ro_asset_manager) TYPE REF TO zcl_abapgit_gui_asset_manager.
+        VALUE(ri_asset_manager) TYPE REF TO zif_abapgit_gui_asset_manager.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -52937,7 +52937,7 @@ ENDCLASS.
 
 CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
   METHOD create.
-    CREATE OBJECT ro_asset_manager.
+    CREATE OBJECT ri_asset_manager TYPE zcl_abapgit_gui_asset_manager.
   ENDMETHOD.
   METHOD get_mime_asset.
 
@@ -121594,6 +121594,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-16T08:48:54.987Z
+* abapmerge 0.15.0 - 2023-04-16T09:26:08.258Z
 ENDINTERFACE.
 ****************************************************
