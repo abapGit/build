@@ -57024,7 +57024,7 @@ CLASS ZCL_ABAPGIT_REPO_CHECKSUMS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -57079,8 +57079,9 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
       lv_error_message  TYPE string,
       lv_error_longtext TYPE string.
 
-    " assumes find_remote_dot_abapgit has been called before
+    " for deserialize, assumes find_remote_dot_abapgit has been called before (or language won't be defined)
     lv_main_language = get_dot_abapgit( )->get_main_language( ).
+
     IF lv_main_language <> sy-langu.
 
       lv_error_message = |Current login language |
@@ -57129,8 +57130,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD delete_checks.
 
     DATA: li_package TYPE REF TO zif_abapgit_sap_package.
-
-    find_remote_dot_abapgit( ).
 
     check_write_protect( ).
     check_language( ).
@@ -121600,6 +121599,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-16T22:07:16.840Z
+* abapmerge 0.15.0 - 2023-04-17T10:08:40.702Z
 ENDINTERFACE.
 ****************************************************
