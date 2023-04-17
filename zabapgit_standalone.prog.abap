@@ -57933,9 +57933,8 @@ CLASS kHGwlUmyfmivKtGMyFDtQzYvAOqpyr IMPLEMENTATION.
         BINARY SEARCH. " Sorted above
 
       IF sy-subrc <> 0 OR <ls_result>-path <> <ls_result_idx>-path. " All paths are same
-        mi_log->add( iv_msg = |Files for object { <ls_result>-obj_type } {
-                              <ls_result>-obj_name } are not placed in the same folder|
-                     iv_type = 'W' ).
+        mi_log->add_warning( |Files for object { <ls_result>-obj_type } { <ls_result>-obj_name }|
+         && | are not placed in the same folder| ).
       ENDIF.
 
     ENDLOOP.
@@ -57955,13 +57954,11 @@ CLASS kHGwlUmyfmivKtGMyFDtQzYvAOqpyr IMPLEMENTATION.
 
     LOOP AT lt_res_sort ASSIGNING <ls_result> WHERE obj_type <> 'DEVC' AND packmove = abap_false.
       IF <ls_result>-filename IS NOT INITIAL AND <ls_result>-filename = ls_file-filename.
-        mi_log->add( iv_msg  = |Multiple files with same filename, { <ls_result>-filename }|
-                     iv_type = 'W' ).
+        mi_log->add_warning( |Multiple files with same filename, { <ls_result>-filename }| ).
       ENDIF.
 
       IF <ls_result>-filename IS INITIAL.
-        mi_log->add( iv_msg  = |Filename is empty for object { <ls_result>-obj_type } { <ls_result>-obj_name }|
-                     iv_type = 'W' ).
+        mi_log->add_warning( |Filename is empty for object { <ls_result>-obj_type } { <ls_result>-obj_name }| ).
       ENDIF.
 
       MOVE-CORRESPONDING <ls_result> TO ls_file.
@@ -58001,13 +57998,10 @@ CLASS kHGwlUmyfmivKtGMyFDtQzYvAOqpyr IMPLEMENTATION.
       ENDIF.
 
       IF li_namespace->exists( lv_namespace ) = abap_false.
-        mi_log->add(
-          iv_msg  = |Namespace { lv_namespace } does not exist. Pull it first (or create it in transaction SE03)|
-          iv_type = 'W' ).
+        mi_log->add_warning( |Namespace { lv_namespace } does not exist.|
+          && | Pull it first (or create it in transaction SE03)| ).
       ELSEIF li_namespace->is_editable( lv_namespace ) = abap_false.
-        mi_log->add(
-          iv_msg  = |Namespace { lv_namespace } is not modifiable. Check it in transaction SE03|
-          iv_type = 'W' ).
+        mi_log->add_warning( |Namespace { lv_namespace } is not modifiable. Check it in transaction SE03| ).
       ENDIF.
     ENDLOOP.
 
@@ -58061,9 +58055,8 @@ CLASS kHGwlUmyfmivKtGMyFDtQzYvAOqpyr IMPLEMENTATION.
           obj_name = <ls_result>-obj_name
         BINARY SEARCH. " Sorted since it_result is sorted
       IF sy-subrc <> 0.
-        mi_log->add(
-          iv_msg  = |Changed package assignment for object { <ls_result>-obj_type } { <ls_result>-obj_name }|
-          iv_type = 'W' ).
+        mi_log->add_warning( |Changed package assignment for object|
+          && | { <ls_result>-obj_type } { <ls_result>-obj_name }| ).
         APPEND INITIAL LINE TO lt_move_idx ASSIGNING <ls_result_move>.
         <ls_result_move>-obj_type = <ls_result>-obj_type.
         <ls_result_move>-obj_name = <ls_result>-obj_name.
@@ -58092,8 +58085,7 @@ CLASS kHGwlUmyfmivKtGMyFDtQzYvAOqpyr IMPLEMENTATION.
               && |Check your package and folder logic, and either assign { <ls_result>-obj_name } |
               && |to the package hierarchy of { iv_top } or remove package { <ls_result>-obj_name } |
               && |from the repository.|.
-        mi_log->add( iv_msg = lv_msg
-                     iv_type = 'W' ).
+        mi_log->add_warning( lv_msg ).
       ENDIF.
 
     ENDLOOP.
@@ -121605,6 +121597,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-17T10:31:21.132Z
+* abapmerge 0.15.0 - 2023-04-17T12:24:04.229Z
 ENDINTERFACE.
 ****************************************************
