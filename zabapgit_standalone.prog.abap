@@ -3504,43 +3504,6 @@ INTERFACE zif_abapgit_tadir .
       VALUE(rs_tadir) TYPE zif_abapgit_definitions=>ty_tadir.
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_gui_jumper.
-
-  TYPES:
-    ty_bdcdata_tt TYPE STANDARD TABLE OF bdcdata WITH DEFAULT KEY.
-
-  METHODS jump
-    IMPORTING
-      !is_item         TYPE zif_abapgit_definitions=>ty_item
-      !iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
-      !iv_sub_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type OPTIONAL
-      !iv_line_number  TYPE i OPTIONAL
-      !iv_new_window   TYPE abap_bool DEFAULT abap_true
-    RETURNING
-      VALUE(rv_exit)   TYPE abap_bool
-    RAISING
-      zcx_abapgit_exception.
-
-  METHODS jump_adt
-    IMPORTING
-      !is_item         TYPE zif_abapgit_definitions=>ty_item
-      !iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name
-      !iv_line_number  TYPE i
-    RETURNING
-      VALUE(rv_exit)   TYPE abap_bool
-    RAISING
-      zcx_abapgit_exception.
-
-  METHODS jump_batch_input
-    IMPORTING
-      !iv_tcode      TYPE sy-tcode
-      !it_bdcdata    TYPE ty_bdcdata_tt
-      !iv_new_window TYPE abap_bool DEFAULT abap_true
-    RAISING
-      zcx_abapgit_exception.
-
-ENDINTERFACE.
-
 INTERFACE zif_abapgit_oo_object_fnc.
 
   CONSTANTS:
@@ -4138,6 +4101,50 @@ INTERFACE zif_abapgit_exit .
     IMPORTING
       !is_repo_meta TYPE zif_abapgit_persistence=>ty_repo
       !ii_html      TYPE REF TO zif_abapgit_html .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_gui_jumper.
+
+  TYPES:
+    ty_bdcdata_tt TYPE STANDARD TABLE OF bdcdata WITH DEFAULT KEY.
+
+  METHODS jump
+    IMPORTING
+      !is_item         TYPE zif_abapgit_definitions=>ty_item
+      !iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name OPTIONAL
+      !iv_sub_obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type OPTIONAL
+      !iv_line_number  TYPE i OPTIONAL
+      !iv_new_window   TYPE abap_bool DEFAULT abap_true
+    RETURNING
+      VALUE(rv_exit)   TYPE abap_bool
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS jump_adt
+    IMPORTING
+      !is_item         TYPE zif_abapgit_definitions=>ty_item
+      !iv_sub_obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name
+      !iv_line_number  TYPE i
+    RETURNING
+      VALUE(rv_exit)   TYPE abap_bool
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS jump_batch_input
+    IMPORTING
+      !iv_tcode      TYPE sy-tcode
+      !it_bdcdata    TYPE ty_bdcdata_tt
+      !iv_new_window TYPE abap_bool DEFAULT abap_true
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS jump_abapgit
+    IMPORTING
+      !iv_language TYPE spras
+      !iv_key      TYPE zif_abapgit_persistence=>ty_value
+    RAISING
+      zcx_abapgit_exception.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_persist_repo .
@@ -41550,14 +41557,8 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     DATA:
       lv_main_language TYPE spras,
-      lt_spagpa        TYPE STANDARD TABLE OF rfc_spagpa,
-      ls_spagpa        LIKE LINE OF lt_spagpa,
       ls_item          TYPE zif_abapgit_definitions=>ty_item,
-      lv_subrc         TYPE syst-subrc,
-      lv_save_sy_langu TYPE sy-langu,
       lv_tcode         TYPE tcode.
-
-    " https://blogs.sap.com/2017/01/13/logon-language-sy-langu-and-rfc/
 
     lv_main_language = mo_repo->get_dot_abapgit( )->get_main_language( ).
     lv_tcode = zcl_abapgit_services_abapgit=>get_abapgit_tcode( ).
@@ -41574,36 +41575,9 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Please install the abapGit repository| ).
     ENDIF.
 
-    lv_save_sy_langu = sy-langu.
-    SET LOCALE LANGUAGE lv_main_language.
-
-    ls_spagpa-parid  = zif_abapgit_definitions=>c_spagpa_param_repo_key.
-    ls_spagpa-parval = mo_repo->get_key( ).
-    INSERT ls_spagpa INTO TABLE lt_spagpa.
-
-    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
-      DESTINATION 'NONE'
-      STARTING NEW TASK 'ABAPGIT'
-      EXPORTING
-        tcode                   = lv_tcode
-      TABLES
-        spagpa_tab              = lt_spagpa
-      EXCEPTIONS
-        call_transaction_denied = 1
-        tcode_invalid           = 2
-        communication_failure   = 3
-        system_failure          = 4
-        OTHERS                  = 5.
-
-    lv_subrc = sy-subrc.
-
-    SET LOCALE LANGUAGE lv_save_sy_langu.
-
-    IF lv_subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from ABAP4_CALL_TRANSACTION. Subrc = { lv_subrc }| ).
-    ENDIF.
-
-    MESSAGE 'Repository opened in a new window' TYPE 'S'.
+    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_abapgit(
+      iv_language = lv_main_language
+      iv_key      = mo_repo->get_key( ) ).
 
   ENDMETHOD.
   METHOD order_files.
@@ -103135,6 +103109,51 @@ CLASS zcl_abapgit_gui_jumper IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_gui_jumper~jump_abapgit.
+
+    DATA lt_spagpa        TYPE STANDARD TABLE OF rfc_spagpa.
+    DATA ls_spagpa        LIKE LINE OF lt_spagpa.
+    DATA lv_save_sy_langu TYPE sy-langu.
+    DATA lv_subrc         TYPE syst-subrc.
+    DATA lv_tcode         TYPE tcode.
+
+    " https://blogs.sap.com/2017/01/13/logon-language-sy-langu-and-rfc/
+
+    lv_tcode = zcl_abapgit_services_abapgit=>get_abapgit_tcode( ).
+
+    lv_save_sy_langu = sy-langu.
+    SET LOCALE LANGUAGE iv_language.
+
+    ls_spagpa-parid  = zif_abapgit_definitions=>c_spagpa_param_repo_key.
+    ls_spagpa-parval = iv_key.
+    INSERT ls_spagpa INTO TABLE lt_spagpa.
+
+    CALL FUNCTION 'ABAP4_CALL_TRANSACTION'
+      DESTINATION 'NONE'
+      STARTING NEW TASK 'ABAPGIT'
+      EXPORTING
+        tcode                   = lv_tcode
+      TABLES
+        spagpa_tab              = lt_spagpa
+      EXCEPTIONS
+        call_transaction_denied = 1
+        tcode_invalid           = 2
+        communication_failure   = 3
+        system_failure          = 4
+        OTHERS                  = 5.
+
+    lv_subrc = sy-subrc.
+
+    SET LOCALE LANGUAGE lv_save_sy_langu.
+
+    IF lv_subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from ABAP4_CALL_TRANSACTION. Subrc = { lv_subrc }| ).
+    ENDIF.
+
+    MESSAGE 'Repository opened in a new window' TYPE 'S'.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_adt_link IMPLEMENTATION.
@@ -121621,6 +121640,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-17T14:54:58.472Z
+* abapmerge 0.15.0 - 2023-04-17T16:48:30.937Z
 ENDINTERFACE.
 ****************************************************
