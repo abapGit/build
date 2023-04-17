@@ -40906,7 +40906,11 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
-    RETURN.
+
+    IF ii_event->mv_action = zif_abapgit_definitions=>c_action-go_back.
+      rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_gui_menu_provider~get_menu.
     ro_toolbar = zcl_abapgit_gui_chunk_lib=>back_toolbar( ).
@@ -40935,6 +40939,8 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
     FIELD-SYMBOLS <ls_method>         TYPE any.
     FIELD-SYMBOLS <lv_any>            TYPE any.
     FIELD-SYMBOLS <lt_params>         TYPE string_table.
+    register_handlers( ).
+
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( '<div class="repo">' ).
@@ -121599,6 +121605,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-17T10:28:13.028Z
+* abapmerge 0.15.0 - 2023-04-17T10:31:21.132Z
 ENDINTERFACE.
 ****************************************************
