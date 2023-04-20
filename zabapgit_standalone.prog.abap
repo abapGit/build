@@ -62365,6 +62365,9 @@ CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
 
     DATA ls_meta TYPE ty_metadata.
@@ -62407,24 +62410,18 @@ CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     CALL METHOD mo_plugin->('WRAP_SERIALIZE')
       EXPORTING
         io_xml = io_xml.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -63550,6 +63547,9 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -63565,6 +63565,12 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -63591,18 +63597,6 @@ CLASS zcl_abapgit_object_xslt IMPLEMENTATION.
       iv_ext    = 'xml'
       iv_string = lv_source ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -63873,6 +63867,9 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -63887,6 +63884,12 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -63919,18 +63922,6 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
     serialize_longtexts( ii_xml         = io_xml
                          iv_longtext_id = c_longtext_id_xinx ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -64269,6 +64260,9 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -64283,6 +64277,12 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -64398,17 +64398,7 @@ CLASS zcl_abapgit_object_webi IMPLEMENTATION.
     SORT cs_webi-pwsheader BY wsname version.
     SORT cs_webi-pwssoapprop BY wsname version feature soapapp funcref propnum.
   ENDMETHOD.
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
 
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
-  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
@@ -65157,6 +65147,9 @@ CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -65171,6 +65164,12 @@ CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -65229,18 +65228,6 @@ CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
         iv_longtext_name = c_longtext_name_wc ).
     ENDIF.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -65406,6 +65393,9 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -65420,6 +65410,12 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -65443,18 +65439,6 @@ CLASS zcl_abapgit_object_wdya IMPLEMENTATION.
     serialize_longtexts( ii_xml         = io_xml
                          iv_longtext_id = c_longtext_id_wdya ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -65698,6 +65682,9 @@ CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -65736,6 +65723,12 @@ CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -65853,18 +65846,6 @@ CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
                    ig_data = lt_cc_text ).
     ENDIF.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -66151,6 +66132,9 @@ CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -66165,6 +66149,12 @@ CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -66223,18 +66213,6 @@ CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
                    ig_data = lt_cc_text ).
     ENDIF.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -66705,6 +66683,9 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -66721,6 +66702,12 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -66792,18 +66779,6 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
       iv_obj_name = ms_item-obj_name
       io_xml      = io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -67038,6 +67013,9 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -67097,6 +67075,12 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
 
     rv_exit = abap_true.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -67191,18 +67175,6 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
                                   iv_extra = 'data'
                                   iv_ext   = get_ext( lt_w3params ) ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -67515,6 +67487,9 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
   ENDMETHOD.
@@ -67529,6 +67504,12 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -67619,18 +67600,6 @@ CLASS zcl_abapgit_object_view IMPLEMENTATION.
     serialize_longtexts( ii_xml         = io_xml
                          iv_longtext_id = c_longtext_id_view ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -67754,6 +67723,9 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -67844,6 +67816,12 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_vclname      TYPE vcl_name,
@@ -67888,18 +67866,6 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
     io_xml->add( iv_name = 'VCLMF_TAB'
                  ig_data = lt_vclmf ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -68364,6 +68330,9 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -68414,6 +68383,12 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     get_generic( )->serialize( io_xml ).
@@ -68422,18 +68397,6 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     serialize_docu_url( io_xml ).
     serialize_docu_usp( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -68941,6 +68904,9 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -68991,6 +68957,12 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     IF zif_abapgit_object~exists( ) = abap_false.
@@ -69002,18 +68974,6 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
     serialize_short_texts( io_xml ).
     serialize_long_texts( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -69168,6 +69128,9 @@ CLASS zcl_abapgit_object_ucsa IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -69182,6 +69145,12 @@ CLASS zcl_abapgit_object_ucsa IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -69218,18 +69187,6 @@ CLASS zcl_abapgit_object_ucsa IMPLEMENTATION.
         zcx_abapgit_exception=>raise( lv_text ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -69357,6 +69314,9 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -69371,6 +69331,12 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -69388,18 +69354,6 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
 
     zif_abapgit_object~mo_files->add_abap( lt_source ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -69497,6 +69451,9 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
   ENDMETHOD.
@@ -69514,6 +69471,12 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -69565,18 +69528,6 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
     serialize_longtexts( ii_xml         = io_xml
                          iv_longtext_id = c_longtext_id_ttyp ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -70226,6 +70177,9 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -70270,6 +70224,12 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
 
     rv_exit = abap_true.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -70320,18 +70280,6 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
       serialize_lxe_texts( io_xml ).
     ENDIF.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -70519,6 +70467,9 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
@@ -70548,6 +70499,12 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
 
     rv_exit = boolc( sy-subrc = 0 ).
 
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -70614,18 +70571,6 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
     io_xml->add( iv_name = 'TOBJ'
                  ig_data = ls_tobj ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -71867,6 +71812,9 @@ CLASS zcl_abapgit_object_sxci IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -71887,6 +71835,12 @@ CLASS zcl_abapgit_object_sxci IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -71970,18 +71924,6 @@ CLASS zcl_abapgit_object_sxci IMPLEMENTATION.
     io_xml->add( iv_name = 'SXCI'
                  ig_data = ls_classic_badi_implementation ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -72215,6 +72157,9 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -72237,6 +72182,12 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
 
     rv_exit = abap_true.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -72292,18 +72243,6 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
     serialize_longtexts( ii_xml         = io_xml
                          iv_longtext_id = c_longtext_id_suso ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -72511,6 +72450,9 @@ CLASS zcl_abapgit_object_sush IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_comparator.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -72525,6 +72467,12 @@ CLASS zcl_abapgit_object_sush IMPLEMENTATION.
                                             iv_argument    = |{ ms_item-obj_type }{ ms_item-obj_name }| ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -72602,18 +72550,6 @@ CLASS zcl_abapgit_object_sush IMPLEMENTATION.
         zcx_abapgit_exception=>raise_with_text( lx_err ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -72761,6 +72697,9 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -72785,6 +72724,12 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_tobc  TYPE tobc,
@@ -72804,18 +72749,6 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
     io_xml->add( iv_name = 'TOBCT'
                  ig_data = ls_tobct ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -72851,6 +72784,9 @@ CLASS zcl_abapgit_object_sucu IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -72867,22 +72803,16 @@ CLASS zcl_abapgit_object_sucu IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     get_generic( )->serialize( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -72961,6 +72891,9 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -73010,6 +72943,12 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_style TYPE ty_style,
@@ -73038,18 +72977,6 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
     io_xml->add( iv_name = 'STYLE'
                  ig_data = ls_style ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -73148,6 +73075,9 @@ CLASS zcl_abapgit_object_stvi IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
 
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
@@ -73169,6 +73099,12 @@ CLASS zcl_abapgit_object_stvi IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -73207,18 +73143,6 @@ CLASS zcl_abapgit_object_stvi IMPLEMENTATION.
     io_xml->add( iv_name = 'STVI'
                  ig_data = ls_transaction_variant ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -73346,6 +73270,9 @@ CLASS zcl_abapgit_object_ssst IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -73385,6 +73312,12 @@ CLASS zcl_abapgit_object_ssst IMPLEMENTATION.
 
     rv_exit = abap_true.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 * see fm SSF_DOWNLOAD_STYLE
@@ -73441,18 +73374,6 @@ CLASS zcl_abapgit_object_ssst IMPLEMENTATION.
     io_xml->add( ig_data = lt_tabstops
                  iv_name = 'STXSTAB' ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -73701,6 +73622,9 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -73782,6 +73706,12 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 * see function module FB_DOWNLOAD_FORM
 
@@ -73840,18 +73770,6 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
 
     io_xml->set_raw( li_xml_doc->get_root_element( ) ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -74254,6 +74172,9 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -74271,6 +74192,12 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -74323,18 +74250,6 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -74677,6 +74592,9 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -74694,6 +74612,12 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -74729,18 +74653,6 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
         iv_name = 'SRVB'
         ig_data = <ls_service_binding> ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -74894,6 +74806,9 @@ CLASS zcl_abapgit_object_srfc IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -74908,6 +74823,12 @@ CLASS zcl_abapgit_object_srfc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -74957,18 +74878,6 @@ CLASS zcl_abapgit_object_srfc IMPLEMENTATION.
     io_xml->add( iv_name = 'SRFC'
                  ig_data = <lg_srfc_data> ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -75096,6 +75005,9 @@ CLASS zcl_abapgit_object_sqsc IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -75110,6 +75022,12 @@ CLASS zcl_abapgit_object_sqsc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_ADT_LINK=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -75139,18 +75057,6 @@ CLASS zcl_abapgit_object_sqsc IMPLEMENTATION.
     io_xml->add( iv_name = 'SQSC'
                  ig_data = ls_proxy ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -75406,6 +75312,9 @@ CLASS zcl_abapgit_object_sprx IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -75420,6 +75329,12 @@ CLASS zcl_abapgit_object_sprx IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -75470,18 +75385,6 @@ CLASS zcl_abapgit_object_sprx IMPLEMENTATION.
         ig_data = ls_sprx_db_data-sproxdat ).
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
-  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_sppf IMPLEMENTATION.
@@ -75520,6 +75423,9 @@ CLASS zcl_abapgit_object_sppf IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -75536,22 +75442,16 @@ CLASS zcl_abapgit_object_sppf IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     get_generic( )->serialize( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -75610,6 +75510,9 @@ CLASS zcl_abapgit_object_splo IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -75623,6 +75526,12 @@ CLASS zcl_abapgit_object_splo IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -75653,18 +75562,6 @@ CLASS zcl_abapgit_object_splo IMPLEMENTATION.
     io_xml->add( iv_name = 'TSP0P'
                  ig_data = ls_tsp0p ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -75939,6 +75836,9 @@ CLASS zcl_abapgit_object_sots IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -75953,6 +75853,12 @@ CLASS zcl_abapgit_object_sots IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -75981,18 +75887,6 @@ CLASS zcl_abapgit_object_sots IMPLEMENTATION.
     io_xml->add( iv_name = 'SOTS'
                  ig_data = lt_sots ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -76152,6 +76046,9 @@ CLASS zcl_abapgit_object_sobj IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -76167,22 +76064,16 @@ CLASS zcl_abapgit_object_sobj IMPLEMENTATION.
   METHOD zif_abapgit_object~jump.
     "No need as GENERIC class already handles it
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     get_generic( )->serialize( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -76476,6 +76367,9 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
@@ -76491,6 +76385,12 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -76528,18 +76428,6 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -76751,6 +76639,9 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -76765,6 +76656,12 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -76822,18 +76719,6 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
     io_xml->add( iv_name = 'CLASS'
                  ig_data = lv_class ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -77284,6 +77169,9 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -77331,6 +77219,12 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_icfservice TYPE icfservice,
@@ -77370,18 +77264,6 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
     " OTR long texts
     serialize_otr( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -77568,6 +77450,9 @@ CLASS zcl_abapgit_object_shma IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -77609,6 +77494,12 @@ CLASS zcl_abapgit_object_shma IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_area_name       TYPE shm_area_name,
@@ -77637,18 +77528,6 @@ CLASS zcl_abapgit_object_shma IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |Error serializing SHMA { ms_item-obj_name }| ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -77794,6 +77673,9 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -77809,6 +77691,12 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -77873,18 +77761,6 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
     io_xml->add( ig_data = lt_dd33v
                  iv_name = 'DD33V_TABLE' ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -77960,6 +77836,9 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -77973,6 +77852,12 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -77999,18 +77884,6 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
     io_xml->add( iv_name = 'SHI8'
                  ig_data = ls_assignment_data ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -78153,6 +78026,9 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -78181,6 +78057,12 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_extension TYPE ty_extension.
@@ -78202,18 +78084,6 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
     io_xml->add( iv_name = 'SHI5'
                  ig_data = ls_extension ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -78511,6 +78381,9 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -78542,6 +78415,12 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
         rv_exit = abap_true.
     ENDCASE.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -78621,18 +78500,6 @@ CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
       serialize_lxe_texts( io_xml ).
     ENDIF.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -78809,6 +78676,9 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -78824,6 +78694,12 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -78870,18 +78746,6 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
     serialize_longtexts( ii_xml         = io_xml
                          iv_longtext_id = c_longtext_id_sfsw ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -78985,6 +78849,9 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -79009,6 +78876,12 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_xstr     TYPE xstring,
@@ -79018,18 +78891,6 @@ CLASS zcl_abapgit_object_sfpi IMPLEMENTATION.
     zcl_abapgit_object_sfpf=>fix_oref( li_document ).
     io_xml->set_raw( li_document->get_root_element( ) ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -79277,6 +79138,9 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -79300,6 +79164,12 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -79333,18 +79203,6 @@ CLASS zcl_abapgit_object_sfpf IMPLEMENTATION.
     fix_oref( li_document ).
     io_xml->set_raw( li_document->get_root_element( ) ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -79520,6 +79378,9 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -79535,6 +79396,12 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -79585,18 +79452,6 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
     serialize_longtexts( ii_xml         = io_xml
                          iv_longtext_id = c_longtext_id_sfbs ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -79790,6 +79645,9 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -79807,6 +79665,12 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -79872,18 +79736,6 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
     serialize_longtexts( ii_xml         = io_xml
                          iv_longtext_id = c_longtext_id_sfbf ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -79980,6 +79832,9 @@ CLASS zcl_abapgit_object_scvi IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -79999,6 +79854,12 @@ CLASS zcl_abapgit_object_scvi IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -80042,18 +79903,6 @@ CLASS zcl_abapgit_object_scvi IMPLEMENTATION.
     io_xml->add( iv_name = 'SCVI'
                  ig_data = ls_screen_variant ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -80359,6 +80208,9 @@ CLASS zcl_abapgit_object_scp1 IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
@@ -80391,6 +80243,12 @@ CLASS zcl_abapgit_object_scp1 IMPLEMENTATION.
 
     rv_exit = abap_true.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -80433,18 +80291,6 @@ CLASS zcl_abapgit_object_scp1 IMPLEMENTATION.
       iv_name = 'SCP1'
       ig_data  = ls_scp1 ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -80680,6 +80526,9 @@ CLASS zcl_abapgit_object_saxx_super IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -80696,6 +80545,12 @@ CLASS zcl_abapgit_object_saxx_super IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -80755,18 +80610,6 @@ CLASS zcl_abapgit_object_saxx_super IMPLEMENTATION.
     io_xml->add( iv_name = ms_item-obj_type
                  ig_data = <lg_data> ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -81036,6 +80879,9 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -81060,6 +80906,12 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
 * see SAP note 1025291, run report DELETE_TADIR_FOR_EIMP_INCLUDE to clean bad TADIR entries
@@ -81079,18 +80931,6 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
     serialize_longtexts( ii_xml         = io_xml
                          iv_longtext_id = c_longtext_id_prog ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -81169,6 +81009,9 @@ CLASS zcl_abapgit_object_prag IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -81183,6 +81026,12 @@ CLASS zcl_abapgit_object_prag IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -81204,18 +81053,6 @@ CLASS zcl_abapgit_object_prag IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |Pragma { ms_item-obj_name } doesn't exist| ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -81670,6 +81507,9 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -81692,6 +81532,12 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -81741,18 +81587,6 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
     io_xml->add( ig_data = ls_pinf
                  iv_name = 'PINF' ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -81854,6 +81688,9 @@ CLASS zcl_abapgit_object_pers IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
@@ -81896,6 +81733,12 @@ CLASS zcl_abapgit_object_pers IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA:
@@ -81917,18 +81760,6 @@ CLASS zcl_abapgit_object_pers IMPLEMENTATION.
     io_xml->add( iv_name = 'PERS'
                  ig_data = ls_personalization_object ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -81994,6 +81825,9 @@ CLASS zcl_abapgit_object_pdxx_super IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -82010,6 +81844,12 @@ CLASS zcl_abapgit_object_pdxx_super IMPLEMENTATION.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
     ASSERT 1 = 2. "Must be redefined
   ENDMETHOD.
@@ -82022,17 +81862,7 @@ CLASS zcl_abapgit_object_pdxx_super IMPLEMENTATION.
     ms_objkey-objid = ms_item-obj_name.
 
   ENDMETHOD.
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
 
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
-  ENDMETHOD.
 ENDCLASS.
 
 CLASS kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ DEFINITION DEFERRED.
@@ -82695,6 +82525,9 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
   ENDMETHOD.
@@ -82718,6 +82551,12 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -82747,18 +82586,6 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
       serialize_lxe_texts( io_xml ).
     ENDIF.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -82935,6 +82762,9 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -82950,6 +82780,12 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
     DATA: lv_text      TYPE string,
@@ -83091,18 +82927,6 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
                    ig_data = <lt_parents> ).
     ENDIF.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -83314,6 +83138,9 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -83355,6 +83182,12 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -83434,18 +83267,6 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
     io_xml->add( iv_name = 'INDEX_IOBJ'
                  ig_data = <lt_index_iobj> ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -83573,6 +83394,9 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -83604,6 +83428,12 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -83665,18 +83495,6 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
 
     io_xml->add( iv_name = 'PROFILE'
                  ig_data = <ls_profile_data> ).
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -83876,6 +83694,9 @@ CLASS zcl_abapgit_object_nspc IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -83915,6 +83736,12 @@ CLASS zcl_abapgit_object_nspc IMPLEMENTATION.
     rv_exit = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA:
@@ -83935,18 +83762,6 @@ CLASS zcl_abapgit_object_nspc IMPLEMENTATION.
 
     serialize_texts( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -84120,6 +83935,9 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
@@ -84159,6 +83977,12 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: lv_object     TYPE tnro-object,
@@ -84187,18 +84011,6 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
     io_xml->add( iv_name = 'TEXT'
                  ig_data = ls_text ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -84574,6 +84386,9 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -84597,6 +84412,12 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -84635,18 +84456,6 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
       serialize_lxe_texts( io_xml ).
     ENDIF.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -84736,6 +84545,9 @@ CLASS zcl_abapgit_object_jobd IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -84769,6 +84581,12 @@ CLASS zcl_abapgit_object_jobd IMPLEMENTATION.
 
     rv_exit = abap_true.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -84821,18 +84639,6 @@ CLASS zcl_abapgit_object_jobd IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |Error serializing JOBD| ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -84900,6 +84706,9 @@ CLASS zcl_abapgit_object_iwvb IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -84924,22 +84733,16 @@ CLASS zcl_abapgit_object_iwvb IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     get_generic( )->serialize( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -85007,6 +84810,9 @@ CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -85050,22 +84856,16 @@ CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     get_generic( )->serialize( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -85129,6 +84929,9 @@ CLASS zcl_abapgit_object_iwsg IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -85145,22 +84948,16 @@ CLASS zcl_abapgit_object_iwsg IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     get_generic( )->serialize( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -85216,6 +85013,9 @@ CLASS zcl_abapgit_object_iwpr IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -85239,22 +85039,16 @@ CLASS zcl_abapgit_object_iwpr IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     get_generic( )->serialize( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -85310,6 +85104,9 @@ CLASS zcl_abapgit_object_iwom IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -85326,22 +85123,16 @@ CLASS zcl_abapgit_object_iwom IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     get_generic( )->serialize( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -85409,6 +85200,9 @@ CLASS zcl_abapgit_object_iwmo IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -85452,22 +85246,16 @@ CLASS zcl_abapgit_object_iwmo IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     get_generic( )->serialize( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -85712,6 +85500,9 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -85765,6 +85556,12 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -85878,18 +85675,6 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
     io_xml->add( iv_name = 'XXL_ATTRIBUTES'
                  ig_data = <lt_xxlattributes> ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -86931,6 +86716,9 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-early TO rt_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
@@ -86955,6 +86743,12 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -86981,18 +86775,6 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
     zif_abapgit_object~mo_files->add_abap( lt_source ).
 
     serialize_xml( io_xml ).
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -87083,6 +86865,9 @@ CLASS zcl_abapgit_object_iext IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -87125,6 +86910,12 @@ CLASS zcl_abapgit_object_iext IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA ls_extension           TYPE ty_extention.
@@ -87148,18 +86939,6 @@ CLASS zcl_abapgit_object_iext IMPLEMENTATION.
     io_xml->add( iv_name = c_dataname_iext
                  ig_data = ls_extension ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -87287,6 +87066,9 @@ CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -87329,6 +87111,12 @@ CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_idoc TYPE ty_idoc.
@@ -87355,18 +87143,6 @@ CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
     io_xml->add( iv_name = 'IDOC'
                  ig_data = ls_idoc ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -87569,6 +87345,9 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -87584,6 +87363,12 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_attr TYPE w3tempattr.
@@ -87596,18 +87381,6 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
     io_xml->add( iv_name = 'ATTR'
                  ig_data = ls_attr ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -87878,6 +87651,9 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -87892,6 +87668,12 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -87911,18 +87693,6 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
       iv_ext    = 'html'
       iv_string = lv_source ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -88156,6 +87926,9 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -88170,6 +87943,12 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -88187,18 +87966,6 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
     io_xml->add( iv_name = 'PARAMETERS'
                  ig_data = lt_parameters ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -88450,6 +88217,9 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -88464,6 +88234,12 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -88481,18 +88257,6 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
     io_xml->add( iv_name = 'PARAMETERS'
                  ig_data = lt_parameters ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -88711,6 +88475,9 @@ CLASS zcl_abapgit_object_iamu IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -88730,6 +88497,12 @@ CLASS zcl_abapgit_object_iamu IMPLEMENTATION.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_internet_appl_comp_binary TYPE ty_internet_appl_comp_binary.
@@ -88739,18 +88512,6 @@ CLASS zcl_abapgit_object_iamu IMPLEMENTATION.
     io_xml->add( iv_name = 'IAMU'
                  ig_data = ls_internet_appl_comp_binary ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -88836,6 +88597,9 @@ CLASS zcl_abapgit_object_g4bs IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -88852,22 +88616,16 @@ CLASS zcl_abapgit_object_g4bs IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     get_generic( )->serialize( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -88950,6 +88708,9 @@ CLASS zcl_abapgit_object_g4ba IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -88966,22 +88727,16 @@ CLASS zcl_abapgit_object_g4ba IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     get_generic( )->serialize( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -89996,6 +89751,9 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -90025,6 +89783,12 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -90076,18 +89840,6 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
                              it_functions = lt_functions
                              ii_xml       = io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -90188,6 +89940,9 @@ CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
@@ -90203,6 +89958,12 @@ CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -90241,18 +90002,6 @@ CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
         iv_name = 'FTGL'
         ig_data = <lg_toggle> ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -90455,6 +90204,9 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -90502,6 +90254,12 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
 
     rv_exit = abap_true.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -90646,18 +90404,6 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
         lv_firstloop = abap_false.
       ENDLOOP.
     ENDLOOP.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -91206,6 +90952,9 @@ CLASS zcl_abapgit_object_fdt0 IMPLEMENTATION.
         ii_local = lo_local_version_input.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -91275,6 +91024,12 @@ CLASS zcl_abapgit_object_fdt0 IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA lo_dexc TYPE REF TO if_fdt_data_exchange.
@@ -91308,18 +91063,6 @@ CLASS zcl_abapgit_object_fdt0 IMPLEMENTATION.
         zcx_abapgit_exception=>raise_with_text( lx_fdt_input ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -91457,6 +91200,9 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -91473,6 +91219,12 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -91519,18 +91271,6 @@ CLASS zcl_abapgit_object_ensc IMPLEMENTATION.
         zcx_abapgit_exception=>raise( lv_message ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -91607,6 +91347,9 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
   ENDMETHOD.
@@ -91623,6 +91366,12 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -91700,18 +91449,6 @@ CLASS zcl_abapgit_object_enqu IMPLEMENTATION.
       CLEAR <ls_dd27p>-signflag.
     ENDLOOP.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -91837,6 +91574,9 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -91853,6 +91593,12 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -91883,18 +91629,6 @@ CLASS zcl_abapgit_object_enhs IMPLEMENTATION.
       io_xml      = io_xml
       iv_language = mv_language ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -92049,6 +91783,9 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -92072,6 +91809,12 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -92106,18 +91849,6 @@ CLASS zcl_abapgit_object_enho IMPLEMENTATION.
       io_xml      = io_xml
       iv_language = mv_language ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -92246,6 +91977,9 @@ CLASS zcl_abapgit_object_enhc IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -92269,6 +92003,12 @@ CLASS zcl_abapgit_object_enhc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -92303,18 +92043,6 @@ CLASS zcl_abapgit_object_enhc IMPLEMENTATION.
         zcx_abapgit_exception=>raise_with_text( lx_enh_root ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -92791,6 +92519,9 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -92814,6 +92545,12 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -92849,18 +92586,6 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
         MESSAGE lv_text TYPE 'S' DISPLAY LIKE 'E'.
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -93093,6 +92818,9 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
   ENDMETHOD.
@@ -93108,6 +92836,12 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 * fm DDIF_DTEL_GET bypasses buffer, so SELECTs are
@@ -93175,18 +92909,6 @@ CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
                          iv_longtext_name = 'LONGTEXTS_' && c_longtext_id_dtel_suppl
                          iv_longtext_id   = c_longtext_id_dtel_suppl ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -93507,6 +93229,9 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
   ENDMETHOD.
@@ -93524,6 +93249,12 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -93570,18 +93301,6 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
         iv_ext    = 'asdtdc'
         iv_string = lv_source ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -93706,6 +93425,9 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -93738,6 +93460,12 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
     rv_exit = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     zcl_abapgit_factory=>get_longtexts( )->serialize(
@@ -93745,18 +93473,6 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
       iv_longtext_id = c_id
       ii_xml         = io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -94068,6 +93784,9 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
   ENDMETHOD.
@@ -94085,6 +93804,12 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -94131,18 +93856,6 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
         iv_ext    = 'asdrul'
         iv_string = lv_source ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -94490,6 +94203,9 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
@@ -94506,6 +94222,12 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECT=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -94581,18 +94303,6 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
     serialize_longtexts( ii_xml         = io_xml
                          iv_longtext_id = c_longtext_id_doma ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -94699,6 +94409,9 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -94712,6 +94425,12 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -94730,18 +94449,6 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
     io_xml->add( iv_name = c_name
                  ig_data = ls_data ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -94805,6 +94512,9 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -94855,6 +94565,12 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     mi_longtexts->serialize(
@@ -94863,18 +94579,6 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
         iv_longtext_id = c_id
         ii_xml         = io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -94981,6 +94685,9 @@ CLASS zcl_abapgit_object_dial IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -95012,6 +94719,12 @@ CLASS zcl_abapgit_object_dial IMPLEMENTATION.
     rv_exit = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA ls_dialog_module TYPE ty_dialog_module.
@@ -95037,18 +94750,6 @@ CLASS zcl_abapgit_object_dial IMPLEMENTATION.
            INTO rs_tdct
            WHERE dnam = lv_dnam.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -95664,6 +95365,9 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -95687,6 +95391,12 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
     DATA: ls_package_data TYPE scompkdtln,
@@ -95813,18 +95523,6 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
       io_xml->add( iv_name = 'PERMISSION'
                    ig_data = lt_usage_data ).
     ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -96047,6 +95745,9 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -96064,6 +95765,12 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_ADT_LINK=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -96135,18 +95842,6 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -96461,6 +96156,9 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-ddic TO rt_steps.
   ENDMETHOD.
@@ -96494,6 +96192,12 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
       rv_exit = abap_true.
     ENDIF.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -96589,18 +96293,6 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
     io_xml->add( iv_name = 'DDLS'
                  ig_data = <lg_data> ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -96725,6 +96417,9 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
@@ -96742,6 +96437,12 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_ADT_LINK=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -96810,18 +96511,6 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
         zcx_abapgit_exception=>raise_with_text( lx_error ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -96893,6 +96582,9 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -96906,6 +96598,12 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -96934,18 +96632,6 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
     io_xml->add( iv_name = 'CUS2'
                  ig_data = ls_customizing_attribute ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -97040,6 +96726,9 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -97076,6 +96765,12 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_customzing_activity TYPE ty_customzing_activity.
@@ -97107,18 +96802,6 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
     io_xml->add( iv_name = 'CUS1'
                  ig_data = ls_customzing_activity ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -97207,6 +96890,9 @@ CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -97233,6 +96919,12 @@ CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
         img_activity = lv_img_activity.
 
     rv_exit = abap_true.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -97262,18 +96954,6 @@ CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
     io_xml->add( iv_name = 'CUS0'
                  ig_data = ls_img_activity ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -97410,6 +97090,9 @@ CLASS zcl_abapgit_object_cmpt IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -97426,6 +97109,12 @@ CLASS zcl_abapgit_object_cmpt IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -97450,18 +97139,6 @@ CLASS zcl_abapgit_object_cmpt IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'CMPT not supported' ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -97574,6 +97251,9 @@ CLASS zcl_abapgit_object_cmod IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -97587,6 +97267,12 @@ CLASS zcl_abapgit_object_cmod IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -97629,18 +97315,6 @@ CLASS zcl_abapgit_object_cmod IMPLEMENTATION.
                    ig_data = lt_modattr ).
     ENDIF.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -98329,6 +98003,9 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-early TO rt_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
@@ -98348,6 +98025,12 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -98415,18 +98098,6 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     serialize_xml( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -98677,6 +98348,9 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -98716,6 +98390,12 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
 
     rv_exit = abap_true.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -98769,18 +98449,6 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
     io_xml->add( iv_name = 'CHDO'
                  ig_data = ls_change_object ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -98966,6 +98634,9 @@ CLASS zcl_abapgit_object_char IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -98983,6 +98654,12 @@ CLASS zcl_abapgit_object_char IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -99026,18 +98703,6 @@ CLASS zcl_abapgit_object_char IMPLEMENTATION.
     serialize_longtexts( ii_xml         = io_xml
                          iv_longtext_id = c_longtext_id_char ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -99483,6 +99148,9 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -99500,6 +99168,12 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -99547,18 +99221,6 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
         iv_ext    = 'asbdef'
         iv_string = lv_source ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -99678,6 +99340,9 @@ CLASS zcl_abapgit_object_avas IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -99697,6 +99362,12 @@ CLASS zcl_abapgit_object_avas IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -99727,18 +99398,6 @@ CLASS zcl_abapgit_object_avas IMPLEMENTATION.
       iv_name = 'AVAS'
       ig_data = ls_avas ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -99874,6 +99533,9 @@ CLASS zcl_abapgit_object_avar IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -99889,6 +99551,12 @@ CLASS zcl_abapgit_object_avar IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -99917,18 +99585,6 @@ CLASS zcl_abapgit_object_avar IMPLEMENTATION.
     io_xml->add( iv_name = 'IDS'
                  ig_data = lt_ids ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -100021,6 +99677,9 @@ CLASS zcl_abapgit_object_auth IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -100049,6 +99708,12 @@ CLASS zcl_abapgit_object_auth IMPLEMENTATION.
       rv_exit = abap_true.
     ENDIF.
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     DATA: ls_authx TYPE authx.
@@ -100061,18 +99726,6 @@ CLASS zcl_abapgit_object_auth IMPLEMENTATION.
     io_xml->add( iv_name = 'AUTHX'
                  ig_data = ls_authx ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -100112,6 +99765,9 @@ CLASS zcl_abapgit_object_asfc IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -100128,22 +99784,16 @@ CLASS zcl_abapgit_object_asfc IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     get_generic( )->serialize( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -100255,6 +99905,9 @@ CLASS zcl_abapgit_object_area IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -100302,6 +99955,12 @@ CLASS zcl_abapgit_object_area IMPLEMENTATION.
     rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ERSDAREA' ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -100367,18 +100026,6 @@ CLASS zcl_abapgit_object_area IMPLEMENTATION.
                  ig_data = <lv_txtlg> ).
 
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
-  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_aqsg IMPLEMENTATION.
@@ -100421,6 +100068,9 @@ CLASS zcl_abapgit_object_aqsg IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
@@ -100455,20 +100105,14 @@ CLASS zcl_abapgit_object_aqsg IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
-  METHOD zif_abapgit_object~serialize.
-    get_generic( )->serialize( io_xml ).
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
   METHOD zif_abapgit_object~map_filename_to_object.
     RETURN.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~map_object_to_filename.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+    get_generic( )->serialize( io_xml ).
   ENDMETHOD.
 ENDCLASS.
 
@@ -100512,6 +100156,9 @@ CLASS zcl_abapgit_object_aqqu IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
@@ -100546,20 +100193,14 @@ CLASS zcl_abapgit_object_aqqu IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
-  METHOD zif_abapgit_object~serialize.
-    get_generic( )->serialize( io_xml ).
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
   METHOD zif_abapgit_object~map_filename_to_object.
     RETURN.
   ENDMETHOD.
-
   METHOD zif_abapgit_object~map_object_to_filename.
     RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~serialize.
+    get_generic( )->serialize( io_xml ).
   ENDMETHOD.
 ENDCLASS.
 
@@ -100627,6 +100268,9 @@ CLASS zcl_abapgit_object_aqbg IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
@@ -100663,22 +100307,16 @@ CLASS zcl_abapgit_object_aqbg IMPLEMENTATION.
     rv_exit = abap_true.
 
   ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
     get_generic( )->serialize( io_xml ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -100930,6 +100568,9 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -100947,6 +100588,12 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -100981,18 +100628,6 @@ CLASS zcl_abapgit_object_amsd IMPLEMENTATION.
         iv_name = 'AMSD'
         ig_data = <ls_logical_db_schema> ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -101268,6 +100903,9 @@ CLASS zcl_abapgit_object_aifc IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -101302,6 +100940,12 @@ CLASS zcl_abapgit_object_aifc IMPLEMENTATION.
 
     rv_exit = abap_true.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
     DATA: lx_root TYPE REF TO cx_root.
@@ -101442,18 +101086,6 @@ CLASS zcl_abapgit_object_aifc IMPLEMENTATION.
         zcx_abapgit_exception=>raise_with_text( lx_root ).
     ENDTRY.
   ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
-  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_acid IMPLEMENTATION.
@@ -101570,6 +101202,9 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -101586,6 +101221,12 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
+    RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
 
@@ -101604,18 +101245,6 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
     io_xml->add( iv_name = 'DESCRIPTION'
                  ig_data = lv_description ).
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -110907,6 +110536,9 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
   METHOD zif_abapgit_object~get_comparator.
     RETURN.
   ENDMETHOD.
+  METHOD zif_abapgit_object~get_deserialize_order.
+    RETURN.
+  ENDMETHOD.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
@@ -110927,6 +110559,12 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
                                             iv_argument    = lv_argument ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_filename_to_object.
+    RETURN.
+  ENDMETHOD.
+  METHOD zif_abapgit_object~map_object_to_filename.
     RETURN.
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -111087,18 +110725,6 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
         zcx_abapgit_exception=>raise_with_text( lx_exception ).
     ENDTRY.
 
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~get_deserialize_order.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
   ENDMETHOD.
 ENDCLASS.
 
@@ -123196,6 +122822,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-20T14:20:56.998Z
+* abapmerge 0.15.0 - 2023-04-20T15:34:55.074Z
 ENDINTERFACE.
 ****************************************************
