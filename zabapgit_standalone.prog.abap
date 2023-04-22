@@ -52305,6 +52305,7 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
           lv_act   TYPE string,
           lv_style TYPE string,
           lv_title TYPE string.
+    DATA lv_mode TYPE tabname.
 
     lv_class = iv_class.
 
@@ -52355,6 +52356,14 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
 
     IF iv_title IS NOT INITIAL.
       lv_title = | title="{ iv_title }"|.
+    ENDIF.
+
+    " Debug option to display href-link on hover
+    GET PARAMETER ID 'DBT' FIELD lv_mode.
+    IF lv_mode = 'HREF'.
+      lv_title = | title="{ escape(
+        val    = lv_href
+        format = cl_abap_format=>e_html_attr ) }"|.
     ENDIF.
 
     rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }{ lv_title }>|
@@ -122822,6 +122831,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-20T15:34:55.074Z
+* abapmerge 0.15.0 - 2023-04-22T11:18:38.120Z
 ENDINTERFACE.
 ****************************************************
