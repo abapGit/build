@@ -3363,6 +3363,12 @@ INTERFACE zif_abapgit_cts_api .
       customizing TYPE c LENGTH 4 VALUE 'CUST',
     END OF c_transport_category.
 
+  CONSTANTS:
+    BEGIN OF c_transport_mode,
+      insert TYPE c LENGTH 1 VALUE 'I',
+      delete TYPE c LENGTH 1 VALUE 'D',
+    END OF c_transport_mode.
+
   TYPES: BEGIN OF ty_transport,
            obj_type TYPE tadir-object,
            obj_name TYPE tadir-obj_name,
@@ -3429,6 +3435,20 @@ INTERFACE zif_abapgit_cts_api .
       it_table_upd TYPE ANY TABLE
       it_table_del TYPE ANY TABLE
       iv_tabname   TYPE tabname
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS insert_transport_object
+    IMPORTING
+      iv_pgmid    TYPE tadir-pgmid DEFAULT 'R3TR'
+      iv_object   TYPE tadir-object
+      iv_obj_name TYPE csequence
+      iv_package  TYPE devclass
+      iv_language TYPE sy-langu DEFAULT sy-langu
+      iv_mode     TYPE c DEFAULT 'I'
+    EXPORTING
+      ev_object   TYPE tadir-object
+      ev_obj_name TYPE trobj_name
     RAISING
       zcx_abapgit_exception.
 
@@ -60533,7 +60553,7 @@ CLASS ZCL_ABAPGIT_PERSIST_BACKGROUND IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
+CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   METHOD constructor.
     ms_item = is_item.
     ASSERT NOT ms_item IS INITIAL.
@@ -60542,8 +60562,8 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
   ENDMETHOD.
   METHOD corr_insert.
 
-    DATA: lv_object       TYPE string,
-          lv_object_class TYPE string.
+    DATA: lv_object       TYPE trobj_name,
+          lv_object_class TYPE tadir-object.
 
     IF ig_object_class IS NOT INITIAL.
       lv_object_class = ig_object_class.
@@ -60557,23 +60577,11 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
       lv_object       = ms_item-obj_name.
     ENDIF.
 
-    CALL FUNCTION 'RS_CORR_INSERT'
-      EXPORTING
-        object              = lv_object
-        object_class        = lv_object_class
-        devclass            = iv_package
-        master_language     = mv_language
-        global_lock         = abap_true
-        mode                = 'I'
-        suppress_dialog     = abap_true
-      EXCEPTIONS
-        cancelled           = 1
-        permission_failure  = 2
-        unknown_objectclass = 3
-        OTHERS              = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    zcl_abapgit_factory=>get_cts_api( )->insert_transport_object(
+      iv_object   = lv_object_class
+      iv_obj_name = lv_object
+      iv_package  = iv_package
+      iv_language = mv_language ).
 
   ENDMETHOD.
   METHOD delete_ddic.
@@ -60841,7 +60849,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
+CLASS zcl_abapgit_objects_program IMPLEMENTATION.
   METHOD add_tpool.
 
     FIELD-SYMBOLS: <ls_tpool_in>  LIKE LINE OF it_tpool,
@@ -61096,22 +61104,11 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
       lv_progname TYPE reposrc-progname,
       lv_title    TYPE rglif-title.
 
-    CALL FUNCTION 'RS_CORR_INSERT'
-      EXPORTING
-        object              = is_progdir-name
-        object_class        = 'ABAP'
-        devclass            = iv_package
-        master_language     = mv_language
-        mode                = 'I'
-        suppress_dialog     = abap_true
-      EXCEPTIONS
-        cancelled           = 1
-        permission_failure  = 2
-        unknown_objectclass = 3
-        OTHERS              = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    zcl_abapgit_factory=>get_cts_api( )->insert_transport_object(
+      iv_object   = 'ABAP'
+      iv_obj_name = is_progdir-name
+      iv_package  = iv_package
+      iv_language = mv_language ).
 
     lv_title = get_program_title( it_tpool ).
 
@@ -61725,7 +61722,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_PROGRAM IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
+CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
   METHOD after_import.
 
     DATA: lt_cts_object_entry TYPE STANDARD TABLE OF e071 WITH DEFAULT KEY,
@@ -61839,23 +61836,11 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
   METHOD corr_insert.
 
 * this will also insert into TADIR
-    CALL FUNCTION 'RS_CORR_INSERT'
-      EXPORTING
-        object              = ms_item-obj_name
-        object_class        = ms_item-obj_type
-        mode                = 'I'
-        global_lock         = abap_true
-        devclass            = iv_package
-        master_language     = mv_language
-        suppress_dialog     = abap_true
-      EXCEPTIONS
-        cancelled           = 1
-        permission_failure  = 2
-        unknown_objectclass = 3
-        OTHERS              = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    zcl_abapgit_factory=>get_cts_api( )->insert_transport_object(
+      iv_object   = ms_item-obj_type
+      iv_obj_name = ms_item-obj_name
+      iv_package  = iv_package
+      iv_language = mv_language ).
 
   ENDMETHOD.
   METHOD delete.
@@ -63758,6 +63743,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
 
     lv_del_concname = ls_enqueue-objname.
     lv_del_concname+16 = ls_enqueue-secname.
+
     CALL FUNCTION 'DD_OBJ_DEL'
       EXPORTING
         object_name = lv_del_concname
@@ -63788,6 +63774,7 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
     ENDIF.
 
     ls_e071-object = ls_enqueue-objtype.
+
     CALL FUNCTION 'RS_DELETE_FROM_WORKING_AREA'
       EXPORTING
         object                 = ls_e071-object
@@ -63796,8 +63783,8 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
         actualize_working_area = 'X'.
 
     xinx_delete_docu(
-        iv_objname = mv_name
-        iv_id      = mv_id ).
+      iv_objname = mv_name
+      iv_id      = mv_id ).
 
     CALL FUNCTION 'RS_TREE_OBJECT_PLACEMENT'
       EXPORTING
@@ -67703,27 +67690,10 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
         vclstrudep_tab = lt_vclstrudep
         vclmf_tab      = lt_vclmf.
 
-    CALL FUNCTION 'RS_CORR_INSERT'
-      EXPORTING
-        object              = ms_item-obj_name
-        object_class        = ms_item-obj_type
-        devclass            = iv_package
-        master_language     = mv_language
-        mode                = 'INSERT'
-        global_lock         = abap_true
-        suppress_dialog     = abap_true
-      EXCEPTIONS
-        cancelled           = 1
-        permission_failure  = 2
-        unknown_objectclass = 3
-        OTHERS              = 4.
-    IF sy-subrc = 1.
-      zcx_abapgit_exception=>raise( 'Cancelled' ).
-    ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    corr_insert( iv_package ).
 
     lv_objectname = ls_vcldir_entry-vclname.
+
     CALL FUNCTION 'OBJ_GENERATE'
       EXPORTING
         iv_objectname         = lv_objectname
@@ -68517,30 +68487,20 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
   ENDMETHOD.
   METHOD corr_insert.
 
+    DATA lv_obj_name TYPE tadir-obj_name.
+
     " You are reminded that SUDM - Data Model has no part objects e.g. no LIMU
     " Therefore global lock is always appropriate
 
     " You are reminded that the main language (in TADIR) is taken from MV_LANGUAGE.
+    lv_obj_name = ms_object_type.
 
-    CALL FUNCTION 'RS_CORR_INSERT'
-      EXPORTING
-        object              = ms_object_type
-        object_class        = c_transport_object_class
-        devclass            = iv_package
-        master_language     = mv_language
-        mode                = 'I'
-        global_lock         = abap_true
-        suppress_dialog     = abap_true
-      EXCEPTIONS
-        cancelled           = 1
-        permission_failure  = 2
-        unknown_objectclass = 3
-        OTHERS              = 4.
-    IF sy-subrc = 1.
-      zcx_abapgit_exception=>raise( 'Cancelled' ).
-    ELSEIF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    zcl_abapgit_factory=>get_cts_api( )->insert_transport_object(
+      iv_object   = c_transport_object_class
+      iv_obj_name = lv_obj_name
+      iv_package  = iv_package
+      iv_language = mv_language ).
+
   ENDMETHOD.
   METHOD deserialize_entities.
 
@@ -80504,24 +80464,7 @@ CLASS zcl_abapgit_object_saxx_super IMPLEMENTATION.
     TRY.
         lock( ).
 
-        CALL FUNCTION 'RS_CORR_INSERT'
-          EXPORTING
-            object              = ms_item-obj_name
-            object_class        = ms_item-obj_type
-            mode                = 'I'
-            global_lock         = abap_true
-            devclass            = iv_package
-            master_language     = mv_language
-            suppress_dialog     = abap_true
-          EXCEPTIONS
-            cancelled           = 1
-            permission_failure  = 2
-            unknown_objectclass = 3
-            OTHERS              = 4.
-
-        IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( |Error occured while creating { ms_item-obj_type }| ).
-        ENDIF.
+        corr_insert( iv_package ).
 
         mi_appl_obj_data->set_data( <lg_data> ).
 
@@ -82462,37 +82405,24 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'PARA: Parameter is still used' ).
       ENDIF.
     ENDIF.
-    CALL FUNCTION 'RS_CORR_INSERT'
-      EXPORTING
-        global_lock         = abap_true
-        object              = lv_paramid
-        object_class        = 'PARA'
-        mode                = 'D'
-        suppress_dialog     = abap_true
-      IMPORTING
-        transport_key       = ls_transpkey
-      EXCEPTIONS
-        cancelled           = 01
-        permission_failure  = 02
-        unknown_objectclass = 03.
-
-    IF sy-subrc = 0.
-      DELETE FROM tpara WHERE paramid = lv_paramid.
-      DELETE FROM tparat WHERE paramid = lv_paramid.
-
-      IF sy-subrc = 0.
-        CALL FUNCTION 'RS_TREE_OBJECT_PLACEMENT'
-          EXPORTING
-            object    = lv_paramid
-            operation = 'DELETE'
-            type      = 'CR'.
-      ENDIF.
-    ELSE.
-      unlock( lv_paramid ).
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
 
     unlock( lv_paramid ).
+
+    zcl_abapgit_factory=>get_cts_api( )->insert_transport_object(
+      iv_object   = 'PARA'
+      iv_obj_name = lv_paramid
+      iv_package  = iv_package
+      iv_language = mv_language
+      iv_mode     = zif_abapgit_cts_api=>c_transport_mode-delete ).
+
+    DELETE FROM tpara WHERE paramid = lv_paramid.
+    DELETE FROM tparat WHERE paramid = lv_paramid.
+
+    CALL FUNCTION 'RS_TREE_OBJECT_PLACEMENT'
+      EXPORTING
+        object    = lv_paramid
+        operation = 'DELETE'
+        type      = 'CR'.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -84275,8 +84205,7 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
   METHOD zif_abapgit_object~delete.
     DATA: ls_t100a          TYPE t100a,
           lv_frozen         TYPE abap_bool,
-          lv_message_id     TYPE arbgb,
-          lv_access_granted TYPE abap_bool.
+          lv_message_id     TYPE arbgb.
 
 * parameter SUPPRESS_DIALOG doesnt exist in all versions of FM RS_DELETE_MESSAGE_ID
 * replaced with a copy
@@ -84307,31 +84236,16 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    lv_access_granted = abap_true.
-
-    CALL FUNCTION 'RS_CORR_INSERT'
-      EXPORTING
-        global_lock        = 'X'
-        object             = lv_message_id
-        object_class       = 'MSAG'
-        mode               = 'D'
-        suppress_dialog    = abap_true
-      EXCEPTIONS
-        cancelled          = 01
-        permission_failure = 02.
-
-    IF sy-subrc <> 0.
-      IF lv_access_granted = abap_true.
-        free_access_permission( lv_message_id ).
-      ENDIF.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    zcl_abapgit_factory=>get_cts_api( )->insert_transport_object(
+      iv_object   = 'MSAG'
+      iv_obj_name = lv_message_id
+      iv_package  = iv_package
+      iv_language = mv_language
+      iv_mode     = zif_abapgit_cts_api=>c_transport_mode-delete ).
 
     delete_msgid( lv_message_id ).
 
-    IF lv_access_granted = abap_true.
-      free_access_permission( lv_message_id ).
-    ENDIF.
+    free_access_permission( lv_message_id ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -96724,23 +96638,7 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |error from deserialize CUS1 { mv_customizing_activity } S_CUS_ACTIVITY_SAVE| ).
     ENDIF.
 
-    CALL FUNCTION 'RS_CORR_INSERT'
-      EXPORTING
-        object              = ms_item-obj_name
-        object_class        = ms_item-obj_type
-        mode                = 'I'
-        global_lock         = abap_true
-        devclass            = iv_package
-        master_language     = mv_language
-        suppress_dialog     = abap_true
-      EXCEPTIONS
-        cancelled           = 1
-        permission_failure  = 2
-        unknown_objectclass = 3
-        OTHERS              = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -96887,23 +96785,7 @@ CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
         i_description = ls_text
         i_tcode       = ls_img_activity-header-tcode.
 
-    CALL FUNCTION 'RS_CORR_INSERT'
-      EXPORTING
-        object              = ms_item-obj_name
-        object_class        = ms_item-obj_type
-        mode                = 'I'
-        global_lock         = abap_true
-        devclass            = iv_package
-        master_language     = mv_language
-        suppress_dialog     = abap_true
-      EXCEPTIONS
-        cancelled           = 1
-        permission_failure  = 2
-        unknown_objectclass = 3
-        OTHERS              = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -97077,24 +96959,7 @@ CLASS zcl_abapgit_object_cmpt IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'CMPT not supported' ).
     ENDTRY.
 
-    CALL FUNCTION 'RS_CORR_INSERT'
-      EXPORTING
-        object              = ms_item-obj_name
-        object_class        = ms_item-obj_type
-        mode                = 'I'
-        global_lock         = abap_true
-        devclass            = iv_package
-        master_language     = mv_language
-        suppress_dialog     = abap_true
-      EXCEPTIONS
-        cancelled           = 1
-        permission_failure  = 2
-        unknown_objectclass = 3
-        OTHERS              = 4.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -101695,22 +101560,13 @@ CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
             OTHERS                = 1 ##FM_SUBRC_OK.
 
         IF zcl_abapgit_factory=>get_sap_package( iv_package )->are_changes_recorded_in_tr_req( ) = abap_true.
-          CALL FUNCTION 'RS_CORR_INSERT'
-            EXPORTING
-              object              = lv_obj_name
-              object_class        = 'SOTR'
-              mode                = 'D'
-              global_lock         = abap_true
-              devclass            = iv_package
-              suppress_dialog     = abap_true
-            EXCEPTIONS
-              cancelled           = 1
-              permission_failure  = 2
-              unknown_objectclass = 3
-              OTHERS              = 4.
-          IF sy-subrc <> 0.
-            zcx_abapgit_exception=>raise_t100( ).
-          ENDIF.
+
+          zcl_abapgit_factory=>get_cts_api( )->insert_transport_object(
+            iv_object   = 'SOTR'
+            iv_obj_name = lv_obj_name
+            iv_package  = iv_package
+            iv_mode     = zif_abapgit_cts_api=>c_transport_mode-delete ).
+
         ENDIF.
       ENDIF.
     ENDIF.
@@ -121335,6 +121191,27 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_cts_api~insert_transport_object.
+
+    CALL FUNCTION 'RS_CORR_INSERT'
+      EXPORTING
+        object              = iv_obj_name
+        object_class        = iv_object
+        devclass            = iv_package
+        master_language     = iv_language
+        mode                = iv_mode
+        global_lock         = abap_true
+        suppress_dialog     = abap_true
+      EXCEPTIONS
+        cancelled           = 1
+        permission_failure  = 2
+        unknown_objectclass = 3
+        OTHERS              = 4.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_cts_api~is_chrec_possible_for_package.
     IF iv_package IS NOT INITIAL.
       rv_possible = zcl_abapgit_factory=>get_sap_package( iv_package )->are_changes_recorded_in_tr_req( ).
@@ -122870,6 +122747,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-23T07:45:15.123Z
+* abapmerge 0.15.0 - 2023-04-23T08:01:16.599Z
 ENDINTERFACE.
 ****************************************************
