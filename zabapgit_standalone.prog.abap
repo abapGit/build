@@ -92160,7 +92160,8 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
     clear_element( EXPORTING iv_name     = |TADIR_RESP|
                    CHANGING  ci_document = ci_document ).
 
-    clear_element( EXPORTING iv_name     = |VAR_EXT_PATH|
+    " Clearing just VAR_EXT_PATH will lead to diffs in batch
+    clear_element( EXPORTING iv_name     = |ETVAR_EXT|
                    CHANGING  ci_document = ci_document ).
 
   ENDMETHOD.
@@ -122747,6 +122748,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-23T08:01:16.599Z
+* abapmerge 0.15.0 - 2023-04-24T06:19:25.765Z
 ENDINTERFACE.
 ****************************************************
