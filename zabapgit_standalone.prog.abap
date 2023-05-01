@@ -68184,7 +68184,7 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
         obj_name   = ms_item-obj_name
         obj_type   = ms_item-obj_type
       EXCEPTIONS
-        wrong_type = 01.
+        wrong_type = 1.
 
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
@@ -68651,7 +68651,7 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
         obj_name   = ms_object_type-objname
         obj_type   = ms_object_type-objtype
       EXCEPTIONS
-        wrong_type = 01.
+        wrong_type = 1.
 
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
@@ -73022,7 +73022,7 @@ CLASS zcl_abapgit_object_stvi IMPLEMENTATION.
       EXPORTING
         tcvariant = ls_transaction_variant-shdtvciu-tcvariant
       EXCEPTIONS
-        OTHERS    = 01.
+        OTHERS    = 1.
     IF sy-subrc <> 0.
       MESSAGE e413(ms) WITH ls_transaction_variant-shdtvciu-tcvariant INTO zcx_abapgit_exception=>null.
       zcx_abapgit_exception=>raise_t100( ).
@@ -79781,7 +79781,7 @@ CLASS zcl_abapgit_object_scvi IMPLEMENTATION.
       EXPORTING
         scvariant = ls_screen_variant-shdsvci-scvariant
       EXCEPTIONS
-        OTHERS    = 01.
+        OTHERS    = 1.
     IF sy-subrc <> 0.
       MESSAGE e413(ms) WITH ls_screen_variant-shdsvci-scvariant INTO zcx_abapgit_exception=>null.
       zcx_abapgit_exception=>raise_t100( ).
@@ -84000,13 +84000,13 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
         suppress_enqueue               = space
         suppress_transport             = space
       EXCEPTIONS
-        header_without_text            = 01
-        index_without_header           = 02
-        no_authority_for_devclass_xxxx = 03
-        no_docu_found                  = 04
-        object_is_already_enqueued     = 05
-        object_is_enqueued_by_corr     = 06
-        user_break                     = 07.
+        header_without_text            = 1
+        index_without_header           = 2
+        no_authority_for_devclass_xxxx = 3
+        no_docu_found                  = 4
+        object_is_already_enqueued     = 5
+        object_is_enqueued_by_corr     = 6
+        user_break                     = 7.
 
   ENDMETHOD.
   METHOD delete_msgid.
@@ -122748,6 +122748,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-04-24T06:19:25.765Z
+* abapmerge 0.15.0 - 2023-05-01T05:51:11.073Z
 ENDINTERFACE.
 ****************************************************
