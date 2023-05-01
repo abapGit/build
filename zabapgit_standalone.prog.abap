@@ -3868,6 +3868,7 @@ INTERFACE zif_abapgit_object .
       !iv_filename TYPE string
       !iv_path     TYPE string OPTIONAL
       !io_dot      TYPE REF TO zcl_abapgit_dot_abapgit OPTIONAL
+      !iv_package  TYPE devclass OPTIONAL
     CHANGING
       cs_item      TYPE zif_abapgit_definitions=>ty_item
     RAISING
@@ -8245,18 +8246,21 @@ CLASS zcl_abapgit_filename_logic DEFINITION
       BEGIN OF c_json_file,
         extension TYPE c LENGTH 4 VALUE 'json',
       END OF c_json_file.
+
     CLASS-METHODS detect_obj_definition
       IMPORTING
-        !iv_type     TYPE string
-        !iv_ext      TYPE string
+        !iv_type    TYPE string
+        !iv_ext     TYPE string
       EXPORTING
-        !ev_is_xml   TYPE abap_bool
-        !ev_is_json  TYPE abap_bool.
+        !ev_is_xml  TYPE abap_bool
+        !ev_is_json TYPE abap_bool.
+
     CLASS-METHODS is_obj_definition_file
       IMPORTING
-        !iv_filename TYPE string
+        !iv_filename  TYPE string
       RETURNING
         VALUE(rv_yes) TYPE abap_bool.
+
     CLASS-METHODS file_to_object
       IMPORTING
         !iv_filename TYPE string
@@ -8269,6 +8273,7 @@ CLASS zcl_abapgit_filename_logic DEFINITION
         !ev_is_json  TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
+
     CLASS-METHODS object_to_file
       IMPORTING
         !is_item           TYPE zif_abapgit_definitions=>ty_item
@@ -8276,10 +8281,43 @@ CLASS zcl_abapgit_filename_logic DEFINITION
         !iv_extra          TYPE clike OPTIONAL
       RETURNING
         VALUE(rv_filename) TYPE string .
+
   PROTECTED SECTION.
   PRIVATE SECTION.
+
     CLASS-DATA:
       go_aff_registry TYPE REF TO zif_abapgit_aff_registry.
+
+    CLASS-METHODS name_escape
+      IMPORTING
+        !iv_name       TYPE csequence
+      RETURNING
+        VALUE(rv_name) TYPE string.
+
+    CLASS-METHODS name_unescape
+      IMPORTING
+        !iv_name       TYPE csequence
+      RETURNING
+        VALUE(rv_name) TYPE string.
+
+    CLASS-METHODS map_filename_to_object
+      IMPORTING
+        !iv_filename TYPE string
+        !iv_path     TYPE string
+        !iv_package  TYPE devclass
+        !io_dot      TYPE REF TO zcl_abapgit_dot_abapgit
+      CHANGING
+        cs_item      TYPE zif_abapgit_definitions=>ty_item
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS map_object_to_filename
+      IMPORTING
+        !is_item    TYPE zif_abapgit_definitions=>ty_item
+      CHANGING
+        cv_filename TYPE string
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_folder_logic DEFINITION
@@ -15109,7 +15147,7 @@ CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM 
       END OF ty_metadata .
 
     TYPES: BEGIN OF ty_s_objtype_map,
-             obj_typ      TYPE trobjtype,
+             obj_typ      TYPE tadir-object,
              plugin_class TYPE seoclsname,
            END OF ty_s_objtype_map,
            ty_t_objtype_map TYPE SORTED TABLE OF ty_s_objtype_map WITH UNIQUE KEY obj_typ.
@@ -62282,7 +62320,7 @@ CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
     DATA lt_plugin_class    TYPE STANDARD TABLE OF seoclsname WITH DEFAULT KEY.
     DATA lv_plugin_class    LIKE LINE OF lt_plugin_class.
     DATA lo_plugin          TYPE REF TO object.
-    DATA lt_plugin_obj_type TYPE objtyptable.
+    DATA lt_plugin_obj_type TYPE STANDARD TABLE OF tadir-object WITH DEFAULT KEY.
     DATA ls_objtype_map     LIKE LINE OF gt_objtype_map.
     SELECT clsname
       FROM seometarel
@@ -95352,10 +95390,25 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
   ENDMETHOD.
   METHOD zif_abapgit_object~map_filename_to_object.
-    RETURN.
+
+    IF iv_filename <> zcl_abapgit_filename_logic=>c_package_file.
+      zcx_abapgit_exception=>raise( |Unexpected filename for package { cs_item-obj_name }| ).
+    ENDIF.
+
+    " Try to get a unique package name for DEVC by using the path
+    cs_item-obj_name = zcl_abapgit_folder_logic=>get_instance( )->path_to_package(
+      iv_top                  = iv_package
+      io_dot                  = io_dot
+      iv_create_if_not_exists = abap_false
+      iv_path                 = iv_path ).
+
   ENDMETHOD.
   METHOD zif_abapgit_object~map_object_to_filename.
-    RETURN.
+
+    " Packages have a fixed filename so that the repository can be installed to a different
+    " package(-hierarchy) on the client and not show up as a different package in the repo.
+    cv_filename = zcl_abapgit_filename_logic=>c_package_file.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
     DATA: ls_package_data TYPE scompkdtln,
@@ -109307,7 +109360,7 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_FILENAME_LOGIC IMPLEMENTATION.
+CLASS zcl_abapgit_filename_logic IMPLEMENTATION.
   METHOD detect_obj_definition.
 
     ev_is_xml  = boolc( iv_ext = to_upper( c_package_file-extension ) AND strlen( iv_type ) = 4 ).
@@ -109328,34 +109381,36 @@ CLASS ZCL_ABAPGIT_FILENAME_LOGIC IMPLEMENTATION.
     REPLACE ALL OCCURRENCES OF '#' IN lv_name WITH '/'.
     REPLACE ALL OCCURRENCES OF '#' IN lv_type WITH '/'.
     REPLACE ALL OCCURRENCES OF '#' IN lv_ext WITH '/'.
+
     " Assume AFF namespace convention
     CREATE OBJECT go_aff_registry TYPE zcl_abapgit_aff_registry.
+
     IF go_aff_registry->is_supported_object_type( |{ lv_type }| ) = abap_true.
       REPLACE ALL OCCURRENCES OF '(' IN lv_name WITH '/'.
       REPLACE ALL OCCURRENCES OF ')' IN lv_name WITH '/'.
     ENDIF.
 
-    " The counter part to this logic must be maintained in OBJECT_TO_FILE
-    IF lv_type = to_upper( c_package_file-obj_type ).
-      " Try to get a unique package name for DEVC by using the path
-      ASSERT lv_name = to_upper( c_package_file-obj_name ).
-      lv_name = zcl_abapgit_folder_logic=>get_instance( )->path_to_package(
-        iv_top                  = iv_devclass
-        io_dot                  = io_dot
-        iv_create_if_not_exists = abap_false
-        iv_path                 = iv_path ).
-    ELSE.
-      " Get original object name
-      lv_name = cl_http_utility=>unescape_url( lv_name ).
-    ENDIF.
+    " Get original object name
+    lv_name = name_unescape( lv_name ).
 
     CLEAR es_item.
     es_item-obj_type = lv_type.
     es_item-obj_name = lv_name.
+
+    " Get mapping specific to object type
+    map_filename_to_object(
+      EXPORTING
+        iv_filename = iv_filename
+        iv_path     = iv_path
+        io_dot      = io_dot
+        iv_package  = iv_devclass
+      CHANGING
+        cs_item     = es_item ).
+
     detect_obj_definition(
       EXPORTING
-        iv_ext  = lv_ext
-        iv_type = lv_type
+        iv_ext     = lv_ext
+        iv_type    = lv_type
       IMPORTING
         ev_is_xml  = ev_is_xml
         ev_is_json = ev_is_json ).
@@ -109374,8 +109429,8 @@ CLASS ZCL_ABAPGIT_FILENAME_LOGIC IMPLEMENTATION.
 
     detect_obj_definition(
       EXPORTING
-        iv_ext  = lv_ext
-        iv_type = lv_type
+        iv_ext     = lv_ext
+        iv_type    = lv_type
       IMPORTING
         ev_is_xml  = lv_xml
         ev_is_json = lv_json ).
@@ -109383,30 +109438,76 @@ CLASS ZCL_ABAPGIT_FILENAME_LOGIC IMPLEMENTATION.
     rv_yes = boolc( lv_json = abap_true OR lv_xml = abap_true ).
 
   ENDMETHOD.
+  METHOD map_filename_to_object.
+
+    DATA lv_class TYPE seoclsname.
+
+    " TODO: Add check for supported object types to avoid calls to non-existing classes
+    " zcl_abapgit_objects=>is_type_supported( is_item-obj_type )
+    " This will trigger class constructor of zcl_abapgit_objects_bridge reading table seometarel
+    " which is currently not supported by abaplint test runner
+
+    TRY.
+        lv_class = 'ZCL_ABAPGIT_OBJECT_' && cs_item-obj_type.
+
+        CALL METHOD (lv_class)=>('ZIF_ABAPGIT_OBJECT~MAP_FILENAME_TO_OBJECT')
+          EXPORTING
+            iv_filename = iv_filename
+            iv_path     = iv_path
+            io_dot      = io_dot
+            iv_package  = iv_package
+          CHANGING
+            cs_item     = cs_item.
+      CATCH cx_sy_dyn_call_illegal_class ##NO_HANDLER.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD map_object_to_filename.
+
+    DATA lv_class TYPE seoclsname.
+
+    " TODO: Add check for supported object types to avoid calls to non-existing classes
+    " zcl_abapgit_objects=>is_type_supported( is_item-obj_type )
+    " This will trigger class constructor of zcl_abapgit_objects_bridge reading table seometarel
+    " which is currently not supported by abaplint test runner
+
+    TRY.
+        lv_class = 'ZCL_ABAPGIT_OBJECT_' && is_item-obj_type.
+
+        CALL METHOD (lv_class)=>('ZIF_ABAPGIT_OBJECT~MAP_OBJECT_TO_FILENAME')
+          EXPORTING
+            is_item     = is_item
+          CHANGING
+            cv_filename = cv_filename.
+      CATCH cx_sy_dyn_call_illegal_class ##NO_HANDLER.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD name_escape.
+    " Some characters in object names cause problems when identifying the object later
+    " -> we escape these characters here
+    " cl_http_utility=>escape_url doesn't do dots but escapes slash which we use for namespaces
+    " -> we escape just some selected characters
+    rv_name = iv_name.
+    REPLACE ALL OCCURRENCES OF `#` IN rv_name WITH '%23'.
+    REPLACE ALL OCCURRENCES OF `%` IN rv_name WITH '%25'.
+    REPLACE ALL OCCURRENCES OF `.` IN rv_name WITH '%2e'.
+    REPLACE ALL OCCURRENCES OF `<` IN rv_name WITH '%3c'.
+    REPLACE ALL OCCURRENCES OF `=` IN rv_name WITH '%3d'.
+    REPLACE ALL OCCURRENCES OF `>` IN rv_name WITH '%3e'.
+    REPLACE ALL OCCURRENCES OF `?` IN rv_name WITH '%3f'.
+  ENDMETHOD.
+  METHOD name_unescape.
+    " Replace all %xy with encoded character
+    rv_name = cl_http_utility=>unescape_url( iv_name ).
+  ENDMETHOD.
   METHOD object_to_file.
 
     DATA lv_obj_name TYPE string.
     DATA lv_nb_of_slash TYPE string.
-    lv_obj_name = is_item-obj_name.
 
-    " The counter part to this logic must be maintained in FILE_TO_OBJECT
-    IF is_item-obj_type = to_upper( c_package_file-obj_type ).
-      " Packages have a fixed filename so that the repository can be installed to a different
-      " package(-hierarchy) on the client and not show up as a different package in the repo.
-      lv_obj_name = c_package_file-obj_name.
-    ELSE.
-      " Some characters in object names cause problems when identifying the object later
-      " -> we escape these characters here
-      " cl_http_utility=>escape_url doesn't do dots but escapes slash which we use for namespaces
-      " -> we escape just some selected characters
-      REPLACE ALL OCCURRENCES OF `%` IN lv_obj_name WITH '%25'.
-      REPLACE ALL OCCURRENCES OF `#` IN lv_obj_name WITH '%23'.
-      REPLACE ALL OCCURRENCES OF `.` IN lv_obj_name WITH '%2e'.
-      REPLACE ALL OCCURRENCES OF `=` IN lv_obj_name WITH '%3d'.
-      REPLACE ALL OCCURRENCES OF `?` IN lv_obj_name WITH '%3f'.
-      REPLACE ALL OCCURRENCES OF `<` IN lv_obj_name WITH '%3c'.
-      REPLACE ALL OCCURRENCES OF `>` IN lv_obj_name WITH '%3e'.
-    ENDIF.
+    " Get escaped object name
+    lv_obj_name = to_lower( name_escape( is_item-obj_name ) ).
 
     IF iv_extra IS INITIAL.
       CONCATENATE lv_obj_name '.' is_item-obj_type INTO rv_filename.
@@ -109418,8 +109519,19 @@ CLASS ZCL_ABAPGIT_FILENAME_LOGIC IMPLEMENTATION.
       CONCATENATE rv_filename '.' iv_ext INTO rv_filename.
     ENDIF.
 
-    " handle namespaces
+    " Get mapping specific to object type
+    TRY.
+        map_object_to_filename(
+          EXPORTING
+            is_item     = is_item
+          CHANGING
+            cv_filename = rv_filename ).
+      CATCH zcx_abapgit_exception ##NO_HANDLER.
+    ENDTRY.
+
+    " Handle namespaces
     CREATE OBJECT go_aff_registry TYPE zcl_abapgit_aff_registry.
+
     IF go_aff_registry->is_supported_object_type( is_item-obj_type ) = abap_true.
       FIND ALL OCCURRENCES OF `/` IN rv_filename MATCH COUNT lv_nb_of_slash.
       IF lv_nb_of_slash = 2.
@@ -109431,6 +109543,7 @@ CLASS ZCL_ABAPGIT_FILENAME_LOGIC IMPLEMENTATION.
     ENDIF.
 
     TRANSLATE rv_filename TO LOWER CASE.
+
   ENDMETHOD.
 ENDCLASS.
 
@@ -122769,6 +122882,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-01T15:33:00.570Z
+* abapmerge 0.15.0 - 2023-05-01T15:43:08.462Z
 ENDINTERFACE.
 ****************************************************
