@@ -1493,6 +1493,7 @@ INTERFACE zif_abapgit_ajson.
       read_only TYPE abap_bool,
       keep_item_order TYPE abap_bool,
       format_datetime TYPE abap_bool,
+      to_abap_corresponding_only TYPE abap_bool,
     END OF ty_opts.
 
   " DATA
@@ -1530,6 +1531,11 @@ INTERFACE zif_abapgit_ajson.
   METHODS format_datetime
     IMPORTING
       iv_use_iso TYPE abap_bool DEFAULT abap_true
+    RETURNING
+      VALUE(ri_json) TYPE REF TO zif_abapgit_ajson.
+  METHODS to_abap_corresponding_only
+    IMPORTING
+      iv_enable TYPE abap_bool DEFAULT abap_true
     RETURNING
       VALUE(ri_json) TYPE REF TO zif_abapgit_ajson.
   METHODS opts
@@ -1609,6 +1615,8 @@ INTERFACE zif_abapgit_ajson.
       VALUE(ri_json) TYPE REF TO zif_abapgit_ajson.
 
   METHODS to_abap
+    IMPORTING
+      iv_corresponding TYPE abap_bool DEFAULT abap_false
     EXPORTING
       ev_container TYPE any
     RAISING
@@ -7614,6 +7622,7 @@ CLASS zcl_abapgit_ajson DEFINITION
       mt_json_tree FOR zif_abapgit_ajson~mt_json_tree,
       keep_item_order FOR zif_abapgit_ajson~keep_item_order,
       format_datetime FOR zif_abapgit_ajson~format_datetime,
+      to_abap_corresponding_only FOR zif_abapgit_ajson~to_abap_corresponding_only,
       freeze FOR zif_abapgit_ajson~freeze.
 
     CLASS-METHODS parse
@@ -7631,6 +7640,7 @@ CLASS zcl_abapgit_ajson DEFINITION
         !ii_custom_mapping TYPE REF TO zif_abapgit_ajson_mapping OPTIONAL
         iv_keep_item_order TYPE abap_bool DEFAULT abap_false
         iv_format_datetime TYPE abap_bool DEFAULT abap_true
+        iv_to_abap_corresponding_only TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(ro_instance) TYPE REF TO zcl_abapgit_ajson.
 
@@ -7648,11 +7658,13 @@ CLASS zcl_abapgit_ajson DEFINITION
     METHODS constructor
       IMPORTING
         iv_keep_item_order TYPE abap_bool DEFAULT abap_false
-        iv_format_datetime TYPE abap_bool DEFAULT abap_true.
+        iv_format_datetime TYPE abap_bool DEFAULT abap_true
+        iv_to_abap_corresponding_only TYPE abap_bool DEFAULT abap_false.
     CLASS-METHODS new
       IMPORTING
         iv_keep_item_order TYPE abap_bool DEFAULT abap_false
         iv_format_datetime TYPE abap_bool DEFAULT abap_true
+        iv_to_abap_corresponding_only TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(ro_instance) TYPE REF TO zcl_abapgit_ajson.
 
@@ -113896,11 +113908,13 @@ ENDCLASS.
 CLASS zcl_abapgit_ajson IMPLEMENTATION.
   METHOD constructor.
     ms_opts-keep_item_order = iv_keep_item_order.
+    ms_opts-to_abap_corresponding_only = iv_to_abap_corresponding_only.
     format_datetime( iv_format_datetime ).
   ENDMETHOD.
   METHOD create_empty.
     CREATE OBJECT ro_instance
       EXPORTING
+        iv_to_abap_corresponding_only = iv_to_abap_corresponding_only
         iv_format_datetime = iv_format_datetime
         iv_keep_item_order = iv_keep_item_order.
     ro_instance->mi_custom_mapping = ii_custom_mapping.
@@ -113915,6 +113929,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
 
     CREATE OBJECT ro_instance
       EXPORTING
+        iv_to_abap_corresponding_only = ii_source_json->opts( )-to_abap_corresponding_only
         iv_format_datetime = ii_source_json->opts( )-format_datetime
         iv_keep_item_order = ii_source_json->opts( )-keep_item_order.
 
@@ -113987,6 +114002,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   METHOD new.
     CREATE OBJECT ro_instance
       EXPORTING
+        iv_to_abap_corresponding_only = iv_to_abap_corresponding_only
         iv_format_datetime = iv_format_datetime
         iv_keep_item_order = iv_keep_item_order.
   ENDMETHOD.
@@ -114612,6 +114628,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
     CLEAR ev_container.
     CREATE OBJECT lo_to_abap
       EXPORTING
+        iv_corresponding  = boolc( iv_corresponding = abap_true OR ms_opts-to_abap_corresponding_only = abap_true )
         ii_custom_mapping = mi_custom_mapping.
 
     lo_to_abap->to_abap(
@@ -114620,6 +114637,10 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
       CHANGING
         c_container = ev_container ).
 
+  ENDMETHOD.
+  METHOD zif_abapgit_ajson~to_abap_corresponding_only.
+    ms_opts-to_abap_corresponding_only = iv_enable.
+    ri_json = me.
   ENDMETHOD.
 ENDCLASS.
 
@@ -122748,6 +122769,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-01T10:22:09.091Z
+* abapmerge 0.15.0 - 2023-05-01T10:28:58.467Z
 ENDINTERFACE.
 ****************************************************
