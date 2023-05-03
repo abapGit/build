@@ -3829,7 +3829,7 @@ INTERFACE zif_abapgit_object .
 
   METHODS changed_by
     IMPORTING
-      !is_sub_item   TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+      !iv_extra      TYPE string OPTIONAL
     RETURNING
       VALUE(rv_user) TYPE syuname
     RAISING
@@ -3837,7 +3837,7 @@ INTERFACE zif_abapgit_object .
 
   METHODS jump
     IMPORTING
-      !is_sub_item   TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+      !iv_extra      TYPE string OPTIONAL
     RETURNING
       VALUE(rv_exit) TYPE abap_bool
     RAISING
@@ -10240,6 +10240,7 @@ CLASS zcl_abapgit_objects DEFINITION
       IMPORTING
         !is_item        TYPE zif_abapgit_definitions=>ty_item
         !is_sub_item    TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+        !iv_extra       TYPE string OPTIONAL
         !iv_line_number TYPE i OPTIONAL
       RAISING
         zcx_abapgit_exception .
@@ -10247,6 +10248,7 @@ CLASS zcl_abapgit_objects DEFINITION
       IMPORTING
         !is_item       TYPE zif_abapgit_definitions=>ty_item
         !is_sub_item   TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+        !iv_extra      TYPE string OPTIONAL
       RETURNING
         VALUE(rv_user) TYPE syuname .
     CLASS-METHODS is_supported
@@ -18433,6 +18435,7 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
       IMPORTING
         !iv_obj_type     TYPE tadir-object
         !iv_obj_name     TYPE tadir-obj_name
+        !iv_filename     TYPE string OPTIONAL
       RETURNING
         VALUE(rv_string) TYPE string .
     CLASS-METHODS dir_encode
@@ -21933,6 +21936,13 @@ CLASS zcl_abapgit_gui_router DEFINITION
         ii_obj_filter  TYPE REF TO zif_abapgit_object_filter OPTIONAL
       RETURNING
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS jump_object
+      IMPORTING
+        !iv_obj_type TYPE string
+        !iv_obj_name TYPE string
+        !iv_filename TYPE string
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS jump_display_transport
@@ -36225,7 +36235,7 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
+CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD abapgit_services_actions.
 
     IF ii_event->mv_action = zif_abapgit_definitions=>c_action-abapgit_home.
@@ -36566,6 +36576,43 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
         username = iv_username.
 
   ENDMETHOD.
+  METHOD jump_object.
+
+    DATA:
+      ls_item        TYPE zif_abapgit_definitions=>ty_item,
+      lv_extra       TYPE string,
+      lx_error       TYPE REF TO zcx_abapgit_exception,
+      li_html_viewer TYPE REF TO zif_abapgit_html_viewer.
+
+    ls_item-obj_type = cl_http_utility=>unescape_url( |{ iv_obj_type }| ).
+    ls_item-obj_name = cl_http_utility=>unescape_url( |{ iv_obj_name }| ).
+
+    IF iv_filename IS NOT INITIAL.
+      FIND REGEX '\..*\.([\-a-z0-9_%]*)\.' IN iv_filename SUBMATCHES lv_extra.
+      lv_extra = cl_http_utility=>unescape_url( lv_extra ).
+    ENDIF.
+
+    TRY.
+        li_html_viewer = zcl_abapgit_ui_factory=>get_html_viewer( ).
+
+        " Hide HTML Viewer in dummy screen0 for direct CALL SCREEN to work
+        li_html_viewer->set_visiblity( abap_false ).
+
+        IF ls_item-obj_type = zif_abapgit_data_config=>c_data_type-tabu.
+          zcl_abapgit_data_utils=>jump( ls_item ).
+        ELSE.
+          zcl_abapgit_objects=>jump(
+            is_item  = ls_item
+            iv_extra = lv_extra ).
+        ENDIF.
+
+        li_html_viewer->set_visiblity( abap_true ).
+      CATCH zcx_abapgit_exception INTO lx_error.
+        li_html_viewer->set_visiblity( abap_true ).
+        RAISE EXCEPTION lx_error.
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD main_page.
 
     DATA lt_repo_fav_list TYPE zif_abapgit_repo_srv=>ty_repo_list.
@@ -36691,31 +36738,12 @@ CLASS ZCL_ABAPGIT_GUI_ROUTER IMPLEMENTATION.
   ENDMETHOD.
   METHOD sap_gui_actions.
 
-    DATA: ls_item        TYPE zif_abapgit_definitions=>ty_item,
-          lx_ex          TYPE REF TO zcx_abapgit_exception,
-          li_html_viewer TYPE REF TO zif_abapgit_html_viewer.
-
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-jump.                          " Open object editor
-        ls_item-obj_type = ii_event->query( )->get( 'TYPE' ).
-        ls_item-obj_name = ii_event->query( )->get( 'NAME' ).
-        ls_item-obj_name = cl_http_utility=>unescape_url( |{ ls_item-obj_name }| ).
-
-        li_html_viewer = zcl_abapgit_ui_factory=>get_html_viewer( ).
-
-        TRY.
-            " Hide HTML Viewer in dummy screen0 for direct CALL SCREEN to work
-            li_html_viewer->set_visiblity( abap_false ).
-            IF ls_item-obj_type = zif_abapgit_data_config=>c_data_type-tabu.
-              zcl_abapgit_data_utils=>jump( ls_item ).
-            ELSE.
-              zcl_abapgit_objects=>jump( ls_item ).
-            ENDIF.
-            li_html_viewer->set_visiblity( abap_true ).
-          CATCH zcx_abapgit_exception INTO lx_ex.
-            li_html_viewer->set_visiblity( abap_true ).
-            RAISE EXCEPTION lx_ex.
-        ENDTRY.
+        jump_object(
+          iv_obj_type = ii_event->query( )->get( 'TYPE' )
+          iv_obj_name = ii_event->query( )->get( 'NAME' )
+          iv_filename = ii_event->query( )->get( 'FILE' ) ).
 
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
 
@@ -45242,6 +45270,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   METHOD render_diff_head.
 
     DATA: ls_stats TYPE zif_abapgit_definitions=>ty_count,
+          lv_jump  TYPE string,
           lv_link  TYPE string.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
@@ -45270,10 +45299,15 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     IF NOT ( is_diff-lstate = zif_abapgit_definitions=>c_state-unchanged AND
              is_diff-rstate = zif_abapgit_definitions=>c_state-added ) AND
          NOT is_diff-lstate = zif_abapgit_definitions=>c_state-deleted.
+
+      lv_jump = zcl_abapgit_html_action_utils=>jump_encode(
+        iv_obj_type = |{ is_diff-obj_type }|
+        iv_obj_name = |{ is_diff-obj_name }|
+        iv_filename = is_diff-filename ).
+
       lv_link = ri_html->a(
         iv_txt = |{ is_diff-path }{ is_diff-filename }|
-        iv_typ = zif_abapgit_html=>c_action_type-sapevent
-        iv_act = |jump?TYPE={ is_diff-obj_type }&NAME={ is_diff-obj_name }| ).
+        iv_act = |{ zif_abapgit_definitions=>c_action-jump }?{ lv_jump }| ).
     ENDIF.
 
     IF lv_link IS NOT INITIAL.
@@ -50435,6 +50469,11 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
                          ig_field = iv_obj_type CHANGING ct_field = lt_fields ).
     add_field( EXPORTING iv_name = 'NAME'
                          ig_field = iv_obj_name CHANGING ct_field = lt_fields ).
+
+    IF iv_filename IS NOT INITIAL.
+      add_field( EXPORTING iv_name = 'FILE'
+                           ig_field = iv_filename CHANGING ct_field = lt_fields ).
+    ENDIF.
 
     rv_string = cl_http_utility=>fields_to_string( lt_fields ).
 
@@ -62506,7 +62545,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
         li_obj = create_object( is_item     = is_item
                                 iv_language = zif_abapgit_definitions=>c_english ).
 
-        rv_user = li_obj->changed_by( is_sub_item ).
+        rv_user = li_obj->changed_by( iv_extra ).
       CATCH zcx_abapgit_exception ##NO_HANDLER.
         " Ignore errors
     ENDTRY.
@@ -63287,7 +63326,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     ENDIF.
 
     " First priority object-specific handler
-    lv_exit = li_obj->jump( is_sub_item ).
+    lv_exit = li_obj->jump( iv_extra ).
 
     IF lv_exit = abap_false.
       " Open object in new window with generic jumper
@@ -89778,7 +89817,40 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+
+    DATA:
+      ls_item      TYPE zif_abapgit_definitions=>ty_item,
+      lt_functions TYPE ty_rs38l_incl_tt,
+      lt_includes  TYPE ty_sobj_name_tt.
+
+    FIELD-SYMBOLS:
+      <ls_function> LIKE LINE OF lt_functions,
+      <lv_include>  LIKE LINE OF lt_includes.
+
+    ls_item-obj_type = 'PROG'.
+    ls_item-obj_name = to_upper( iv_extra ).
+
+    lt_functions = functions( ).
+
+    LOOP AT lt_functions ASSIGNING <ls_function> WHERE funcname = ls_item-obj_name.
+      ls_item-obj_name = <ls_function>-include.
+      rv_exit = zcl_abapgit_ui_factory=>get_gui_jumper( )->jump( ls_item ).
+      IF rv_exit = abap_true.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+
+    lt_includes = includes( ).
+
+    LOOP AT lt_includes ASSIGNING <lv_include> WHERE table_line = ls_item-obj_name.
+      rv_exit = zcl_abapgit_ui_factory=>get_gui_jumper( )->jump( ls_item ).
+      IF rv_exit = abap_true.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+
+    " Otherwise covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+
   ENDMETHOD.
   METHOD zif_abapgit_object~map_filename_to_object.
     RETURN.
@@ -97988,7 +98060,28 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+
+    DATA ls_item TYPE zif_abapgit_definitions=>ty_item.
+
+    ls_item-obj_type = 'PROG'.
+
+    CASE iv_extra.
+      WHEN zif_abapgit_oo_object_fnc=>c_parts-locals_def.
+        ls_item-obj_name = cl_oo_classname_service=>get_ccdef_name( |{ ms_item-obj_name }| ).
+      WHEN zif_abapgit_oo_object_fnc=>c_parts-locals_imp.
+        ls_item-obj_name = cl_oo_classname_service=>get_ccimp_name( |{ ms_item-obj_name }| ).
+      WHEN zif_abapgit_oo_object_fnc=>c_parts-macros.
+        ls_item-obj_name = cl_oo_classname_service=>get_ccmac_name( |{ ms_item-obj_name }| ).
+      WHEN zif_abapgit_oo_object_fnc=>c_parts-testclasses.
+        ls_item-obj_name = cl_oo_classname_service=>get_ccau_name( |{ ms_item-obj_name }| ).
+    ENDCASE.
+
+    IF ls_item-obj_name IS NOT INITIAL.
+      rv_exit = zcl_abapgit_ui_factory=>get_gui_jumper( )->jump( ls_item ).
+    ENDIF.
+
+    " Otherwise covered by ZCL_ABAPGIT_OBJECTS=>JUMP
+
   ENDMETHOD.
   METHOD zif_abapgit_object~map_filename_to_object.
     RETURN.
@@ -122883,6 +122976,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-03T11:47:16.038Z
+* abapmerge 0.15.0 - 2023-05-03T15:36:00.020Z
 ENDINTERFACE.
 ****************************************************
