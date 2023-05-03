@@ -95480,6 +95480,7 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     " Clear things related to local installation package
     CLEAR: ls_package_data-namespace,
            ls_package_data-dlvunit,
+           ls_package_data-tpclass,
            ls_package_data-pdevclass.
 
     " Not usable on customer systems
@@ -122882,6 +122883,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-01T15:43:08.462Z
+* abapmerge 0.15.0 - 2023-05-03T11:47:16.038Z
 ENDINTERFACE.
 ****************************************************
