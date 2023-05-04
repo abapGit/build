@@ -4169,6 +4169,11 @@ INTERFACE zif_abapgit_exit .
     IMPORTING
       !is_repo_meta TYPE zif_abapgit_persistence=>ty_repo
       !ii_html      TYPE REF TO zif_abapgit_html .
+  METHODS enhance_repo_toolbar
+    IMPORTING
+      !io_menu TYPE REF TO zcl_abapgit_html_toolbar
+      !iv_key  TYPE zif_abapgit_persistence=>ty_value
+      !iv_act  TYPE string.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_jumper.
@@ -51736,6 +51741,11 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       iv_txt = 'Stats'
       iv_act = |{ zif_abapgit_definitions=>c_action-repo_infos }?key={ iv_key }|
       iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_infos ) ).
+
+    zcl_abapgit_exit=>get_instance(  )->enhance_repo_toolbar(
+       io_menu = ro_menu
+       iv_key  = iv_key
+       iv_act  = iv_act ).
 
   ENDMETHOD.
   METHOD settings_toolbar.
@@ -119517,6 +119527,17 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_exit~enhance_repo_toolbar.
+    IF gi_exit IS NOT INITIAL.
+      TRY.
+          gi_exit->enhance_repo_toolbar(
+            io_menu = io_menu
+            iv_key  = iv_key
+            iv_act  = iv_act ).
+        CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+      ENDTRY.
+    ENDIF.
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_data_utils IMPLEMENTATION.
@@ -122976,6 +122997,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-04T04:49:59.366Z
+* abapmerge 0.15.0 - 2023-05-04T07:08:57.280Z
 ENDINTERFACE.
 ****************************************************
