@@ -19261,8 +19261,9 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
     METHODS:
       constructor
         IMPORTING
-          io_repo  TYPE REF TO zcl_abapgit_repo
-          io_stage TYPE REF TO zcl_abapgit_stage OPTIONAL
+          io_repo          TYPE REF TO zcl_abapgit_repo
+          io_stage         TYPE REF TO zcl_abapgit_stage OPTIONAL
+          iv_check_variant TYPE sci_chkv OPTIONAL
         RAISING
           zcx_abapgit_exception,
 
@@ -41059,19 +41060,42 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD constructor.
+
     super->constructor( ).
     mo_repo = io_repo.
+
+    TRY.
+        CALL METHOD ('\PROGRAM=SAPLSAUCV_GUI_RUNNER\CLASS=PASSPORT')=>get.
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( |Not supported in your NW release| ).
+    ENDTRY.
+
   ENDMETHOD.
   METHOD create.
 
     DATA lo_component TYPE REF TO zcl_abapgit_gui_page_runit.
+    DATA lo_page_code_inspector TYPE REF TO zcl_abapgit_gui_page_code_insp.
 
-    CREATE OBJECT lo_component EXPORTING io_repo = io_repo.
+    TRY.
+        CREATE OBJECT lo_component EXPORTING io_repo = io_repo.
 
-    ri_page = zcl_abapgit_gui_page_hoc=>create(
-      iv_page_title         = |Unit Tests|
-      ii_page_menu_provider = lo_component
-      ii_child_component    = lo_component ).
+        ri_page = zcl_abapgit_gui_page_hoc=>create(
+          iv_page_title         = |Unit Tests|
+          ii_page_menu_provider = lo_component
+          ii_child_component    = lo_component ).
+
+      CATCH zcx_abapgit_exception.
+
+        " Fallback as either SAPLSAUCV_GUI_RUNNER is not available in old releases
+        " or passport=>get is private in newer releases NW >= 756
+        CREATE OBJECT lo_page_code_inspector
+          EXPORTING
+            io_repo          = io_repo
+            iv_check_variant = 'SWF_ABAP_UNIT'.
+
+        ri_page = lo_page_code_inspector.
+
+    ENDTRY.
 
   ENDMETHOD.
   METHOD run.
@@ -47819,11 +47843,16 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     super->constructor( ).
     mo_repo = io_repo.
     mo_stage = io_stage.
+    mv_check_variant = iv_check_variant.
     ms_control-page_title = 'Code Inspector'.
     determine_check_variant( ).
     run_code_inspector( ).
   ENDMETHOD.
   METHOD determine_check_variant.
+
+    IF mv_check_variant IS NOT INITIAL.
+      RETURN.
+    ENDIF.
 
     mv_check_variant = mo_repo->get_local_settings( )-code_inspector_check_variant.
 
@@ -123127,6 +123156,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-07T09:09:25.620Z
+* abapmerge 0.15.0 - 2023-05-07T10:51:49.176Z
 ENDINTERFACE.
 ****************************************************
