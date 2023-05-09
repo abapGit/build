@@ -8887,6 +8887,14 @@ CLASS zcl_abapgit_tadir DEFINITION
         !ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
+    METHODS add_namespace
+      IMPORTING
+        !iv_package TYPE devclass
+        !iv_object  TYPE csequence
+      CHANGING
+        !ct_tadir   TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
     METHODS determine_path
       IMPORTING
         !iv_package TYPE tadir-devclass
@@ -10332,6 +10340,15 @@ CLASS zcl_abapgit_objects DEFINITION
         !it_remote TYPE zif_abapgit_git_definitions=>ty_files_tt
         !is_result TYPE zif_abapgit_definitions=>ty_result
         !ii_log    TYPE REF TO zif_abapgit_log
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS deserialize_steps
+      IMPORTING
+        !it_steps     TYPE zif_abapgit_objects=>ty_step_data_tt
+        !ii_log       TYPE REF TO zif_abapgit_log
+        !iv_transport TYPE trkorr
+      CHANGING
+        !ct_files     TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS deserialize_objects
@@ -35240,7 +35257,7 @@ CLASS ZCL_ABAPGIT_FREE_SEL_DIALOG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   METHOD activate_objects.
 
     DATA:
@@ -35462,10 +35479,16 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
     lt_decision = cs_checks-overwrite.
 
-    " Set all new objects to YES
-    LOOP AT lt_decision ASSIGNING <ls_decision> WHERE action = zif_abapgit_objects=>c_deserialize_action-add.
+    " If there's a new namespace, it has to be pulled before all other objects
+    READ TABLE lt_decision ASSIGNING <ls_decision> WITH KEY obj_type = 'NSPC'.
+    IF sy-subrc = 0 AND <ls_decision>-action = zif_abapgit_objects=>c_deserialize_action-add.
       <ls_decision>-decision = zif_abapgit_definitions=>c_yes.
-    ENDLOOP.
+    ELSE.
+      " Set all new objects to YES
+      LOOP AT lt_decision ASSIGNING <ls_decision> WHERE action = zif_abapgit_objects=>c_deserialize_action-add.
+        <ls_decision>-decision = zif_abapgit_definitions=>c_yes.
+      ENDLOOP.
+    ENDIF.
 
     " Ask user what to do
     popup_overwrite( CHANGING ct_overwrite = lt_decision ).
@@ -63064,15 +63087,17 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
       "error handling & logging added
       TRY.
-          " If package does not exist yet, it will be created with this call
-          lv_package = lo_folder_logic->path_to_package(
-            iv_top  = io_repo->get_package( )
-            io_dot  = io_repo->get_dot_abapgit( )
-            iv_path = <ls_result>-path ).
+          IF ls_item-obj_type <> 'NSPC'.
+            " If package does not exist yet, it will be created with this call
+            lv_package = lo_folder_logic->path_to_package(
+              iv_top  = io_repo->get_package( )
+              io_dot  = io_repo->get_dot_abapgit( )
+              iv_path = <ls_result>-path ).
 
-          check_main_package(
-            iv_package  = lv_package
-            iv_obj_type = ls_item-obj_type ).
+            check_main_package(
+              iv_package  = lv_package
+              iv_obj_type = ls_item-obj_type ).
+          ENDIF.
 
           IF ls_item-obj_type = 'DEVC'.
             " Packages have the same filename across different folders. The path needs to be supplied
@@ -63153,22 +63178,16 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     li_progress->off( ).
 
-    "run deserialize for all steps and it's objects
-    SORT lt_steps BY order.
-    LOOP AT lt_steps ASSIGNING <ls_step>.
-      deserialize_objects(
-        EXPORTING
-          is_step      = <ls_step>
-          ii_log       = ii_log
-          iv_transport = is_checks-transport-transport
-        CHANGING
-          ct_files     = rt_accessed_files ).
-    ENDLOOP.
+    "run deserialize for all steps and its objects
+    deserialize_steps(
+      EXPORTING
+        it_steps     = lt_steps
+        ii_log       = ii_log
+        iv_transport = is_checks-transport-transport
+      CHANGING
+        ct_files     = rt_accessed_files ).
 
     update_package_tree( io_repo->get_package( ) ).
-
-    SORT rt_accessed_files BY path ASCENDING filename ASCENDING.
-    DELETE ADJACENT DUPLICATES FROM rt_accessed_files. " Just in case
 
     zcl_abapgit_default_transport=>get_instance( )->reset( ).
 
@@ -63250,6 +63269,24 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
                                       ii_log  = ii_log ).
 
   ENDMETHOD.
+  METHOD deserialize_steps.
+
+    FIELD-SYMBOLS <ls_step> LIKE LINE OF it_steps.
+
+    LOOP AT it_steps ASSIGNING <ls_step>.
+      deserialize_objects(
+        EXPORTING
+          is_step      = <ls_step>
+          ii_log       = ii_log
+          iv_transport = iv_transport
+        CHANGING
+          ct_files     = ct_files ).
+    ENDLOOP.
+
+    SORT ct_files BY path ASCENDING filename ASCENDING.
+    DELETE ADJACENT DUPLICATES FROM ct_files. " Just in case
+
+  ENDMETHOD.
   METHOD determine_i18n_params.
 
     " TODO: unify with ZCL_ABAPGIT_SERIALIZE=>DETERMINE_I18N_PARAMS, same code
@@ -63320,6 +63357,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     <ls_step>-descr        = 'Post-process Objects'.
     <ls_step>-syntax_check = abap_true.
     <ls_step>-order        = 4.
+
+    SORT rt_steps BY order. " ensure correct processing order
   ENDMETHOD.
   METHOD is_active.
 
@@ -107523,50 +107562,64 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD add_namespaces.
+  METHOD add_namespace.
 
     DATA:
-      lv_name           TYPE progname,
-      lv_namespace      TYPE namespace,
-      lv_prev_namespace TYPE namespace,
-      lt_tadir_nspc     TYPE zif_abapgit_definitions=>ty_tadir_tt.
+      lv_name      TYPE progname,
+      lv_namespace TYPE namespace.
 
-    FIELD-SYMBOLS:
-      <ls_tadir> LIKE LINE OF ct_tadir,
-      <ls_nspc>  LIKE LINE OF ct_tadir.
-    LOOP AT ct_tadir ASSIGNING <ls_tadir> WHERE obj_name(1) = '/'.
+    FIELD-SYMBOLS <ls_tadir> LIKE LINE OF ct_tadir.
 
-      " Namespaces are not in TADIR, but are necessary for creating objects in transportable packages
-      lv_name = <ls_tadir>-obj_name.
+    lv_name = iv_object.
 
-      CALL FUNCTION 'RS_NAME_SPLIT_NAMESPACE'
-        EXPORTING
-          name_with_namespace = lv_name
-        IMPORTING
-          namespace           = lv_namespace
-        EXCEPTIONS
-          delimiter_error     = 1
-          OTHERS              = 2.
+    CALL FUNCTION 'RS_NAME_SPLIT_NAMESPACE'
+      EXPORTING
+        name_with_namespace = lv_name
+      IMPORTING
+        namespace           = lv_namespace
+      EXCEPTIONS
+        delimiter_error     = 1
+        OTHERS              = 2.
 
-      IF sy-subrc = 0 AND lv_namespace IS NOT INITIAL
-         AND lv_namespace <> lv_prev_namespace.
+    IF sy-subrc = 0 AND lv_namespace IS NOT INITIAL.
 
-        READ TABLE lt_tadir_nspc TRANSPORTING NO FIELDS
-          WITH KEY pgmid = 'R3TR' object = 'NSPC' obj_name = lv_namespace.
-        IF sy-subrc <> 0.
-          APPEND INITIAL LINE TO ct_tadir ASSIGNING <ls_nspc>.
-          <ls_nspc>-pgmid    = 'R3TR'.
-          <ls_nspc>-object   = 'NSPC'.
-          <ls_nspc>-obj_name = lv_namespace.
-          <ls_nspc>-devclass = iv_package.
-          <ls_nspc>-srcsystem = sy-sysid.
-
-          INSERT <ls_nspc> INTO TABLE lt_tadir_nspc.
-        ENDIF.
-        lv_prev_namespace = lv_namespace.
+      READ TABLE ct_tadir TRANSPORTING NO FIELDS
+        WITH KEY pgmid = 'R3TR' object = 'NSPC' obj_name = lv_namespace.
+      IF sy-subrc <> 0.
+        APPEND INITIAL LINE TO ct_tadir ASSIGNING <ls_tadir>.
+        <ls_tadir>-pgmid     = 'R3TR'.
+        <ls_tadir>-object    = 'NSPC'.
+        <ls_tadir>-obj_name  = lv_namespace.
+        <ls_tadir>-devclass  = iv_package.
+        <ls_tadir>-srcsystem = sy-sysid.
       ENDIF.
 
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD add_namespaces.
+
+    FIELD-SYMBOLS <ls_tadir> LIKE LINE OF ct_tadir.
+
+    " Namespaces are not in TADIR, but are necessary for creating objects in transportable packages
+    LOOP AT ct_tadir ASSIGNING <ls_tadir> WHERE obj_name(1) = '/'.
+      add_namespace(
+        EXPORTING
+          iv_package = iv_package
+          iv_object  = <ls_tadir>-obj_name
+        CHANGING
+          ct_tadir   = ct_tadir ).
     ENDLOOP.
+
+    " Root package of repo might not exist yet but needs to be considered, too
+    IF iv_package CP '/*'.
+      add_namespace(
+        EXPORTING
+          iv_package = iv_package
+          iv_object  = iv_package
+        CHANGING
+          ct_tadir   = ct_tadir ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD adjust_objects.
@@ -123156,6 +123209,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-07T10:51:49.176Z
+* abapmerge 0.15.0 - 2023-05-09T09:12:38.574Z
 ENDINTERFACE.
 ****************************************************
