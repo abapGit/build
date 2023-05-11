@@ -119898,7 +119898,7 @@ CLASS zcl_abapgit_data_utils IMPLEMENTATION.
     TRY.
         CALL METHOD ('XCO_CP_ABAP_DICTIONARY')=>database_table
           EXPORTING
-            iv_name           = iv_name
+            iv_name           = iv_name(16)
           RECEIVING
             ro_database_table = lo_table.
         CALL METHOD lo_table->('IF_XCO_DATABASE_TABLE~CONTENT')
@@ -123262,6 +123262,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-11T14:39:04.895Z
+* abapmerge 0.15.0 - 2023-05-11T14:41:30.446Z
 ENDINTERFACE.
 ****************************************************
