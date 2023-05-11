@@ -50471,7 +50471,7 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
     DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
     FIELD-SYMBOLS: <ls_command> TYPE zif_abapgit_html_form=>ty_command.
 
-    ls_hotkey_action-ui_component = 'Form'.
+    ls_hotkey_action-ui_component = |Form-{ mv_form_id }|.
 
     READ TABLE mt_commands WITH KEY cmd_type = zif_abapgit_html_form=>c_cmd_type-input_main
                            ASSIGNING <ls_command>.
@@ -51140,7 +51140,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add(
-      |<form id='form_{ is_event-name }' method={ is_event-method } action='sapevent:{ is_event-name }'></form>| ).
+      |<form id="form_{ is_event-name }" method="{ is_event-method }" action="sapevent:{ is_event-name }"></form>| ).
 
   ENDMETHOD.
   METHOD render_help_hint.
@@ -123262,6 +123262,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-11T14:41:30.446Z
+* abapmerge 0.15.0 - 2023-05-11T16:08:42.300Z
 ENDINTERFACE.
 ****************************************************
