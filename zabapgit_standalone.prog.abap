@@ -19052,7 +19052,9 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
       IMPORTING
         !iv_time       TYPE string
       RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     METHODS render_link_hints
       IMPORTING
         !ii_html TYPE REF TO zif_abapgit_html
@@ -19083,6 +19085,9 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
+    METHODS get_version_details
+      RETURNING
+        VALUE(rv_version) TYPE string.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_addofflin DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -30023,6 +30028,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/* exported onDiffCollapse */' ).
     lo_buf->add( '/* exported restoreScrollPosition */' ).
     lo_buf->add( '/* exported toggleBrowserControlWarning */' ).
+    lo_buf->add( '/* exported displayBrowserControlFooter */' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
     lo_buf->add( ' * Polyfills' ).
@@ -32479,10 +32485,22 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Browser Control' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Toggle display of warning message when using Edge (based on Chromium) browser control' ).
+    lo_buf->add( '// Todo: Remove once https://github.com/abapGit/abapGit/issues/4841 is fixed' ).
     lo_buf->add( 'function toggleBrowserControlWarning(){' ).
     lo_buf->add( '  if (!navigator.userAgent.includes("Edg")){' ).
     lo_buf->add( '    document.getElementById("browser-control-warning").style.display = "none";' ).
     lo_buf->add( '  }' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Output type of HTML control in the abapGit footer' ).
+    lo_buf->add( 'function displayBrowserControlFooter() {' ).
+    lo_buf->add( '  var out = document.getElementById("browser-control-footer");' ).
+    lo_buf->add( '  out.innerHTML = " - " + ( navigator.userAgent.includes("Edg") ? "Edge" : "IE"  );' ).
     lo_buf->add( '}' ).
     li_asset_man->register_asset(
       iv_url       = 'js/common.js'
@@ -48502,14 +48520,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   ENDMETHOD.
   METHOD footer.
 
-    DATA lv_version_detail TYPE string.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true.
-      lv_version_detail = ` - Standalone Version`.
-    ELSE.
-      lv_version_detail = ` - Developer Version`.
-    ENDIF.
 
     ri_html->add( '<div id="footer">' ).
     ri_html->add( '<table class="w100"><tr>' ).
@@ -48530,13 +48541,42 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
                     iv_txt = ri_html->icon( iv_name = 'abapgit'
                                             iv_hint = iv_time ) ).
     ri_html->add( '</div>' ).
-    ri_html->add( |<div class="version">{ zif_abapgit_version=>c_abap_version }{ lv_version_detail }</div>| ).
+    ri_html->add( |<div id="footer-version" class="version">{ get_version_details( ) }</div>| ).
     ri_html->add( '</td>' ).
 
     ri_html->add( '<td id="debug-output" class="w40"></td>' ).
 
     ri_html->add( '</tr></table>' ).
     ri_html->add( '</div>' ).
+
+  ENDMETHOD.
+  METHOD get_version_details.
+
+    DATA lo_frontend_serv TYPE REF TO zif_abapgit_frontend_services.
+
+    rv_version = zif_abapgit_version=>c_abap_version.
+
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true.
+      rv_version = rv_version && ` - Standalone Version`.
+    ELSE.
+      rv_version = rv_version && ` - Developer Version`.
+    ENDIF.
+
+    lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
+
+    CASE abap_true.
+      WHEN lo_frontend_serv->is_webgui( ).
+        rv_version = rv_version && ` - Web`.
+      WHEN lo_frontend_serv->is_sapgui_for_windows( ).
+        rv_version = rv_version && ` - Win`.
+      WHEN lo_frontend_serv->is_sapgui_for_java( ).
+        rv_version = rv_version && ` - Java`.
+      WHEN OTHERS.
+        ASSERT 1 = 2.
+    ENDCASE.
+
+    " Will be filled by JS method displayBrowserControlFooter
+    rv_version = rv_version && '<span id="browser-control-footer"></span>'.
 
   ENDMETHOD.
   METHOD header_script_links.
@@ -48590,6 +48630,25 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ENDCASE.
 
     ri_html->add( '</head>' ).
+
+  ENDMETHOD.
+  METHOD render_browser_control_warning.
+
+    DATA li_documentation_link TYPE REF TO zif_abapgit_html.
+
+    CREATE OBJECT li_documentation_link TYPE zcl_abapgit_html.
+
+    li_documentation_link->add_a(
+        iv_txt = 'Documentation'
+        iv_typ = zif_abapgit_html=>c_action_type-url
+        iv_act =  'https://docs.abapgit.org/guide-sapgui.html#sap-gui-for-windows' ).
+
+    ii_html->add( '<div id="browser-control-warning" class="browser-control-warning">' ).
+    ii_html->add( zcl_abapgit_gui_chunk_lib=>render_warning_banner(
+                    |Attention: You use Edge browser control. |
+                 && |There are several known malfunctions. See |
+                 && li_documentation_link->render( ) ) ).
+    ii_html->add( '</div>' ).
 
   ENDMETHOD.
   METHOD render_command_palettes.
@@ -48661,25 +48720,6 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD render_browser_control_warning.
-
-    DATA li_documentation_link TYPE REF TO zif_abapgit_html.
-
-    CREATE OBJECT li_documentation_link TYPE zcl_abapgit_html.
-
-    li_documentation_link->add_a(
-        iv_txt = 'Documentation'
-        iv_typ = zif_abapgit_html=>c_action_type-url
-        iv_act =  'https://docs.abapgit.org/guide-sapgui.html#sap-gui-for-windows' ).
-
-    ii_html->add( '<div id="browser-control-warning" class="browser-control-warning">' ).
-    ii_html->add( zcl_abapgit_gui_chunk_lib=>render_warning_banner(
-                    |Attention: You use Edge browser control. |
-                 && |There are several known malfunctions. See |
-                 && li_documentation_link->render( ) ) ).
-    ii_html->add( '</div>' ).
-
-  ENDMETHOD.
   METHOD scripts.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
@@ -48691,6 +48731,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     render_link_hints( ri_html ).
     render_command_palettes( ri_html ).
     ri_html->add( |toggleBrowserControlWarning();| ).
+    ri_html->add( |displayBrowserControlFooter();| ).
 
   ENDMETHOD.
   METHOD title.
@@ -123221,6 +123262,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-11T14:36:19.513Z
+* abapmerge 0.15.0 - 2023-05-11T14:39:04.895Z
 ENDINTERFACE.
 ****************************************************
