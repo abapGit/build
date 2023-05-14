@@ -10253,7 +10253,7 @@ CLASS zcl_abapgit_objects DEFINITION
       IMPORTING
         !is_item        TYPE zif_abapgit_definitions=>ty_item
         !is_sub_item    TYPE zif_abapgit_definitions=>ty_item OPTIONAL
-        !iv_extra       TYPE string OPTIONAL
+        !iv_filename    TYPE string OPTIONAL
         !iv_line_number TYPE i OPTIONAL
       RAISING
         zcx_abapgit_exception .
@@ -10261,7 +10261,7 @@ CLASS zcl_abapgit_objects DEFINITION
       IMPORTING
         !is_item       TYPE zif_abapgit_definitions=>ty_item
         !is_sub_item   TYPE zif_abapgit_definitions=>ty_item OPTIONAL
-        !iv_extra      TYPE string OPTIONAL
+        !iv_filename   TYPE string OPTIONAL
       RETURNING
         VALUE(rv_user) TYPE syuname .
     CLASS-METHODS is_supported
@@ -10407,6 +10407,11 @@ CLASS zcl_abapgit_objects DEFINITION
         VALUE(rs_i18n_params)  TYPE zif_abapgit_definitions=>ty_i18n_params
       RAISING
         zcx_abapgit_exception.
+    CLASS-METHODS get_extra_from_filename
+      IMPORTING
+        !iv_filename    TYPE string
+      RETURNING
+        VALUE(rv_extra) TYPE string.
 ENDCLASS.
 CLASS zcl_abapgit_objects_generic DEFINITION
   CREATE PUBLIC .
@@ -21638,11 +21643,12 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
 
     TYPES:
       BEGIN OF ty_changed_by,
-        item TYPE zif_abapgit_definitions=>ty_item,
-        name TYPE syuname,
+        item     TYPE zif_abapgit_definitions=>ty_item,
+        filename TYPE string,
+        name     TYPE syuname,
       END OF ty_changed_by .
     TYPES:
-      ty_changed_by_tt TYPE SORTED TABLE OF ty_changed_by WITH UNIQUE KEY item .
+      ty_changed_by_tt TYPE SORTED TABLE OF ty_changed_by WITH UNIQUE KEY item filename.
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
     DATA ms_files TYPE zif_abapgit_definitions=>ty_stage_files .
@@ -36651,11 +36657,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
     ls_item-obj_type = cl_http_utility=>unescape_url( |{ iv_obj_type }| ).
     ls_item-obj_name = cl_http_utility=>unescape_url( |{ iv_obj_name }| ).
 
-    IF iv_filename IS NOT INITIAL.
-      FIND REGEX '\..*\.([\-a-z0-9_%]*)\.' IN iv_filename SUBMATCHES lv_extra.
-      lv_extra = cl_http_utility=>unescape_url( lv_extra ).
-    ENDIF.
-
     TRY.
         li_html_viewer = zcl_abapgit_ui_factory=>get_html_viewer( ).
 
@@ -36666,8 +36667,8 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
           zcl_abapgit_data_utils=>jump( ls_item ).
         ELSE.
           zcl_abapgit_objects=>jump(
-            is_item  = ls_item
-            iv_extra = lv_extra ).
+            is_item     = ls_item
+            iv_filename = iv_filename ).
         ENDIF.
 
         li_html_viewer->set_visiblity( abap_true ).
@@ -37436,7 +37437,7 @@ CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
   METHOD build_menu.
 
     CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
@@ -37547,10 +37548,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           lv_transport         LIKE LINE OF it_transports,
           lv_user              TYPE uname.
 
-    FIELD-SYMBOLS: <ls_changed_by> LIKE LINE OF rt_changed_by.
+    FIELD-SYMBOLS <ls_changed_by> LIKE LINE OF lt_changed_by_remote.
 
     LOOP AT it_files-local INTO ls_local WHERE NOT item IS INITIAL.
       ls_changed_by-item = ls_local-item.
+      ls_changed_by-filename = ls_local-file-filename.
+      ls_changed_by-name = zcl_abapgit_objects=>changed_by(
+        is_item     = ls_local-item
+        iv_filename = ls_local-file-filename ).
       INSERT ls_changed_by INTO TABLE rt_changed_by.
     ENDLOOP.
 
@@ -37567,10 +37572,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           INSERT ls_changed_by INTO TABLE lt_changed_by_remote.
         CATCH zcx_abapgit_exception.
       ENDTRY.
-    ENDLOOP.
-
-    LOOP AT rt_changed_by ASSIGNING <ls_changed_by>.
-      <ls_changed_by>-name = zcl_abapgit_objects=>changed_by( <ls_changed_by>-item ).
     ENDLOOP.
 
     LOOP AT lt_changed_by_remote ASSIGNING <ls_changed_by>.
@@ -37833,7 +37834,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
         ri_html->add( '<tbody>' ).
       ENDAT.
 
-      READ TABLE lt_changed_by INTO ls_changed_by WITH KEY item = <ls_local>-item. "#EC CI_SUBRC
+      READ TABLE lt_changed_by INTO ls_changed_by WITH TABLE KEY
+        item     = <ls_local>-item
+        filename = <ls_local>-file-filename.
+      IF sy-subrc <> 0.
+        READ TABLE lt_changed_by INTO ls_changed_by WITH KEY item = <ls_local>-item.
+      ENDIF.
+
       READ TABLE lt_transports INTO ls_transport WITH KEY
         obj_type = <ls_local>-item-obj_type
         obj_name = <ls_local>-item-obj_name.              "#EC CI_SUBRC
@@ -37890,7 +37897,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_STAGE IMPLEMENTATION.
           READ TABLE lt_transports INTO ls_transport WITH KEY
             obj_type = ls_item_remote-obj_type
             obj_name = ls_item_remote-obj_name.
-          READ TABLE lt_changed_by INTO ls_changed_by WITH KEY item = ls_item_remote.
+
+          READ TABLE lt_changed_by INTO ls_changed_by WITH TABLE KEY
+            item     = ls_item_remote
+            filename = <ls_remote>-filename.
+          IF sy-subrc <> 0.
+            READ TABLE lt_changed_by INTO ls_changed_by WITH KEY item = <ls_local>-item.
+          ENDIF.
         CATCH zcx_abapgit_exception.
           CLEAR ls_transport.
       ENDTRY.
@@ -44967,7 +44980,9 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     " Changed by
     IF <ls_local>-item-obj_type IS NOT INITIAL.
-      <ls_diff>-changed_by = zcl_abapgit_objects=>changed_by( <ls_local>-item ).
+      <ls_diff>-changed_by = zcl_abapgit_objects=>changed_by(
+        is_item     = <ls_local>-item
+        iv_filename = is_status-filename ).
     ENDIF.
     IF <ls_diff>-changed_by IS INITIAL.
       <ls_diff>-changed_by = zcl_abapgit_objects_super=>c_user_unknown.
@@ -62691,7 +62706,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
         li_obj = create_object( is_item     = is_item
                                 iv_language = zif_abapgit_definitions=>c_english ).
 
-        rv_user = li_obj->changed_by( iv_extra ).
+        rv_user = li_obj->changed_by( get_extra_from_filename( iv_filename ) ).
       CATCH zcx_abapgit_exception ##NO_HANDLER.
         " Ignore errors
     ENDTRY.
@@ -63401,6 +63416,16 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     SORT rt_steps BY order. " ensure correct processing order
   ENDMETHOD.
+  METHOD get_extra_from_filename.
+
+    IF iv_filename IS NOT INITIAL.
+      FIND REGEX '\..*\.([\-a-z0-9_%]*)\.' IN iv_filename SUBMATCHES rv_extra.
+      IF sy-subrc = 0.
+        rv_extra = cl_http_utility=>unescape_url( rv_extra ).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD is_active.
 
     DATA: li_obj TYPE REF TO zif_abapgit_object.
@@ -63488,7 +63513,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     ENDIF.
 
     " First priority object-specific handler
-    lv_exit = li_obj->jump( iv_extra ).
+    lv_exit = li_obj->jump( get_extra_from_filename( iv_filename ) ).
 
     IF lv_exit = abap_false.
       " Open object in new window with generic jumper
@@ -89874,10 +89899,16 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
              time TYPE t,
            END OF ty_stamps.
 
-    DATA: lt_stamps  TYPE STANDARD TABLE OF ty_stamps WITH DEFAULT KEY,
-          lv_program TYPE program.
+    DATA:
+      lt_stamps    TYPE STANDARD TABLE OF ty_stamps WITH DEFAULT KEY,
+      lv_program   TYPE program,
+      lv_found     TYPE abap_bool,
+      lt_functions TYPE ty_rs38l_incl_tt.
 
-    FIELD-SYMBOLS: <ls_stamp> LIKE LINE OF lt_stamps.
+    FIELD-SYMBOLS:
+      <ls_function> LIKE LINE OF lt_functions,
+      <lv_include>  LIKE LINE OF mt_includes_all,
+      <ls_stamp>    LIKE LINE OF lt_stamps.
 
     lv_program = main_name( ).
 
@@ -89896,12 +89927,28 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
+    " Check if changed_by for include object was requested
+    LOOP AT mt_includes_all ASSIGNING <lv_include> WHERE table_line = to_upper( iv_extra ).
+      lv_program = <lv_include>.
+      lv_found   = abap_true.
+      EXIT.
+    ENDLOOP.
+
+    " Check if changed_by for function module was requested
+    lt_functions = functions( ).
+
+    LOOP AT lt_functions ASSIGNING <ls_function> WHERE funcname = to_upper( iv_extra ).
+      lv_program = <ls_function>-include.
+      lv_found   = abap_true.
+      EXIT.
+    ENDLOOP.
+
     SELECT unam AS user udat AS date utime AS time FROM reposrc
       APPENDING CORRESPONDING FIELDS OF TABLE lt_stamps
       WHERE progname = lv_program
       AND   r3state = 'A'.                                "#EC CI_SUBRC
 
-    IF mt_includes_all IS NOT INITIAL.
+    IF mt_includes_all IS NOT INITIAL AND lv_found = abap_false.
       SELECT unam AS user udat AS date utime AS time FROM reposrc
         APPENDING CORRESPONDING FIELDS OF TABLE lt_stamps
         FOR ALL ENTRIES IN mt_includes_all
@@ -98195,10 +98242,6 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
-    TYPES: BEGIN OF ty_includes,
-             programm TYPE programm,
-           END OF ty_includes.
-
     TYPES: BEGIN OF ty_reposrc,
              unam  TYPE reposrc-unam,
              udat  TYPE reposrc-udat,
@@ -98207,15 +98250,32 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     DATA: lt_reposrc  TYPE STANDARD TABLE OF ty_reposrc,
           ls_reposrc  LIKE LINE OF lt_reposrc,
-          lt_includes TYPE STANDARD TABLE OF ty_includes.
+          lv_include  TYPE programm,
+          lt_includes TYPE STANDARD TABLE OF programm.
 
-    lt_includes = mi_object_oriented_object_fct->get_includes( ms_item-obj_name ).
+    CASE iv_extra.
+      WHEN zif_abapgit_oo_object_fnc=>c_parts-locals_def.
+        lv_include = cl_oo_classname_service=>get_ccdef_name( |{ ms_item-obj_name }| ).
+        INSERT lv_include INTO TABLE lt_includes.
+      WHEN zif_abapgit_oo_object_fnc=>c_parts-locals_imp.
+        lv_include = cl_oo_classname_service=>get_ccimp_name( |{ ms_item-obj_name }| ).
+        INSERT lv_include INTO TABLE lt_includes.
+      WHEN zif_abapgit_oo_object_fnc=>c_parts-macros.
+        lv_include = cl_oo_classname_service=>get_ccmac_name( |{ ms_item-obj_name }| ).
+        INSERT lv_include INTO TABLE lt_includes.
+      WHEN zif_abapgit_oo_object_fnc=>c_parts-testclasses.
+        lv_include = cl_oo_classname_service=>get_ccau_name( |{ ms_item-obj_name }| ).
+        INSERT lv_include INTO TABLE lt_includes.
+      WHEN OTHERS.
+        lt_includes = mi_object_oriented_object_fct->get_includes( ms_item-obj_name ).
+    ENDCASE.
+
     ASSERT lines( lt_includes ) > 0.
 
     SELECT unam udat utime FROM reposrc
       INTO TABLE lt_reposrc
       FOR ALL ENTRIES IN lt_includes
-      WHERE progname = lt_includes-programm
+      WHERE progname = lt_includes-table_line
       AND r3state = 'A'.
     IF sy-subrc <> 0.
       rv_user = c_user_unknown.
@@ -121928,7 +121988,9 @@ CLASS zcl_abapgit_background_push_au IMPLEMENTATION.
     ls_files = zcl_abapgit_factory=>get_stage_logic( )->get( io_repo ).
 
     LOOP AT ls_files-local ASSIGNING <ls_local>.
-      lv_changed_by = zcl_abapgit_objects=>changed_by( <ls_local>-item ).
+      lv_changed_by = zcl_abapgit_objects=>changed_by(
+        is_item     = <ls_local>-item
+        iv_filename = <ls_local>-file-filename ).
       APPEND lv_changed_by TO lt_users.
       APPEND INITIAL LINE TO lt_changed ASSIGNING <ls_changed>.
       <ls_changed>-changed_by = lv_changed_by.
@@ -123262,6 +123324,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-11T16:08:42.300Z
+* abapmerge 0.15.0 - 2023-05-14T07:07:11.781Z
 ENDINTERFACE.
 ****************************************************
