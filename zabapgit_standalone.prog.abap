@@ -37,13 +37,16 @@ INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_services_repo DEFERRED.
 INTERFACE zif_abapgit_services_git DEFERRED.
 INTERFACE zif_abapgit_html_table DEFERRED.
+INTERFACE zif_abapgit_html_popup DEFERRED.
 INTERFACE zif_abapgit_html_form DEFERRED.
+INTERFACE zif_abapgit_gui_render_item DEFERRED.
 INTERFACE zif_abapgit_gui_page_title DEFERRED.
 INTERFACE zif_abapgit_gui_menu_provider DEFERRED.
 INTERFACE zif_abapgit_html_viewer DEFERRED.
 INTERFACE zif_abapgit_html DEFERRED.
 INTERFACE zif_abapgit_gui_services DEFERRED.
 INTERFACE zif_abapgit_gui_renderable DEFERRED.
+INTERFACE zif_abapgit_gui_modal DEFERRED.
 INTERFACE zif_abapgit_gui_html_processor DEFERRED.
 INTERFACE zif_abapgit_gui_hotkeys DEFERRED.
 INTERFACE zif_abapgit_gui_hotkey_ctl DEFERRED.
@@ -177,9 +180,12 @@ CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
 CLASS zcl_abapgit_log_viewer DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_toolbar DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_table DEFINITION DEFERRED.
+CLASS zcl_abapgit_html_popups DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_form_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_form DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_action_utils DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_picklist DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_in_page_modal DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_component DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_buttons DEFINITION DEFERRED.
@@ -2343,6 +2349,14 @@ INTERFACE zif_abapgit_gui_html_processor .
 
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_gui_modal .
+
+  METHODS is_modal
+    RETURNING
+      VALUE(rv_yes) TYPE abap_bool.
+
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_gui_renderable .
 
   METHODS render
@@ -2365,18 +2379,17 @@ INTERFACE zif_abapgit_gui_services .
       VALUE(rv_url) TYPE string
     RAISING
       zcx_abapgit_exception .
+  " Notes:
+  " - page_asset is supposed to be not cachable
+  " - add mime64 if needed (supposedly won't be needed)
   METHODS register_page_asset
     IMPORTING
       !iv_url       TYPE string
       !iv_type      TYPE string
       !iv_mime_name TYPE wwwdatatab-objid OPTIONAL
       !iv_inline    TYPE string OPTIONAL
-      " Notes:
-      " - page_asset is supposed to be not cachable
-      " - add mime64 if needed (supposedly won't be needed)
     RAISING
-      zcx_abapgit_exception.
-
+      zcx_abapgit_exception .
   METHODS register_event_handler
     IMPORTING
       !ii_event_handler TYPE REF TO zif_abapgit_gui_event_handler .
@@ -2391,9 +2404,10 @@ INTERFACE zif_abapgit_gui_services .
       VALUE(ro_parts) TYPE REF TO zcl_abapgit_html_parts .
   METHODS get_log
     IMPORTING
-      iv_create_new TYPE abap_bool DEFAULT abap_false
+      !iv_create_new TYPE abap_bool DEFAULT abap_false
     RETURNING
-      VALUE(ri_log) TYPE REF TO zif_abapgit_log.
+      VALUE(ri_log)  TYPE REF TO zif_abapgit_log .
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_html.
@@ -2621,6 +2635,19 @@ INTERFACE zif_abapgit_gui_page_title .
 
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_gui_render_item .
+
+  METHODS render
+    IMPORTING
+      iv_item        TYPE any
+      iv_index       TYPE i
+    RETURNING
+      VALUE(ri_html) TYPE REF TO zif_abapgit_html
+    RAISING
+      zcx_abapgit_exception .
+
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_html_form .
 
   TYPES:
@@ -2685,6 +2712,16 @@ INTERFACE zif_abapgit_html_form .
       table       TYPE i VALUE 7,
       hidden      TYPE i VALUE 8,
     END OF c_field_type .
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_html_popup .
+
+  METHODS create_picklist
+    RETURNING
+      VALUE(ro_picklist) TYPE REF TO zcl_abapgit_gui_picklist
+    RAISING
+      zcx_abapgit_exception.
 
 ENDINTERFACE.
 
@@ -17618,12 +17655,18 @@ CLASS zcl_abapgit_gui DEFINITION
     METHODS back
       IMPORTING
         !iv_to_bookmark TYPE abap_bool DEFAULT abap_false
+        !iv_graceful    TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(rv_exit)  TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
+    METHODS back_graceful
+      RETURNING
+        VALUE(rv_handled) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
     METHODS on_event
-        FOR EVENT sapevent OF zif_abapgit_html_viewer
+      FOR EVENT sapevent OF zif_abapgit_html_viewer
       IMPORTING
         !action
         !frame
@@ -17654,10 +17697,8 @@ CLASS zcl_abapgit_gui DEFINITION
 
     DATA mv_rollback_on_error TYPE abap_bool .
     DATA mi_cur_page TYPE REF TO zif_abapgit_gui_renderable .
-    DATA:
-      mt_stack             TYPE STANDARD TABLE OF ty_page_stack .
-    DATA:
-      mt_event_handlers    TYPE STANDARD TABLE OF REF TO zif_abapgit_gui_event_handler .
+    DATA mt_stack             TYPE STANDARD TABLE OF ty_page_stack .
+    DATA mt_event_handlers    TYPE STANDARD TABLE OF REF TO zif_abapgit_gui_event_handler .
     DATA mi_router TYPE REF TO zif_abapgit_gui_event_handler .
     DATA mi_asset_man TYPE REF TO zif_abapgit_gui_asset_manager .
     DATA mi_hotkey_ctl TYPE REF TO zif_abapgit_gui_hotkey_ctl .
@@ -17665,7 +17706,6 @@ CLASS zcl_abapgit_gui DEFINITION
     DATA mi_html_viewer TYPE REF TO zif_abapgit_html_viewer .
     DATA mo_html_parts TYPE REF TO zcl_abapgit_html_parts .
     DATA mi_common_log TYPE REF TO zif_abapgit_log .
-
     METHODS cache_html
       IMPORTING
         !iv_text      TYPE string
@@ -17694,6 +17734,11 @@ CLASS zcl_abapgit_gui DEFINITION
     METHODS handle_error
       IMPORTING
         !ix_exception TYPE REF TO zcx_abapgit_exception .
+    METHODS is_page_modal
+      IMPORTING
+        !ii_page      TYPE REF TO zif_abapgit_gui_renderable
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool .
 ENDCLASS.
 CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
 
@@ -17786,6 +17831,14 @@ CLASS zcl_abapgit_gui_event DEFINITION
 
     INTERFACES zif_abapgit_gui_event .
 
+    CLASS-METHODS new
+      IMPORTING
+        !ii_gui_services   TYPE REF TO zif_abapgit_gui_services OPTIONAL
+        !iv_action         TYPE clike
+        !iv_getdata        TYPE clike OPTIONAL
+        !it_postdata       TYPE zif_abapgit_html_viewer=>ty_post_data OPTIONAL
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO zcl_abapgit_gui_event.
     METHODS constructor
       IMPORTING
         !ii_gui_services TYPE REF TO zif_abapgit_gui_services OPTIONAL
@@ -17887,6 +17940,8 @@ CLASS zcl_abapgit_html DEFINITION
 
     CLASS-METHODS class_constructor .
     CLASS-METHODS create
+      IMPORTING
+        !iv_initial_chunk  TYPE any OPTIONAL
       RETURNING
         VALUE(ri_instance) TYPE REF TO zif_abapgit_html.
     CLASS-METHODS icon
@@ -18446,6 +18501,125 @@ CLASS zcl_abapgit_gui_hotkey_ctl DEFINITION
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
 ENDCLASS.
+CLASS zcl_abapgit_gui_in_page_modal DEFINITION
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_gui_renderable.
+
+    CLASS-METHODS create
+      IMPORTING
+        !ii_child      TYPE REF TO zif_abapgit_gui_renderable
+        !iv_width      TYPE i OPTIONAL
+        !iv_height     TYPE i OPTIONAL
+      RETURNING
+        VALUE(ro_wrap) TYPE REF TO zcl_abapgit_gui_in_page_modal
+      RAISING
+        zcx_abapgit_exception .
+    METHODS constructor
+      IMPORTING
+        !ii_child  TYPE REF TO zif_abapgit_gui_renderable
+        !iv_width  TYPE i OPTIONAL
+        !iv_height TYPE i OPTIONAL.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA mi_child TYPE REF TO zif_abapgit_gui_renderable.
+
+    DATA:
+      BEGIN OF ms_attrs,
+        width  TYPE i,
+        height TYPE i,
+      END OF ms_attrs.
+
+ENDCLASS.
+CLASS zcl_abapgit_gui_picklist DEFINITION
+  INHERITING FROM zcl_abapgit_gui_component
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
+    INTERFACES zif_abapgit_gui_page_title.
+
+    METHODS constructor
+      IMPORTING
+        !it_list          TYPE STANDARD TABLE
+        !iv_id            TYPE string OPTIONAL
+        !iv_in_page       TYPE abap_bool DEFAULT abap_false
+        !iv_title         TYPE string DEFAULT 'Choose from list'
+        !iv_attr_name     TYPE abap_compname OPTIONAL
+        !ii_item_renderer TYPE REF TO zif_abapgit_gui_render_item OPTIONAL
+      RAISING
+        zcx_abapgit_exception.
+    METHODS get_result_idx
+      RETURNING
+        VALUE(rv_index) TYPE i.
+    METHODS get_result_item
+      CHANGING
+        !cs_selected TYPE any.
+    METHODS was_cancelled
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool.
+    METHODS is_fulfilled
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool.
+    METHODS id
+      RETURNING
+        VALUE(rv_id) TYPE string.
+    METHODS is_in_page
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool.
+    METHODS set_id
+      IMPORTING
+        iv_id        TYPE string
+      RETURNING
+        VALUE(ro_me) TYPE REF TO zcl_abapgit_gui_picklist.
+    METHODS set_in_page
+      IMPORTING
+        iv_in_page   TYPE abap_bool DEFAULT abap_true
+      RETURNING
+        VALUE(ro_me) TYPE REF TO zcl_abapgit_gui_picklist.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CONSTANTS:
+      BEGIN OF c_event,
+        back   TYPE string VALUE 'back',
+        choose TYPE string VALUE 'choose',
+      END OF c_event.
+
+    CONSTANTS c_radio_name TYPE string VALUE 'radio'.
+
+    DATA mo_form TYPE REF TO zcl_abapgit_html_form.
+    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_form_util TYPE REF TO zcl_abapgit_html_form_utils.
+    DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map.
+    DATA mr_list TYPE REF TO data.
+    DATA mv_selected TYPE i.
+    DATA mv_cancelled TYPE abap_bool.
+    DATA mv_fulfilled TYPE abap_bool.
+    DATA mv_attr_name TYPE abap_compname.
+    DATA mi_item_renderer TYPE REF TO zif_abapgit_gui_render_item.
+    DATA mv_in_page TYPE abap_bool.
+    DATA mv_id TYPE string.
+    DATA mv_title TYPE string.
+
+    METHODS get_form_schema
+      RETURNING
+        VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form
+      RAISING
+        zcx_abapgit_exception.
+    METHODS return_state
+      RETURNING
+        VALUE(rv_state) TYPE zif_abapgit_gui_event_handler=>ty_handling_result-state.
+
+ENDCLASS.
 CLASS zcl_abapgit_html_action_utils DEFINITION
   CREATE PUBLIC .
 
@@ -18777,6 +18951,35 @@ CLASS zcl_abapgit_html_form_utils DEFINITION
       RETURNING
         VALUE(rv_dirty) TYPE abap_bool .
 ENDCLASS.
+CLASS zcl_abapgit_html_popups DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS branch_list
+      IMPORTING
+        !iv_url             TYPE string
+        !iv_default_branch  TYPE string OPTIONAL
+        !iv_show_new_option TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(ri_popup)     TYPE REF TO zif_abapgit_html_popup.
+
+    CLASS-METHODS pull_request_list
+      IMPORTING
+        iv_url          TYPE string
+      RETURNING
+        VALUE(ri_popup) TYPE REF TO zif_abapgit_html_popup.
+
+    CLASS-METHODS tag_list
+      IMPORTING
+        iv_url          TYPE string
+      RETURNING
+        VALUE(ri_popup) TYPE REF TO zif_abapgit_html_popup.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_html_table DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
   FINAL
@@ -19016,20 +19219,10 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
 
   PUBLIC SECTION.
     INTERFACES:
+      zif_abapgit_gui_modal,
       zif_abapgit_gui_renderable,
       zif_abapgit_gui_event_handler,
       zif_abapgit_gui_error_handler.
-
-    METHODS:
-      constructor RAISING zcx_abapgit_exception.
-
-  PROTECTED SECTION.
-
-    CONSTANTS:
-      BEGIN OF c_page_layout,
-        centered   TYPE string VALUE `centered`,
-        full_width TYPE string VALUE `full_width`,
-      END OF c_page_layout.
 
     TYPES:
       BEGIN OF ty_control,
@@ -19040,7 +19233,18 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
         page_title_provider TYPE REF TO zif_abapgit_gui_page_title,
         extra_css_url       TYPE string,
         extra_js_url        TYPE string,
+        show_as_modal       TYPE abap_bool,
       END OF  ty_control .
+
+    METHODS constructor RAISING zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+
+    CONSTANTS:
+      BEGIN OF c_page_layout,
+        centered   TYPE string VALUE `centered`,
+        full_width TYPE string VALUE `full_width`,
+      END OF c_page_layout.
 
     DATA ms_control TYPE ty_control .
 
@@ -20174,31 +20378,54 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_page_hoc DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
   FINAL
-  CREATE PRIVATE .
+  CREATE PRIVATE.
 
   PUBLIC SECTION.
 
     CLASS-METHODS create
       IMPORTING
-        !ii_child_component TYPE REF TO zif_abapgit_gui_renderable
-        !iv_page_title      TYPE string OPTIONAL
-        !io_page_menu       TYPE REF TO zcl_abapgit_html_toolbar OPTIONAL
-        !ii_page_menu_provider TYPE REF TO zif_abapgit_gui_menu_provider OPTIONAL
+        !ii_child_component     TYPE REF TO zif_abapgit_gui_renderable
+        !iv_page_title          TYPE string OPTIONAL
+        !iv_page_layout         TYPE string DEFAULT zcl_abapgit_gui_page=>c_page_layout-centered
+        !io_page_menu           TYPE REF TO zcl_abapgit_html_toolbar OPTIONAL
+        !ii_page_menu_provider  TYPE REF TO zif_abapgit_gui_menu_provider OPTIONAL
         !ii_page_title_provider TYPE REF TO zif_abapgit_gui_page_title OPTIONAL
         !iv_extra_css_url       TYPE string OPTIONAL
         !iv_extra_js_url        TYPE string OPTIONAL
+        !iv_show_as_modal       TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(ri_page_wrap) TYPE REF TO zif_abapgit_gui_renderable
+        VALUE(ri_page_wrap)     TYPE REF TO zif_abapgit_gui_renderable
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS get_child
       RETURNING
-        VALUE(ri_child) TYPE REF TO zif_abapgit_gui_renderable .
+        VALUE(ri_child) TYPE REF TO zif_abapgit_gui_renderable.
+    METHODS constructor
+      IMPORTING
+        !ii_child_component TYPE REF TO zif_abapgit_gui_renderable
+        !is_control         TYPE zcl_abapgit_gui_page=>ty_control
+      RAISING
+        zcx_abapgit_exception.
   PROTECTED SECTION.
-    METHODS render_content REDEFINITION.
+
+    METHODS render_content
+        REDEFINITION.
   PRIVATE SECTION.
 
     DATA mi_child TYPE REF TO zif_abapgit_gui_renderable .
+
+    METHODS detect_modal
+      RETURNING
+        VALUE(rv_is_modal) TYPE abap_bool.
+
+    METHODS detect_menu_provider
+      RETURNING
+        VALUE(ri_ref) TYPE REF TO zif_abapgit_gui_menu_provider.
+
+    METHODS detect_title_provider
+      RETURNING
+        VALUE(ri_ref) TYPE REF TO zif_abapgit_gui_page_title.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_merge DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -21449,6 +21676,11 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
         choose_pull_request TYPE string VALUE 'choose_pull_request',
         change_head_type    TYPE string VALUE 'change_head_type',
       END OF c_event .
+    CONSTANTS:
+      BEGIN OF c_popup,
+        pull_request TYPE string VALUE 'popup_pull_request',
+      END OF c_popup.
+
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
     DATA ms_settings_old TYPE ty_remote_settings.
     DATA mo_form TYPE REF TO zcl_abapgit_html_form .
@@ -21457,6 +21689,8 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
     DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map .
     DATA mv_refresh_on_back TYPE abap_bool.
     DATA mv_offline_switch_saved_url TYPE string.
+
+    DATA mo_popup_picklist TYPE REF TO zcl_abapgit_gui_picklist.
 
     METHODS init
       IMPORTING
@@ -21519,23 +21753,23 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
       RAISING
         zcx_abapgit_exception.
     METHODS choose_branch
-      RETURNING
-        VALUE(rv_branch) TYPE ty_remote_settings-branch
+      IMPORTING
+        iv_is_return TYPE abap_bool DEFAULT abap_false
       RAISING
         zcx_abapgit_exception.
     METHODS choose_tag
-      RETURNING
-        VALUE(rv_tag) TYPE ty_remote_settings-tag
+      IMPORTING
+        iv_is_return TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception.
+    METHODS choose_pr
+      IMPORTING
+        iv_is_return TYPE abap_bool DEFAULT abap_false
       RAISING
         zcx_abapgit_exception.
     METHODS choose_commit
       RETURNING
         VALUE(rv_commit) TYPE ty_remote_settings-commit
-      RAISING
-        zcx_abapgit_exception.
-    METHODS choose_pull_req
-      RETURNING
-        VALUE(rv_pull_request) TYPE ty_remote_settings-pull_request
       RAISING
         zcx_abapgit_exception.
 
@@ -21557,6 +21791,10 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
       IMPORTING
         !iv_revert TYPE abap_bool DEFAULT abap_false
         !iv_pull   TYPE string OPTIONAL
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS handle_picklist_state
       RAISING
         zcx_abapgit_exception.
 
@@ -22967,13 +23205,22 @@ CLASS zcl_abapgit_string_buffer DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+
+    CLASS-METHODS new
+      RETURNING
+        VALUE(ro_me) TYPE REF TO zcl_abapgit_string_buffer.
     METHODS add
       IMPORTING
-        iv_str TYPE string.
+        !iv_str      TYPE string
+      RETURNING
+        VALUE(ro_me) TYPE REF TO zcl_abapgit_string_buffer.
     METHODS join_and_flush
       RETURNING
         VALUE(rv_str) TYPE string.
     METHODS join_w_newline_and_flush
+      RETURNING
+        VALUE(rv_str) TYPE string.
+    METHODS join_w_space_and_flush
       RETURNING
         VALUE(rv_str) TYPE string.
 
@@ -25293,9 +25540,10 @@ CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_STRING_BUFFER IMPLEMENTATION.
+CLASS zcl_abapgit_string_buffer IMPLEMENTATION.
   METHOD add.
     APPEND iv_str TO mt_buffer.
+    ro_me = me.
   ENDMETHOD.
   METHOD join_and_flush.
     rv_str = concat_lines_of( table = mt_buffer ).
@@ -25304,8 +25552,17 @@ CLASS ZCL_ABAPGIT_STRING_BUFFER IMPLEMENTATION.
   METHOD join_w_newline_and_flush.
     rv_str = concat_lines_of(
       table = mt_buffer
-      sep = cl_abap_char_utilities=>newline ).
+      sep   = cl_abap_char_utilities=>newline ).
     CLEAR mt_buffer.
+  ENDMETHOD.
+  METHOD join_w_space_and_flush.
+    rv_str = concat_lines_of(
+      table = mt_buffer
+      sep   = ` ` ).
+    CLEAR mt_buffer.
+  ENDMETHOD.
+  METHOD new.
+    CREATE OBJECT ro_me.
   ENDMETHOD.
 ENDCLASS.
 
@@ -28693,7 +28950,55 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/* Warning if wrong browser control is used */' ).
     lo_buf->add( '.browser-control-warning {' ).
     lo_buf->add( '  width: 100%;' ).
-    lo_buf->add( '}' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* MODAL POPUP */' ).
+    lo_buf->add( '/* https://css-tricks.com/considerations-styling-modal/ */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.modal {' ).
+    lo_buf->add( '    /* center on screen */' ).
+    lo_buf->add( '    position: fixed;' ).
+    lo_buf->add( '    top: 50%;' ).
+    lo_buf->add( '    left: 50%;' ).
+    lo_buf->add( '    transform: translate(-50%, -50%);' ).
+    lo_buf->add( '    /* size */' ).
+    lo_buf->add( '    max-width: 100%;' ).
+    lo_buf->add( '    max-height: 100%;' ).
+    lo_buf->add( '    /* infront of overlay */' ).
+    lo_buf->add( '    z-index: 1010;' ).
+    lo_buf->add( '    display: block;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.modal-guts {' ).
+    lo_buf->add( '    padding: 6px 6px;' ).
+    lo_buf->add( '    /* let it scroll */' ).
+    lo_buf->add( '    overflow: auto;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.modal-guts .dialog {' ).
+    lo_buf->add( '    box-shadow: 2px 2px 4px 1px rgba(0,0,0,0.3);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.modal-overlay {' ).
+    lo_buf->add( '    /* darken and prevent interactions with background */' ).
+    lo_buf->add( '    z-index: 1000;' ).
+    lo_buf->add( '    position: fixed;' ).
+    lo_buf->add( '    top: 0;' ).
+    lo_buf->add( '    left: 0;' ).
+    lo_buf->add( '    width: 100%;' ).
+    lo_buf->add( '    height: 100%;' ).
+    lo_buf->add( '    background: rgba(0, 0, 0, 0.3);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.modal .radio-container label {' ).
+    lo_buf->add( '  /* hacky, improve later, get rid of !important, hook it to a named style instead */' ).
+    lo_buf->add( '  border-radius: 3px !important;' ).
+    lo_buf->add( '  border: 1px solid rgba(0, 0, 0, 0.3) !important;' ).
+    lo_buf->add( '  margin-bottom: 2px !important;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.modal .radio-container label:hover {' ).
+    lo_buf->add( '  background-color: rgba(0, 0, 0, 0.1);' ).
+    lo_buf->add( '}' ).
     li_asset_man->register_asset(
       iv_url       = 'css/common.css'
       iv_type      = 'text/css'
@@ -37788,7 +38093,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
   METHOD check_protection.
 
     IF mo_repo->is_offline( ) = abap_true.
@@ -37801,27 +38106,40 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
   ENDMETHOD.
   METHOD choose_branch.
 
-    DATA:
-      lv_url         TYPE zif_abapgit_persistence=>ty_repo-url,
-      lv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name,
-      ls_branch      TYPE zif_abapgit_git_definitions=>ty_git_branch.
+    DATA lv_url         TYPE zif_abapgit_persistence=>ty_repo-url.
+    DATA lv_branch_name TYPE zif_abapgit_persistence=>ty_repo-branch_name.
+    DATA ls_branch      TYPE zif_abapgit_git_definitions=>ty_git_branch.
+    DATA lv_popup_cancelled TYPE abap_bool.
 
-    IF mo_form_data->get( c_id-offline ) = abap_true.
-      RETURN.
-    ENDIF.
+    IF iv_is_return = abap_false.
 
-    lv_url = mo_form_data->get( c_id-url ).
-    lv_branch_name = zif_abapgit_definitions=>c_git_branch-heads_prefix && mo_form_data->get( c_id-branch ).
+      IF mo_form_data->get( c_id-offline ) = abap_true.
+        RETURN.
+      ENDIF.
 
-    ls_branch = zcl_abapgit_ui_factory=>get_popups( )->branch_list_popup(
-      iv_url             = lv_url
-      iv_default_branch  = lv_branch_name
-      iv_show_new_option = abap_false ).
+      lv_url         = mo_form_data->get( c_id-url ).
+      lv_branch_name = mo_form_data->get( c_id-branch ).
 
-    IF ls_branch IS NOT INITIAL.
-      rv_branch = ls_branch-name.
-      REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_git_branch-heads_prefix IN rv_branch WITH space.
-      CONDENSE rv_branch.
+      mo_popup_picklist = zcl_abapgit_html_popups=>branch_list(
+        iv_show_new_option = abap_false
+        iv_url             = lv_url
+        iv_default_branch  = lv_branch_name
+        )->create_picklist(
+        )->set_id( c_event-choose_branch
+        )->set_in_page( ).
+
+    ELSE.
+
+      lv_popup_cancelled = mo_popup_picklist->was_cancelled( ).
+      IF lv_popup_cancelled = abap_false.
+        mo_popup_picklist->get_result_item( CHANGING cs_selected = ls_branch ).
+        IF ls_branch IS NOT INITIAL.
+          mo_form_data->set(
+            iv_key = c_id-branch
+            iv_val = ls_branch-display_name ).
+        ENDIF.
+      ENDIF.
+
     ENDIF.
 
   ENDMETHOD.
@@ -37846,56 +38164,73 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
       iv_branch_name = lv_branch_name )-sha1.
 
   ENDMETHOD.
-  METHOD choose_pull_req.
+  METHOD choose_pr.
 
-    DATA:
-      lt_pulls TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests,
-      ls_pull  LIKE LINE OF lt_pulls,
-      lv_url   TYPE ty_remote_settings-url.
+    DATA ls_pull         TYPE zif_abapgit_pr_enum_provider=>ty_pull_request.
+    DATA lv_pull_request TYPE ty_remote_settings-pull_request.
+    DATA lv_url TYPE ty_remote_settings-url.
+    DATA lv_popup_cancelled TYPE abap_bool.
 
-    IF mo_form_data->get( c_id-offline ) = abap_true.
-      RETURN.
-    ENDIF.
+    IF iv_is_return = abap_false.
 
-    lv_url = mo_form_data->get( c_id-url ).
+      IF mo_form_data->get( c_id-offline ) = abap_true.
+        zcx_abapgit_exception=>raise( 'Not possible for offline repositories' ).
+      ENDIF.
 
-    lt_pulls = zcl_abapgit_pr_enumerator=>new( lv_url )->get_pulls( ).
+      lv_url = mo_form_data->get( c_id-url ).
+      mo_popup_picklist = zcl_abapgit_html_popups=>pull_request_list( lv_url
+        )->create_picklist(
+        )->set_id( c_event-choose_pull_request
+        )->set_in_page( abap_true ).
 
-    IF lines( lt_pulls ) = 0.
-      MESSAGE 'No pull requests found' TYPE 'S'.
-      RETURN.
-    ENDIF.
+    ELSE.
 
-    ls_pull = zcl_abapgit_ui_factory=>get_popups( )->choose_pr_popup( lt_pulls ).
+      lv_popup_cancelled = mo_popup_picklist->was_cancelled( ).
+      IF lv_popup_cancelled = abap_false.
+        mo_popup_picklist->get_result_item( CHANGING cs_selected = ls_pull ).
+        IF ls_pull IS NOT INITIAL.
+          mo_form_data->set(
+            iv_key = c_id-pull_request
+            iv_val = ls_pull-head_url && '@' && ls_pull-head_branch ).
+        ENDIF.
+      ENDIF.
 
-    IF ls_pull IS NOT INITIAL.
-      rv_pull_request = ls_pull-head_url && '@' && ls_pull-head_branch.
     ENDIF.
 
   ENDMETHOD.
   METHOD choose_tag.
 
-    DATA:
-      lo_repo TYPE REF TO zcl_abapgit_repo_online,
-      ls_tag  TYPE zif_abapgit_git_definitions=>ty_git_tag,
-      lv_url  TYPE ty_remote_settings-url.
+    DATA ls_tag TYPE zif_abapgit_git_definitions=>ty_git_branch.
+    DATA lv_url TYPE ty_remote_settings-url.
+    DATA lv_popup_cancelled TYPE abap_bool.
 
-    IF mo_form_data->get( c_id-offline ) = abap_true.
-      RETURN.
-    ELSEIF mo_repo->is_offline( ) = abap_true.
-      MESSAGE 'Please save conversion to online repository before choosing a tag' TYPE 'S'.
-      RETURN.
-    ENDIF.
+    IF iv_is_return = abap_false.
 
-    lo_repo ?= mo_repo.
-    lv_url = mo_form_data->get( c_id-url ).
+      IF mo_form_data->get( c_id-offline ) = abap_true.
+        RETURN.
+      ELSEIF mo_repo->is_offline( ) = abap_true.
+        MESSAGE 'Please save conversion to online repository before choosing a tag' TYPE 'S'.
+        RETURN.
+      ENDIF.
 
-    ls_tag = zcl_abapgit_ui_factory=>get_popups( )->tag_list_popup( lv_url ).
+      lv_url = mo_form_data->get( c_id-url ).
+      mo_popup_picklist = zcl_abapgit_html_popups=>tag_list( lv_url
+        )->create_picklist(
+        )->set_id( c_event-choose_tag
+        )->set_in_page( ).
 
-    IF ls_tag IS NOT INITIAL.
-      rv_tag = ls_tag-name.
-      REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_git_branch-tags_prefix IN rv_tag WITH space.
-      CONDENSE rv_tag.
+    ELSE.
+
+      lv_popup_cancelled = mo_popup_picklist->was_cancelled( ).
+      IF lv_popup_cancelled = abap_false.
+        mo_popup_picklist->get_result_item( CHANGING cs_selected = ls_tag ).
+        IF ls_tag IS NOT INITIAL.
+          mo_form_data->set(
+            iv_key = c_id-tag
+            iv_val = ls_tag-display_name ).
+        ENDIF.
+      ENDIF.
+
     ENDIF.
 
   ENDMETHOD.
@@ -38143,6 +38478,27 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
       rs_settings-url = lo_repo_offline->get_name( ).
       rs_settings-offline = abap_true.
     ENDIF.
+  ENDMETHOD.
+  METHOD handle_picklist_state.
+
+    IF mo_popup_picklist IS BOUND AND
+      ( mo_popup_picklist->is_fulfilled( ) = abap_true OR mo_popup_picklist->is_in_page( ) = abap_false ).
+      " Picklist is either fullfilled OR
+      " it was on its own page and user went back from it via F3/ESC and the picklist had no "graceful back" handler
+      CASE mo_popup_picklist->id( ).
+        WHEN c_event-choose_pull_request.
+          choose_pr( iv_is_return = abap_true ).
+        WHEN c_event-choose_branch.
+          choose_branch( iv_is_return = abap_true ).
+        WHEN c_event-choose_tag.
+          choose_tag( iv_is_return = abap_true ).
+        WHEN OTHERS.
+          zcx_abapgit_exception=>raise( |Unexpected picklist id { mo_popup_picklist->id( ) }| ).
+      ENDCASE.
+
+      CLEAR mo_popup_picklist.
+    ENDIF.
+
   ENDMETHOD.
   METHOD init.
     mo_repo = io_repo.
@@ -38452,13 +38808,16 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA:
-      lv_url          TYPE ty_remote_settings-url,
-      lv_branch       TYPE ty_remote_settings-branch,
-      lv_tag          TYPE ty_remote_settings-tag,
-      lv_commit       TYPE ty_remote_settings-commit,
-      lv_pull_request TYPE ty_remote_settings-pull_request.
+      lo_form_data_raw TYPE REF TO zcl_abapgit_string_map,
+      lv_url           TYPE ty_remote_settings-url,
+      lv_branch        TYPE ty_remote_settings-branch,
+      lv_tag           TYPE ty_remote_settings-tag,
+      lv_commit        TYPE ty_remote_settings-commit.
 
-    mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
+    lo_form_data_raw = ii_event->form_data( ).
+    IF lo_form_data_raw->is_empty( ) = abap_false. " If form-related action
+      mo_form_data = mo_form_util->normalize( lo_form_data_raw ).
+    ENDIF.
 
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-go_back.
@@ -38470,7 +38829,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back_to_bookmark.
 
       WHEN c_event-choose_url.
-
         lv_url = choose_url( ).
 
         IF lv_url IS INITIAL.
@@ -38487,28 +38845,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
         mo_validation_log->clear( ).
 
       WHEN c_event-choose_branch.
-        lv_branch = choose_branch( ).
-
-        IF lv_branch IS INITIAL.
-          rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
-        ELSE.
-          mo_form_data->set(
-            iv_key = c_id-branch
-            iv_val = lv_branch ).
-          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-        ENDIF.
+        choose_branch( ). " Unformly handle state below
 
       WHEN c_event-choose_tag.
-        lv_tag = choose_tag( ).
+        choose_tag( ). " Unformly handle state below
 
-        IF lv_tag IS INITIAL.
-          rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
-        ELSE.
-          mo_form_data->set(
-            iv_key = c_id-tag
-            iv_val = lv_tag ).
-          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-        ENDIF.
+      WHEN c_event-choose_pull_request.
+        choose_pr( ). " Unformly handle state below
 
       WHEN c_event-choose_commit.
         lv_commit = choose_commit( ).
@@ -38519,18 +38862,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
           mo_form_data->set(
             iv_key = c_id-commit
             iv_val = lv_commit ).
-          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-        ENDIF.
-
-      WHEN c_event-choose_pull_request.
-        lv_pull_request = choose_pull_req( ).
-
-        IF lv_pull_request IS INITIAL.
-          rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
-        ELSE.
-          mo_form_data->set(
-            iv_key = c_id-pull_request
-            iv_val = lv_pull_request ).
           rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
         ENDIF.
 
@@ -38549,19 +38880,33 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
 
     ENDCASE.
 
+    IF mo_popup_picklist IS BOUND. " Uniform popup state handling
+      " This should happen only for a new popup because
+      " on the first re-render main component event handling is blocked
+      " and not called again until the popup distruction
+      IF mo_popup_picklist->is_in_page( ) = abap_true.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      ELSE.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
+        rs_handled-page  = zcl_abapgit_gui_page_hoc=>create(
+          ii_child_component = mo_popup_picklist
+          iv_show_as_modal   = abap_true ).
+      ENDIF.
+    ENDIF.
     " If staying on form, initialize it with current settings
-    IF rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      mo_form = get_form_schema( is_settings  = ms_settings_old
-                                 io_form_data = mo_form_data ).
-      CREATE OBJECT mo_form_util
-        EXPORTING
-          io_form = mo_form.
+    IF rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render AND mo_popup_picklist IS NOT BOUND.
+      " TODO refactor: same as in constructor
+      mo_form = get_form_schema(
+        is_settings  = ms_settings_old
+        io_form_data = mo_form_data ).
+      mo_form_util = zcl_abapgit_html_form_utils=>create( mo_form ).
 
       IF mo_form_data IS NOT BOUND.
         CREATE OBJECT mo_form_data.
-        initialize_form_data( io_form_data = mo_form_data
-                              is_settings  = ms_settings_old
-                              io_form_util = mo_form_util ).
+        initialize_form_data(
+          io_form_data = mo_form_data
+          is_settings  = ms_settings_old
+          io_form_util = mo_form_util ).
       ENDIF.
     ENDIF.
 
@@ -38635,22 +38980,30 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    register_handlers( ).
+    handle_picklist_state( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ri_html->add( `<div class="repo">` ).
+    ri_html->add( `<div class="repo">` ). " TODO own setting frame CSS class
 
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
-                    io_repo               = mo_repo
-                    iv_show_commit        = abap_false
-                    iv_interactive_branch = abap_false ) ).
+      io_repo               = mo_repo
+      iv_show_commit        = abap_false
+      iv_interactive_branch = abap_false ) ).
 
     ri_html->add( mo_form->render(
       io_values         = mo_form_data
       io_validation_log = mo_validation_log ) ).
 
     ri_html->add( `</div>` ).
+
+    IF mo_popup_picklist IS NOT BOUND OR mo_popup_picklist->is_in_page( ) = abap_false.
+      register_handlers( ).
+    ELSEIF mo_popup_picklist->is_in_page( ) = abap_true.
+      " Block usual page events if the popup is an in-page popup
+      ri_html->add( zcl_abapgit_gui_in_page_modal=>create( mo_popup_picklist
+        )->zif_abapgit_gui_renderable~render( ) ).
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -43790,22 +44143,71 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_HOC IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_hoc IMPLEMENTATION.
+  METHOD constructor.
+
+    super->constructor( ).
+
+    mi_child = ii_child_component.
+    ms_control = is_control.
+
+    IF ms_control-show_as_modal = abap_false.
+      ms_control-show_as_modal = detect_modal( ).
+    ENDIF.
+
+    IF ms_control-page_menu_provider IS NOT BOUND.
+      ms_control-page_menu_provider = detect_menu_provider( ).
+    ENDIF.
+
+    IF ms_control-page_title_provider IS NOT BOUND.
+      ms_control-page_title_provider = detect_title_provider( ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD create.
 
     DATA lo_page TYPE REF TO zcl_abapgit_gui_page_hoc.
+    DATA ls_control TYPE zcl_abapgit_gui_page=>ty_control.
 
-    CREATE OBJECT lo_page.
-    lo_page->ms_control-page_title          = iv_page_title.
-    lo_page->ms_control-page_menu           = io_page_menu.
-    lo_page->ms_control-page_menu_provider  = ii_page_menu_provider.
-    lo_page->ms_control-page_title_provider = ii_page_title_provider.
-    lo_page->ms_control-extra_css_url       = iv_extra_css_url.
-    lo_page->ms_control-extra_js_url        = iv_extra_js_url.
-    lo_page->mi_child                       = ii_child_component.
+    ls_control-page_title          = iv_page_title.
+    ls_control-page_layout         = iv_page_layout.
+    ls_control-page_menu           = io_page_menu.
+    ls_control-page_menu_provider  = ii_page_menu_provider.
+    ls_control-page_title_provider = ii_page_title_provider.
+    ls_control-extra_css_url       = iv_extra_css_url.
+    ls_control-extra_js_url        = iv_extra_js_url.
+    ls_control-show_as_modal       = iv_show_as_modal.
+
+    CREATE OBJECT lo_page
+      EXPORTING
+        ii_child_component = ii_child_component
+        is_control         = ls_control.
 
     ri_page_wrap = lo_page.
 
+  ENDMETHOD.
+  METHOD detect_menu_provider.
+    TRY.
+        ri_ref ?= mi_child.
+      CATCH cx_sy_move_cast_error.
+    ENDTRY.
+  ENDMETHOD.
+  METHOD detect_modal.
+
+    DATA li_modal TYPE REF TO zif_abapgit_gui_modal.
+
+    TRY.
+        li_modal ?= mi_child.
+        rv_is_modal = li_modal->is_modal( ).
+      CATCH cx_sy_move_cast_error.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD detect_title_provider.
+    TRY.
+        ri_ref ?= mi_child.
+      CATCH cx_sy_move_cast_error.
+    ENDTRY.
   ENDMETHOD.
   METHOD get_child.
     ri_child = mi_child.
@@ -47779,7 +48181,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -48076,6 +48478,9 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 
     ENDCASE.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_modal~is_modal.
+    rv_yes = boolc( ms_control-show_as_modal = abap_true ).
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
@@ -48832,6 +49237,263 @@ CLASS ZCL_ABAPGIT_HTML_TABLE IMPLEMENTATION.
     mi_html->add( '</tr>' ).
     mi_html->add( '</thead>' ).
 
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS kHGwloAogsJIdkWYrlvJXDKXnDQCxE DEFINITION DEFERRED.
+CLASS kHGwloAogsJIdkWYrlvJWKIICraZOu DEFINITION DEFERRED.
+CLASS kHGwloAogsJIdkWYrlvJYMeQFtPnmc DEFINITION DEFERRED.
+* renamed: zcl_abapgit_html_popups :: lcl_pr_popup
+CLASS kHGwloAogsJIdkWYrlvJYMeQFtPnmc DEFINITION FINAL.
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_gui_render_item.
+    INTERFACES zif_abapgit_html_popup.
+
+    METHODS constructor
+      IMPORTING
+        iv_url TYPE string.
+
+  PRIVATE SECTION.
+
+    DATA mv_repo_url TYPE string.
+
+    METHODS fetch_pull_request_list
+      RETURNING
+        VALUE(rt_pulls) TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests
+      RAISING
+        zcx_abapgit_exception.
+
+ENDCLASS.
+
+CLASS kHGwloAogsJIdkWYrlvJYMeQFtPnmc IMPLEMENTATION.
+
+  METHOD constructor.
+    mv_repo_url = iv_url.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_html_popup~create_picklist.
+
+    CREATE OBJECT ro_picklist
+      EXPORTING
+        iv_title         = 'Choose Pull Request'
+        it_list          = fetch_pull_request_list( )
+        ii_item_renderer = me.
+
+  ENDMETHOD.
+
+  METHOD fetch_pull_request_list.
+
+    rt_pulls = zcl_abapgit_pr_enumerator=>new( mv_repo_url )->get_pulls( ).
+
+    IF lines( rt_pulls ) = 0.
+      zcx_abapgit_exception=>raise( 'No pull requests found' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_render_item~render.
+
+    FIELD-SYMBOLS <ls_pr> TYPE zif_abapgit_pr_enum_provider=>ty_pull_request.
+
+    ASSIGN iv_item TO <ls_pr>.
+    ASSERT sy-subrc = 0.
+
+    ri_html = zcl_abapgit_html=>create( |<b>{ <ls_pr>-number }</b> - { <ls_pr>-title } @{ <ls_pr>-user }| ).
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+**********************************************************************
+
+* renamed: zcl_abapgit_html_popups :: lcl_branch_popup
+CLASS kHGwloAogsJIdkWYrlvJWKIICraZOu DEFINITION FINAL.
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_gui_render_item.
+    INTERFACES zif_abapgit_html_popup.
+
+    METHODS constructor
+      IMPORTING
+        !iv_url             TYPE string
+        !iv_default_branch  TYPE string OPTIONAL
+        !iv_show_new_option TYPE abap_bool DEFAULT abap_false.
+
+  PRIVATE SECTION.
+
+    DATA mv_repo_url TYPE string.
+    DATA mv_default_branch TYPE string.
+    DATA mv_show_new_option TYPE abap_bool.
+
+    METHODS fetch_branch_list
+      RETURNING
+        VALUE(rt_branches) TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt
+      RAISING
+        zcx_abapgit_exception.
+
+ENDCLASS.
+
+CLASS kHGwloAogsJIdkWYrlvJWKIICraZOu IMPLEMENTATION.
+  METHOD constructor.
+    mv_repo_url        = iv_url.
+    mv_default_branch  = zif_abapgit_definitions=>c_git_branch-heads_prefix && iv_default_branch.
+    mv_show_new_option = iv_show_new_option.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_html_popup~create_picklist.
+
+    CREATE OBJECT ro_picklist
+      EXPORTING
+        iv_title         = 'Choose Branch'
+        it_list          = fetch_branch_list( )
+        ii_item_renderer = me.
+
+  ENDMETHOD.
+
+  METHOD fetch_branch_list.
+
+    DATA lo_branches    TYPE REF TO zcl_abapgit_git_branch_list.
+    DATA lv_head_symref TYPE string.
+
+    FIELD-SYMBOLS <ls_branch> LIKE LINE OF rt_branches.
+
+    lo_branches    = zcl_abapgit_git_transport=>branches( mv_repo_url ).
+    rt_branches    = lo_branches->get_branches_only( ).
+    lv_head_symref = lo_branches->get_head_symref( ).
+
+    IF rt_branches IS INITIAL.
+      zcx_abapgit_exception=>raise( 'No branches are available to select' ).
+    ENDIF.
+
+    " Clean up branches: HEAD duplicates, empty names
+    LOOP AT rt_branches ASSIGNING <ls_branch>.
+      IF <ls_branch>-name IS INITIAL.
+        DELETE rt_branches INDEX sy-tabix.
+      ELSEIF <ls_branch>-is_head = abap_true AND lv_head_symref IS NOT INITIAL AND <ls_branch>-name <> lv_head_symref.
+        DELETE rt_branches INDEX sy-tabix.
+      ENDIF.
+    ENDLOOP.
+
+    SORT rt_branches BY is_head DESCENDING display_name ASCENDING.
+
+    IF mv_show_new_option = abap_true.
+      APPEND INITIAL LINE TO rt_branches ASSIGNING <ls_branch>.
+      <ls_branch>-name = zif_abapgit_popups=>c_new_branch_label.
+      <ls_branch>-display_name = zif_abapgit_popups=>c_new_branch_label.
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_gui_render_item~render.
+
+    DATA lv_head_marker TYPE string.
+    FIELD-SYMBOLS <ls_b> TYPE zif_abapgit_git_definitions=>ty_git_branch.
+
+    ASSIGN iv_item TO <ls_b>.
+    ASSERT sy-subrc = 0.
+
+    " TODO render mv_default_branch properly, needs respecting support from the picklist components
+
+    IF <ls_b>-is_head = abap_true.
+      lv_head_marker = | (<b>{ zif_abapgit_definitions=>c_head_name }</b>)|.
+    ENDIF.
+
+    ri_html = zcl_abapgit_html=>create( |{ <ls_b>-display_name }{ lv_head_marker }| ).
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+**********************************************************************
+
+* renamed: zcl_abapgit_html_popups :: lcl_tag_popup
+CLASS kHGwloAogsJIdkWYrlvJXDKXnDQCxE DEFINITION FINAL.
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_gui_render_item.
+    INTERFACES zif_abapgit_html_popup.
+
+    METHODS constructor
+      IMPORTING
+        iv_url TYPE string.
+
+  PRIVATE SECTION.
+
+    DATA mv_repo_url TYPE string.
+
+    METHODS fetch_tag_list
+      RETURNING
+        VALUE(rt_tags) TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt
+      RAISING
+        zcx_abapgit_exception.
+
+ENDCLASS.
+
+CLASS kHGwloAogsJIdkWYrlvJXDKXnDQCxE IMPLEMENTATION.
+
+  METHOD constructor.
+    mv_repo_url = iv_url.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_html_popup~create_picklist.
+
+    CREATE OBJECT ro_picklist
+      EXPORTING
+        iv_title         = 'Choose Tag'
+        it_list          = fetch_tag_list( )
+        ii_item_renderer = me.
+
+  ENDMETHOD.
+
+  METHOD fetch_tag_list.
+
+    DATA lo_branches  TYPE REF TO zcl_abapgit_git_branch_list.
+
+    lo_branches = zcl_abapgit_git_transport=>branches( mv_repo_url ).
+    rt_tags     = lo_branches->get_tags_only( ).
+
+    DELETE rt_tags WHERE name CP '*' && zif_abapgit_definitions=>c_git_branch-peel.
+
+    IF lines( rt_tags ) = 0.
+      zcx_abapgit_exception=>raise( 'No tags are available to select' ).
+    ENDIF.
+
+    SORT rt_tags BY display_name ASCENDING.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_render_item~render.
+
+    FIELD-SYMBOLS <ls_tag> TYPE zif_abapgit_git_definitions=>ty_git_branch.
+
+    ASSIGN iv_item TO <ls_tag>.
+    ASSERT sy-subrc = 0.
+
+    ri_html = zcl_abapgit_html=>create( |{ <ls_tag>-display_name }| ).
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS zcl_abapgit_html_popups IMPLEMENTATION.
+  METHOD branch_list.
+    CREATE OBJECT ri_popup TYPE kHGwloAogsJIdkWYrlvJWKIICraZOu
+      EXPORTING
+        iv_url             = iv_url
+        iv_default_branch  = iv_default_branch
+        iv_show_new_option = iv_show_new_option.
+  ENDMETHOD.
+  METHOD pull_request_list.
+    CREATE OBJECT ri_popup TYPE kHGwloAogsJIdkWYrlvJYMeQFtPnmc
+      EXPORTING
+        iv_url = iv_url.
+  ENDMETHOD.
+  METHOD tag_list.
+    CREATE OBJECT ri_popup TYPE kHGwloAogsJIdkWYrlvJXDKXnDQCxE
+      EXPORTING
+        iv_url = iv_url.
   ENDMETHOD.
 ENDCLASS.
 
@@ -49997,6 +50659,197 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
     REPLACE ALL OCCURRENCES OF '%25' IN rv_string WITH '%' IGNORING CASE.
     REPLACE ALL OCCURRENCES OF '%26' IN rv_string WITH '&' IGNORING CASE.
     REPLACE ALL OCCURRENCES OF gv_non_breaking_space IN rv_string WITH ` `.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_gui_picklist IMPLEMENTATION.
+  METHOD constructor.
+
+    FIELD-SYMBOLS <lt_tab> TYPE STANDARD TABLE.
+
+    super->constructor( ).
+
+    " copy contents of table to local scope
+    CREATE DATA mr_list LIKE it_list.
+    ASSIGN mr_list->* TO <lt_tab>.
+    APPEND LINES OF it_list TO <lt_tab>.
+
+    mv_attr_name = to_upper( iv_attr_name ).
+    mi_item_renderer = ii_item_renderer.
+    mv_in_page = iv_in_page.
+    mv_id      = iv_id.
+    mv_title   = iv_title.
+
+    IF mi_item_renderer IS NOT BOUND AND mv_attr_name IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Renderer or attr name required' ).
+    ENDIF.
+
+    CREATE OBJECT mo_form_data.
+    CREATE OBJECT mo_validation_log.
+    mo_form = get_form_schema( ).
+    mo_form_util = zcl_abapgit_html_form_utils=>create( mo_form ).
+
+  ENDMETHOD.
+  METHOD get_form_schema.
+
+    FIELD-SYMBOLS <lt_list> TYPE ANY TABLE.
+    FIELD-SYMBOLS <lv_val> TYPE any.
+    FIELD-SYMBOLS <ls_row> TYPE any.
+    DATA lv_index TYPE i.
+    DATA lv_label TYPE string.
+
+    ro_form = zcl_abapgit_html_form=>create( ).
+
+    ro_form->radio(
+      iv_name     = c_radio_name
+      iv_label    = mv_title ).
+
+    ASSIGN mr_list->* TO <lt_list>.
+    LOOP AT <lt_list> ASSIGNING <ls_row>.
+      lv_index = sy-tabix.
+
+      IF mv_attr_name IS NOT INITIAL.
+        ASSIGN COMPONENT mv_attr_name OF STRUCTURE <ls_row> TO <lv_val>.
+        ASSERT sy-subrc = 0.
+        lv_label = <lv_val>.
+      ELSEIF mi_item_renderer IS BOUND.
+        lv_label = mi_item_renderer->render(
+          iv_item  = <ls_row>
+          iv_index = lv_index )->render( ).
+      ENDIF.
+
+      ro_form->option(
+        iv_label = lv_label
+        iv_value = |{ lv_index }| ).
+
+    ENDLOOP.
+
+    ro_form->command(
+      iv_label    = 'Choose'
+      iv_cmd_type = zif_abapgit_html_form=>c_cmd_type-input_main
+      iv_action   = c_event-choose
+    )->command(
+      iv_label    = 'Back'
+      iv_action   = c_event-back ).
+
+  ENDMETHOD.
+  METHOD get_result_idx.
+    rv_index = mv_selected.
+  ENDMETHOD.
+  METHOD get_result_item.
+
+    FIELD-SYMBOLS <lt_tab> TYPE STANDARD TABLE.
+
+    CLEAR cs_selected.
+
+    IF mv_selected > 0.
+      ASSIGN mr_list->* TO <lt_tab>.
+      READ TABLE <lt_tab> INDEX mv_selected INTO cs_selected.
+      ASSERT sy-subrc = 0.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD id.
+    rv_id = mv_id.
+  ENDMETHOD.
+  METHOD is_fulfilled.
+    rv_yes = mv_fulfilled.
+  ENDMETHOD.
+  METHOD is_in_page.
+    rv_yes = mv_in_page.
+  ENDMETHOD.
+  METHOD return_state.
+    IF mv_in_page = abap_true.
+      rv_state = zcl_abapgit_gui=>c_event_state-re_render.
+    ELSE.
+      rv_state = zcl_abapgit_gui=>c_event_state-go_back.
+    ENDIF.
+  ENDMETHOD.
+  METHOD set_id.
+    mv_id = iv_id.
+    ro_me = me.
+  ENDMETHOD.
+  METHOD set_in_page.
+    mv_in_page = iv_in_page.
+    ro_me = me.
+  ENDMETHOD.
+  METHOD was_cancelled.
+    rv_yes = mv_cancelled.
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+
+    mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
+    mo_validation_log->clear( ).
+
+    CASE ii_event->mv_action.
+      WHEN c_event-back OR zif_abapgit_definitions=>c_action-go_back.
+        " Handle go_back as a "graceful back" - implicit cancel by F3/ESC
+        mv_fulfilled = abap_true.
+        mv_cancelled = abap_true.
+        rs_handled-state = return_state( ).
+      WHEN c_event-choose.
+        mv_selected = mo_form_data->get( c_radio_name ).
+        IF mv_selected = 0.
+          mo_validation_log->set(
+            iv_key = c_radio_name
+            iv_val = 'You have to select one item' ).
+          rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+        ELSE.
+          mv_fulfilled = abap_true.
+          rs_handled-state = return_state( ).
+        ENDIF.
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_title~get_page_title.
+    rv_title = mv_title.
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    ri_html = zcl_abapgit_html=>create( mo_form->render(
+      io_values         = mo_form_data
+      io_validation_log = mo_validation_log ) ).
+    register_handlers( ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_gui_in_page_modal IMPLEMENTATION.
+  METHOD constructor.
+
+    ms_attrs-width  = iv_width.
+    ms_attrs-height = iv_height.
+    mi_child        = ii_child.
+
+  ENDMETHOD.
+  METHOD create.
+    CREATE OBJECT ro_wrap
+      EXPORTING
+        ii_child  = ii_child
+        iv_width  = iv_width
+        iv_height = iv_height.
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    DATA lo_style TYPE REF TO zcl_abapgit_string_buffer.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    CREATE OBJECT lo_style.
+
+    IF ms_attrs-width IS NOT INITIAL.
+      lo_style->add( |width:{ ms_attrs-width }px;| ).
+    ENDIF.
+    IF ms_attrs-height IS NOT INITIAL.
+      lo_style->add( |height:{ ms_attrs-height }px;| ).
+    ENDIF.
+
+    ri_html->add( |<div class="modal" style="{ lo_style->join_w_space_and_flush( ) }">| ).
+    ri_html->add( |<div class="modal-guts">| ).
+    ri_html->add( mi_child->render( ) ).
+    ri_html->add( |</div>| ).
+    ri_html->add( |</div>| ).
+    ri_html->add( |<div class="modal-overlay"></div>| ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -51674,6 +52527,9 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
   ENDMETHOD.
   METHOD create.
     CREATE OBJECT ri_instance TYPE zcl_abapgit_html.
+    IF iv_initial_chunk IS NOT INITIAL.
+      ri_instance->add( iv_initial_chunk ).
+    ENDIF.
   ENDMETHOD.
   METHOD icon.
 
@@ -52408,6 +53264,14 @@ CLASS zcl_abapgit_gui_event IMPLEMENTATION.
         iv_val = <ls_field>-value ).
     ENDLOOP.
   ENDMETHOD.
+  METHOD new.
+    CREATE OBJECT ro_instance
+      EXPORTING
+        ii_gui_services = ii_gui_services
+        iv_action       = iv_action
+        iv_getdata      = iv_getdata
+        it_postdata     = it_postdata.
+  ENDMETHOD.
   METHOD zif_abapgit_gui_event~form_data.
 
     IF mo_form_data IS NOT BOUND.
@@ -52659,11 +53523,11 @@ CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
+CLASS zcl_abapgit_gui IMPLEMENTATION.
   METHOD back.
 
-    DATA: lv_index TYPE i,
-          ls_stack LIKE LINE OF mt_stack.
+    DATA lv_index TYPE i.
+    DATA ls_stack LIKE LINE OF mt_stack.
 
     " If viewer is showing Internet page, then use browser navigation
     IF mi_html_viewer->get_url( ) CP 'http*'.
@@ -52675,6 +53539,10 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
     IF lv_index = 0.
       rv_exit = abap_true.
+      RETURN.
+    ENDIF.
+
+    IF iv_graceful = abap_true AND back_graceful( ) = abap_true.
       RETURN.
     ENDIF.
 
@@ -52694,6 +53562,27 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
 
     mi_cur_page = ls_stack-page. " last page always stays
     render( ).
+
+  ENDMETHOD.
+  METHOD back_graceful.
+
+    DATA li_handler TYPE REF TO zif_abapgit_gui_event_handler.
+    DATA ls_handled TYPE zif_abapgit_gui_event_handler=>ty_handling_result.
+
+    " This code can be potentially improved
+    " Why send go_back to the topmost handler only ? It makes sense to notify the whole stack
+    " But than how to handle re-render ? render if at least one handler asks for it ?
+    " Probably that's the way but needs a relevant example. Postponed arch decision.
+    READ TABLE mt_event_handlers INTO li_handler INDEX 1.
+    IF sy-subrc = 0.
+      ls_handled = li_handler->on_event( zcl_abapgit_gui_event=>new(
+        iv_action       = zif_abapgit_definitions=>c_action-go_back
+        ii_gui_services = me ) ).
+      IF ls_handled-state = c_event_state-re_render. " soft exit, probably popup
+        render( ).
+        rv_handled = abap_true.
+      ENDIF.
+    ENDIF.
 
   ENDMETHOD.
   METHOD cache_html.
@@ -52796,6 +53685,14 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
           ENDIF.
         ENDLOOP.
 
+        IF is_page_modal( mi_cur_page ) = abap_true AND NOT (
+          ls_handled-state = c_event_state-re_render OR
+          ls_handled-state = c_event_state-go_back OR
+          ls_handled-state = c_event_state-no_more_act ).
+          " Restrict new page switching from modals
+          ls_handled-state = c_event_state-no_more_act.
+        ENDIF.
+
         CASE ls_handled-state.
           WHEN c_event_state-re_render.
             render( ).
@@ -52812,7 +53709,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
           WHEN c_event_state-go_back.
             back( ).
           WHEN c_event_state-go_back_to_bookmark.
-            back( abap_true ).
+            back( iv_to_bookmark = abap_true ).
           WHEN c_event_state-no_more_act.
             " Do nothing, handling completed
           WHEN OTHERS.
@@ -52856,6 +53753,19 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD is_page_modal.
+
+    DATA li_modal TYPE REF TO zif_abapgit_gui_modal.
+
+    TRY.
+        IF ii_page IS BOUND.
+          li_modal ?= ii_page.
+          rv_yes = li_modal->is_modal( ).
+        ENDIF.
+      CATCH cx_sy_move_cast_error.
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD on_event.
 
     handle_action(
@@ -52877,7 +53787,8 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     CLEAR mt_event_handlers.
     mo_html_parts->clear( ).
 
-    IF mi_router IS BOUND.
+    IF mi_router IS BOUND AND is_page_modal( mi_cur_page ) = abap_false.
+      " No global commands in modals
       APPEND mi_router TO mt_event_handlers.
     ENDIF.
 
@@ -122849,7 +123760,7 @@ FORM exit.
   TRY.
       CASE sy-ucomm.
         WHEN 'CBAC' OR 'CCAN'.  "Back & Escape
-          IF zcl_abapgit_ui_factory=>get_gui( )->back( ) = abap_true. " end of stack
+          IF zcl_abapgit_ui_factory=>get_gui( )->back( iv_graceful = abap_true ) = abap_true. " end of stack
             zcl_abapgit_ui_factory=>get_gui( )->free( ). " Graceful shutdown
           ELSE.
             LEAVE TO SCREEN 1001.
@@ -122950,6 +123861,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-16T08:22:04.339Z
+* abapmerge 0.15.0 - 2023-05-21T12:44:59.988Z
 ENDINTERFACE.
 ****************************************************
