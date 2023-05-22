@@ -3162,6 +3162,14 @@ INTERFACE zif_abapgit_definitions .
       label_colors           TYPE string,
     END OF ty_s_user_settings .
   TYPES:
+    BEGIN OF ty_list_settings,
+      filter           TYPE string,
+      only_favorites   TYPE abap_bool,
+      show_details     TYPE abap_bool,
+      order_by         TYPE string,
+      order_descending TYPE abap_bool,
+    END OF ty_list_settings.
+  TYPES:
     ty_dokil_tt TYPE STANDARD TABLE OF dokil
                          WITH NON-UNIQUE DEFAULT KEY .
   TYPES:
@@ -4603,6 +4611,16 @@ INTERFACE zif_abapgit_persist_user .
   METHODS set_settings
     IMPORTING
       is_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings
+    RAISING
+      zcx_abapgit_exception.
+  METHODS get_list_settings
+    RETURNING
+      VALUE(rs_list_settings) TYPE zif_abapgit_definitions=>ty_list_settings
+    RAISING
+      zcx_abapgit_exception.
+  METHODS set_list_settings
+    IMPORTING
+      is_list_settings TYPE zif_abapgit_definitions=>ty_list_settings
     RAISING
       zcx_abapgit_exception.
 
@@ -16214,8 +16232,6 @@ CLASS zcl_abapgit_persistence_user DEFINITION
 
     INTERFACES zif_abapgit_persist_user .
 
-    TYPES ty_favorites TYPE zif_abapgit_persistence=>ty_repo_keys .
-
     CLASS-METHODS get_instance
       IMPORTING
         !iv_user       TYPE sy-uname DEFAULT sy-uname
@@ -16250,10 +16266,11 @@ CLASS zcl_abapgit_persistence_user DEFINITION
         order_descending TYPE abap_bool,
         diff_first       TYPE abap_bool,
         diff_unified     TYPE abap_bool,
-        favorites        TYPE ty_favorites,
+        favorites        TYPE zif_abapgit_persist_user=>ty_favorites,
         repo_config      TYPE ty_repo_configs,
         settings         TYPE zif_abapgit_definitions=>ty_s_user_settings,
         show_folders     TYPE abap_bool,
+        list_settings    TYPE zif_abapgit_definitions=>ty_list_settings,
       END OF ty_user .
 
     DATA mv_user TYPE sy-uname .
@@ -20776,7 +20793,7 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
 
     CLASS-METHODS create
       IMPORTING
-        !iv_only_favorites TYPE abap_bool
+        !iv_only_favorites TYPE abap_bool OPTIONAL
       RETURNING
         VALUE(ri_page)     TYPE REF TO zif_abapgit_gui_renderable
       RAISING
@@ -20784,7 +20801,7 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
 
     METHODS constructor
       IMPORTING
-        !iv_only_favorites TYPE abap_bool
+        !iv_only_favorites TYPE abap_bool OPTIONAL
       RAISING
         zcx_abapgit_exception.
 
@@ -20821,22 +20838,25 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
       c_label_filter_prefix TYPE string VALUE `label:`,
       c_raw_field_suffix    TYPE string VALUE `_RAW` ##NO_TEXT.
 
-    DATA: mv_order_descending TYPE abap_bool,
-          mv_only_favorites   TYPE abap_bool,
-          mv_filter           TYPE string,
-          mt_all_labels       TYPE string_table,
-          mo_label_colors     TYPE REF TO zcl_abapgit_string_map,
-          mv_order_by         TYPE string.
+    DATA: mt_all_labels   TYPE string_table,
+          mo_label_colors TYPE REF TO zcl_abapgit_string_map.
+    DATA ms_list_settings TYPE zif_abapgit_definitions=>ty_list_settings.
 
     METHODS set_order_by
       IMPORTING
-        !iv_order_by TYPE string .
+        !iv_order_by TYPE string
+      RAISING
+        zcx_abapgit_exception.
     METHODS set_order_direction
       IMPORTING
-        !iv_order_descending TYPE abap_bool .
+        !iv_order_descending TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception.
     METHODS set_filter
       IMPORTING
-        it_postdata TYPE zif_abapgit_html_viewer=>ty_post_data .
+        it_postdata TYPE zif_abapgit_html_viewer=>ty_post_data
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS:
       apply_filter
@@ -20925,6 +20945,9 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
       RETURNING
         VALUE(rv_html) TYPE string.
 
+    METHODS save_settings
+      RAISING
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_repo_view DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -35866,7 +35889,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD abapgit_services_actions.
 
     IF ii_event->mv_action = zif_abapgit_definitions=>c_action-abapgit_home.
-      rs_handled-page  = zcl_abapgit_gui_page_repo_over=>create( abap_true ).
+      rs_handled-page  = zcl_abapgit_gui_page_repo_over=>create( ).
       rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
     ENDIF.
 
@@ -36244,23 +36267,15 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   ENDMETHOD.
   METHOD main_page.
 
-    DATA lt_repo_fav_list TYPE zif_abapgit_repo_srv=>ty_repo_list.
     DATA lt_repo_all_list TYPE zif_abapgit_repo_srv=>ty_repo_list.
 
-    " for performance reasons, only load favorites
-    lt_repo_fav_list = zcl_abapgit_repo_srv=>get_instance( )->list_favorites( ).
-    IF lt_repo_fav_list IS INITIAL.
-      " if there are no favorites, check if there are any repositories at all
-      " if not, go to tutorial where the user can create the first repository
-      lt_repo_all_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
-      IF lt_repo_all_list IS NOT INITIAL.
-        ri_page = zcl_abapgit_gui_page_repo_over=>create( abap_false ).
-      ELSE.
-        ri_page = zcl_abapgit_gui_page_tutorial=>create( ).
-      ENDIF.
-
+    " if there are no favorites, check if there are any repositories at all
+    " if not, go to tutorial where the user can create the first repository
+    lt_repo_all_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
+    IF lt_repo_all_list IS NOT INITIAL.
+      ri_page = zcl_abapgit_gui_page_repo_over=>create( ).
     ELSE.
-      ri_page  = zcl_abapgit_gui_page_repo_over=>create( abap_true ).
+      ri_page = zcl_abapgit_gui_page_tutorial=>create( ).
     ENDIF.
 
   ENDMETHOD.
@@ -36322,11 +36337,11 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-repo_purge.                      " Repo purge all objects (uninstall)
         zcl_abapgit_services_repo=>purge( lv_key ).
-        rs_handled-page  = zcl_abapgit_gui_page_repo_over=>create( abap_true ).
+        rs_handled-page  = zcl_abapgit_gui_page_repo_over=>create( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
       WHEN zif_abapgit_definitions=>c_action-repo_remove.                     " Repo remove
         zcl_abapgit_services_repo=>remove( lv_key ).
-        rs_handled-page  = zcl_abapgit_gui_page_repo_over=>create( abap_true ).
+        rs_handled-page  = zcl_abapgit_gui_page_repo_over=>create( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
       WHEN zif_abapgit_definitions=>c_action-repo_activate_objects.           " Repo activate objects
         zcl_abapgit_services_repo=>activate_objects( lv_key ).
@@ -42130,14 +42145,14 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     DATA lv_filter_label TYPE string.
     FIELD-SYMBOLS <ls_r> LIKE LINE OF ct_overview.
 
-    IF mv_filter IS INITIAL.
+    IF ms_list_settings-filter IS INITIAL.
       RETURN.
     ENDIF.
 
     lv_pfxl = strlen( c_label_filter_prefix ).
 
-    IF strlen( mv_filter ) > lv_pfxl AND mv_filter+0(lv_pfxl) = c_label_filter_prefix.
-      lv_filter_label = mv_filter+lv_pfxl.
+    IF strlen( ms_list_settings-filter ) > lv_pfxl AND ms_list_settings-filter+0(lv_pfxl) = c_label_filter_prefix.
+      lv_filter_label = ms_list_settings-filter+lv_pfxl.
       IF lv_filter_label = 'all'.
         DELETE ct_overview WHERE labels IS INITIAL.
       ELSEIF lv_filter_label = 'none'.
@@ -42152,15 +42167,16 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
         ENDLOOP.
       ENDIF.
     ELSE. " Regular filter
-      DELETE ct_overview WHERE key             NS mv_filter
-        AND name            NS mv_filter
-        AND url             NS mv_filter
-        AND package         NS mv_filter
-        AND branch          NS mv_filter
-        AND created_by      NS mv_filter
-        AND created_at      NS mv_filter
-        AND deserialized_by NS mv_filter
-        AND deserialized_at NS mv_filter.
+      DELETE ct_overview WHERE
+            key             NS ms_list_settings-filter
+        AND name            NS ms_list_settings-filter
+        AND url             NS ms_list_settings-filter
+        AND package         NS ms_list_settings-filter
+        AND branch          NS ms_list_settings-filter
+        AND created_by      NS ms_list_settings-filter
+        AND created_at      NS ms_list_settings-filter
+        AND deserialized_by NS ms_list_settings-filter
+        AND deserialized_at NS ms_list_settings-filter.
     ENDIF.
 
   ENDMETHOD.
@@ -42175,18 +42191,18 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ls_sort-astext = abap_true.
     INSERT ls_sort INTO TABLE lt_sort.
 
-    IF mv_order_by IS NOT INITIAL.
+    IF ms_list_settings-order_by IS NOT INITIAL.
 
       CLEAR ls_sort.
 
-      IF mv_order_by = 'CREATED_AT' OR mv_order_by = 'DESERIALIZED_AT'.
-        ls_sort-name = mv_order_by && c_raw_field_suffix.
+      IF ms_list_settings-order_by = 'CREATED_AT' OR ms_list_settings-order_by = 'DESERIALIZED_AT'.
+        ls_sort-name = ms_list_settings-order_by && c_raw_field_suffix.
       ELSE.
-        ls_sort-name   = mv_order_by.
+        ls_sort-name   = ms_list_settings-order_by.
         ls_sort-astext = abap_true.
       ENDIF.
 
-      ls_sort-descending = mv_order_descending.
+      ls_sort-descending = ms_list_settings-order_descending.
       INSERT ls_sort INTO TABLE lt_sort.
 
     ENDIF.
@@ -42281,9 +42297,15 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD constructor.
+
     super->constructor( ).
-    mv_order_by = |NAME|.
-    mv_only_favorites = iv_only_favorites.
+
+    ms_list_settings = zcl_abapgit_persistence_user=>get_instance( )->get_list_settings( ).
+
+    " Overwrite setting
+    IF iv_only_favorites = abap_true.
+      ms_list_settings-only_favorites = abap_true.
+    ENDIF.
 
   ENDMETHOD.
   METHOD create.
@@ -42342,7 +42364,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     DATA lt_repo_obj_list TYPE zif_abapgit_repo_srv=>ty_repo_list.
 
-    IF mv_only_favorites = abap_true.
+    IF ms_list_settings-only_favorites = abap_true.
       lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list_favorites( ).
     ELSE.
       lt_repo_obj_list = zcl_abapgit_repo_srv=>get_instance( )->list( ).
@@ -42471,11 +42493,11 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_text_input(
       iv_name      = |filter|
       iv_label     = |Filter: { render_filter_help_hint( ) }|
-      iv_value     = mv_filter ) ).
+      iv_value     = ms_list_settings-filter ) ).
     ri_html->add( |<input type="submit" class="hidden-submit">| ).
     ri_html->add( |</form>| ).
 
-    IF mv_only_favorites = abap_true.
+    IF ms_list_settings-only_favorites = abap_true.
       lv_icon_class = `blue`.
     ELSE.
       lv_icon_class = `grey`.
@@ -42569,7 +42591,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_table_footer.
 
-    IF mv_only_favorites = abap_true.
+    IF ms_list_settings-only_favorites = abap_true.
       ii_html->add( `<tfoot>` ).
       ii_html->add( `<tr><td colspan="100%">` ).
       ii_html->add( |(Only favorites are shown. {
@@ -42589,8 +42611,8 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     ii_html->add( zcl_abapgit_gui_chunk_lib=>render_order_by_header_cells(
       it_col_spec         = build_table_scheme( )
-      iv_order_by         = mv_order_by
-      iv_order_descending = mv_order_descending ) ).
+      iv_order_by         = ms_list_settings-order_by
+      iv_order_descending = ms_list_settings-order_descending ) ).
 
     ii_html->add( '</tr>' ).
     ii_html->add( '</thead>' ).
@@ -42664,7 +42686,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     " Package
     ii_html->td( ii_content = zcl_abapgit_gui_chunk_lib=>render_package_name(
       iv_package        = is_repo-package
-      iv_suppress_title = boolc( NOT mv_only_favorites = abap_true ) ) ).
+      iv_suppress_title = boolc( NOT ms_list_settings-only_favorites = abap_true ) ) ).
 
     " Repo URL
     IF lv_is_online_repo = abap_true.
@@ -42689,7 +42711,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_class   = 'ro-detail'
       ii_content = zcl_abapgit_gui_chunk_lib=>render_user_name(
         iv_username       = is_repo-deserialized_by
-        iv_suppress_title = boolc( NOT mv_only_favorites = abap_true ) ) ).
+        iv_suppress_title = boolc( NOT ms_list_settings-only_favorites = abap_true ) ) ).
 
     " Details: deserialized at
     ii_html->td(
@@ -42701,7 +42723,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_class   = 'ro-detail'
       ii_content = zcl_abapgit_gui_chunk_lib=>render_user_name(
         iv_username = is_repo-created_by
-        iv_suppress_title = boolc( NOT mv_only_favorites = abap_true ) ) ).
+        iv_suppress_title = boolc( NOT ms_list_settings-only_favorites = abap_true ) ) ).
 
     " Details: created at
     ii_html->td(
@@ -42724,6 +42746,9 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ii_html->add( `</tr>` ).
 
   ENDMETHOD.
+  METHOD save_settings.
+    zcl_abapgit_persistence_user=>get_instance( )->set_list_settings( ms_list_settings ).
+  ENDMETHOD.
   METHOD set_filter.
 
     FIELD-SYMBOLS <lv_postdata> LIKE LINE OF it_postdata.
@@ -42732,20 +42757,23 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     IF sy-subrc = 0.
       FIND FIRST OCCURRENCE OF REGEX `filter=(.*)`
         IN <lv_postdata>
-        SUBMATCHES mv_filter.
+        SUBMATCHES ms_list_settings-filter.
     ENDIF.
 
-    mv_filter = condense( mv_filter ).
+    ms_list_settings-filter = condense( ms_list_settings-filter ).
+    save_settings( ).
 
   ENDMETHOD.
   METHOD set_order_by.
-    IF mv_order_by <> iv_order_by.
+    IF ms_list_settings-order_by <> iv_order_by.
       set_order_direction( abap_false ). " Reset ordering
     ENDIF.
-    mv_order_by = iv_order_by.
+    ms_list_settings-order_by = iv_order_by.
+    save_settings( ).
   ENDMETHOD.
   METHOD set_order_direction.
-    mv_order_descending = iv_order_descending.
+    ms_list_settings-order_descending = iv_order_descending.
+    save_settings( ).
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
@@ -42774,10 +42802,11 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-toggle_favorites.
 
         IF ii_event->query( )->has( 'FORCE_STATE' ) = abap_true.
-          mv_only_favorites = ii_event->query( )->get( 'FORCE_STATE' ).
+          ms_list_settings-only_favorites = ii_event->query( )->get( 'FORCE_STATE' ).
         ELSE.
-          mv_only_favorites = boolc( mv_only_favorites = abap_false ).
+          ms_list_settings-only_favorites = boolc( ms_list_settings-only_favorites = abap_false ).
         ENDIF.
+        save_settings( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN zif_abapgit_definitions=>c_action-direction.
@@ -42793,10 +42822,11 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       WHEN c_action-label_filter.
 
         IF ii_event->mv_getdata IS NOT INITIAL.
-          mv_filter = c_label_filter_prefix && ii_event->mv_getdata.
+          ms_list_settings-filter = c_label_filter_prefix && ii_event->mv_getdata.
         ELSE.
-          CLEAR mv_filter. " Unexpected request
+          CLEAR ms_list_settings-filter. " Unexpected request
         ENDIF.
+        save_settings( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN zif_abapgit_definitions=>c_action-go_patch.
@@ -59440,6 +59470,20 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
     rv_hide = ms_user-hide_files.
 
   ENDMETHOD.
+  METHOD zif_abapgit_persist_user~get_list_settings.
+
+    rs_list_settings = ms_user-list_settings.
+
+    IF rs_list_settings IS INITIAL.
+      " for performance reasons, set "only favorites" as a default
+      IF zcl_abapgit_repo_srv=>get_instance( )->list_favorites( ) IS NOT INITIAL.
+        rs_list_settings-only_favorites = abap_true.
+      ENDIF.
+
+      rs_list_settings-order_by = |NAME|.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_persist_user~get_order_by.
     rv_order_by = ms_user-order_by.
   ENDMETHOD.
@@ -59520,6 +59564,10 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
     ms_user-diff_first = iv_diff_first.
     update( ).
     rv_diff_first = ms_user-diff_first.
+  ENDMETHOD.
+  METHOD zif_abapgit_persist_user~set_list_settings.
+    ms_user-list_settings = is_list_settings.
+    update( ).
   ENDMETHOD.
   METHOD zif_abapgit_persist_user~set_order_by.
     ms_user-order_by = iv_order_by.
@@ -123869,6 +123917,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-22T07:37:43.972Z
+* abapmerge 0.15.0 - 2023-05-22T07:52:53.956Z
 ENDINTERFACE.
 ****************************************************
