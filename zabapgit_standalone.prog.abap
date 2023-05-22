@@ -5784,9 +5784,10 @@ CLASS zcl_abapgit_transport DEFINITION
 
     CLASS-METHODS to_tadir
       IMPORTING
-        it_transport_headers TYPE trwbo_request_headers
+        !it_transport_headers TYPE trwbo_request_headers
+        !iv_deleted_objects   TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(rt_tadir)      TYPE zif_abapgit_definitions=>ty_tadir_tt
+        VALUE(rt_tadir)       TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
 
@@ -5828,9 +5829,10 @@ CLASS zcl_abapgit_transport DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS resolve
       IMPORTING
-        !it_requests    TYPE trwbo_requests
+        !it_requests        TYPE trwbo_requests
+        !iv_deleted_objects TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
+        VALUE(rt_tadir)     TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
   PRIVATE SECTION.
@@ -35377,7 +35379,10 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     lo_repository ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_repository_key ).
 
     lt_transport_headers = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_transports( ).
-    lt_transport_objects = zcl_abapgit_transport=>to_tadir( lt_transport_headers ).
+    " Also include deleted objects that are included in transport
+    lt_transport_objects = zcl_abapgit_transport=>to_tadir(
+      it_transport_headers = lt_transport_headers
+      iv_deleted_objects   = abap_true ).
     IF lt_transport_objects IS INITIAL.
       zcx_abapgit_exception=>raise( 'Canceled or List of objects is empty ' ).
     ENDIF.
@@ -121768,7 +121773,7 @@ CLASS zcl_abapgit_transport IMPLEMENTATION.
           iv_object   = lv_object
           iv_obj_name = lv_obj_name ).
 
-        IF ls_tadir-delflag IS INITIAL.
+        IF ls_tadir-delflag IS INITIAL OR iv_deleted_objects = abap_true.
           APPEND ls_tadir TO rt_tadir.
         ENDIF.
       ENDLOOP.
@@ -121810,7 +121815,10 @@ CLASS zcl_abapgit_transport IMPLEMENTATION.
     ENDIF.
 
     lt_requests = read_requests( it_transport_headers ).
-    rt_tadir = resolve( lt_requests ).
+    rt_tadir = resolve(
+      it_requests        = lt_requests
+      iv_deleted_objects = iv_deleted_objects ).
+
   ENDMETHOD.
   METHOD validate_transport_request.
 
@@ -123861,6 +123869,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-21T12:44:59.988Z
+* abapmerge 0.15.0 - 2023-05-22T07:37:43.972Z
 ENDINTERFACE.
 ****************************************************
