@@ -3302,6 +3302,7 @@ INTERFACE zif_abapgit_definitions .
       db_display                    TYPE string VALUE 'db_display',
       db_edit                       TYPE string VALUE 'db_edit',
       bg_update                     TYPE string VALUE 'bg_update',
+      go_home                       TYPE string VALUE 'go_home',
       go_back                       TYPE string VALUE 'go_back',
       go_explore                    TYPE string VALUE 'go_explore',
       go_repo                       TYPE string VALUE 'go_repo',
@@ -17664,10 +17665,9 @@ CLASS zcl_abapgit_gui DEFINITION
       END OF c_event_state .
     CONSTANTS:
       BEGIN OF c_action,
-        go_home TYPE string VALUE 'go_home',
-        go_db   TYPE string VALUE 'go_db',
+        go_home TYPE string VALUE zif_abapgit_definitions=>c_action-go_home,
+        go_db   TYPE string VALUE zif_abapgit_definitions=>c_action-go_db,
       END OF c_action .
-
     METHODS go_home
       RAISING
         zcx_abapgit_exception .
@@ -35954,7 +35954,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
     lv_key = ii_event->query( )->get( 'KEY' ).
 
     CASE ii_event->mv_action.
-      WHEN zcl_abapgit_gui=>c_action-go_home.
+      WHEN zif_abapgit_definitions=>c_action-go_home.
         lv_last_repo_key = zcl_abapgit_persistence_user=>get_instance( )->get_repo_show( ).
 
         IF lv_last_repo_key IS NOT INITIAL.
@@ -123917,6 +123917,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-22T07:52:53.956Z
+* abapmerge 0.15.0 - 2023-05-23T16:04:31.928Z
 ENDINTERFACE.
 ****************************************************
