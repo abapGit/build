@@ -163,7 +163,6 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge_sel DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge_res DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page_hoc DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_ex_pckage DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_ex_object DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_diff DEFINITION DEFERRED.
@@ -176,7 +175,6 @@ CLASS zcl_abapgit_gui_page_codi_base DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_code_insp DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_addonline DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_addofflin DEFINITION DEFERRED.
-CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
 CLASS zcl_abapgit_log_viewer DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_toolbar DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_table DEFINITION DEFERRED.
@@ -185,6 +183,8 @@ CLASS zcl_abapgit_html_form_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_form DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_action_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_picklist DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_hoc DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_in_page_modal DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_component DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION DEFERRED.
@@ -18554,6 +18554,166 @@ CLASS zcl_abapgit_gui_in_page_modal DEFINITION
       END OF ms_attrs.
 
 ENDCLASS.
+CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
+  INHERITING FROM zcl_abapgit_gui_component
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_gui_modal,
+      zif_abapgit_gui_renderable,
+      zif_abapgit_gui_event_handler,
+      zif_abapgit_gui_error_handler.
+
+    TYPES:
+      BEGIN OF ty_control,
+        page_layout         TYPE string,
+        page_title          TYPE string,
+        page_menu           TYPE REF TO zcl_abapgit_html_toolbar,
+        page_menu_provider  TYPE REF TO zif_abapgit_gui_menu_provider,
+        page_title_provider TYPE REF TO zif_abapgit_gui_page_title,
+        extra_css_url       TYPE string,
+        extra_js_url        TYPE string,
+        show_as_modal       TYPE abap_bool,
+      END OF  ty_control .
+
+    METHODS constructor RAISING zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+
+    CONSTANTS:
+      BEGIN OF c_page_layout,
+        centered   TYPE string VALUE `centered`,
+        full_width TYPE string VALUE `full_width`,
+      END OF c_page_layout.
+
+    DATA ms_control TYPE ty_control .
+
+    METHODS render_content " TODO refactor, render child directly
+      ABSTRACT
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
+
+    DATA mo_settings TYPE REF TO zcl_abapgit_settings .
+    DATA mx_error TYPE REF TO zcx_abapgit_exception .
+    DATA mo_exception_viewer TYPE REF TO zcl_abapgit_exception_viewer .
+
+    METHODS render_deferred_parts
+      IMPORTING
+        !ii_html          TYPE REF TO zif_abapgit_html
+        !iv_part_category TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS html_head
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+    METHODS header_stylesheet_links
+      IMPORTING
+        ii_html TYPE REF TO zif_abapgit_html .
+    METHODS header_script_links
+      IMPORTING
+        ii_html TYPE REF TO zif_abapgit_html .
+    METHODS title
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    METHODS footer
+      IMPORTING
+        !iv_time       TYPE string
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_link_hints
+      IMPORTING
+        !ii_html TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_browser_control_warning
+      IMPORTING
+        !ii_html TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_command_palettes
+      IMPORTING
+        !ii_html TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_hotkey_overview
+      RETURNING
+        VALUE(ro_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    METHODS render_error_message_box
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    METHODS scripts
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_version_details
+      RETURNING
+        VALUE(rv_version) TYPE string.
+ENDCLASS.
+CLASS zcl_abapgit_gui_page_hoc DEFINITION
+  INHERITING FROM zcl_abapgit_gui_page
+  FINAL
+  CREATE PRIVATE.
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS create
+      IMPORTING
+        !ii_child_component     TYPE REF TO zif_abapgit_gui_renderable
+        !iv_page_title          TYPE string OPTIONAL
+        !iv_page_layout         TYPE string DEFAULT zcl_abapgit_gui_page=>c_page_layout-centered
+        !io_page_menu           TYPE REF TO zcl_abapgit_html_toolbar OPTIONAL
+        !ii_page_menu_provider  TYPE REF TO zif_abapgit_gui_menu_provider OPTIONAL
+        !ii_page_title_provider TYPE REF TO zif_abapgit_gui_page_title OPTIONAL
+        !iv_extra_css_url       TYPE string OPTIONAL
+        !iv_extra_js_url        TYPE string OPTIONAL
+        !iv_show_as_modal       TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(ri_page_wrap)     TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
+    METHODS get_child
+      RETURNING
+        VALUE(ri_child) TYPE REF TO zif_abapgit_gui_renderable.
+    METHODS constructor
+      IMPORTING
+        !ii_child_component TYPE REF TO zif_abapgit_gui_renderable
+        !is_control         TYPE zcl_abapgit_gui_page=>ty_control
+      RAISING
+        zcx_abapgit_exception.
+  PROTECTED SECTION.
+
+    METHODS render_content
+        REDEFINITION.
+  PRIVATE SECTION.
+
+    DATA mi_child TYPE REF TO zif_abapgit_gui_renderable .
+
+    METHODS detect_modal
+      RETURNING
+        VALUE(rv_is_modal) TYPE abap_bool.
+
+    METHODS detect_menu_provider
+      RETURNING
+        VALUE(ri_ref) TYPE REF TO zif_abapgit_gui_menu_provider.
+
+    METHODS detect_title_provider
+      RETURNING
+        VALUE(ri_ref) TYPE REF TO zif_abapgit_gui_page_title.
+
+ENDCLASS.
 CLASS zcl_abapgit_gui_picklist DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
   FINAL
@@ -19231,114 +19391,6 @@ CLASS zcl_abapgit_log_viewer DEFINITION
     CLASS-DATA:
       gt_log TYPE ty_log_outs.
 
-ENDCLASS.
-CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
-  INHERITING FROM zcl_abapgit_gui_component
-  CREATE PUBLIC.
-
-  PUBLIC SECTION.
-    INTERFACES:
-      zif_abapgit_gui_modal,
-      zif_abapgit_gui_renderable,
-      zif_abapgit_gui_event_handler,
-      zif_abapgit_gui_error_handler.
-
-    TYPES:
-      BEGIN OF ty_control,
-        page_layout         TYPE string,
-        page_title          TYPE string,
-        page_menu           TYPE REF TO zcl_abapgit_html_toolbar,
-        page_menu_provider  TYPE REF TO zif_abapgit_gui_menu_provider,
-        page_title_provider TYPE REF TO zif_abapgit_gui_page_title,
-        extra_css_url       TYPE string,
-        extra_js_url        TYPE string,
-        show_as_modal       TYPE abap_bool,
-      END OF  ty_control .
-
-    METHODS constructor RAISING zcx_abapgit_exception.
-
-  PROTECTED SECTION.
-
-    CONSTANTS:
-      BEGIN OF c_page_layout,
-        centered   TYPE string VALUE `centered`,
-        full_width TYPE string VALUE `full_width`,
-      END OF c_page_layout.
-
-    DATA ms_control TYPE ty_control .
-
-    METHODS render_content " TODO refactor, render child directly
-      ABSTRACT
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-  PRIVATE SECTION.
-
-    DATA mo_settings TYPE REF TO zcl_abapgit_settings .
-    DATA mx_error TYPE REF TO zcx_abapgit_exception .
-    DATA mo_exception_viewer TYPE REF TO zcl_abapgit_exception_viewer .
-
-    METHODS render_deferred_parts
-      IMPORTING
-        !ii_html          TYPE REF TO zif_abapgit_html
-        !iv_part_category TYPE string
-      RAISING
-        zcx_abapgit_exception .
-    METHODS html_head
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    METHODS header_stylesheet_links
-      IMPORTING
-        ii_html TYPE REF TO zif_abapgit_html .
-    METHODS header_script_links
-      IMPORTING
-        ii_html TYPE REF TO zif_abapgit_html .
-    METHODS title
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-    METHODS footer
-      IMPORTING
-        !iv_time       TYPE string
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-    METHODS render_link_hints
-      IMPORTING
-        !ii_html TYPE REF TO zif_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-    METHODS render_browser_control_warning
-      IMPORTING
-        !ii_html TYPE REF TO zif_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-    METHODS render_command_palettes
-      IMPORTING
-        !ii_html TYPE REF TO zif_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-    METHODS render_hotkey_overview
-      RETURNING
-        VALUE(ro_html) TYPE REF TO zif_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-    METHODS render_error_message_box
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-    METHODS scripts
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html
-      RAISING
-        zcx_abapgit_exception .
-    METHODS get_version_details
-      RETURNING
-        VALUE(rv_version) TYPE string.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_addofflin DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -20393,58 +20445,6 @@ CLASS zcl_abapgit_gui_page_ex_pckage DEFINITION
     METHODS export_package
       RAISING
         zcx_abapgit_exception.
-ENDCLASS.
-CLASS zcl_abapgit_gui_page_hoc DEFINITION
-  INHERITING FROM zcl_abapgit_gui_page
-  FINAL
-  CREATE PRIVATE.
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS create
-      IMPORTING
-        !ii_child_component     TYPE REF TO zif_abapgit_gui_renderable
-        !iv_page_title          TYPE string OPTIONAL
-        !iv_page_layout         TYPE string DEFAULT zcl_abapgit_gui_page=>c_page_layout-centered
-        !io_page_menu           TYPE REF TO zcl_abapgit_html_toolbar OPTIONAL
-        !ii_page_menu_provider  TYPE REF TO zif_abapgit_gui_menu_provider OPTIONAL
-        !ii_page_title_provider TYPE REF TO zif_abapgit_gui_page_title OPTIONAL
-        !iv_extra_css_url       TYPE string OPTIONAL
-        !iv_extra_js_url        TYPE string OPTIONAL
-        !iv_show_as_modal       TYPE abap_bool DEFAULT abap_false
-      RETURNING
-        VALUE(ri_page_wrap)     TYPE REF TO zif_abapgit_gui_renderable
-      RAISING
-        zcx_abapgit_exception.
-    METHODS get_child
-      RETURNING
-        VALUE(ri_child) TYPE REF TO zif_abapgit_gui_renderable.
-    METHODS constructor
-      IMPORTING
-        !ii_child_component TYPE REF TO zif_abapgit_gui_renderable
-        !is_control         TYPE zcl_abapgit_gui_page=>ty_control
-      RAISING
-        zcx_abapgit_exception.
-  PROTECTED SECTION.
-
-    METHODS render_content
-        REDEFINITION.
-  PRIVATE SECTION.
-
-    DATA mi_child TYPE REF TO zif_abapgit_gui_renderable .
-
-    METHODS detect_modal
-      RETURNING
-        VALUE(rv_is_modal) TYPE abap_bool.
-
-    METHODS detect_menu_provider
-      RETURNING
-        VALUE(ri_ref) TYPE REF TO zif_abapgit_gui_menu_provider.
-
-    METHODS detect_title_provider
-      RETURNING
-        VALUE(ri_ref) TYPE REF TO zif_abapgit_gui_page_title.
-
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_merge DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -44178,84 +44178,6 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_hoc IMPLEMENTATION.
-  METHOD constructor.
-
-    super->constructor( ).
-
-    mi_child = ii_child_component.
-    ms_control = is_control.
-
-    IF ms_control-show_as_modal = abap_false.
-      ms_control-show_as_modal = detect_modal( ).
-    ENDIF.
-
-    IF ms_control-page_menu_provider IS NOT BOUND.
-      ms_control-page_menu_provider = detect_menu_provider( ).
-    ENDIF.
-
-    IF ms_control-page_title_provider IS NOT BOUND.
-      ms_control-page_title_provider = detect_title_provider( ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD create.
-
-    DATA lo_page TYPE REF TO zcl_abapgit_gui_page_hoc.
-    DATA ls_control TYPE zcl_abapgit_gui_page=>ty_control.
-
-    ls_control-page_title          = iv_page_title.
-    ls_control-page_layout         = iv_page_layout.
-    ls_control-page_menu           = io_page_menu.
-    ls_control-page_menu_provider  = ii_page_menu_provider.
-    ls_control-page_title_provider = ii_page_title_provider.
-    ls_control-extra_css_url       = iv_extra_css_url.
-    ls_control-extra_js_url        = iv_extra_js_url.
-    ls_control-show_as_modal       = iv_show_as_modal.
-
-    CREATE OBJECT lo_page
-      EXPORTING
-        ii_child_component = ii_child_component
-        is_control         = ls_control.
-
-    ri_page_wrap = lo_page.
-
-  ENDMETHOD.
-  METHOD detect_menu_provider.
-    TRY.
-        ri_ref ?= mi_child.
-      CATCH cx_sy_move_cast_error.
-    ENDTRY.
-  ENDMETHOD.
-  METHOD detect_modal.
-
-    DATA li_modal TYPE REF TO zif_abapgit_gui_modal.
-
-    TRY.
-        li_modal ?= mi_child.
-        rv_is_modal = li_modal->is_modal( ).
-      CATCH cx_sy_move_cast_error.
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD detect_title_provider.
-    TRY.
-        ri_ref ?= mi_child.
-      CATCH cx_sy_move_cast_error.
-    ENDTRY.
-  ENDMETHOD.
-  METHOD get_child.
-    ri_child = mi_child.
-  ENDMETHOD.
-  METHOD render_content.
-
-    IF mi_child IS BOUND.
-      ri_html = mi_child->render( ).
-    ENDIF.
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_GUI_PAGE_EX_PCKAGE IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
@@ -48216,357 +48138,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
-  METHOD constructor.
-
-    super->constructor( ).
-    mo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
-    ms_control-page_layout = c_page_layout-centered.
-
-  ENDMETHOD.
-  METHOD footer.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( '<div id="footer">' ).
-    ri_html->add( '<table class="w100"><tr>' ).
-
-    ri_html->add( '<td class="w40 sponsor">' ).
-    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-sponsor
-                    iv_txt = ri_html->icon( iv_name = 'heart-regular/pink'
-                                            iv_hint = 'Sponsor us' ) ).
-    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-sponsor
-                    iv_txt = 'Sponsor us' ).
-    ri_html->add( '</td>' ).
-
-    ri_html->add( '<td class="center">' ).
-    ri_html->add( '<div class="logo">' ).
-    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-homepage
-                    iv_txt = ri_html->icon( 'git-alt' ) ).
-    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-homepage
-                    iv_txt = ri_html->icon( iv_name = 'abapgit'
-                                            iv_hint = iv_time ) ).
-    ri_html->add( '</div>' ).
-    ri_html->add( |<div id="footer-version" class="version">{ get_version_details( ) }</div>| ).
-    ri_html->add( '</td>' ).
-
-    ri_html->add( '<td id="debug-output" class="w40"></td>' ).
-
-    ri_html->add( '</tr></table>' ).
-    ri_html->add( '</div>' ).
-
-  ENDMETHOD.
-  METHOD get_version_details.
-
-    DATA lo_frontend_serv TYPE REF TO zif_abapgit_frontend_services.
-
-    rv_version = zif_abapgit_version=>c_abap_version.
-
-    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true.
-      rv_version = rv_version && ` - Standalone Version`.
-    ELSE.
-      rv_version = rv_version && ` - Developer Version`.
-    ENDIF.
-
-    lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
-
-    CASE abap_true.
-      WHEN lo_frontend_serv->is_webgui( ).
-        rv_version = rv_version && ` - Web`.
-      WHEN lo_frontend_serv->is_sapgui_for_windows( ).
-        rv_version = rv_version && ` - Win`.
-      WHEN lo_frontend_serv->is_sapgui_for_java( ).
-        rv_version = rv_version && ` - Java`.
-      WHEN OTHERS.
-        ASSERT 1 = 2.
-    ENDCASE.
-
-    " Will be filled by JS method displayBrowserControlFooter
-    rv_version = rv_version && '<span id="browser-control-footer"></span>'.
-
-  ENDMETHOD.
-  METHOD header_script_links.
-
-    ii_html->add( '<script src="js/common.js"></script>' ).
-
-    IF ms_control-extra_js_url IS NOT INITIAL.
-      ii_html->add( |<script src="{ ms_control-extra_js_url }"></script>| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD header_stylesheet_links.
-
-    ii_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
-    ii_html->add( '<link rel="stylesheet" type="text/css" href="css/ag-icons.css">' ).
-
-    " Themes
-    ii_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-default.css">' ). " Theme basis
-    CASE mo_settings->get_ui_theme( ).
-      WHEN zcl_abapgit_settings=>c_ui_theme-dark.
-        ii_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-dark.css">' ).
-      WHEN zcl_abapgit_settings=>c_ui_theme-belize.
-        ii_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-belize-blue.css">' ).
-    ENDCASE.
-
-    " Page stylesheets
-    IF ms_control-extra_css_url IS NOT INITIAL.
-      ii_html->add( |<link rel="stylesheet" type="text/css" href="{ ms_control-extra_css_url }">| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD html_head.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( '<head>' ).
-
-    ri_html->add( '<meta http-equiv="content-type" content="text/html; charset=utf-8">' ).
-    ri_html->add( '<meta http-equiv="X-UA-Compatible" content="IE=11,10,9,8" />' ).
-
-    ri_html->add( '<title>abapGit</title>' ).
-
-    header_stylesheet_links( ri_html ).
-    header_script_links( ri_html ).
-
-    CASE mo_settings->get_icon_scaling( ). " Enforce icon scaling
-      WHEN mo_settings->c_icon_scaling-large.
-        ri_html->add( '<style>.icon { font-size: 200% }</style>' ).
-      WHEN mo_settings->c_icon_scaling-small.
-        ri_html->add( '<style>.icon.large { font-size: inherit }</style>' ).
-    ENDCASE.
-
-    ri_html->add( '</head>' ).
-
-  ENDMETHOD.
-  METHOD render_browser_control_warning.
-
-    DATA li_documentation_link TYPE REF TO zif_abapgit_html.
-
-    CREATE OBJECT li_documentation_link TYPE zcl_abapgit_html.
-
-    li_documentation_link->add_a(
-        iv_txt = 'Documentation'
-        iv_typ = zif_abapgit_html=>c_action_type-url
-        iv_act =  'https://docs.abapgit.org/guide-sapgui.html#sap-gui-for-windows' ).
-
-    ii_html->add( '<div id="browser-control-warning" class="browser-control-warning">' ).
-    ii_html->add( zcl_abapgit_gui_chunk_lib=>render_warning_banner(
-                    |Attention: You use Edge browser control. |
-                 && |There are several known malfunctions. See |
-                 && li_documentation_link->render( ) ) ).
-    ii_html->add( '</div>' ).
-
-  ENDMETHOD.
-  METHOD render_command_palettes.
-
-    ii_html->add( 'var gCommandPalette = new CommandPalette(enumerateUiActions, {' ).
-    ii_html->add( '  toggleKey: "F1",' ).
-    ii_html->add( '  hotkeyDescription: "Command ..."' ).
-    ii_html->add( '});' ).
-
-  ENDMETHOD.
-  METHOD render_deferred_parts.
-
-    DATA lt_parts TYPE zif_abapgit_html=>ty_table_of.
-    DATA li_part LIKE LINE OF lt_parts.
-
-    lt_parts = gui_services( )->get_html_parts( )->get_parts( iv_part_category ).
-    LOOP AT lt_parts INTO li_part.
-      ii_html->add( li_part ).
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD render_error_message_box.
-
-    " You should remember that the we have to instantiate ro_html even
-    " it's overwritten further down. Because ADD checks whether it's
-    " bound.
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    " You should remember that we render the message panel only
-    " if we have an error.
-    IF mx_error IS NOT BOUND.
-      RETURN.
-    ENDIF.
-
-    ri_html = zcl_abapgit_gui_chunk_lib=>render_error_message_box( mx_error ).
-
-    " You should remember that the exception viewer dispatches the events of
-    " error message panel
-    CREATE OBJECT mo_exception_viewer
-      EXPORTING
-        ix_error = mx_error.
-
-    " You should remember that we render the message panel just once
-    " for each exception/error text.
-    CLEAR:
-      mx_error.
-
-  ENDMETHOD.
-  METHOD render_hotkey_overview.
-
-    DATA lo_hotkeys_component TYPE REF TO zif_abapgit_gui_renderable.
-
-    lo_hotkeys_component ?= gui_services( )->get_hotkeys_ctl( ). " Mmmm ...
-    ro_html = lo_hotkeys_component->render( ).
-
-  ENDMETHOD.
-  METHOD render_link_hints.
-
-    DATA: lv_link_hint_key TYPE c LENGTH 1.
-
-    lv_link_hint_key = mo_settings->get_link_hint_key( ).
-
-    IF mo_settings->get_link_hints_enabled( ) = abap_true AND lv_link_hint_key IS NOT INITIAL.
-
-      ii_html->add( |activateLinkHints("{ lv_link_hint_key }");| ).
-      ii_html->add( |setInitialFocusWithQuerySelector('#header', false);| ).
-      ii_html->add( |enableArrowListNavigation();| ).
-
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD scripts.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    render_deferred_parts(
-      ii_html          = ri_html
-      iv_part_category = c_html_parts-scripts ).
-
-    render_link_hints( ri_html ).
-    render_command_palettes( ri_html ).
-    ri_html->add( |toggleBrowserControlWarning();| ).
-    ri_html->add( |displayBrowserControlFooter();| ).
-
-  ENDMETHOD.
-  METHOD title.
-
-    DATA lo_page_menu LIKE ms_control-page_menu.
-    DATA lv_page_title TYPE string.
-
-    lo_page_menu = ms_control-page_menu.
-    IF lo_page_menu IS NOT BOUND AND ms_control-page_menu_provider IS BOUND.
-      lo_page_menu = ms_control-page_menu_provider->get_menu( ).
-    ENDIF.
-
-    lv_page_title = ms_control-page_title.
-    IF ms_control-page_title_provider IS BOUND.
-      lv_page_title = ms_control-page_title_provider->get_page_title( ).
-    ENDIF.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( '<div id="header">' ).
-
-    ri_html->add( '<div class="logo">' ).
-    ri_html->add_a(
-      iv_act = zif_abapgit_definitions=>c_action-abapgit_home
-      iv_txt = ri_html->icon( 'git-alt' ) ).
-    ri_html->add_a(
-      iv_act = zif_abapgit_definitions=>c_action-abapgit_home
-      iv_txt = ri_html->icon( 'abapgit' ) ).
-    ri_html->add( '</div>' ).
-
-    ri_html->add( |<div class="page-title"><span class="spacer">&#x25BA;</span>{ lv_page_title }</div>| ).
-
-    IF lo_page_menu IS BOUND.
-      ri_html->add( '<div class="float-right">' ).
-      ri_html->add( lo_page_menu->render( iv_right = abap_true ) ).
-      ri_html->add( '</div>' ).
-    ENDIF.
-
-    render_browser_control_warning( ri_html ).
-
-    ri_html->add( '</div>' ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_error_handler~handle_error.
-
-    mx_error = ix_error.
-    rv_handled = abap_true.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_event_handler~on_event.
-
-    CASE ii_event->mv_action.
-      WHEN zif_abapgit_definitions=>c_action-goto_source.
-
-        IF mo_exception_viewer IS BOUND.
-          mo_exception_viewer->goto_source( ).
-        ENDIF.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
-
-      WHEN zif_abapgit_definitions=>c_action-show_callstack.
-
-        IF mo_exception_viewer IS BOUND.
-          mo_exception_viewer->show_callstack( ).
-        ENDIF.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
-
-      WHEN zif_abapgit_definitions=>c_action-goto_message.
-
-        IF mo_exception_viewer IS BOUND.
-          mo_exception_viewer->goto_message( ).
-        ENDIF.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
-
-    ENDCASE.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_modal~is_modal.
-    rv_yes = boolc( ms_control-show_as_modal = abap_true ).
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_renderable~render.
-
-    DATA:
-      li_script TYPE REF TO zif_abapgit_html,
-      lo_timer  TYPE REF TO zcl_abapgit_timer.
-
-    register_handlers( ).
-
-    lo_timer = zcl_abapgit_timer=>create( )->start( ).
-
-    " Real page
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( '<!DOCTYPE html>' ).
-    ri_html->add( '<html lang="en">' ).
-    ri_html->add( html_head( ) ).
-    ri_html->add( |<body class="{ ms_control-page_layout }">| ).
-
-    ri_html->add( title( ) ).
-
-    ri_html->add( '<div class="not_sticky">' ).
-
-    ri_html->add( render_content( ) ). " TODO -> render child
-
-    ri_html->add( render_hotkey_overview( ) ).
-    ri_html->add( render_error_message_box( ) ).
-
-    render_deferred_parts(
-      ii_html          = ri_html
-      iv_part_category = c_html_parts-hidden_forms ).
-
-    ri_html->add( footer( lo_timer->end( ) ) ).
-
-    ri_html->add( '</div>' ).
-
-    li_script = scripts( ).
-
-    IF li_script IS BOUND AND li_script->is_empty( ) = abap_false.
-      ri_html->add( '<script>' ).
-      ri_html->add( li_script ).
-      ri_html->add( 'confirmInitialized();' ).
-      ri_html->add( '</script>' ).
-    ENDIF.
-
-    ri_html->add( '</body>' ).
-    ri_html->add( '</html>' ).
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_LOG_VIEWER IMPLEMENTATION.
   METHOD calculate_cell_type.
 
@@ -50846,6 +50417,435 @@ CLASS zcl_abapgit_gui_picklist IMPLEMENTATION.
       io_values         = mo_form_data
       io_validation_log = mo_validation_log ) ).
     register_handlers( ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_gui_page_hoc IMPLEMENTATION.
+  METHOD constructor.
+
+    super->constructor( ).
+
+    mi_child = ii_child_component.
+    ms_control = is_control.
+
+    IF ms_control-show_as_modal = abap_false.
+      ms_control-show_as_modal = detect_modal( ).
+    ENDIF.
+
+    IF ms_control-page_menu_provider IS NOT BOUND.
+      ms_control-page_menu_provider = detect_menu_provider( ).
+    ENDIF.
+
+    IF ms_control-page_title_provider IS NOT BOUND.
+      ms_control-page_title_provider = detect_title_provider( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD create.
+
+    DATA lo_page TYPE REF TO zcl_abapgit_gui_page_hoc.
+    DATA ls_control TYPE zcl_abapgit_gui_page=>ty_control.
+
+    ls_control-page_title          = iv_page_title.
+    ls_control-page_layout         = iv_page_layout.
+    ls_control-page_menu           = io_page_menu.
+    ls_control-page_menu_provider  = ii_page_menu_provider.
+    ls_control-page_title_provider = ii_page_title_provider.
+    ls_control-extra_css_url       = iv_extra_css_url.
+    ls_control-extra_js_url        = iv_extra_js_url.
+    ls_control-show_as_modal       = iv_show_as_modal.
+
+    CREATE OBJECT lo_page
+      EXPORTING
+        ii_child_component = ii_child_component
+        is_control         = ls_control.
+
+    ri_page_wrap = lo_page.
+
+  ENDMETHOD.
+  METHOD detect_menu_provider.
+    TRY.
+        ri_ref ?= mi_child.
+      CATCH cx_sy_move_cast_error.
+    ENDTRY.
+  ENDMETHOD.
+  METHOD detect_modal.
+
+    DATA li_modal TYPE REF TO zif_abapgit_gui_modal.
+
+    TRY.
+        li_modal ?= mi_child.
+        rv_is_modal = li_modal->is_modal( ).
+      CATCH cx_sy_move_cast_error.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD detect_title_provider.
+    TRY.
+        ri_ref ?= mi_child.
+      CATCH cx_sy_move_cast_error.
+    ENDTRY.
+  ENDMETHOD.
+  METHOD get_child.
+    ri_child = mi_child.
+  ENDMETHOD.
+  METHOD render_content.
+
+    IF mi_child IS BOUND.
+      ri_html = mi_child->render( ).
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
+  METHOD constructor.
+
+    super->constructor( ).
+    mo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
+    ms_control-page_layout = c_page_layout-centered.
+
+  ENDMETHOD.
+  METHOD footer.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( '<div id="footer">' ).
+    ri_html->add( '<table class="w100"><tr>' ).
+
+    ri_html->add( '<td class="w40 sponsor">' ).
+    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-sponsor
+                    iv_txt = ri_html->icon( iv_name = 'heart-regular/pink'
+                                            iv_hint = 'Sponsor us' ) ).
+    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-sponsor
+                    iv_txt = 'Sponsor us' ).
+    ri_html->add( '</td>' ).
+
+    ri_html->add( '<td class="center">' ).
+    ri_html->add( '<div class="logo">' ).
+    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-homepage
+                    iv_txt = ri_html->icon( 'git-alt' ) ).
+    ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-homepage
+                    iv_txt = ri_html->icon( iv_name = 'abapgit'
+                                            iv_hint = iv_time ) ).
+    ri_html->add( '</div>' ).
+    ri_html->add( |<div id="footer-version" class="version">{ get_version_details( ) }</div>| ).
+    ri_html->add( '</td>' ).
+
+    ri_html->add( '<td id="debug-output" class="w40"></td>' ).
+
+    ri_html->add( '</tr></table>' ).
+    ri_html->add( '</div>' ).
+
+  ENDMETHOD.
+  METHOD get_version_details.
+
+    DATA lo_frontend_serv TYPE REF TO zif_abapgit_frontend_services.
+
+    rv_version = zif_abapgit_version=>c_abap_version.
+
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true.
+      rv_version = rv_version && ` - Standalone Version`.
+    ELSE.
+      rv_version = rv_version && ` - Developer Version`.
+    ENDIF.
+
+    lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
+
+    CASE abap_true.
+      WHEN lo_frontend_serv->is_webgui( ).
+        rv_version = rv_version && ` - Web`.
+      WHEN lo_frontend_serv->is_sapgui_for_windows( ).
+        rv_version = rv_version && ` - Win`.
+      WHEN lo_frontend_serv->is_sapgui_for_java( ).
+        rv_version = rv_version && ` - Java`.
+      WHEN OTHERS.
+        ASSERT 1 = 2.
+    ENDCASE.
+
+    " Will be filled by JS method displayBrowserControlFooter
+    rv_version = rv_version && '<span id="browser-control-footer"></span>'.
+
+  ENDMETHOD.
+  METHOD header_script_links.
+
+    ii_html->add( '<script src="js/common.js"></script>' ).
+
+    IF ms_control-extra_js_url IS NOT INITIAL.
+      ii_html->add( |<script src="{ ms_control-extra_js_url }"></script>| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD header_stylesheet_links.
+
+    ii_html->add( '<link rel="stylesheet" type="text/css" href="css/common.css">' ).
+    ii_html->add( '<link rel="stylesheet" type="text/css" href="css/ag-icons.css">' ).
+
+    " Themes
+    ii_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-default.css">' ). " Theme basis
+    CASE mo_settings->get_ui_theme( ).
+      WHEN zcl_abapgit_settings=>c_ui_theme-dark.
+        ii_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-dark.css">' ).
+      WHEN zcl_abapgit_settings=>c_ui_theme-belize.
+        ii_html->add( '<link rel="stylesheet" type="text/css" href="css/theme-belize-blue.css">' ).
+    ENDCASE.
+
+    " Page stylesheets
+    IF ms_control-extra_css_url IS NOT INITIAL.
+      ii_html->add( |<link rel="stylesheet" type="text/css" href="{ ms_control-extra_css_url }">| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD html_head.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( '<head>' ).
+
+    ri_html->add( '<meta http-equiv="content-type" content="text/html; charset=utf-8">' ).
+    ri_html->add( '<meta http-equiv="X-UA-Compatible" content="IE=11,10,9,8" />' ).
+
+    ri_html->add( '<title>abapGit</title>' ).
+
+    header_stylesheet_links( ri_html ).
+    header_script_links( ri_html ).
+
+    CASE mo_settings->get_icon_scaling( ). " Enforce icon scaling
+      WHEN mo_settings->c_icon_scaling-large.
+        ri_html->add( '<style>.icon { font-size: 200% }</style>' ).
+      WHEN mo_settings->c_icon_scaling-small.
+        ri_html->add( '<style>.icon.large { font-size: inherit }</style>' ).
+    ENDCASE.
+
+    ri_html->add( '</head>' ).
+
+  ENDMETHOD.
+  METHOD render_browser_control_warning.
+
+    DATA li_documentation_link TYPE REF TO zif_abapgit_html.
+
+    CREATE OBJECT li_documentation_link TYPE zcl_abapgit_html.
+
+    li_documentation_link->add_a(
+        iv_txt = 'Documentation'
+        iv_typ = zif_abapgit_html=>c_action_type-url
+        iv_act =  'https://docs.abapgit.org/guide-sapgui.html#sap-gui-for-windows' ).
+
+    ii_html->add( '<div id="browser-control-warning" class="browser-control-warning">' ).
+    ii_html->add( zcl_abapgit_gui_chunk_lib=>render_warning_banner(
+                    |Attention: You use Edge browser control. |
+                 && |There are several known malfunctions. See |
+                 && li_documentation_link->render( ) ) ).
+    ii_html->add( '</div>' ).
+
+  ENDMETHOD.
+  METHOD render_command_palettes.
+
+    ii_html->add( 'var gCommandPalette = new CommandPalette(enumerateUiActions, {' ).
+    ii_html->add( '  toggleKey: "F1",' ).
+    ii_html->add( '  hotkeyDescription: "Command ..."' ).
+    ii_html->add( '});' ).
+
+  ENDMETHOD.
+  METHOD render_deferred_parts.
+
+    DATA lt_parts TYPE zif_abapgit_html=>ty_table_of.
+    DATA li_part LIKE LINE OF lt_parts.
+
+    lt_parts = gui_services( )->get_html_parts( )->get_parts( iv_part_category ).
+    LOOP AT lt_parts INTO li_part.
+      ii_html->add( li_part ).
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD render_error_message_box.
+
+    " You should remember that the we have to instantiate ro_html even
+    " it's overwritten further down. Because ADD checks whether it's
+    " bound.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    " You should remember that we render the message panel only
+    " if we have an error.
+    IF mx_error IS NOT BOUND.
+      RETURN.
+    ENDIF.
+
+    ri_html = zcl_abapgit_gui_chunk_lib=>render_error_message_box( mx_error ).
+
+    " You should remember that the exception viewer dispatches the events of
+    " error message panel
+    CREATE OBJECT mo_exception_viewer
+      EXPORTING
+        ix_error = mx_error.
+
+    " You should remember that we render the message panel just once
+    " for each exception/error text.
+    CLEAR:
+      mx_error.
+
+  ENDMETHOD.
+  METHOD render_hotkey_overview.
+
+    DATA lo_hotkeys_component TYPE REF TO zif_abapgit_gui_renderable.
+
+    lo_hotkeys_component ?= gui_services( )->get_hotkeys_ctl( ). " Mmmm ...
+    ro_html = lo_hotkeys_component->render( ).
+
+  ENDMETHOD.
+  METHOD render_link_hints.
+
+    DATA: lv_link_hint_key TYPE c LENGTH 1.
+
+    lv_link_hint_key = mo_settings->get_link_hint_key( ).
+
+    IF mo_settings->get_link_hints_enabled( ) = abap_true AND lv_link_hint_key IS NOT INITIAL.
+
+      ii_html->add( |activateLinkHints("{ lv_link_hint_key }");| ).
+      ii_html->add( |setInitialFocusWithQuerySelector('#header', false);| ).
+      ii_html->add( |enableArrowListNavigation();| ).
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD scripts.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    render_deferred_parts(
+      ii_html          = ri_html
+      iv_part_category = c_html_parts-scripts ).
+
+    render_link_hints( ri_html ).
+    render_command_palettes( ri_html ).
+    ri_html->add( |toggleBrowserControlWarning();| ).
+    ri_html->add( |displayBrowserControlFooter();| ).
+
+  ENDMETHOD.
+  METHOD title.
+
+    DATA lo_page_menu LIKE ms_control-page_menu.
+    DATA lv_page_title TYPE string.
+
+    lo_page_menu = ms_control-page_menu.
+    IF lo_page_menu IS NOT BOUND AND ms_control-page_menu_provider IS BOUND.
+      lo_page_menu = ms_control-page_menu_provider->get_menu( ).
+    ENDIF.
+
+    lv_page_title = ms_control-page_title.
+    IF ms_control-page_title_provider IS BOUND.
+      lv_page_title = ms_control-page_title_provider->get_page_title( ).
+    ENDIF.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( '<div id="header">' ).
+
+    ri_html->add( '<div class="logo">' ).
+    ri_html->add_a(
+      iv_act = zif_abapgit_definitions=>c_action-abapgit_home
+      iv_txt = ri_html->icon( 'git-alt' ) ).
+    ri_html->add_a(
+      iv_act = zif_abapgit_definitions=>c_action-abapgit_home
+      iv_txt = ri_html->icon( 'abapgit' ) ).
+    ri_html->add( '</div>' ).
+
+    ri_html->add( |<div class="page-title"><span class="spacer">&#x25BA;</span>{ lv_page_title }</div>| ).
+
+    IF lo_page_menu IS BOUND.
+      ri_html->add( '<div class="float-right">' ).
+      ri_html->add( lo_page_menu->render( iv_right = abap_true ) ).
+      ri_html->add( '</div>' ).
+    ENDIF.
+
+    render_browser_control_warning( ri_html ).
+
+    ri_html->add( '</div>' ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_error_handler~handle_error.
+
+    mx_error = ix_error.
+    rv_handled = abap_true.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+
+    CASE ii_event->mv_action.
+      WHEN zif_abapgit_definitions=>c_action-goto_source.
+
+        IF mo_exception_viewer IS BOUND.
+          mo_exception_viewer->goto_source( ).
+        ENDIF.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+
+      WHEN zif_abapgit_definitions=>c_action-show_callstack.
+
+        IF mo_exception_viewer IS BOUND.
+          mo_exception_viewer->show_callstack( ).
+        ENDIF.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+
+      WHEN zif_abapgit_definitions=>c_action-goto_message.
+
+        IF mo_exception_viewer IS BOUND.
+          mo_exception_viewer->goto_message( ).
+        ENDIF.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_modal~is_modal.
+    rv_yes = boolc( ms_control-show_as_modal = abap_true ).
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    DATA:
+      li_script TYPE REF TO zif_abapgit_html,
+      lo_timer  TYPE REF TO zcl_abapgit_timer.
+
+    register_handlers( ).
+
+    lo_timer = zcl_abapgit_timer=>create( )->start( ).
+
+    " Real page
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( '<!DOCTYPE html>' ).
+    ri_html->add( '<html lang="en">' ).
+    ri_html->add( html_head( ) ).
+    ri_html->add( |<body class="{ ms_control-page_layout }">| ).
+
+    ri_html->add( title( ) ).
+
+    ri_html->add( '<div class="not_sticky">' ).
+
+    ri_html->add( render_content( ) ). " TODO -> render child
+
+    ri_html->add( render_hotkey_overview( ) ).
+    ri_html->add( render_error_message_box( ) ).
+
+    render_deferred_parts(
+      ii_html          = ri_html
+      iv_part_category = c_html_parts-hidden_forms ).
+
+    ri_html->add( footer( lo_timer->end( ) ) ).
+
+    ri_html->add( '</div>' ).
+
+    li_script = scripts( ).
+
+    IF li_script IS BOUND AND li_script->is_empty( ) = abap_false.
+      ri_html->add( '<script>' ).
+      ri_html->add( li_script ).
+      ri_html->add( 'confirmInitialized();' ).
+      ri_html->add( '</script>' ).
+    ENDIF.
+
+    ri_html->add( '</body>' ).
+    ri_html->add( '</html>' ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -123917,6 +123917,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-23T16:04:31.928Z
+* abapmerge 0.15.0 - 2023-05-23T18:15:20.401Z
 ENDINTERFACE.
 ****************************************************
