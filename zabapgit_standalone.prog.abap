@@ -2913,6 +2913,7 @@ INTERFACE zif_abapgit_definitions .
       INCLUDE TYPE ty_item_signature.
   TYPES:
       srcsystem TYPE tadir-srcsystem,
+      origlang  TYPE tadir-masterlang,
       inactive  TYPE abap_bool,
     END OF ty_item .
   TYPES:
@@ -3009,15 +3010,16 @@ INTERFACE zif_abapgit_definitions .
       WITH NON-UNIQUE SORTED KEY type COMPONENTS type sha1 .
   TYPES:
     BEGIN OF ty_tadir,
-      pgmid     TYPE tadir-pgmid,
-      object    TYPE tadir-object,
-      obj_name  TYPE tadir-obj_name,
-      devclass  TYPE tadir-devclass,
-      korrnum   TYPE tadir-korrnum, " used by ZCL_ABAPGIT_DEPENDENCIES->RESOLVE
-      delflag   TYPE tadir-delflag,
-      genflag   TYPE tadir-genflag,
-      path      TYPE string,
-      srcsystem TYPE tadir-srcsystem,
+      pgmid      TYPE tadir-pgmid,
+      object     TYPE tadir-object,
+      obj_name   TYPE tadir-obj_name,
+      devclass   TYPE tadir-devclass,
+      korrnum    TYPE tadir-korrnum, " used by ZCL_ABAPGIT_DEPENDENCIES->RESOLVE
+      delflag    TYPE tadir-delflag,
+      genflag    TYPE tadir-genflag,
+      path       TYPE string,
+      srcsystem  TYPE tadir-srcsystem,
+      masterlang TYPE tadir-masterlang,
     END OF ty_tadir .
   TYPES:
     ty_tadir_tt TYPE STANDARD TABLE OF ty_tadir WITH DEFAULT KEY .
@@ -3034,6 +3036,7 @@ INTERFACE zif_abapgit_definitions .
       rstate    TYPE zif_abapgit_git_definitions=>ty_item_state,
       packmove  TYPE abap_bool,
       srcsystem TYPE tadir-srcsystem,
+      origlang  TYPE tadir-masterlang,
     END OF ty_result .
   TYPES:
     ty_results_tt TYPE STANDARD TABLE OF ty_result WITH DEFAULT KEY .
@@ -3144,6 +3147,7 @@ INTERFACE zif_abapgit_definitions .
       transport  TYPE trkorr,
       packmove   TYPE abap_bool,
       srcsystem  TYPE tadir-srcsystem,
+      origlang   TYPE tadir-masterlang,
     END OF ty_repo_item .
   TYPES:
     ty_repo_item_tt TYPE STANDARD TABLE OF ty_repo_item WITH DEFAULT KEY .
@@ -21071,6 +21075,11 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
         !is_item                      TYPE zif_abapgit_definitions=>ty_repo_item
       RETURNING
         VALUE(rv_srcsystem_html_code) TYPE string .
+    METHODS build_origlang_code
+      IMPORTING
+        !is_item                      TYPE zif_abapgit_definitions=>ty_repo_item
+      RETURNING
+        VALUE(rv_html_code) TYPE string .
     METHODS open_in_main_language
       RAISING
         zcx_abapgit_exception .
@@ -41291,6 +41300,16 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
                      iv_title = `Repository Settings` ).
 
   ENDMETHOD.
+  METHOD build_origlang_code.
+
+    IF is_item-origlang IS NOT INITIAL AND is_item-origlang <> mo_repo->get_dot_abapgit( )->get_main_language( ).
+      rv_html_code = zcl_abapgit_html=>icon(
+        iv_name  = 'language-solid/grey'
+        iv_hint  = |Original language: { is_item-origlang }|
+        iv_class = 'cursor-pointer' ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD build_srcsystem_code.
 
     IF is_item-srcsystem IS NOT INITIAL AND is_item-srcsystem <> sy-sysid.
@@ -41574,7 +41593,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
         lv_link = zcl_abapgit_gui_chunk_lib=>get_item_link( is_item ).
         ri_html->add( |<td class="type">{ is_item-obj_type }</td>| ).
         ri_html->add( |<td class="object">{ lv_link } { build_inactive_object_code( is_item )
-                      } { build_srcsystem_code( is_item ) }</td>| ).
+                      } { build_srcsystem_code( is_item ) } { build_origlang_code( is_item ) }</td>| ).
       ENDIF.
     ENDIF.
 
@@ -58645,6 +58664,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
     rs_result-obj_name  = is_local-item-obj_name.
     rs_result-package   = is_local-item-devclass.
     rs_result-srcsystem = is_local-item-srcsystem.
+    rs_result-origlang  = is_local-item-origlang.
     rs_result-inactive  = is_local-item-inactive.
 
     " File
@@ -58687,6 +58707,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
     rs_result-obj_name  = is_local-item-obj_name.
     rs_result-package   = is_local-item-devclass.
     rs_result-srcsystem = is_local-item-srcsystem.
+    rs_result-origlang  = is_local-item-origlang.
     rs_result-inactive  = is_local-item-inactive.
 
     " File
@@ -58731,6 +58752,7 @@ CLASS zcl_abapgit_file_status IMPLEMENTATION.
       rs_result-obj_name  = ls_item-obj_name.
       rs_result-package   = ls_item-devclass.
       rs_result-srcsystem = sy-sysid.
+      rs_result-origlang  = sy-langu.
 
       READ TABLE it_state_idx INTO ls_file_sig
         WITH KEY
@@ -108259,11 +108281,12 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
       " Local packages are not in TADIR, only in TDEVC, act as if they were
       IF <lv_package> CP '$*'. " OR <package> CP 'T*' ).
         APPEND INITIAL LINE TO ct_tadir ASSIGNING <ls_tadir>.
-        <ls_tadir>-pgmid    = 'R3TR'.
-        <ls_tadir>-object   = 'DEVC'.
-        <ls_tadir>-obj_name = <lv_package>.
-        <ls_tadir>-devclass = <lv_package>.
-        <ls_tadir>-srcsystem = sy-sysid.
+        <ls_tadir>-pgmid      = 'R3TR'.
+        <ls_tadir>-object     = 'DEVC'.
+        <ls_tadir>-obj_name   = <lv_package>.
+        <ls_tadir>-devclass   = <lv_package>.
+        <ls_tadir>-srcsystem  = sy-sysid.
+        <ls_tadir>-masterlang = sy-langu.
       ENDIF.
 
     ENDLOOP.
@@ -108294,11 +108317,12 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
         WITH KEY pgmid = 'R3TR' object = 'NSPC' obj_name = lv_namespace.
       IF sy-subrc <> 0.
         APPEND INITIAL LINE TO ct_tadir ASSIGNING <ls_tadir>.
-        <ls_tadir>-pgmid     = 'R3TR'.
-        <ls_tadir>-object    = 'NSPC'.
-        <ls_tadir>-obj_name  = lv_namespace.
-        <ls_tadir>-devclass  = iv_package.
-        <ls_tadir>-srcsystem = sy-sysid.
+        <ls_tadir>-pgmid      = 'R3TR'.
+        <ls_tadir>-object     = 'NSPC'.
+        <ls_tadir>-obj_name   = lv_namespace.
+        <ls_tadir>-devclass   = iv_package.
+        <ls_tadir>-srcsystem  = sy-sysid.
+        <ls_tadir>-masterlang = sy-langu.
       ENDIF.
 
     ENDIF.
@@ -108517,13 +108541,14 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
       iv_object   = iv_object
       iv_obj_name = iv_obj_name ).
 
-    IF ls_tadir-delflag = 'X'.
+    IF ls_tadir-delflag = abap_true.
       RETURN. "Mark for deletion -> return nothing
     ENDIF.
 
     ls_item-obj_type = ls_tadir-object.
     ls_item-obj_name = ls_tadir-obj_name.
     ls_item-devclass = ls_tadir-devclass.
+
     IF zcl_abapgit_objects=>exists( ls_item ) = abap_false.
       RETURN.
     ENDIF.
@@ -109007,6 +109032,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
     ls_file_item-item-obj_name  = is_tadir-obj_name.
     ls_file_item-item-devclass  = is_tadir-devclass.
     ls_file_item-item-srcsystem = is_tadir-srcsystem.
+    ls_file_item-item-origlang  = is_tadir-masterlang.
 
     TRY.
         ls_file_item = zcl_abapgit_objects=>serialize(
@@ -123917,6 +123943,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-25T04:50:56.109Z
+* abapmerge 0.15.0 - 2023-05-26T07:34:43.663Z
 ENDINTERFACE.
 ****************************************************
