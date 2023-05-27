@@ -50580,7 +50580,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
       WHEN lo_frontend_serv->is_sapgui_for_java( ).
         rv_version = rv_version && ` - Java`.
       WHEN OTHERS.
-        ASSERT 1 = 2.
+* eg. open-abap?
+        rv_version = rv_version && ` - Unknown`.
     ENDCASE.
 
     " Will be filled by JS method displayBrowserControlFooter
@@ -123943,6 +123944,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-26T07:34:43.663Z
+* abapmerge 0.15.0 - 2023-05-27T06:51:18.055Z
 ENDINTERFACE.
 ****************************************************
