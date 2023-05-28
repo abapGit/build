@@ -32892,6 +32892,11 @@ CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES IMPLEMENTATION.
 
     CLEAR et_list.
 
+    " Make sure we don't accidentally return anything
+    IF mv_cancel = abap_true.
+      RETURN.
+    ENDIF.
+
     ASSIGN mr_table->* TO <lt_table>.
     ASSERT sy-subrc = 0.
 
@@ -123944,6 +123949,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-27T06:51:18.055Z
+* abapmerge 0.15.0 - 2023-05-28T12:09:54.114Z
 ENDINTERFACE.
 ****************************************************
