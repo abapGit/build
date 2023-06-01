@@ -2437,19 +2437,23 @@ INTERFACE zif_abapgit_html.
       iv_title TYPE string
     RETURNING
       VALUE(ri_self) TYPE REF TO zif_abapgit_html.
+
   METHODS add
     IMPORTING
       !ig_chunk TYPE any
     RETURNING
       VALUE(ri_self) TYPE REF TO zif_abapgit_html.
+
   METHODS render
     IMPORTING
       !iv_no_indent_jscss TYPE abap_bool OPTIONAL
     RETURNING
       VALUE(rv_html)      TYPE string .
+
   METHODS is_empty
     RETURNING
       VALUE(rv_yes) TYPE abap_bool .
+
   METHODS add_a
     IMPORTING
       !iv_txt   TYPE string
@@ -2463,12 +2467,14 @@ INTERFACE zif_abapgit_html.
       !iv_title TYPE string OPTIONAL
     RETURNING
       VALUE(ri_self) TYPE REF TO zif_abapgit_html.
+
   METHODS add_checkbox
     IMPORTING
       iv_id      TYPE string
       iv_checked TYPE abap_bool OPTIONAL
     RETURNING
       VALUE(ri_self) TYPE REF TO zif_abapgit_html.
+
   METHODS a
     IMPORTING
       !iv_txt       TYPE string
@@ -2482,6 +2488,7 @@ INTERFACE zif_abapgit_html.
       !iv_title     TYPE string OPTIONAL
     RETURNING
       VALUE(rv_str) TYPE string .
+
   METHODS icon
     IMPORTING
       !iv_name      TYPE string
@@ -17971,6 +17978,7 @@ CLASS zcl_abapgit_html DEFINITION
         !iv_initial_chunk  TYPE any OPTIONAL
       RETURNING
         VALUE(ri_instance) TYPE REF TO zif_abapgit_html.
+
     CLASS-METHODS icon
       IMPORTING
         !iv_name      TYPE string
@@ -18015,6 +18023,7 @@ CLASS zcl_abapgit_html DEFINITION
     CLASS-DATA go_single_tags_re TYPE REF TO cl_abap_regex .
     DATA mt_buffer TYPE string_table .
     CLASS-DATA gv_spaces TYPE string .
+    CLASS-DATA gv_debug_mode TYPE abap_bool .
 
     METHODS indent_line
       CHANGING
@@ -19087,14 +19096,21 @@ CLASS zcl_abapgit_html_form_utils DEFINITION
 
   PUBLIC SECTION.
 
-    METHODS constructor
-      IMPORTING
-        !io_form TYPE REF TO zcl_abapgit_html_form .
     CLASS-METHODS create
       IMPORTING
         !io_form            TYPE REF TO zcl_abapgit_html_form
       RETURNING
         VALUE(ro_form_util) TYPE REF TO zcl_abapgit_html_form_utils .
+    CLASS-METHODS is_dirty
+      IMPORTING
+        !io_form_data    TYPE REF TO zcl_abapgit_string_map
+        !io_compare_with TYPE REF TO zcl_abapgit_string_map
+      RETURNING
+        VALUE(rv_dirty) TYPE abap_bool .
+
+    METHODS constructor
+      IMPORTING
+        !io_form TYPE REF TO zcl_abapgit_html_form .
     METHODS normalize
       IMPORTING
         !io_form_data       TYPE REF TO zcl_abapgit_string_map
@@ -19121,22 +19137,19 @@ CLASS zcl_abapgit_html_form_utils DEFINITION
         !io_form_data TYPE REF TO zcl_abapgit_string_map .
     METHODS exit
       IMPORTING
-        !io_form_data   TYPE REF TO zcl_abapgit_string_map
+        !io_form_data            TYPE REF TO zcl_abapgit_string_map
+        !io_check_changes_versus TYPE REF TO zcl_abapgit_string_map OPTIONAL
       RETURNING
-        VALUE(rv_state) TYPE i
+        VALUE(rv_state)          TYPE i
       RAISING
         zcx_abapgit_exception .
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    DATA mo_form TYPE REF TO zcl_abapgit_html_form .
+    DATA mo_form      TYPE REF TO zcl_abapgit_html_form .
     DATA mo_form_data TYPE REF TO zcl_abapgit_string_map .
 
-    METHODS is_dirty
-      IMPORTING
-        !io_form_data   TYPE REF TO zcl_abapgit_string_map
-      RETURNING
-        VALUE(rv_dirty) TYPE abap_bool .
 ENDCLASS.
 CLASS zcl_abapgit_html_popups DEFINITION
   FINAL
@@ -21720,21 +21733,14 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
       END OF c_popup.
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
-    DATA ms_settings_old TYPE ty_remote_settings.
+    DATA ms_settings_snapshot TYPE ty_remote_settings.
     DATA mo_form TYPE REF TO zcl_abapgit_html_form .
     DATA mo_form_data TYPE REF TO zcl_abapgit_string_map .
-    DATA mo_form_util TYPE REF TO zcl_abapgit_html_form_utils .
     DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map .
     DATA mv_refresh_on_back TYPE abap_bool.
     DATA mv_offline_switch_saved_url TYPE string.
 
     DATA mo_popup_picklist TYPE REF TO zcl_abapgit_gui_picklist.
-
-    METHODS init
-      IMPORTING
-        !io_repo TYPE REF TO zcl_abapgit_repo
-      RAISING
-        zcx_abapgit_exception.
 
     METHODS get_remote_settings_from_repo
       IMPORTING
@@ -21754,18 +21760,15 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
 
     METHODS get_form_schema
       IMPORTING
-        is_settings    TYPE ty_remote_settings
-        io_form_data   TYPE REF TO zcl_abapgit_string_map OPTIONAL
+        io_existing_form_data TYPE REF TO zcl_abapgit_string_map OPTIONAL
       RETURNING
         VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form
       RAISING
         zcx_abapgit_exception.
 
     METHODS initialize_form_data
-      IMPORTING
-        is_settings  TYPE ty_remote_settings
-        io_form_data TYPE REF TO zcl_abapgit_string_map
-        io_form_util TYPE REF TO zcl_abapgit_html_form_utils
+      RETURNING
+        VALUE(ro_form_data) TYPE REF TO zcl_abapgit_string_map
       RAISING
         zcx_abapgit_exception.
 
@@ -21833,6 +21836,12 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
         zcx_abapgit_exception.
 
     METHODS handle_picklist_state
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS render_content
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception.
 
@@ -23333,6 +23342,14 @@ CLASS zcl_abapgit_string_map DEFINITION
       RETURNING
         VALUE(ro_instance) TYPE REF TO zcl_abapgit_string_map .
     METHODS freeze .
+    METHODS merge
+      IMPORTING
+        !io_string_map TYPE REF TO zcl_abapgit_string_map
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO zcl_abapgit_string_map
+      RAISING
+        zcx_abapgit_exception .
+
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA mv_read_only TYPE abap_bool.
@@ -25511,6 +25528,17 @@ CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
   ENDMETHOD.
   METHOD is_empty.
     rv_yes = boolc( lines( mt_entries ) = 0 ).
+  ENDMETHOD.
+  METHOD merge.
+
+    FIELD-SYMBOLS <ls_entry> LIKE LINE OF mt_entries.
+
+    LOOP AT io_string_map->mt_entries ASSIGNING <ls_entry>.
+      set(
+        iv_key = <ls_entry>-k
+        iv_val = <ls_entry>-v ).
+    ENDLOOP.
+
   ENDMETHOD.
   METHOD set.
 
@@ -38131,7 +38159,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
   METHOD check_protection.
 
     IF mo_repo->is_offline( ) = abap_true.
@@ -38281,15 +38309,11 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
-    init( io_repo ).
+    mo_repo              = io_repo.
+    ms_settings_snapshot = get_remote_settings_from_repo( mo_repo ).
+    mo_form              = get_form_schema( ).
+    mo_form_data         = initialize_form_data( ).
     CREATE OBJECT mo_validation_log.
-    CREATE OBJECT mo_form_data.
-
-    mo_form = get_form_schema( ms_settings_old ).
-    mo_form_util = zcl_abapgit_html_form_utils=>create( mo_form ).
-    initialize_form_data( io_form_data = mo_form_data
-                          is_settings  = ms_settings_old
-                          io_form_util = mo_form_util ).
 
   ENDMETHOD.
   METHOD create.
@@ -38319,14 +38343,14 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
       lv_offline     TYPE abap_bool,
       lv_head_type   TYPE ty_head_type.
 
-    IF io_form_data IS BOUND AND io_form_data->is_empty( ) = abap_false.
-      lv_offline = io_form_data->get( c_id-offline ).
+    IF io_existing_form_data IS BOUND AND io_existing_form_data->is_empty( ) = abap_false.
+      lv_offline = io_existing_form_data->get( c_id-offline ).
       IF lv_offline = abap_false.
-        lv_head_type = io_form_data->get( c_id-head_type ).
+        lv_head_type = io_existing_form_data->get( c_id-head_type ).
       ENDIF.
     ELSE.
-      lv_offline = is_settings-offline.
-      lv_head_type = is_settings-head_type.
+      lv_offline   = ms_settings_snapshot-offline.
+      lv_head_type = ms_settings_snapshot-head_type.
     ENDIF.
 
     ro_form = zcl_abapgit_html_form=>create(
@@ -38390,8 +38414,6 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
           iv_label       = 'Branch'
           iv_required    = abap_true
           iv_side_action = c_event-choose_branch ).
-      ELSE.
-        ro_form->hidden( c_id-branch ).
       ENDIF.
 
       IF lv_head_type = c_head_types-tag.
@@ -38400,8 +38422,6 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
           iv_label       = 'Tag'
           iv_required    = abap_true
           iv_side_action = c_event-choose_tag ).
-      ELSE.
-        ro_form->hidden( c_id-tag ).
       ENDIF.
 
       IF lv_head_type = c_head_types-commit.
@@ -38412,8 +38432,6 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
           iv_min         = 40
           iv_max         = 40
           iv_side_action = c_event-choose_commit ).
-      ELSE.
-        ro_form->hidden( c_id-commit ).
       ENDIF.
 
       IF lv_head_type = c_head_types-pull_request.
@@ -38422,16 +38440,8 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
           iv_label       = 'Pull Request'
           iv_required    = abap_true
           iv_side_action = c_event-choose_pull_request ).
-      ELSE.
-        ro_form->hidden( c_id-pull_request ).
       ENDIF.
 
-    ELSE.
-      ro_form->hidden( c_id-head_type ).
-      ro_form->hidden( c_id-branch ).
-      ro_form->hidden( c_id-tag ).
-      ro_form->hidden( c_id-commit ).
-      ro_form->hidden( c_id-pull_request ).
     ENDIF.
 
     ro_form->command(
@@ -38447,6 +38457,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD get_remote_settings_from_form.
+
     rs_settings-url = io_form_data->get( c_id-url ).
     rs_settings-offline = io_form_data->get( c_id-offline ).
 
@@ -38465,8 +38476,10 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
           rs_settings-pull_request = io_form_data->get( c_id-pull_request ).
       ENDCASE.
     ENDIF.
+
   ENDMETHOD.
   METHOD get_remote_settings_from_repo.
+
     DATA: lo_repo_online  TYPE REF TO zcl_abapgit_repo_online,
           lo_repo_offline TYPE REF TO zcl_abapgit_repo_offline,
           lv_branch       TYPE ty_remote_settings-branch.
@@ -38516,6 +38529,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
       rs_settings-url = lo_repo_offline->get_name( ).
       rs_settings-offline = abap_true.
     ENDIF.
+
   ENDMETHOD.
   METHOD handle_picklist_state.
 
@@ -38538,67 +38552,71 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD init.
-    mo_repo = io_repo.
-    ms_settings_old = get_remote_settings_from_repo( mo_repo ).
-    FREE mo_form_data.
-  ENDMETHOD.
   METHOD initialize_form_data.
 
     DATA:
       lv_type TYPE string,
-      lv_url  TYPE ty_remote_settings-url,
       lv_head TYPE string.
 
-    lv_type = 'Online repository'.
-    lv_url = is_settings-url.
+    CREATE OBJECT ro_form_data.
 
-    IF is_settings-offline = abap_true.
+    IF ms_settings_snapshot-offline = abap_true.
       lv_type = 'Offline repository'.
+    ELSE.
+      lv_type = 'Online repository'.
     ENDIF.
 
-    io_form_data->set(
+    ro_form_data->set(
       iv_key = c_id-offline
-      iv_val = is_settings-offline ).
-
-    io_form_data->set(
+      iv_val = ms_settings_snapshot-offline ).
+    ro_form_data->set(
       iv_key = c_id-repo_type
       iv_val = lv_type ).
-    io_form_data->set(
+    ro_form_data->set(
       iv_key = c_id-url
-      iv_val = lv_url ).
+      iv_val = ms_settings_snapshot-url ).
 
-    IF is_settings-offline = abap_false.
-      io_form_data->set(
+    IF ms_settings_snapshot-offline = abap_false.
+      ro_form_data->set(
         iv_key = c_id-head_type
-        iv_val = is_settings-head_type ).
+        iv_val = ms_settings_snapshot-head_type ).
 
       " When pull request is selected the previously selected branch/tag is also loaded to be able to switch back to it
-      lv_head = is_settings-branch.
-      REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_git_branch-heads_prefix IN lv_head WITH space.
-      CONDENSE lv_head.
-      io_form_data->set(
+      lv_head = zcl_abapgit_git_branch_list=>get_display_name( ms_settings_snapshot-branch ).
+      ro_form_data->set(
         iv_key = c_id-branch
         iv_val = lv_head ).
 
-      lv_head = is_settings-tag.
-      REPLACE FIRST OCCURRENCE OF zif_abapgit_definitions=>c_git_branch-heads_prefix IN lv_head WITH space.
-      CONDENSE lv_head.
-      io_form_data->set(
+      lv_head = zcl_abapgit_git_branch_list=>get_display_name( ms_settings_snapshot-tag ).
+      ro_form_data->set(
         iv_key = c_id-tag
         iv_val = lv_head ).
 
-      io_form_data->set(
+      ro_form_data->set(
         iv_key = c_id-commit
-        iv_val = is_settings-commit ).
+        iv_val = ms_settings_snapshot-commit ).
 
-      io_form_data->set(
+      ro_form_data->set(
         iv_key = c_id-pull_request
-        iv_val = is_settings-pull_request ).
+        iv_val = ms_settings_snapshot-pull_request ).
     ENDIF.
 
     " Set for is_dirty check
-    io_form_util->set_data( io_form_data ).
+    zcl_abapgit_html_form_utils=>create( mo_form )->set_data( ro_form_data ).
+
+  ENDMETHOD.
+  METHOD render_content.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
+      io_repo               = mo_repo
+      iv_show_commit        = abap_false
+      iv_interactive_branch = abap_false ) ).
+
+    ri_html->add( mo_form->render(
+      io_values         = mo_form_data
+      io_validation_log = mo_validation_log ) ).
 
   ENDMETHOD.
   METHOD save_settings.
@@ -38611,7 +38629,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     ls_settings_new = get_remote_settings_from_form( mo_form_data ).
 
     " Switch online / offline
-    IF ls_settings_new-offline <> ms_settings_old-offline.
+    IF ls_settings_new-offline <> ms_settings_snapshot-offline.
       " Remember key, switch, retrieve new instance (todo, refactor #2244)
       mo_repo->switch_repo_type( ls_settings_new-offline ).
       mo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
@@ -38655,11 +38673,11 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     MESSAGE 'Settings succesfully saved' TYPE 'S'.
 
     mv_refresh_on_back = abap_true.
-    init( mo_repo ).
-    FREE mo_form_data.
+    ms_settings_snapshot = get_remote_settings_from_repo( mo_repo ).
 
   ENDMETHOD.
   METHOD switch_online_offline.
+
     DATA: lv_offline_new TYPE abap_bool,
           lv_url         TYPE ty_remote_settings-url,
           lv_branch      TYPE ty_remote_settings-branch.
@@ -38703,15 +38721,14 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
         ENDTRY.
       ENDIF.
     ENDIF.
+
   ENDMETHOD.
   METHOD switch_to_branch_tag.
 
     DATA lo_repo TYPE REF TO zcl_abapgit_repo_online.
 
     check_protection( ).
-
     lo_repo ?= mo_repo.
-
     lo_repo->select_branch( iv_name ).
 
   ENDMETHOD.
@@ -38766,7 +38783,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
       lv_pull_request          TYPE ty_remote_settings-pull_request,
       lv_commit                TYPE ty_remote_settings-commit.
 
-    ro_validation_log = mo_form_util->validate( io_form_data ).
+    ro_validation_log = zcl_abapgit_html_form_utils=>create( mo_form )->validate( io_form_data ).
     lv_offline = io_form_data->get( c_id-offline ).
     lv_url = io_form_data->get( c_id-url ).
 
@@ -38846,16 +38863,12 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA:
-      lo_form_data_raw TYPE REF TO zcl_abapgit_string_map,
-      lv_url           TYPE ty_remote_settings-url,
-      lv_branch        TYPE ty_remote_settings-branch,
-      lv_tag           TYPE ty_remote_settings-tag,
-      lv_commit        TYPE ty_remote_settings-commit.
+      lv_url    TYPE ty_remote_settings-url,
+      lv_branch TYPE ty_remote_settings-branch,
+      lv_tag    TYPE ty_remote_settings-tag,
+      lv_commit TYPE ty_remote_settings-commit.
 
-    lo_form_data_raw = ii_event->form_data( ).
-    IF lo_form_data_raw->is_empty( ) = abap_false. " If form-related action
-      mo_form_data = mo_form_util->normalize( lo_form_data_raw ).
-    ENDIF.
+    mo_form_data->merge( zcl_abapgit_html_form_utils=>create( mo_form )->normalize( ii_event->form_data( ) ) ).
 
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-go_back.
@@ -38864,7 +38877,9 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
           mo_repo->refresh( ).
         ENDIF.
 
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back_to_bookmark.
+        rs_handled-state = zcl_abapgit_html_form_utils=>create( mo_form )->exit(
+          io_form_data = mo_form_data
+          io_check_changes_versus = initialize_form_data( ) ).
 
       WHEN c_event-choose_url.
         lv_url = choose_url( ).
@@ -38931,21 +38946,11 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
           iv_show_as_modal   = abap_true ).
       ENDIF.
     ENDIF.
+
     " If staying on form, initialize it with current settings
     IF rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render AND mo_popup_picklist IS NOT BOUND.
-      " TODO refactor: same as in constructor
-      mo_form = get_form_schema(
-        is_settings  = ms_settings_old
-        io_form_data = mo_form_data ).
-      mo_form_util = zcl_abapgit_html_form_utils=>create( mo_form ).
-
-      IF mo_form_data IS NOT BOUND.
-        CREATE OBJECT mo_form_data.
-        initialize_form_data(
-          io_form_data = mo_form_data
-          is_settings  = ms_settings_old
-          io_form_util = mo_form_util ).
-      ENDIF.
+      " Switching tabs must change the form layout
+      mo_form = get_form_schema( io_existing_form_data = mo_form_data ).
     ENDIF.
 
   ENDMETHOD.
@@ -38961,9 +38966,9 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
         lv_head_type = mo_form_data->get( c_id-head_type ).
       ENDIF.
     ELSE.
-      lv_offline = ms_settings_old-offline.
+      lv_offline = ms_settings_snapshot-offline.
       IF lv_offline = abap_false.
-        lv_head_type = ms_settings_old-head_type.
+        lv_head_type = ms_settings_snapshot-head_type.
       ENDIF.
     ENDIF.
 
@@ -39022,25 +39027,16 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ri_html->add( `<div class="repo">` ). " TODO own setting frame CSS class
-
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top(
-      io_repo               = mo_repo
-      iv_show_commit        = abap_false
-      iv_interactive_branch = abap_false ) ).
-
-    ri_html->add( mo_form->render(
-      io_values         = mo_form_data
-      io_validation_log = mo_validation_log ) ).
-
-    ri_html->add( `</div>` ).
+    ri_html->wrap(
+      iv_tag     = 'div'
+      iv_class   = 'repo' " It's OK because it's repo settings ... for now
+      ii_content = render_content( ) ).
 
     IF mo_popup_picklist IS NOT BOUND OR mo_popup_picklist->is_in_page( ) = abap_false.
       register_handlers( ).
     ELSEIF mo_popup_picklist->is_in_page( ) = abap_true.
       " Block usual page events if the popup is an in-page popup
-      ri_html->add( zcl_abapgit_gui_in_page_modal=>create( mo_popup_picklist
-        )->zif_abapgit_gui_renderable~render( ) ).
+      ri_html->add( zcl_abapgit_gui_in_page_modal=>create( mo_popup_picklist ) ).
     ENDIF.
 
   ENDMETHOD.
@@ -49131,7 +49127,7 @@ CLASS zcl_abapgit_html_popups IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_html_form_utils IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HTML_FORM_UTILS IMPLEMENTATION.
   METHOD constructor.
     mo_form = io_form.
   ENDMETHOD.
@@ -49143,8 +49139,17 @@ CLASS zcl_abapgit_html_form_utils IMPLEMENTATION.
   METHOD exit.
 
     DATA lv_answer TYPE c LENGTH 1.
+    DATA lo_compare_with LIKE io_check_changes_versus.
 
-    IF is_dirty( io_form_data ) = abap_true.
+    lo_compare_with = io_check_changes_versus.
+    IF lo_compare_with IS NOT BOUND.
+      " TODO: remove this if and make io_check_changes_versus mandatory once all forms are converted
+      lo_compare_with = mo_form_data.
+    ENDIF.
+
+    IF is_dirty(
+      io_form_data    = io_form_data
+      io_compare_with = lo_compare_with ) = abap_true.
       lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
         iv_titlebar       = 'abapGit - Unsaved Changes'
         iv_text_question  = 'There are unsaved changes. Do you want to exit the form?'
@@ -49161,7 +49166,7 @@ CLASS zcl_abapgit_html_form_utils IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD is_dirty.
-    rv_dirty = boolc( io_form_data->mt_entries <> mo_form_data->mt_entries ).
+    rv_dirty = boolc( io_form_data->mt_entries <> io_compare_with->mt_entries ).
   ENDMETHOD.
   METHOD is_empty.
 
@@ -52561,7 +52566,7 @@ CLASS ZCL_ABAPGIT_HTML_PARTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_html IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HTML IMPLEMENTATION.
   METHOD checkbox.
 
     DATA: lv_checked TYPE string.
@@ -52579,6 +52584,9 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD class_constructor.
+
+    DATA lv_mode TYPE tabname.
+
     CREATE OBJECT go_single_tags_re
       EXPORTING
         pattern     = '<(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|LINK|META|PARAM|SOURCE|!)'
@@ -52587,6 +52595,9 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
     gv_spaces = repeat(
       val = ` `
       occ = 200 ).
+
+    GET PARAMETER ID 'DBT' FIELD lv_mode.
+    gv_debug_mode = boolc( lv_mode = 'HREF' ).
 
   ENDMETHOD.
   METHOD create.
@@ -52768,7 +52779,6 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
           lv_act   TYPE string,
           lv_style TYPE string,
           lv_title TYPE string.
-    DATA lv_mode TYPE tabname.
 
     lv_class = iv_class.
 
@@ -52822,8 +52832,7 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
     ENDIF.
 
     " Debug option to display href-link on hover
-    GET PARAMETER ID 'DBT' FIELD lv_mode.
-    IF lv_mode = 'HREF'.
+    IF gv_debug_mode = abap_true.
       lv_title = | title="{ escape(
         val    = lv_href
         format = cl_abap_format=>e_html_attr ) }"|.
@@ -52836,6 +52845,8 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
   METHOD zif_abapgit_html~add.
 
     DATA: lv_type TYPE c,
+          li_renderable TYPE REF TO zif_abapgit_gui_renderable,
+          lx_error TYPE REF TO zcx_abapgit_exception,
           lo_html TYPE REF TO zcl_abapgit_html.
 
     FIELD-SYMBOLS: <lt_tab> TYPE string_table.
@@ -52853,7 +52864,14 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
         TRY.
             lo_html ?= ig_chunk.
           CATCH cx_sy_move_cast_error.
-            ASSERT 1 = 0. " Dev mistake
+            TRY.
+                li_renderable ?= ig_chunk.
+                lo_html ?= li_renderable->render( ).
+              CATCH cx_sy_move_cast_error.
+                ASSERT 1 = 0. " Dev mistake
+              CATCH zcx_abapgit_exception INTO lx_error.
+                lo_html ?= create( |<span class="error">Render error: { lx_error->get_text( ) }</span>| ).
+            ENDTRY.
         ENDTRY.
         APPEND LINES OF lo_html->mt_buffer TO mt_buffer.
       WHEN OTHERS.
@@ -53587,7 +53605,7 @@ CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   METHOD back.
 
     DATA lv_index TYPE i.
@@ -53644,6 +53662,8 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
         ii_gui_services = me ) ).
       IF ls_handled-state = c_event_state-re_render. " soft exit, probably popup
         render( ).
+        rv_handled = abap_true.
+      ELSEIF ls_handled-state = c_event_state-no_more_act. " soft exit, probably GUI popup
         rv_handled = abap_true.
       ENDIF.
     ENDIF.
@@ -124075,6 +124095,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-06-01T07:58:07.932Z
+* abapmerge 0.15.0 - 2023-06-01T15:40:42.435Z
 ENDINTERFACE.
 ****************************************************
