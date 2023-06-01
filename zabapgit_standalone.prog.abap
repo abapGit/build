@@ -12568,6 +12568,9 @@ CLASS zcl_abapgit_object_idoc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       IMPORTING iv_fieldname TYPE csequence
       CHANGING  cg_structure TYPE any.
 
+    METHODS is_closed
+      RETURNING
+        VALUE(rv_closed) TYPE abap_bool.
 ENDCLASS.
 CLASS zcl_abapgit_object_iext DEFINITION INHERITING FROM zcl_abapgit_objects_super FINAL.
 
@@ -14329,6 +14332,7 @@ CLASS zcl_abapgit_object_tabl DEFINITION
     "! @parameter rv_deserialized | It's a segment and was desserialized
     "! @raising zcx_abapgit_exception | Exceptions
     METHODS deserialize_idoc_segment IMPORTING io_xml                 TYPE REF TO zif_abapgit_xml_input
+                                               iv_transport           TYPE trkorr
                                                iv_package             TYPE devclass
                                      RETURNING VALUE(rv_deserialized) TYPE abap_bool
                                      RAISING   zcx_abapgit_exception.
@@ -71398,6 +71402,9 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
     DATA lt_segment_definitions TYPE ty_segment_definitions.
     DATA lv_package             TYPE devclass.
     DATA lv_uname               TYPE sy-uname.
+    DATA lv_transport           TYPE trkorr.
+    DATA ls_edisdef             TYPE edisdef.
+    DATA ls_segment_definition  TYPE ty_segment_definition.
     FIELD-SYMBOLS <ls_segment_definition> TYPE ty_segment_definition.
 
     rv_deserialized = abap_false.
@@ -71418,14 +71425,16 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
     rv_deserialized = abap_true.
 
     lv_package = iv_package.
+    lv_transport = iv_transport.
 
     LOOP AT lt_segment_definitions ASSIGNING <ls_segment_definition>.
+      ls_segment_definition = <ls_segment_definition>.
       <ls_segment_definition>-segmentheader-presp = sy-uname.
       <ls_segment_definition>-segmentheader-pwork = sy-uname.
 
       CALL FUNCTION 'SEGMENT_READ'
         EXPORTING
-          segmenttyp = <ls_segment_definition>-segmentheader-segtyp
+          segmenttyp = <ls_segment_definition>-segmentdefinition-segtyp
         IMPORTING
           result     = lv_result
         EXCEPTIONS
@@ -71464,6 +71473,33 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
         zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
 
+      IF ls_segment_definition-segmentdefinition-closed = abap_true.
+        IF lv_transport IS NOT INITIAL.
+          CALL FUNCTION 'SEGMENTDEFINITION_CLOSE'
+            EXPORTING
+              segmenttyp = ls_segment_definition-segmentdefinition-segtyp
+            CHANGING
+              order      = lv_transport
+            EXCEPTIONS
+              OTHERS     = 1.
+          IF sy-subrc <> 0.
+            zcx_abapgit_exception=>raise_t100( ).
+          ENDIF.
+        ENDIF.
+
+        " SEGMENTDEFINITION_CLOSE saves current release but it should be same as in repo
+        SELECT SINGLE * FROM edisdef INTO ls_edisdef
+          WHERE segtyp  = ls_segment_definition-segmentdefinition-segtyp
+            AND version = ls_segment_definition-segmentdefinition-version.
+        ls_edisdef-released = ls_segment_definition-segmentdefinition-released.
+        ls_edisdef-applrel  = ls_segment_definition-segmentdefinition-applrel.
+        ls_edisdef-closed   = ls_segment_definition-segmentdefinition-closed.
+        UPDATE edisdef FROM ls_edisdef.
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( |Error updating IDOC segment {
+            <ls_segment_definition>-segmentdefinition-segtyp }| ).
+        ENDIF.
+      ENDIF.
     ENDLOOP.
 
     lv_uname = sy-uname.
@@ -71872,6 +71908,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
     lv_name = ms_item-obj_name. " type conversion
 
     IF deserialize_idoc_segment( io_xml     = io_xml
+                                 iv_transport = iv_transport
                                  iv_package = iv_package ) = abap_false.
 
       io_xml->read( EXPORTING iv_name = 'DD02V'
@@ -87561,6 +87598,23 @@ CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
     mv_idoctyp = ms_item-obj_name.
 
   ENDMETHOD.
+  METHOD is_closed.
+
+    DATA ls_idoc TYPE ty_idoc.
+
+    CALL FUNCTION 'IDOCTYPE_READ'
+      EXPORTING
+        pi_idoctyp       = mv_idoctyp
+      IMPORTING
+        pe_attributes    = ls_idoc-attributes
+      EXCEPTIONS
+        object_not_found = 1
+        db_error         = 2
+        no_authority     = 3
+        OTHERS           = 4.
+    rv_closed = boolc( sy-subrc = 0 AND ls_idoc-attributes-closed = abap_true ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_attributes TYPE edi_iapi01.
@@ -87605,6 +87659,8 @@ CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: ls_idoc       TYPE ty_idoc,
+          lv_transport  TYPE trkorr,
+          ls_edbas      TYPE edbas,
           ls_attributes TYPE edi_iapi05.
 
     io_xml->read(
@@ -87615,31 +87671,101 @@ CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
 
     MOVE-CORRESPONDING ls_idoc-attributes TO ls_attributes.
 
-    CALL FUNCTION 'IDOCTYPE_CREATE'
-      EXPORTING
-        pi_idoctyp    = mv_idoctyp
-        pi_devclass   = iv_package
-        pi_attributes = ls_attributes
-      TABLES
-        pt_syntax     = ls_idoc-t_syntax
-      EXCEPTIONS
-        OTHERS        = 1.
+    IF zif_abapgit_object~exists( ) = abap_false.
+      CALL FUNCTION 'IDOCTYPE_CREATE'
+        EXPORTING
+          pi_idoctyp       = mv_idoctyp
+          pi_devclass      = iv_package
+          pi_attributes    = ls_attributes
+        TABLES
+          pt_syntax        = ls_idoc-t_syntax
+        EXCEPTIONS
+          object_not_found = 1
+          object_exists    = 2
+          syntax_error     = 3
+          segment_error    = 4
+          transport_error  = 5
+          db_error         = 6
+          no_authority     = 7
+          OTHERS           = 8.
+    ELSE.
+      IF is_closed( ) = abap_true.
+        CALL FUNCTION 'IDOCTYPE_UNCLOSE'
+          EXPORTING
+            pi_idoctyp          = mv_idoctyp
+          EXCEPTIONS
+            object_not_found    = 1
+            action_not_possible = 2
+            db_error            = 3
+            no_authority        = 4
+            OTHERS              = 5.
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise_t100( ).
+        ENDIF.
+      ENDIF.
+
+      CALL FUNCTION 'IDOCTYPE_UPDATE'
+        EXPORTING
+          pi_idoctyp       = mv_idoctyp
+          pi_attributes    = ls_attributes
+        TABLES
+          pt_syntax        = ls_idoc-t_syntax
+        EXCEPTIONS
+          object_not_found = 1
+          object_exists    = 2
+          syntax_error     = 3
+          segment_error    = 4
+          transport_error  = 5
+          db_error         = 6
+          no_authority     = 7
+          OTHERS           = 8.
+    ENDIF.
 
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
+    IF ls_idoc-attributes-closed = abap_true.
+      IF iv_transport IS NOT INITIAL.
+        lv_transport = iv_transport.
+
+        CALL FUNCTION 'IDOCTYPE_CLOSE'
+          EXPORTING
+            pi_idoctyp          = mv_idoctyp
+          CHANGING
+            pc_order            = lv_transport
+          EXCEPTIONS
+            object_not_found    = 1
+            action_not_possible = 2
+            db_error            = 3
+            no_authority        = 4
+            OTHERS              = 5.
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise_t100( ).
+        ENDIF.
+      ENDIF.
+
+      " IDOCTYPE_CLOSE saves current release but it should be same as in repo
+      SELECT SINGLE * FROM edbas INTO ls_edbas WHERE idoctyp = mv_idoctyp.
+      ls_edbas-released = ls_idoc-attributes-released.
+      ls_edbas-applrel  = ls_idoc-attributes-applrel.
+      ls_edbas-closed   = ls_idoc-attributes-closed.
+      UPDATE edbas FROM ls_edbas.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Error updating IDOC { mv_idoctyp }| ).
+      ENDIF.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
 
-    CALL FUNCTION 'IDOCTYPE_READ'
+    CALL FUNCTION 'IDOCTYPE_EXISTENCE_CHECK'
       EXPORTING
         pi_idoctyp       = mv_idoctyp
       EXCEPTIONS
         object_not_found = 1
         db_error         = 2
-        no_authority     = 3
-        OTHERS           = 4.
+        OTHERS           = 3.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
@@ -123949,6 +124075,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-05-28T12:09:54.114Z
+* abapmerge 0.15.0 - 2023-06-01T07:58:07.932Z
 ENDINTERFACE.
 ****************************************************
