@@ -40735,7 +40735,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_BCKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_RUNIT IMPLEMENTATION.
   METHOD build_tadir.
 
     DATA lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
@@ -40904,8 +40904,10 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
             lv_text = lv_text && lv_params.
           ENDLOOP.
         ENDLOOP.
-        ri_html->add( |<tr><td><span class="boxed red-filled-set">{ lv_text }</span></td></tr>| ).
-        lv_count = lv_count + 1.
+        IF lv_text NP '*SAUNIT_NO_TEST_CLASS*'.
+          ri_html->add( |<tr><td><span class="boxed red-filled-set">{ lv_text }</span></td></tr>| ).
+          lv_count = lv_count + 1.
+        ENDIF.
       ENDLOOP.
     ENDLOOP.
 
@@ -124106,6 +124108,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-06-02T10:57:34.247Z
+* abapmerge 0.15.0 - 2023-06-09T07:14:06.639Z
 ENDINTERFACE.
 ****************************************************
