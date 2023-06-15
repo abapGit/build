@@ -3046,7 +3046,9 @@ INTERFACE zif_abapgit_definitions .
       origlang  TYPE tadir-masterlang,
     END OF ty_result .
   TYPES:
-    ty_results_tt TYPE STANDARD TABLE OF ty_result WITH DEFAULT KEY .
+    ty_results_tt TYPE STANDARD TABLE OF ty_result WITH DEFAULT KEY
+                       WITH NON-UNIQUE SORTED KEY sec_key
+                       COMPONENTS obj_type obj_name.
   TYPES:
     ty_results_ts_path TYPE HASHED TABLE OF ty_result WITH UNIQUE KEY path filename .
   TYPES:
@@ -8485,7 +8487,9 @@ CLASS zcl_abapgit_item_graph DEFINITION
            END OF ty_edge.
 
     DATA mt_vertices TYPE STANDARD TABLE OF zif_abapgit_definitions=>ty_item WITH DEFAULT KEY.
-    DATA mt_edges TYPE STANDARD TABLE OF ty_edge WITH DEFAULT KEY.
+    DATA mt_edges TYPE STANDARD TABLE OF ty_edge WITH DEFAULT KEY
+                       WITH NON-UNIQUE SORTED KEY sec_key
+                       COMPONENTS to.
     DATA mv_warning TYPE abap_bool.
 
     METHODS remove_vertex IMPORTING iv_index TYPE i.
@@ -110319,7 +110323,7 @@ CLASS ZCL_ABAPGIT_ITEM_GRAPH IMPLEMENTATION.
 
     LOOP AT mt_vertices INTO ls_vertex.
       lv_index = sy-tabix.
-      READ TABLE mt_edges WITH KEY
+      READ TABLE mt_edges WITH KEY sec_key COMPONENTS
         to-obj_type = ls_vertex-obj_type
         to-obj_name = ls_vertex-obj_name
         TRANSPORTING NO FIELDS.
@@ -110939,7 +110943,7 @@ CLASS zcl_abapgit_file_deserialize IMPLEMENTATION.
 
     WHILE lo_graph->has_vertices( ) = abap_true.
       ls_item = lo_graph->get_next( ii_log ).
-      READ TABLE it_results INTO ls_result WITH KEY
+      READ TABLE it_results INTO ls_result WITH KEY sec_key COMPONENTS
         obj_name = ls_item-obj_name
         obj_type = ls_item-obj_type.
       ASSERT sy-subrc = 0.
@@ -124108,6 +124112,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-06-09T07:14:06.639Z
+* abapmerge 0.15.0 - 2023-06-15T09:04:44.172Z
 ENDINTERFACE.
 ****************************************************
