@@ -44734,6 +44734,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
     ELSEIF is_object IS NOT INITIAL.  " Diff for whole object
 
       LOOP AT lt_status ASSIGNING <ls_status>
+          USING KEY sec_key
           WHERE obj_type = is_object-obj_type
           AND obj_name = is_object-obj_name
           AND match IS INITIAL.
@@ -58679,7 +58680,8 @@ CLASS kHGwlUmyfmivKtGMyFDtQzYvAOqpyr IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_result> LIKE LINE OF it_results.
 
-    LOOP AT it_results ASSIGNING <ls_result> WHERE package IS INITIAL AND obj_type = 'DEVC'.
+    LOOP AT it_results ASSIGNING <ls_result> USING KEY sec_key
+                       WHERE package IS INITIAL AND obj_type = 'DEVC'.
 
       IF zcl_abapgit_factory=>get_sap_package( |{ <ls_result>-obj_name }| )->exists( ) = abap_true.
         " If package already exist but is not included in the package hierarchy of
@@ -110781,7 +110783,8 @@ CLASS zcl_abapgit_file_deserialize IMPLEMENTATION.
     DELETE rt_results WHERE obj_type IS INITIAL.
     "log objects w/o object type
     IF sy-subrc = 0 AND ii_log IS BOUND.
-      LOOP AT lt_objects REFERENCE INTO lr_object WHERE obj_type IS INITIAL.
+      LOOP AT lt_objects REFERENCE INTO lr_object USING KEY sec_key
+                         WHERE obj_type IS INITIAL.
         CHECK lr_object->obj_name IS NOT INITIAL.
         ls_item-devclass = lr_object->package.
         ls_item-obj_type = lr_object->obj_type.
@@ -124112,6 +124115,6 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.15.0 - 2023-06-15T09:04:44.172Z
+* abapmerge 0.15.0 - 2023-06-16T07:11:28.993Z
 ENDINTERFACE.
 ****************************************************
