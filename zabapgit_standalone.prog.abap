@@ -75,6 +75,7 @@ INTERFACE zif_abapgit_comparator DEFERRED.
 INTERFACE zif_abapgit_lxe_texts DEFERRED.
 INTERFACE zif_abapgit_longtexts DEFERRED.
 INTERFACE zif_abapgit_lang_definitions DEFERRED.
+INTERFACE zif_abapgit_sap_report DEFERRED.
 INTERFACE zif_abapgit_sap_package DEFERRED.
 INTERFACE zif_abapgit_sap_namespace DEFERRED.
 INTERFACE zif_abapgit_field_rules DEFERRED.
@@ -377,6 +378,7 @@ CLASS zcl_abapgit_sots_handler DEFINITION DEFERRED.
 CLASS zcl_abapgit_sotr_handler DEFINITION DEFERRED.
 CLASS zcl_abapgit_lxe_texts DEFINITION DEFERRED.
 CLASS zcl_abapgit_longtexts DEFINITION DEFERRED.
+CLASS zcl_abapgit_sap_report DEFINITION DEFERRED.
 CLASS zcl_abapgit_sap_package DEFINITION DEFERRED.
 CLASS zcl_abapgit_sap_namespace DEFINITION DEFERRED.
 CLASS zcl_abapgit_field_rules DEFINITION DEFERRED.
@@ -3617,7 +3619,7 @@ INTERFACE zif_abapgit_oo_object_fnc.
     END OF c_parts.
 
   TYPES: BEGIN OF ty_includes,
-           programm TYPE programm,
+           programm TYPE syrepid,
          END OF ty_includes,
          ty_includes_tt TYPE STANDARD TABLE OF ty_includes WITH DEFAULT KEY.
 
@@ -3643,12 +3645,14 @@ INTERFACE zif_abapgit_oo_object_fnc.
         it_local_implementations TYPE seop_source_string OPTIONAL
         it_local_macros          TYPE seop_source_string OPTIONAL
         it_local_test_classes    TYPE seop_source_string OPTIONAL
+        iv_package               TYPE devclass
       RAISING
         zcx_abapgit_exception,
     deserialize_source
       IMPORTING
-        is_key    TYPE seoclskey
-        it_source TYPE zif_abapgit_definitions=>ty_string_tt
+        is_key     TYPE seoclskey
+        it_source  TYPE zif_abapgit_definitions=>ty_string_tt
+        iv_package TYPE devclass
       RAISING
         zcx_abapgit_exception
         cx_sy_dyn_call_error,
@@ -3843,6 +3847,60 @@ INTERFACE zif_abapgit_sap_package .
       VALUE(rv_transport_layer) TYPE devlayer
     RAISING
       zcx_abapgit_exception .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_sap_report.
+
+  TYPES:
+    ty_abap_language_version TYPE c LENGTH 1.
+
+  METHODS read_report
+    IMPORTING
+      iv_name          TYPE syrepid
+      iv_state         TYPE r3state OPTIONAL
+      is_item          TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+    RETURNING
+      VALUE(rt_source) TYPE abaptxt255_tab
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS insert_report
+    IMPORTING
+      iv_name           TYPE syrepid
+      it_source         TYPE STANDARD TABLE
+      iv_state          TYPE r3state OPTIONAL
+      iv_program_type   TYPE c OPTIONAL
+      iv_extension_type TYPE c OPTIONAL
+      iv_package        TYPE devclass
+      iv_version        TYPE ty_abap_language_version OPTIONAL
+      is_item           TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS update_report
+    IMPORTING
+      iv_name           TYPE syrepid
+      it_source         TYPE STANDARD TABLE
+      iv_state          TYPE r3state OPTIONAL
+      iv_program_type   TYPE c OPTIONAL
+      iv_extension_type TYPE c OPTIONAL
+      iv_package        TYPE devclass
+      iv_version        TYPE ty_abap_language_version OPTIONAL
+      is_item           TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+    RETURNING
+      VALUE(rv_updated) TYPE abap_bool
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS delete_report
+    IMPORTING
+      iv_name        TYPE syrepid
+      iv_raise_error TYPE abap_bool DEFAULT abap_false
+      iv_version     TYPE ty_abap_language_version OPTIONAL
+      is_item        TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+    RAISING
+      zcx_abapgit_exception.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_lang_definitions .
@@ -9681,8 +9739,9 @@ CLASS zcl_abapgit_oo_class DEFINITION
         !io_scanner TYPE REF TO cl_oo_source_scanner_class .
     CLASS-METHODS update_report
       IMPORTING
-        !iv_program       TYPE programm
+        !iv_program       TYPE syrepid
         !it_source        TYPE string_table
+        !iv_package       TYPE devclass
       RETURNING
         VALUE(rv_updated) TYPE abap_bool
       RAISING
@@ -9704,7 +9763,7 @@ CLASS zcl_abapgit_oo_class DEFINITION
         !iv_name          TYPE seoclsname
         !iv_method        TYPE seocpdname
       RETURNING
-        VALUE(rv_program) TYPE programm
+        VALUE(rv_program) TYPE syrepid
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS init_scanner
@@ -9719,21 +9778,29 @@ CLASS zcl_abapgit_oo_class DEFINITION
       IMPORTING
         !iv_classname TYPE seoclsname
         !it_source    TYPE string_table
-        !it_methods   TYPE cl_oo_source_scanner_class=>type_method_implementations .
+        !it_methods   TYPE cl_oo_source_scanner_class=>type_method_implementations
+        !iv_package   TYPE devclass
+      RAISING
+        zcx_abapgit_exception.
     CLASS-METHODS create_report
       IMPORTING
-        !iv_program      TYPE programm
+        !iv_program      TYPE syrepid
         !it_source       TYPE string_table
         !iv_extension    TYPE ty_char2
         !iv_program_type TYPE ty_char1
-        !iv_version      TYPE r3state .
+        !iv_version      TYPE r3state
+        !iv_package      TYPE devclass
+      RAISING
+        zcx_abapgit_exception.
     CLASS-METHODS update_cs_number_of_methods
       IMPORTING
         !iv_classname              TYPE seoclsname
         !iv_number_of_impl_methods TYPE i .
     CLASS-METHODS delete_report
       IMPORTING
-        !iv_program TYPE programm .
+        !iv_program TYPE syrepid
+      RAISING
+        zcx_abapgit_exception.
     CLASS-METHODS get_method_includes
       IMPORTING
         !iv_classname      TYPE seoclsname
@@ -9786,8 +9853,9 @@ CLASS zcl_abapgit_oo_interface DEFINITION
 
     CLASS-METHODS update_report
       IMPORTING
-        !iv_program       TYPE programm
+        !iv_program       TYPE syrepid
         !it_source        TYPE string_table
+        !iv_package       TYPE devclass
       RETURNING
         VALUE(rv_updated) TYPE abap_bool
       RAISING
@@ -9884,7 +9952,9 @@ CLASS zcl_abapgit_oo_serializer DEFINITION
         !is_clskey       TYPE seoclskey
         !iv_type         TYPE seop_include_ext_app
       RETURNING
-        VALUE(rt_source) TYPE seop_source_string .
+        VALUE(rt_source) TYPE seop_source_string
+      RAISING
+        zcx_abapgit_exception.
     METHODS reduce
       CHANGING
         !ct_source TYPE zif_abapgit_definitions=>ty_string_tt .
@@ -9941,6 +10011,33 @@ CLASS zcl_abapgit_sap_package DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: mv_package TYPE devclass.
+
+ENDCLASS.
+CLASS zcl_abapgit_sap_report DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_sap_report.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    METHODS get_language_version
+      IMPORTING
+        iv_package        TYPE devclass
+        iv_version        TYPE zif_abapgit_sap_report=>ty_abap_language_version
+      RETURNING
+        VALUE(rv_version) TYPE zif_abapgit_sap_report=>ty_abap_language_version.
+
+    METHODS authorization_check
+      IMPORTING
+        iv_mode    TYPE csequence
+        is_item    TYPE zif_abapgit_definitions=>ty_item
+        iv_version TYPE zif_abapgit_sap_report=>ty_abap_language_version OPTIONAL
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_longtexts DEFINITION
@@ -15344,13 +15441,13 @@ CLASS zcl_abapgit_objects_program DEFINITION
         !io_xml     TYPE REF TO zif_abapgit_xml_output OPTIONAL
         !is_item    TYPE zif_abapgit_definitions=>ty_item
         !io_files   TYPE REF TO zcl_abapgit_objects_files
-        !iv_program TYPE programm OPTIONAL
+        !iv_program TYPE syrepid OPTIONAL
         !iv_extra   TYPE clike OPTIONAL
       RAISING
         zcx_abapgit_exception.
     METHODS read_progdir
       IMPORTING
-        !iv_program       TYPE programm
+        !iv_program       TYPE syrepid
       RETURNING
         VALUE(rs_progdir) TYPE ty_progdir.
     METHODS deserialize_program
@@ -15381,14 +15478,14 @@ CLASS zcl_abapgit_objects_program DEFINITION
         ct_source TYPE STANDARD TABLE. " tab of string or charX
     METHODS serialize_dynpros
       IMPORTING
-        !iv_program_name TYPE programm
+        !iv_program_name TYPE syrepid
       RETURNING
         VALUE(rt_dynpro) TYPE ty_dynpro_tt
       RAISING
         zcx_abapgit_exception .
     METHODS serialize_cua
       IMPORTING
-        !iv_program_name TYPE programm
+        !iv_program_name TYPE syrepid
       RETURNING
         VALUE(rs_cua)    TYPE ty_cua
       RAISING
@@ -15400,7 +15497,7 @@ CLASS zcl_abapgit_objects_program DEFINITION
         zcx_abapgit_exception .
     METHODS deserialize_textpool
       IMPORTING
-        !iv_program    TYPE programm
+        !iv_program    TYPE syrepid
         !it_tpool      TYPE textpool_table
         !iv_language   TYPE sy-langu OPTIONAL
         !iv_is_include TYPE abap_bool DEFAULT abap_false
@@ -15408,27 +15505,27 @@ CLASS zcl_abapgit_objects_program DEFINITION
         zcx_abapgit_exception .
     METHODS deserialize_cua
       IMPORTING
-        !iv_program_name TYPE programm
+        !iv_program_name TYPE syrepid
         !is_cua          TYPE ty_cua
       RAISING
         zcx_abapgit_exception .
     METHODS is_any_dynpro_locked
       IMPORTING
-        !iv_program                    TYPE programm
+        !iv_program                    TYPE syrepid
       RETURNING
         VALUE(rv_is_any_dynpro_locked) TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
     METHODS is_cua_locked
       IMPORTING
-        !iv_program             TYPE programm
+        !iv_program             TYPE syrepid
       RETURNING
         VALUE(rv_is_cua_locked) TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
     METHODS is_text_locked
       IMPORTING
-        !iv_program              TYPE programm
+        !iv_program              TYPE syrepid
       RETURNING
         VALUE(rv_is_text_locked) TYPE abap_bool
       RAISING
@@ -15692,19 +15789,20 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
       IMPORTING
         !it_functions TYPE ty_function_tt
         !ii_log       TYPE REF TO zif_abapgit_log
+        !iv_package   TYPE devclass
         !iv_transport TYPE trkorr
       RAISING
         zcx_abapgit_exception .
     METHODS serialize_function_docs
       IMPORTING
-        !iv_prog_name TYPE programm
+        !iv_prog_name TYPE syrepid
         !it_functions TYPE ty_function_tt
         !ii_xml       TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_function_docs
       IMPORTING
-        !iv_prog_name TYPE programm
+        !iv_prog_name TYPE syrepid
         !it_functions TYPE ty_function_tt
         !ii_xml       TYPE REF TO zif_abapgit_xml_input
       RAISING
@@ -15759,13 +15857,13 @@ CLASS zcl_abapgit_object_fugr DEFINITION INHERITING FROM zcl_abapgit_objects_pro
         !iv_short_text TYPE tftit-stext .
     METHODS serialize_texts
       IMPORTING
-        !iv_prog_name TYPE programm
+        !iv_prog_name TYPE syrepid
         !ii_xml       TYPE REF TO zif_abapgit_xml_output
       RAISING
         zcx_abapgit_exception .
     METHODS deserialize_texts
       IMPORTING
-        !iv_prog_name TYPE programm
+        !iv_prog_name TYPE syrepid
         !ii_xml       TYPE REF TO zif_abapgit_xml_input
       RAISING
         zcx_abapgit_exception .
@@ -15900,6 +15998,7 @@ CLASS zcl_abapgit_object_prog DEFINITION INHERITING FROM zcl_abapgit_objects_pro
       IMPORTING
         !is_progdir TYPE ty_progdir
         !it_source  TYPE abaptxt255_tab
+        !iv_package TYPE devclass
       RAISING
         zcx_abapgit_exception .
     METHODS serialize_texts
@@ -20066,7 +20165,7 @@ CLASS zcl_abapgit_gui_page_debuginfo DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    CONSTANTS c_exit_standalone TYPE c LENGTH 30 VALUE 'ZABAPGIT_USER_EXIT' ##NO_TEXT.
+    CONSTANTS c_exit_standalone TYPE syrepid VALUE 'ZABAPGIT_USER_EXIT' ##NO_TEXT.
     CONSTANTS c_exit_class TYPE c LENGTH 30 VALUE 'ZCL_ABAPGIT_USER_EXIT' ##NO_TEXT.
     CONSTANTS c_exit_interface TYPE c LENGTH 30 VALUE 'ZIF_ABAPGIT_EXIT' ##NO_TEXT.
     CONSTANTS:
@@ -23744,6 +23843,9 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-METHODS get_sap_namespace
       RETURNING
         VALUE(ri_namespace) TYPE REF TO zif_abapgit_sap_namespace .
+    CLASS-METHODS get_sap_report
+      RETURNING
+        VALUE(ri_report) TYPE REF TO zif_abapgit_sap_report.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -23774,6 +23876,7 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-DATA gi_http_agent TYPE REF TO zif_abapgit_http_agent .
     CLASS-DATA gi_lxe_texts TYPE REF TO zif_abapgit_lxe_texts .
     CLASS-DATA gi_sap_namespace TYPE REF TO zif_abapgit_sap_namespace .
+    CLASS-DATA gi_sap_report TYPE REF TO zif_abapgit_sap_report.
 ENDCLASS.
 CLASS zcl_abapgit_injector DEFINITION
   CREATE PRIVATE.
@@ -23812,6 +23915,9 @@ CLASS zcl_abapgit_injector DEFINITION
     CLASS-METHODS set_sap_namespace
       IMPORTING
         !ii_namespace TYPE REF TO zif_abapgit_sap_namespace .
+    CLASS-METHODS set_sap_report
+      IMPORTING
+        !ii_report TYPE REF TO zif_abapgit_sap_report.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -24238,7 +24344,7 @@ CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_INJECTOR IMPLEMENTATION.
+CLASS zcl_abapgit_injector IMPLEMENTATION.
   METHOD set_code_inspector.
 
     DATA: ls_code_inspector LIKE LINE OF zcl_abapgit_factory=>gt_code_inspector.
@@ -24299,6 +24405,9 @@ CLASS ZCL_ABAPGIT_INJECTOR IMPLEMENTATION.
     <ls_sap_package>-instance = ii_sap_package.
 
   ENDMETHOD.
+  METHOD set_sap_report.
+    zcl_abapgit_factory=>gi_sap_report = ii_report.
+  ENDMETHOD.
   METHOD set_stage_logic.
 
     zcl_abapgit_factory=>gi_stage_logic = ii_logic.
@@ -24309,7 +24418,7 @@ CLASS ZCL_ABAPGIT_INJECTOR IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
+CLASS zcl_abapgit_factory IMPLEMENTATION.
   METHOD get_code_inspector.
 
     DATA: ls_code_inspector LIKE LINE OF gt_code_inspector.
@@ -24401,6 +24510,15 @@ CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
     ENDIF.
 
     ri_sap_package = <ls_sap_package>-instance.
+
+  ENDMETHOD.
+  METHOD get_sap_report.
+
+    IF gi_sap_report IS NOT BOUND.
+      CREATE OBJECT gi_sap_report TYPE zcl_abapgit_sap_report.
+    ENDIF.
+
+    ri_report = gi_sap_report.
 
   ENDMETHOD.
   METHOD get_stage_logic.
@@ -45476,7 +45594,7 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
   METHOD build_toolbar.
 
     CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-debug'.
@@ -45594,7 +45712,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DEBUGINFO IMPLEMENTATION.
 
     IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true.
       " Standalone version
-      READ REPORT c_exit_standalone INTO lt_source.
+      lt_source = zcl_abapgit_factory=>get_sap_report( )->read_report( c_exit_standalone ).
       IF sy-subrc = 0.
         ri_html->add( |<div>User exits are active (include { get_jump_object(
           iv_obj_type = 'PROG'
@@ -61766,17 +61884,19 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       " For cases that standard function does not handle (like FUGR),
       " we save active and inactive version of source with the given PROGRAM TYPE.
       " Without the active version, the code will not be visible in case of activation errors.
-      INSERT REPORT is_progdir-name
-        FROM it_source
-        STATE 'A'
-        PROGRAM TYPE is_progdir-subc.
-      INSERT REPORT is_progdir-name
-        FROM it_source
-        STATE 'I'
-        PROGRAM TYPE is_progdir-subc.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'Error from INSERT REPORT .. PROGRAM TYPE' ).
-      ENDIF.
+      zcl_abapgit_factory=>get_sap_report( )->insert_report(
+        iv_name         = is_progdir-name
+        iv_package      = iv_package
+        it_source       = it_source
+        iv_state        = 'A'
+        iv_program_type = is_progdir-subc ).
+
+      zcl_abapgit_factory=>get_sap_report( )->insert_report(
+        iv_name         = is_progdir-name
+        iv_package      = iv_package
+        it_source       = it_source
+        iv_state        = 'I'
+        iv_program_type = is_progdir-subc ).
 
     ELSEIF sy-subrc > 0.
       zcx_abapgit_exception=>raise_t100( ).
@@ -62019,7 +62139,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
   METHOD serialize_program.
 
     DATA: ls_progdir      TYPE ty_progdir,
-          lv_program_name TYPE programm,
+          lv_program_name TYPE syrepid,
           lt_dynpros      TYPE ty_dynpro_tt,
           ls_cua          TYPE ty_cua,
           lt_source       TYPE TABLE OF abaptxt255,
@@ -69854,7 +69974,11 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
               iv_devclass = iv_package ).
     ELSE.
       CONCATENATE c_prefix lv_typegroup INTO lv_progname.
-      INSERT REPORT lv_progname FROM lt_source STATE 'I'.
+
+      zcl_abapgit_factory=>get_sap_report( )->insert_report(
+        iv_name    = lv_progname
+        iv_package = iv_package
+        it_source  = lt_source ).
     ENDIF.
 
     zcl_abapgit_objects_activation=>add_item( ms_item ).
@@ -81257,14 +81381,13 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
     " https://help.sap.com/doc/abapdocu_755_index_htm/7.55/en-US/index.htm?file=abapinsert_report_internal.htm
     " This e.g. occurs in case of transportable Code Inspector variants (ending with ===VC)
 
-    INSERT REPORT is_progdir-name
-      FROM it_source
-      STATE 'I'
-      EXTENSION TYPE is_progdir-name+30
-      PROGRAM TYPE is_progdir-subc.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from INSERT REPORT .. EXTENSION TYPE' ).
-    ENDIF.
+    zcl_abapgit_factory=>get_sap_report( )->insert_report(
+      iv_name           = is_progdir-name
+      iv_package        = iv_package
+      it_source         = it_source
+      iv_state          = 'I'
+      iv_program_type   = is_progdir-subc
+      iv_extension_type = is_progdir-name+30 ).
 
     CALL FUNCTION 'UPDATE_PROGDIR'
       EXPORTING
@@ -81364,7 +81487,7 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
         OTHERS                     = 5.
     IF sy-subrc = 2.
       " Drop also any inactive code that is left in REPOSRC
-      DELETE REPORT lv_program ##SUBRC_OK.
+      zcl_abapgit_factory=>get_sap_report( )->delete_report( lv_program ).
 
       " Remove inactive objects from work area
       lv_obj_name = lv_program.
@@ -81391,7 +81514,7 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lv_program_name TYPE programm,
+    DATA: lv_program_name TYPE syrepid,
           ls_progdir      TYPE ty_progdir,
           lt_tpool        TYPE textpool_table,
           lt_dynpros      TYPE ty_dynpro_tt,
@@ -81417,6 +81540,7 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
 
       " Objects with extension for example transportable Code Inspector variants (ending with ===VC)
       deserialize_with_ext( is_progdir = ls_progdir
+                            iv_package = iv_package
                             it_source  = lt_source ).
 
     ELSE.
@@ -87236,7 +87360,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
     TYPES: BEGIN OF ty_includes,
-             programm TYPE programm,
+             programm TYPE syrepid,
            END OF ty_includes.
 
     TYPES: BEGIN OF ty_reposrc,
@@ -87314,8 +87438,9 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
         ls_clskey-clsname = ms_item-obj_name.
         lt_source = zif_abapgit_object~mo_files->read_abap( ).
         mi_object_oriented_object_fct->deserialize_source(
-          is_key    = ls_clskey
-          it_source = lt_source ).
+          is_key     = ls_clskey
+          iv_package = iv_package
+          it_source  = lt_source ).
 
         deserialize_descriptions( it_description = ls_intf-description ).
 
@@ -89637,7 +89762,11 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
         CONTINUE.  "with next function module
       ENDIF.
 
-      INSERT REPORT lv_include FROM lt_source.
+      zcl_abapgit_factory=>get_sap_report( )->insert_report(
+        iv_name    = lv_include
+        iv_package = iv_package
+        it_source  = lt_source ).
+
       ii_log->add_success( iv_msg = |Function module { <ls_func>-funcname } imported|
                            is_item = ms_item ).
     ENDLOOP.
@@ -90457,7 +90586,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lv_program_name TYPE programm,
+    DATA: lv_program_name TYPE syrepid,
           lt_functions    TYPE ty_function_tt,
           lt_dynpros      TYPE ty_dynpro_tt,
           ls_cua          TYPE ty_cua.
@@ -90473,6 +90602,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
     deserialize_functions(
       it_functions = lt_functions
       ii_log       = ii_log
+      iv_package   = iv_package
       iv_transport = iv_transport ).
 
     deserialize_includes(
@@ -90599,7 +90729,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
     DATA: lt_functions    TYPE ty_function_tt,
           ls_progdir      TYPE ty_progdir,
-          lv_program_name TYPE programm,
+          lv_program_name TYPE syrepid,
           lt_dynpros      TYPE ty_dynpro_tt,
           ls_cua          TYPE ty_cua.
 
@@ -98150,6 +98280,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     mi_object_oriented_object_fct->generate_locals(
       is_key                   = ls_class_key
+      iv_package               = iv_package
       it_local_definitions     = lt_local_definitions
       it_local_implementations = lt_local_implementations
       it_local_macros          = lt_local_macros
@@ -98157,8 +98288,9 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     repo_apack_replacement( CHANGING ct_source = lt_source ).
     mi_object_oriented_object_fct->deserialize_source(
-      is_key    = ls_class_key
-      it_source = lt_source ).
+      is_key     = ls_class_key
+      iv_package = iv_package
+      it_source  = lt_source ).
 
     ii_xml->read( EXPORTING iv_name = 'DESCRIPTIONS'
                   CHANGING cg_data = lt_descriptions ).
@@ -98687,8 +98819,8 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     DATA: lt_reposrc  TYPE STANDARD TABLE OF ty_reposrc,
           ls_reposrc  LIKE LINE OF lt_reposrc,
-          lv_include  TYPE programm,
-          lt_includes TYPE STANDARD TABLE OF programm.
+          lv_include  TYPE syrepid,
+          lt_includes TYPE STANDARD TABLE OF syrepid.
 
     CASE iv_extra.
       WHEN zif_abapgit_oo_object_fnc=>c_parts-locals_def.
@@ -103311,6 +103443,152 @@ CLASS zcl_abapgit_longtexts IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_sap_report IMPLEMENTATION.
+  METHOD authorization_check.
+
+    IF is_item IS NOT INITIAL.
+      " TODO: Check for ABAP Language Version (ABAP_LANGU_VERSION_UPON_INSERT = iv_version)
+      CALL FUNCTION 'RS_ACCESS_PERMISSION'
+        EXPORTING
+          mode                     = iv_mode
+          object                   = is_item-obj_name
+          object_class             = is_item-obj_type
+          suppress_corr_check      = abap_true
+          suppress_language_check  = abap_true
+          suppress_extend_dialog   = abap_true
+        EXCEPTIONS
+          canceled_in_corr         = 1
+          enqueued_by_user         = 2
+          enqueue_system_failure   = 3
+          illegal_parameter_values = 4
+          locked_by_author         = 5
+          no_modify_permission     = 6
+          no_show_permission       = 7
+          permission_failure       = 8
+          request_language_denied  = 9
+          OTHERS                   = 10.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise_t100( ).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_language_version.
+
+    ASSERT iv_version CA ' X25'.
+
+    " TODO: Determine ABAP Language Version
+    " https://github.com/abapGit/abapGit/issues/6154#issuecomment-1503566920)
+
+    " For now, use default for ABAP source code
+    IF zcl_abapgit_factory=>get_environment( )->is_sap_cloud_platform( ) = abap_true.
+      rv_version = '5'. " abap_for_cloud_development
+    ELSE.
+      rv_version = 'X'. " standard_abap
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_sap_report~delete_report.
+
+    authorization_check(
+      iv_mode = 'DELETE'
+      is_item = is_item ).
+
+    DELETE REPORT iv_name.
+
+    IF sy-subrc <> 0 AND iv_raise_error = abap_true.
+      zcx_abapgit_exception=>raise( |Error deleting report { iv_name }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_sap_report~insert_report.
+
+    DATA lv_version TYPE zif_abapgit_sap_report=>ty_abap_language_version.
+    DATA lv_obj_name TYPE e071-obj_name.
+
+    ASSERT iv_state CA ' AI'.
+    ASSERT iv_program_type CA ' 1FIJKMST'.
+
+    lv_version = get_language_version(
+      iv_package = iv_package
+      iv_version = iv_version ).
+
+    authorization_check(
+      iv_mode    = 'MODIFY'
+      is_item    = is_item
+      iv_version = lv_version ).
+
+    IF iv_state IS INITIAL.
+      INSERT REPORT iv_name FROM it_source
+        VERSION lv_version.
+    ELSEIF iv_program_type IS INITIAL AND iv_extension_type IS INITIAL.
+      INSERT REPORT iv_name FROM it_source
+        STATE   iv_state
+        VERSION lv_version.
+    ELSEIF iv_extension_type IS INITIAL.
+      INSERT REPORT iv_name FROM it_source
+        STATE        iv_state
+        PROGRAM TYPE iv_program_type
+        VERSION      lv_version.
+    ELSE.
+      INSERT REPORT iv_name FROM it_source
+        STATE          iv_state
+        EXTENSION TYPE iv_extension_type
+        PROGRAM TYPE   iv_program_type
+        VERSION        lv_version.
+    ENDIF.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error inserting report { iv_name }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_sap_report~read_report.
+
+    ASSERT iv_state CA ' AI'.
+
+    authorization_check(
+      iv_mode = 'SHOW'
+      is_item = is_item ).
+
+    IF iv_state IS INITIAL.
+      READ REPORT iv_name INTO rt_source.
+    ELSE.
+      READ REPORT iv_name INTO rt_source STATE iv_state.
+    ENDIF.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error reading report { iv_name }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_sap_report~update_report.
+
+    DATA lt_new TYPE string_table.
+    DATA lt_old TYPE string_table.
+
+    lt_new = it_source.
+    lt_old = zif_abapgit_sap_report~read_report( iv_name ).
+
+    IF lt_old <> lt_new.
+      zif_abapgit_sap_report~insert_report(
+        iv_name            = iv_name
+        it_source          = it_source
+        iv_state           = iv_state
+        iv_program_type    = iv_program_type
+        iv_extension_type  = iv_extension_type
+        iv_package         = iv_package
+        iv_version         = iv_version
+        is_item            = is_item ).
+
+      rv_updated = abap_true.
+    ELSE.
+      rv_updated = abap_false.
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_sap_package IMPLEMENTATION.
   METHOD constructor.
     mv_package = iv_package.
@@ -103788,6 +104066,9 @@ CLASS zcl_abapgit_oo_serializer IMPLEMENTATION.
   METHOD read_include.
 
     DATA: ls_include TYPE progstruc.
+    DATA lv_program TYPE syrepid.
+    DATA lt_source TYPE abaptxt255_tab.
+
     ASSERT iv_type = seop_ext_class_locals_def
       OR iv_type = seop_ext_class_locals_imp
       OR iv_type = seop_ext_class_macros
@@ -103801,7 +104082,9 @@ CLASS zcl_abapgit_oo_serializer IMPLEMENTATION.
 * it looks like there is an issue in function module SEO_CLASS_GET_INCLUDE_SOURCE
 * on 750 kernels, where the READ REPORT without STATE addition does not
 * return the active version, this method is a workaround for this issue
-    READ REPORT ls_include INTO rt_source STATE 'A'.
+    lv_program = ls_include.
+    lt_source = zcl_abapgit_factory=>get_sap_report( )->read_report( lv_program ).
+    rt_source = lt_source.
 
   ENDMETHOD.
   METHOD reduce.
@@ -104056,22 +104339,10 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD update_report.
-
-    DATA: lt_old TYPE string_table.
-
-    READ REPORT iv_program INTO lt_old.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Fatal error. Include { iv_program } should have been created previously!| ).
-    ENDIF.
-
-    IF lt_old <> it_source.
-      INSERT REPORT iv_program FROM it_source.
-      ASSERT sy-subrc = 0.
-      rv_updated = abap_true.
-    ELSE.
-      rv_updated = abap_false.
-    ENDIF.
-
+    rv_updated = zcl_abapgit_factory=>get_sap_report( )->update_report(
+      iv_name    = iv_program
+      iv_package = iv_package
+      it_source  = it_source ).
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~create.
 
@@ -104183,6 +104454,7 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
     IF lt_public IS NOT INITIAL.
       lv_program = cl_oo_classname_service=>get_intfsec_name( is_key-clsname ).
       lv_updated = update_report( iv_program = lv_program
+                                  iv_package = iv_package
                                   it_source  = lt_public ).
       IF lv_updated = abap_true.
         update_meta( iv_name   = is_key-clsname
@@ -104257,11 +104529,16 @@ ENDCLASS.
 
 CLASS zcl_abapgit_oo_class IMPLEMENTATION.
   METHOD create_report.
-    INSERT REPORT iv_program FROM it_source EXTENSION TYPE iv_extension STATE iv_version PROGRAM TYPE iv_program_type.
-    ASSERT sy-subrc = 0.
+    zcl_abapgit_factory=>get_sap_report( )->insert_report(
+      iv_name           = iv_program
+      iv_package        = iv_package
+      it_source         = it_source
+      iv_state          = iv_version
+      iv_program_type   = iv_program_type
+      iv_extension_type = iv_extension ).
   ENDMETHOD.
   METHOD delete_report.
-    DELETE REPORT iv_program ##SUBRC_OK.
+    zcl_abapgit_factory=>get_sap_report( )->delete_report( iv_program ).
   ENDMETHOD.
   METHOD determine_method_include.
 
@@ -104518,6 +104795,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
                lc_include_program_type   TYPE c LENGTH 1 VALUE 'I',
                lc_active_version         TYPE r3state VALUE 'A'.
     create_report( iv_program      = cl_oo_classname_service=>get_cs_name( iv_classname )
+                   iv_package      = iv_package
                    it_source       = it_source
                    iv_extension    = lc_class_source_extension
                    iv_program_type = lc_include_program_type
@@ -104600,22 +104878,10 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD update_report.
-
-    DATA: lt_old TYPE string_table.
-
-    READ REPORT iv_program INTO lt_old.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Fatal error. Include { iv_program } should have been created previously!| ).
-    ENDIF.
-
-    IF lt_old <> it_source.
-      INSERT REPORT iv_program FROM it_source.
-      ASSERT sy-subrc = 0.
-      rv_updated = abap_true.
-    ELSE.
-      rv_updated = abap_false.
-    ENDIF.
-
+    rv_updated = zcl_abapgit_factory=>get_sap_report( )->update_report(
+      iv_name    = iv_program
+      iv_package = iv_package
+      it_source  = it_source ).
   ENDMETHOD.
   METHOD update_source_index.
 
@@ -104788,6 +105054,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
     IF lt_public IS NOT INITIAL.
       lv_program = cl_oo_classname_service=>get_pubsec_name( is_key-clsname ).
       lv_updated = update_report( iv_program = lv_program
+                                  iv_package = iv_package
                                   it_source  = lt_public ).
       IF lv_updated = abap_true.
         update_meta( iv_name     = is_key-clsname
@@ -104801,6 +105068,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
     IF lt_source IS NOT INITIAL.
       lv_program = cl_oo_classname_service=>get_prosec_name( is_key-clsname ).
       lv_updated = update_report( iv_program = lv_program
+                                  iv_package = iv_package
                                   it_source  = lt_source ).
       IF lv_updated = abap_true.
         update_meta( iv_name     = is_key-clsname
@@ -104814,6 +105082,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
     IF lt_source IS NOT INITIAL.
       lv_program = cl_oo_classname_service=>get_prisec_name( is_key-clsname ).
       lv_updated = update_report( iv_program = lv_program
+                                  iv_package = iv_package
                                   it_source  = lt_source ).
       IF lv_updated = abap_true.
         update_meta( iv_name     = is_key-clsname
@@ -104839,6 +105108,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
 
       update_report(
         iv_program = lv_program
+        iv_package = iv_package
         it_source  = lt_source ).
 
       " If method was implemented before, remove from list
@@ -104847,6 +105117,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
 
 * full class include
     update_full_class_include( iv_classname = is_key-clsname
+                               iv_package   = iv_package
                                it_source    = it_source
                                it_methods   = lt_methods ).
 
@@ -104877,29 +105148,33 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~generate_locals.
 
-    DATA: lv_program TYPE programm.
+    DATA: lv_program TYPE syrepid.
 
     IF lines( it_local_definitions ) > 0.
       lv_program = cl_oo_classname_service=>get_ccdef_name( is_key-clsname ).
       update_report( iv_program = lv_program
+                     iv_package = iv_package
                      it_source  = it_local_definitions ).
     ENDIF.
 
     IF lines( it_local_implementations ) > 0.
       lv_program = cl_oo_classname_service=>get_ccimp_name( is_key-clsname ).
       update_report( iv_program = lv_program
+                     iv_package = iv_package
                      it_source  = it_local_implementations ).
     ENDIF.
 
     IF lines( it_local_macros ) > 0.
       lv_program = cl_oo_classname_service=>get_ccmac_name( is_key-clsname ).
       update_report( iv_program = lv_program
+                     iv_package = iv_package
                      it_source  = it_local_macros ).
     ENDIF.
 
     lv_program = cl_oo_classname_service=>get_ccau_name( is_key-clsname ).
     IF lines( it_local_test_classes ) > 0.
       update_report( iv_program = lv_program
+                     iv_package = iv_package
                      it_source  = it_local_test_classes ).
     ELSE.
       " Drop the include to remove left-over test classes
@@ -106661,7 +106936,7 @@ CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
 
     DATA: lt_includes TYPE enhnewmeth_tabincl_plus_enha,
           lt_source   TYPE TABLE OF abaptxt255,
-          lv_include  TYPE programm.
+          lv_include  TYPE syrepid.
 
     FIELD-SYMBOLS: <ls_include> LIKE LINE OF lt_includes.
     lt_includes = io_class->get_enh_method_includes( ).
@@ -110261,7 +110536,7 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
           ls_item    TYPE zif_abapgit_definitions=>ty_item,
           lv_msg     TYPE string,
           lv_error   TYPE c LENGTH 1,
-          lv_include TYPE programm.
+          lv_include TYPE syrepid.
 
     LOOP AT gt_classes INTO ls_class.
       CASE ls_class-object.
@@ -124115,8 +124390,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-06-23T06:41:07.002Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-06-23T06:41:07.002Z`.
+* abapmerge 0.16.0 - 2023-06-24T11:21:11.616Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-06-24T11:21:11.616Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
