@@ -3536,6 +3536,10 @@ INTERFACE zif_abapgit_cts_api .
     RAISING
       zcx_abapgit_exception.
 
+  METHODS confirm_transport_messages
+    RETURNING
+      VALUE(rv_messages_confirmed) TYPE abap_bool .
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_data_deserializer .
@@ -5736,6 +5740,8 @@ CLASS zcl_abapgit_cts_api DEFINITION
       zif_abapgit_cts_api.
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    DATA: mv_confirm_transp_msgs_called TYPE abap_bool.
 
     "! Returns the transport request / task the object is currently locked in
     "! @parameter iv_program_id | Program ID
@@ -63527,6 +63533,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     lo_timer = zcl_abapgit_timer=>create(
       iv_text  = 'Deserialize:'
       iv_count = lines( lt_items ) )->start( ).
+
+    zcl_abapgit_factory=>get_cts_api( )->confirm_transport_messages( ).
 
     check_objects_locked( iv_language = io_repo->get_dot_abapgit( )->get_main_language( )
                           it_items    = lt_items ).
@@ -122872,6 +122880,60 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
       WHERE trkorr = iv_trkorr ##SUBRC_OK.
 
   ENDMETHOD.
+  METHOD zif_abapgit_cts_api~confirm_transport_messages.
+
+    TYPES: BEGIN OF ty_s_message,
+             id TYPE symsgid,
+             ty TYPE symsgty,
+             no TYPE symsgno,
+             v1 TYPE symsgv,
+             v2 TYPE symsgv,
+             v3 TYPE symsgv,
+             v4 TYPE symsgv,
+           END OF ty_s_message.
+
+    DATA ls_message TYPE ty_s_message.
+
+    FIELD-SYMBOLS: <lt_confirmed_messages> TYPE STANDARD TABLE.
+
+    IF mv_confirm_transp_msgs_called = abap_true.
+      RETURN.
+    ENDIF.
+
+    " remember the call to avoid duplicates in GT_CONFIRMED_MESSAGES
+    mv_confirm_transp_msgs_called = abap_true.
+    " Auto-confirm certain messages (requires SAP Note 1609940)
+    PERFORM dummy IN PROGRAM saplstrd IF FOUND.  "load function group STRD once into memory
+
+    ASSIGN ('(SAPLSTRD)GT_CONFIRMED_MESSAGES') TO <lt_confirmed_messages>.
+
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    " Object can only be created in package of namespace
+    ls_message-id = 'TR'.
+    ls_message-no = '007'.
+    INSERT ls_message INTO TABLE <lt_confirmed_messages>.
+
+    " Original system set to "SAP"
+    ls_message-id = 'TR'.
+    ls_message-no = '013'.
+    INSERT ls_message INTO TABLE <lt_confirmed_messages>.
+
+    " Make repairs in foreign namespaces only if they are urgent
+    ls_message-id = 'TR'.
+    ls_message-no = '852'.
+    INSERT ls_message INTO TABLE <lt_confirmed_messages>.
+
+    " Make repairs in foreign namespaces only if they are urgent
+    ls_message-id = 'TK'.
+    ls_message-no = '016'.
+    INSERT ls_message INTO TABLE <lt_confirmed_messages>.
+
+    rv_messages_confirmed = abap_true.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_background_push_fi IMPLEMENTATION.
@@ -124390,8 +124452,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-06-24T11:21:11.616Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-06-24T11:21:11.616Z`.
+* abapmerge 0.16.0 - 2023-06-26T13:27:44.414Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-06-26T13:27:44.414Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
