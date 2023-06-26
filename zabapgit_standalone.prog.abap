@@ -46963,6 +46963,8 @@ CLASS zcl_abapgit_gui_page_data IMPLEMENTATION.
         add_via_transport( ).
         mo_repo->refresh( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-go_back.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
     ENDCASE.
 
   ENDMETHOD.
@@ -124452,8 +124454,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-06-26T13:27:44.414Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-06-26T13:27:44.414Z`.
+* abapmerge 0.16.0 - 2023-06-26T13:39:07.228Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-06-26T13:39:07.228Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
