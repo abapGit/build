@@ -104075,9 +104075,9 @@ CLASS zcl_abapgit_oo_serializer IMPLEMENTATION.
   ENDMETHOD.
   METHOD read_include.
 
-    DATA: ls_include TYPE progstruc.
+    DATA ls_include TYPE progstruc.
     DATA lv_program TYPE syrepid.
-    DATA lt_source TYPE abaptxt255_tab.
+    DATA lt_source  TYPE abaptxt255_tab.
 
     ASSERT iv_type = seop_ext_class_locals_def
       OR iv_type = seop_ext_class_locals_imp
@@ -104093,7 +104093,11 @@ CLASS zcl_abapgit_oo_serializer IMPLEMENTATION.
 * on 750 kernels, where the READ REPORT without STATE addition does not
 * return the active version, this method is a workaround for this issue
     lv_program = ls_include.
-    lt_source = zcl_abapgit_factory=>get_sap_report( )->read_report( lv_program ).
+    TRY.
+        lt_source = zcl_abapgit_factory=>get_sap_report( )->read_report( lv_program ).
+      CATCH zcx_abapgit_exception.
+* ignore if the report is not found, sometimes the CCDEF include does not exist
+    ENDTRY.
     rt_source = lt_source.
 
   ENDMETHOD.
@@ -124454,8 +124458,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-06-26T13:39:07.228Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-06-26T13:39:07.228Z`.
+* abapmerge 0.16.0 - 2023-06-27T08:55:49.775Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-06-27T08:55:49.775Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
