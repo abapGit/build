@@ -37655,7 +37655,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
             item     = ls_item_remote
             filename = <ls_remote>-filename.
           IF sy-subrc <> 0.
-            READ TABLE lt_changed_by INTO ls_changed_by WITH KEY item = <ls_local>-item.
+            READ TABLE lt_changed_by INTO ls_changed_by WITH KEY item = ls_item_remote.
           ENDIF.
         CATCH zcx_abapgit_exception.
           CLEAR ls_transport.
@@ -124458,8 +124458,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-06-27T08:55:49.775Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-06-27T08:55:49.775Z`.
+* abapmerge 0.16.0 - 2023-06-28T11:20:32.289Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-06-28T11:20:32.289Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
