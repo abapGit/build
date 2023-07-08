@@ -4303,9 +4303,12 @@ INTERFACE zif_abapgit_exit .
       VALUE(ri_client) TYPE REF TO if_http_client
     RAISING
       zcx_abapgit_exception .
+  TYPES: BEGIN OF ty_class_key,
+           clsname TYPE abap_classname,
+         END OF ty_class_key.
   METHODS custom_serialize_abap_clif
     IMPORTING
-      !is_class_key    TYPE seoclskey
+      !is_class_key    TYPE ty_class_key
       !it_source       TYPE zif_abapgit_definitions=>ty_string_tt OPTIONAL
     RETURNING
       VALUE(rt_source) TYPE zif_abapgit_definitions=>ty_string_tt
@@ -124433,8 +124436,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-04T12:15:01.745Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-04T12:15:01.745Z`.
+* abapmerge 0.16.0 - 2023-07-08T05:59:30.728Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-08T05:59:30.728Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
