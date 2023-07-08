@@ -53446,8 +53446,9 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_event IMPLEMENTATION.
   METHOD constructor.
 
+    " Edge Webview control returns upper case action but abapGit requires lower case (#4841)
     zif_abapgit_gui_event~mi_gui_services = ii_gui_services.
-    zif_abapgit_gui_event~mv_action       = iv_action.
+    zif_abapgit_gui_event~mv_action       = to_lower( iv_action ).
     zif_abapgit_gui_event~mv_getdata      = iv_getdata.
     zif_abapgit_gui_event~mt_postdata     = it_postdata.
 
@@ -124436,8 +124437,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-08T05:59:30.728Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-08T05:59:30.728Z`.
+* abapmerge 0.16.0 - 2023-07-08T06:03:43.610Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-08T06:03:43.610Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
