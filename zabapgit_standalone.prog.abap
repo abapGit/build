@@ -121470,7 +121470,7 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
           obj_name = ls_result-name
           decision = zif_abapgit_definitions=>c_yes.
       IF sy-subrc <>  0.
-        RETURN.
+        CONTINUE.
       ENDIF.
 
       IF is_table_allowed_to_edit( ls_result ) = abap_false.
@@ -124437,8 +124437,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-08T06:03:43.610Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-08T06:03:43.610Z`.
+* abapmerge 0.16.0 - 2023-07-09T15:02:42.869Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-09T15:02:42.869Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
