@@ -2788,7 +2788,11 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_frontend_services.
 
-  TYPES ty_char1 TYPE c LENGTH 1.
+  TYPES:
+    ty_char1       TYPE c LENGTH 1,
+    ty_gui_release TYPE n LENGTH 4,
+    ty_gui_sp      TYPE n LENGTH 2,
+    ty_gui_patch   TYPE n LENGTH 2.
 
   METHODS file_upload
     IMPORTING
@@ -2867,9 +2871,11 @@ INTERFACE zif_abapgit_frontend_services.
       zcx_abapgit_exception.
 
   METHODS get_gui_version
-    CHANGING
-      ct_version_table TYPE filetable
-      cv_rc            TYPE i
+    EXPORTING
+      ev_gui_release        TYPE ty_gui_release
+      ev_gui_sp             TYPE ty_gui_sp
+      ev_gui_patch          TYPE ty_gui_patch
+      ev_gui_version_string TYPE string
     RAISING
       zcx_abapgit_exception.
 
@@ -18790,6 +18796,9 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
     METHODS get_version_details
       RETURNING
         VALUE(rv_version) TYPE string.
+    METHODS is_edge_control_warning_needed
+      RETURNING
+        VALUE(rv_result) TYPE abap_bool.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_hoc DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -32558,7 +32567,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// Todo: Remove once https://github.com/abapGit/abapGit/issues/4841 is fixed' ).
     lo_buf->add( 'function toggleBrowserControlWarning(){' ).
     lo_buf->add( '  if (!navigator.userAgent.includes("Edg")){' ).
-    lo_buf->add( '    document.getElementById("browser-control-warning").style.display = "none";' ).
+    lo_buf->add( '    var elBrowserControlWarning = document.getElementById("browser-control-warning");' ).
+    lo_buf->add( '    if (elBrowserControlWarning) {' ).
+    lo_buf->add( '      elBrowserControlWarning.style.display = "none";' ).
+    lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -34904,10 +34916,15 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_frontend_services~get_gui_version.
 
+    DATA:
+      lt_version_table TYPE filetable,
+      lv_rc            TYPE i,
+      ls_version       LIKE LINE OF lt_version_table.
+
     cl_gui_frontend_services=>get_gui_version(
       CHANGING
-        version_table            = ct_version_table
-        rc                       = cv_rc
+        version_table            = lt_version_table
+        rc                       = lv_rc
       EXCEPTIONS
         get_gui_version_failed   = 1
         cant_write_version_table = 2
@@ -34919,6 +34936,15 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
+
+    READ TABLE lt_version_table INTO ls_version INDEX 1. " gui release
+    ev_gui_release = ls_version-filename.
+    READ TABLE lt_version_table INTO ls_version INDEX 2. " gui sp
+    ev_gui_sp = ls_version-filename.
+    READ TABLE lt_version_table INTO ls_version INDEX 3. " gui patch
+    ev_gui_patch = ls_version-filename.
+
+    ev_gui_version_string = |{ ev_gui_release }.{ condense( ev_gui_sp ) }.{ condense( ev_gui_patch ) }|.
 
   ENDMETHOD.
   METHOD zif_abapgit_frontend_services~get_system_directory.
@@ -45620,27 +45646,17 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_debug_info.
 
-    DATA: lt_ver_tab       TYPE filetable,
-          lv_rc            TYPE i,
-          ls_release       TYPE zif_abapgit_environment=>ty_release_sp,
+    DATA: ls_release       TYPE zif_abapgit_environment=>ty_release_sp,
           lv_gui_version   TYPE string,
-          ls_version       LIKE LINE OF lt_ver_tab,
           lv_devclass      TYPE devclass,
           lo_frontend_serv TYPE REF TO zif_abapgit_frontend_services.
 
     lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
     TRY.
-        lo_frontend_serv->get_gui_version( CHANGING ct_version_table = lt_ver_tab cv_rc = lv_rc ).
+        lo_frontend_serv->get_gui_version( IMPORTING ev_gui_version_string = lv_gui_version ).
       CATCH zcx_abapgit_exception ##NO_HANDLER.
         " Continue rendering even if this fails
     ENDTRY.
-
-    READ TABLE lt_ver_tab INTO ls_version INDEX 1. " gui release
-    lv_gui_version = ls_version-filename.
-    READ TABLE lt_ver_tab INTO ls_version INDEX 2. " gui sp
-    lv_gui_version = |{ lv_gui_version }.{ ls_version-filename }|.
-    READ TABLE lt_ver_tab INTO ls_version INDEX 3. " gui patch
-    lv_gui_version = |{ lv_gui_version }.{ ls_version-filename }|.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -50913,7 +50929,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
       ri_html->add( '</div>' ).
     ENDIF.
 
-    render_browser_control_warning( ri_html ).
+    IF is_edge_control_warning_needed( ) = abap_true.
+      render_browser_control_warning( ri_html ).
+    ENDIF.
 
     ri_html->add( '</div>' ).
 
@@ -51000,6 +51018,38 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
 
     ri_html->add( '</body>' ).
     ri_html->add( '</html>' ).
+
+  ENDMETHOD.
+  METHOD is_edge_control_warning_needed.
+
+    DATA:
+      lv_gui_release       TYPE zif_abapgit_frontend_services=>ty_gui_release,
+      lv_gui_sp            TYPE zif_abapgit_frontend_services=>ty_gui_sp,
+      lv_gui_patch         TYPE zif_abapgit_frontend_services=>ty_gui_patch,
+      li_frontend_services TYPE REF TO zif_abapgit_frontend_services.
+
+    " With SAGUI 8.00 PL3 and 7.70 PL13 edge browser control is basically working.
+    " For lower releases we render the browser control warning
+    " an toggle it via JS function toggleBrowserControlWarning.
+
+    rv_result = abap_true.
+
+    TRY.
+        li_frontend_services = zcl_abapgit_ui_factory=>get_frontend_services( ).
+        li_frontend_services->get_gui_version(
+          IMPORTING
+            ev_gui_release        = lv_gui_release
+            ev_gui_sp             = lv_gui_sp
+            ev_gui_patch          = lv_gui_patch ).
+
+      CATCH zcx_abapgit_exception.
+        RETURN.
+    ENDTRY.
+
+    IF lv_gui_release >= '7700' AND lv_gui_sp >= '1' AND lv_gui_patch >= '13'
+    OR lv_gui_release >= '8000' AND lv_gui_sp >= '1' AND lv_gui_patch >= '3'.
+      rv_result = abap_false.
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -124437,8 +124487,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-10T14:48:05.386Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-10T14:48:05.386Z`.
+* abapmerge 0.16.0 - 2023-07-10T17:02:58.722Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-10T17:02:58.722Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
