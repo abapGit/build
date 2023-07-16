@@ -31758,14 +31758,22 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'Hotkeys.prototype.getAllSapEventsForSapEventName = function(sSapEvent) {' ).
-    lo_buf->add( '  return [].slice.call(' ).
-    lo_buf->add( '    document.querySelectorAll(''a[href*="sapevent:'' + sSapEvent + ''"],''' ).
-    lo_buf->add( '      + ''a[href*="SAPEVENT:'' + sSapEvent + ''"],''' ).
-    lo_buf->add( '      + ''input[formaction*="sapevent:'' + sSapEvent + ''"],''' ).
-    lo_buf->add( '      + ''input[formaction*="SAPEVENT:'' + sSapEvent + ''"],''' ).
-    lo_buf->add( '      + ''form[action*="sapevent:'' + sSapEvent + ''"] input[type="submit"].main,''' ).
-    lo_buf->add( '      + ''form[action*="SAPEVENT:'' + sSapEvent + ''"] input[type="submit"].main''));' ).
+    lo_buf->add( 'Hotkeys.prototype.getAllSapEventsForSapEventName = function (sSapEvent) {' ).
+    lo_buf->add( '  if (/^#+$/.test(sSapEvent)){' ).
+    lo_buf->add( '    // sSapEvent contains only #. Nothing sensible can be done here' ).
+    lo_buf->add( '    return [];' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var includesSapEvent = function(text){' ).
+    lo_buf->add( '    return (text.includes("sapevent") || text.includes("SAPEVENT"));' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  return [].slice' ).
+    lo_buf->add( '    .call(document.querySelectorAll("a[href*="+ sSapEvent +"], input[formaction*="+ sSapEvent+"]"))' ).
+    lo_buf->add( '    .filter(function (elem) {' ).
+    lo_buf->add( '      return (elem.nodeName === "A" && includesSapEvent(elem.href)' ).
+    lo_buf->add( '          || (elem.nodeName === "INPUT" && includesSapEvent(elem.formAction)));' ).
+    lo_buf->add( '    });' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.prototype.getSapEventHref = function(sSapEvent) {' ).
@@ -124582,8 +124590,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-14T17:30:42.791Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-14T17:30:42.791Z`.
+* abapmerge 0.16.0 - 2023-07-16T08:27:43.316Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-16T08:27:43.316Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
