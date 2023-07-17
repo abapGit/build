@@ -36662,7 +36662,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
     DATA:
       ls_item        TYPE zif_abapgit_definitions=>ty_item,
-      lv_extra       TYPE string,
       lx_error       TYPE REF TO zcx_abapgit_exception,
       li_html_viewer TYPE REF TO zif_abapgit_html_viewer.
 
@@ -125223,8 +125222,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-17T07:51:44.018Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-17T07:51:44.018Z`.
+* abapmerge 0.16.0 - 2023-07-17T08:08:35.800Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-17T08:08:35.800Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
