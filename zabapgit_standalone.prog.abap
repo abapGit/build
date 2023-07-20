@@ -76939,27 +76939,32 @@ CLASS zcl_abapgit_object_sod2 IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lo_factory           TYPE REF TO object,
-          lo_data_model        TYPE REF TO if_wb_object_data_model,
-          lv_data_type_name    TYPE string,
-          ls_data              TYPE REF TO data,
-          ls_object_type       TYPE wbobjtype,
-          lv_object_key        TYPE seu_objkey,
-          lv_transport_request TYPE trkorr,
-          lo_logger            TYPE REF TO cl_wb_checklist,
-          lx_create_error      TYPE REF TO cx_root,
-          lx_error             TYPE REF TO cx_root,
-          lt_msgs              TYPE TABLE OF string,
-          lt_error_msgs_create TYPE swbme_error_tab,
-          ls_error_msg_create  LIKE LINE OF lt_error_msgs_create,
-          lv_error_msg         TYPE string.
+    DATA: lo_factory               TYPE REF TO object,
+          lo_data_model            TYPE REF TO if_wb_object_data_model,
+          lv_data_type_name        TYPE string,
+          ls_data                  TYPE REF TO data,
+          ls_object_type           TYPE wbobjtype,
+          lv_object_key            TYPE seu_objkey,
+          lv_transport_request     TYPE trkorr,
+          lo_logger                TYPE REF TO cl_wb_checklist,
+          lx_create_error          TYPE REF TO cx_root,
+          lx_error                 TYPE REF TO cx_root,
+          lt_msgs                  TYPE TABLE OF string,
+          lt_error_msgs_create     TYPE swbme_error_tab,
+          ls_error_msg_create      LIKE LINE OF lt_error_msgs_create,
+          lv_error_msg             TYPE string,
+          lv_abap_language_version TYPE c LENGTH 1. " abap_language_version
 
     FIELD-SYMBOLS <ls_data> TYPE any.
 
     CREATE OBJECT lo_data_model TYPE (cv_data_model_class_name).
 
     " if_wb_object_data_selection_co=>c_all_data
-    lv_data_type_name = lo_data_model->get_datatype_name( p_data_selection = 'AL' ).
+    CALL METHOD lo_data_model->('GET_DATATYPE_NAME')
+      EXPORTING
+        p_data_selection = 'AL'
+      RECEIVING
+        result           = lv_data_type_name.
 
     CREATE DATA ls_data TYPE (lv_data_type_name).
     ASSIGN ls_data->* TO <ls_data>.
@@ -76970,8 +76975,10 @@ CLASS zcl_abapgit_object_sod2 IMPLEMENTATION.
       CHANGING
         cg_data = <ls_data> ).
 
-    lo_data_model->set_selected_data( p_data_selection = 'AL' " if_wb_object_data_selection_co=>c_all_data
-                                      p_data           = <ls_data> ).
+    CALL METHOD lo_data_model->('SET_SELECTED_DATA')
+      EXPORTING
+        p_data_selection = 'AL' " if_wb_object_data_selection_co=>c_all_data
+        p_data           = <ls_data>.
 
     TRY.
 
@@ -76995,12 +77002,16 @@ CLASS zcl_abapgit_object_sod2 IMPLEMENTATION.
 
           TRY.
 
+              CALL METHOD lo_data_model->('GET_ABAP_LANGUAGE_VERSION')
+                RECEIVING
+                  result = lv_abap_language_version.
+
               CALL METHOD lo_factory->('IF_WB_OBJECT_OPERATOR~CREATE')
                 EXPORTING
                   io_object_data        = lo_data_model
                   version               = 'A'
                   package               = iv_package
-                  abap_language_version = lo_data_model->get_abap_language_version( )
+                  abap_language_version = lv_abap_language_version
                   transport_request     = lv_transport_request
                 IMPORTING
                   logger                = lo_logger.
@@ -77127,16 +77138,20 @@ CLASS zcl_abapgit_object_sod2 IMPLEMENTATION.
             eo_object_data = lo_data_model.
 
         " if_wb_object_data_selection_co=>c_all_data
-        lv_data_type_name = lo_data_model->get_datatype_name( p_data_selection = 'AL' ).
+        CALL METHOD lo_data_model->('GET_DATATYPE_NAME')
+          EXPORTING
+            p_data_selection = 'AL'
+          RECEIVING
+            result           = lv_data_type_name.
 
         CREATE DATA ls_data TYPE (lv_data_type_name).
         ASSIGN ls_data->* TO <ls_data>.
 
-        lo_data_model->get_selected_data(
+        CALL METHOD lo_data_model->('GET_SELECTED_DATA')
           EXPORTING
             p_data_selection = 'AL' " if_wb_object_data_selection_co=>c_all_data
           IMPORTING
-            p_data           = <ls_data> ).
+            p_data           = <ls_data>.
 
         clear_metadata_fields( CHANGING cs_data = <ls_data> ).
         clear_content_fields( CHANGING cs_data = <ls_data> ).
@@ -77367,27 +77382,31 @@ CLASS zcl_abapgit_object_sod1 IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
 
-    DATA: lo_factory           TYPE REF TO object,
-          lo_data_model        TYPE REF TO if_wb_object_data_model,
-          lv_data_type_name    TYPE string,
-          ls_data              TYPE REF TO data,
-          ls_object_type       TYPE wbobjtype,
-          lv_object_key        TYPE seu_objkey,
-          lv_transport_request TYPE trkorr,
-          lo_logger            TYPE REF TO cl_wb_checklist,
-          lx_create_error      TYPE REF TO cx_root,
-          lx_error             TYPE REF TO cx_root,
-          lt_msgs              TYPE TABLE OF string,
-          lt_error_msgs_create TYPE swbme_error_tab,
-          ls_error_msg_create  LIKE LINE OF lt_error_msgs_create,
-          lv_error_msg         TYPE string.
-
+    DATA: lo_factory               TYPE REF TO object,
+          lo_data_model            TYPE REF TO if_wb_object_data_model,
+          lv_data_type_name        TYPE string,
+          ls_data                  TYPE REF TO data,
+          ls_object_type           TYPE wbobjtype,
+          lv_object_key            TYPE seu_objkey,
+          lv_transport_request     TYPE trkorr,
+          lo_logger                TYPE REF TO cl_wb_checklist,
+          lx_create_error          TYPE REF TO cx_root,
+          lx_error                 TYPE REF TO cx_root,
+          lt_msgs                  TYPE TABLE OF string,
+          lt_error_msgs_create     TYPE swbme_error_tab,
+          ls_error_msg_create      LIKE LINE OF lt_error_msgs_create,
+          lv_error_msg             TYPE string,
+          lv_abap_language_version TYPE c LENGTH 1. " abap_language_version
     FIELD-SYMBOLS <ls_data> TYPE any.
 
     CREATE OBJECT lo_data_model TYPE (cv_data_model_class_name).
 
     " if_wb_object_data_selection_co=>c_all_data
-    lv_data_type_name = lo_data_model->get_datatype_name( p_data_selection = 'AL' ).
+    CALL METHOD lo_data_model->('GET_DATATYPE_NAME')
+      EXPORTING
+        p_data_selection = 'AL'
+      RECEIVING
+        result           = lv_data_type_name.
 
     CREATE DATA ls_data TYPE (lv_data_type_name).
     ASSIGN ls_data->* TO <ls_data>.
@@ -77398,8 +77417,10 @@ CLASS zcl_abapgit_object_sod1 IMPLEMENTATION.
       CHANGING
         cg_data = <ls_data> ).
 
-    lo_data_model->set_selected_data( p_data_selection = 'AL' " if_wb_object_data_selection_co=>c_all_data
-                                      p_data           = <ls_data> ).
+    CALL METHOD lo_data_model->('SET_SELECTED_DATA')
+      EXPORTING
+        p_data_selection = 'AL' " if_wb_object_data_selection_co=>c_all_data
+        p_data           = <ls_data>.
 
     TRY.
 
@@ -77423,12 +77444,16 @@ CLASS zcl_abapgit_object_sod1 IMPLEMENTATION.
 
           TRY.
 
+              CALL METHOD lo_data_model->('GET_ABAP_LANGUAGE_VERSION')
+                RECEIVING
+                  result = lv_abap_language_version.
+
               CALL METHOD lo_factory->('IF_WB_OBJECT_OPERATOR~CREATE')
                 EXPORTING
                   io_object_data        = lo_data_model
                   version               = 'A'
                   package               = iv_package
-                  abap_language_version = lo_data_model->get_abap_language_version( )
+                  abap_language_version = lv_abap_language_version
                   transport_request     = lv_transport_request
                 IMPORTING
                   logger                = lo_logger.
@@ -77555,16 +77580,20 @@ CLASS zcl_abapgit_object_sod1 IMPLEMENTATION.
             eo_object_data = lo_data_model.
 
         " if_wb_object_data_selection_co=>c_all_data
-        lv_data_type_name = lo_data_model->get_datatype_name( p_data_selection = 'AL' ).
+        CALL METHOD lo_data_model->('GET_DATATYPE_NAME')
+          EXPORTING
+            p_data_selection = 'AL'
+          RECEIVING
+            result           = lv_data_type_name.
 
         CREATE DATA ls_data TYPE (lv_data_type_name).
         ASSIGN ls_data->* TO <ls_data>.
 
-        lo_data_model->get_selected_data(
+        CALL METHOD lo_data_model->('GET_SELECTED_DATA')
           EXPORTING
             p_data_selection = 'AL' " if_wb_object_data_selection_co=>c_all_data
           IMPORTING
-            p_data           = <ls_data> ).
+            p_data           = <ls_data>.
 
         clear_metadata_fields( CHANGING cs_data = <ls_data> ).
         clear_content_fields( CHANGING cs_data = <ls_data> ).
@@ -126139,8 +126168,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-20T13:30:02.662Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-20T13:30:02.662Z`.
+* abapmerge 0.16.0 - 2023-07-20T14:25:03.599Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-20T14:25:03.599Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
