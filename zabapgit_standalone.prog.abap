@@ -18120,12 +18120,9 @@ CLASS zcl_abapgit_gui DEFINITION
         go_back_to_bookmark TYPE i VALUE 6,
         new_page_replacing  TYPE i VALUE 7,
       END OF c_event_state .
-    CONSTANTS:
-      BEGIN OF c_action,
-        go_home TYPE string VALUE zif_abapgit_definitions=>c_action-go_home,
-        go_db   TYPE string VALUE zif_abapgit_definitions=>c_action-go_db,
-      END OF c_action .
     METHODS go_home
+      IMPORTING
+        iv_action TYPE string
       RAISING
         zcx_abapgit_exception .
     METHODS back
@@ -54193,14 +54190,8 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     IF mi_router IS BOUND.
       CLEAR: mt_stack, mt_event_handlers.
       APPEND mi_router TO mt_event_handlers.
-      " on_event doesn't accept strings directly
-      GET PARAMETER ID 'DBT' FIELD lv_mode.
-      CASE lv_mode.
-        WHEN 'ZABAPGIT'.
-          on_event( action = |{ c_action-go_db }| ).
-        WHEN OTHERS.
-          on_event( action = |{ c_action-go_home }| ).
-      ENDCASE.
+
+      on_event( action = |{ iv_action }| ).
     ELSE.
       IF lines( mt_stack ) > 0.
         READ TABLE mt_stack INTO ls_stack INDEX 1.
@@ -125960,12 +125951,24 @@ ENDFORM.                    "run
 
 FORM open_gui RAISING zcx_abapgit_exception.
 
+  DATA lv_action TYPE string.
+  DATA lv_mode   TYPE tabname.
+
   IF sy-batch = abap_true.
     zcl_abapgit_background=>run( ).
   ELSE.
 
+* https://docs.abapgit.org/user-guide/reference/database-util.html#emergency-mode
+    GET PARAMETER ID 'DBT' FIELD lv_mode.
+    CASE lv_mode.
+      WHEN 'ZABAPGIT'.
+        lv_action = zif_abapgit_definitions=>c_action-go_db.
+      WHEN OTHERS.
+        lv_action = zif_abapgit_definitions=>c_action-go_home.
+    ENDCASE.
+
     zcl_abapgit_services_abapgit=>prepare_gui_startup( ).
-    zcl_abapgit_ui_factory=>get_gui( )->go_home( ).
+    zcl_abapgit_ui_factory=>get_gui( )->go_home( lv_action ).
     CALL SELECTION-SCREEN 1001. " trigger screen
 
   ENDIF.
@@ -126115,8 +126118,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-22T09:09:16.503Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-22T09:09:16.503Z`.
+* abapmerge 0.16.0 - 2023-07-22T13:45:57.504Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-22T13:45:57.504Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
