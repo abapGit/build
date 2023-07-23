@@ -136,6 +136,7 @@ CLASS zcl_abapgit_item_state DEFINITION DEFERRED.
 CLASS zcl_abapgit_environment DEFINITION DEFERRED.
 CLASS zcl_abapgit_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_convert DEFINITION DEFERRED.
+CLASS zcl_abapgit_abap_language_vers DEFINITION DEFERRED.
 CLASS zcl_abapgit_ui_injector DEFINITION DEFERRED.
 CLASS zcl_abapgit_ui_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_popups DEFINITION DEFERRED.
@@ -2923,9 +2924,10 @@ INTERFACE zif_abapgit_definitions .
     BEGIN OF ty_item.
       INCLUDE TYPE ty_item_signature.
   TYPES:
-      srcsystem TYPE tadir-srcsystem,
-      origlang  TYPE tadir-masterlang,
-      inactive  TYPE abap_bool,
+      srcsystem             TYPE tadir-srcsystem,
+      origlang              TYPE tadir-masterlang,
+      inactive              TYPE abap_bool,
+      abap_language_version TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version,
     END OF ty_item .
   TYPES:
     ty_items_tt TYPE STANDARD TABLE OF ty_item WITH DEFAULT KEY .
@@ -3379,6 +3381,13 @@ INTERFACE zif_abapgit_definitions .
       ignore TYPE ty_method VALUE 'I',
       skip   TYPE ty_method VALUE '?',
     END OF c_method .
+
+  CONSTANTS:
+    BEGIN OF c_abap_language_version,
+      standard         TYPE c VALUE '',
+      keyuser          TYPE c VALUE '2',
+      clouddevelopment TYPE c VALUE '5',
+    END OF c_abap_language_version.
 
   TYPES:
     ty_sap_langu_tab TYPE STANDARD TABLE OF langu WITH DEFAULT KEY.
@@ -4142,14 +4151,15 @@ INTERFACE zif_abapgit_dot_abapgit.
 
   TYPES:
     BEGIN OF ty_dot_abapgit,
-      master_language              TYPE spras,
-      i18n_languages               TYPE zif_abapgit_definitions=>ty_languages,
-      use_lxe                      TYPE abap_bool,
-      starting_folder              TYPE string,
-      folder_logic                 TYPE string,
-      ignore                       TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
-      requirements                 TYPE ty_requirement_tt,
-      version_constant             TYPE string,
+      master_language       TYPE spras,
+      i18n_languages        TYPE zif_abapgit_definitions=>ty_languages,
+      use_lxe               TYPE abap_bool,
+      starting_folder       TYPE string,
+      folder_logic          TYPE string,
+      ignore                TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
+      requirements          TYPE ty_requirement_tt,
+      version_constant      TYPE string,
+      abap_language_version TYPE string,
     END OF ty_dot_abapgit .
 
   CONSTANTS:
@@ -4157,7 +4167,14 @@ INTERFACE zif_abapgit_dot_abapgit.
       prefix TYPE string VALUE 'PREFIX',
       full   TYPE string VALUE 'FULL',
       mixed  TYPE string VALUE 'MIXED',
-    END OF c_folder_logic .
+    END OF c_folder_logic,
+
+    BEGIN OF c_abap_language_version,
+      standard          TYPE string VALUE 'standard',
+      key_user          TYPE string VALUE 'keyUser',
+      cloud_development TYPE string VALUE 'cloudDevelopment',
+      undefined         TYPE string VALUE 'undefined',
+    END OF c_abap_language_version.
 
 ENDINTERFACE.
 
@@ -16786,7 +16803,7 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
       RETURNING
         VALUE(rs_file) TYPE zif_abapgit_git_definitions=>ty_file
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS get_data
       RETURNING
         VALUE(rs_data) TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit .
@@ -16836,9 +16853,9 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
         zcx_abapgit_exception .
     METHODS use_lxe
       IMPORTING
-        iv_yes TYPE abap_bool DEFAULT abap_undefined
+        !iv_yes       TYPE abap_bool DEFAULT abap_undefined
       RETURNING
-        VALUE(rv_yes) TYPE abap_bool.
+        VALUE(rv_yes) TYPE abap_bool .
     METHODS get_requirements
       RETURNING
         VALUE(rt_requirements) TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt .
@@ -16846,22 +16863,34 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
       IMPORTING
         !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt .
     METHODS get_version_constant
-      RETURNING VALUE(rv_version_constant) TYPE string.
+      RETURNING
+        VALUE(rv_version_constant) TYPE string .
     METHODS set_version_constant
-      IMPORTING iv_version_constant TYPE csequence.
+      IMPORTING
+        !iv_version_constant TYPE csequence .
+    METHODS get_abap_language_version
+      RETURNING
+        VALUE(rv_abap_language_version) TYPE string .
+    METHODS set_abap_language_version
+      IMPORTING
+        !iv_abap_language_version TYPE string .
   PROTECTED SECTION.
   PRIVATE SECTION.
-    DATA: ms_data TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
 
-    CLASS-METHODS:
-      to_xml
-        IMPORTING is_data       TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit
-        RETURNING VALUE(rv_xml) TYPE string
-        RAISING   zcx_abapgit_exception,
-      from_xml
-        IMPORTING iv_xml         TYPE string
-        RETURNING VALUE(rs_data) TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit.
+    DATA ms_data TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit .
 
+    CLASS-METHODS to_xml
+      IMPORTING
+        !is_data      TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit
+      RETURNING
+        VALUE(rv_xml) TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS from_xml
+      IMPORTING
+        !iv_xml        TYPE string
+      RETURNING
+        VALUE(rs_data) TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit .
 ENDCLASS.
 CLASS zcl_abapgit_file_status DEFINITION
   FINAL
@@ -17029,41 +17058,54 @@ CLASS zcl_abapgit_repo DEFINITION
 
   PUBLIC SECTION.
 
-    INTERFACES zif_abapgit_repo.
+    INTERFACES zif_abapgit_repo .
 
-    ALIASES ms_data FOR zif_abapgit_repo~ms_data.
-    ALIASES:
-      get_key FOR zif_abapgit_repo~get_key,
-      get_name FOR zif_abapgit_repo~get_name,
-      is_offline FOR zif_abapgit_repo~is_offline,
-      get_package FOR zif_abapgit_repo~get_package,
-      get_files_local FOR zif_abapgit_repo~get_files_local,
-      get_files_remote FOR zif_abapgit_repo~get_files_remote,
-      get_local_settings FOR zif_abapgit_repo~get_local_settings,
-      refresh FOR zif_abapgit_repo~refresh,
-      get_dot_abapgit FOR zif_abapgit_repo~get_dot_abapgit,
-      set_dot_abapgit FOR zif_abapgit_repo~set_dot_abapgit,
-      deserialize FOR zif_abapgit_repo~deserialize,
-      deserialize_checks FOR zif_abapgit_repo~deserialize_checks.
-
-    METHODS constructor
-      IMPORTING
-        !is_data TYPE zif_abapgit_persistence=>ty_repo .
+    ALIASES ms_data
+      FOR zif_abapgit_repo~ms_data .
+    ALIASES deserialize
+      FOR zif_abapgit_repo~deserialize .
+    ALIASES deserialize_checks
+      FOR zif_abapgit_repo~deserialize_checks .
+    ALIASES get_dot_abapgit
+      FOR zif_abapgit_repo~get_dot_abapgit .
+    ALIASES get_files_local
+      FOR zif_abapgit_repo~get_files_local .
+    ALIASES get_files_remote
+      FOR zif_abapgit_repo~get_files_remote .
+    ALIASES get_key
+      FOR zif_abapgit_repo~get_key .
+    ALIASES get_local_settings
+      FOR zif_abapgit_repo~get_local_settings .
+    ALIASES get_name
+      FOR zif_abapgit_repo~get_name .
+    ALIASES get_package
+      FOR zif_abapgit_repo~get_package .
+    ALIASES is_offline
+      FOR zif_abapgit_repo~is_offline .
+    ALIASES refresh
+      FOR zif_abapgit_repo~refresh .
+    ALIASES set_dot_abapgit
+      FOR zif_abapgit_repo~set_dot_abapgit .
 
     METHODS bind_listener
       IMPORTING
         !ii_listener TYPE REF TO zif_abapgit_repo_listener .
+    METHODS check_and_create_package
+      IMPORTING
+        !iv_package TYPE devclass
+      RAISING
+        zcx_abapgit_exception .
+    METHODS constructor
+      IMPORTING
+        !is_data TYPE zif_abapgit_persistence=>ty_repo .
+    METHODS create_new_log
+      IMPORTING
+        !iv_title     TYPE string OPTIONAL
+      RETURNING
+        VALUE(ri_log) TYPE REF TO zif_abapgit_log .
     METHODS delete_checks
       RETURNING
         VALUE(rs_checks) TYPE zif_abapgit_definitions=>ty_delete_checks
-      RAISING
-        zcx_abapgit_exception .
-    METHODS get_dot_apack
-      RETURNING
-        VALUE(ro_dot_apack) TYPE REF TO zcl_abapgit_apack_reader .
-    METHODS get_data_config
-      RETURNING
-        VALUE(ri_config) TYPE REF TO zif_abapgit_data_config
       RAISING
         zcx_abapgit_exception .
     METHODS find_remote_dot_abapgit
@@ -17071,6 +17113,41 @@ CLASS zcl_abapgit_repo DEFINITION
         VALUE(ro_dot) TYPE REF TO zcl_abapgit_dot_abapgit
       RAISING
         zcx_abapgit_exception .
+    METHODS get_data_config
+      RETURNING
+        VALUE(ri_config) TYPE REF TO zif_abapgit_data_config
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_dot_apack
+      RETURNING
+        VALUE(ro_dot_apack) TYPE REF TO zcl_abapgit_apack_reader .
+    METHODS get_log
+      RETURNING
+        VALUE(ri_log) TYPE REF TO zif_abapgit_log .
+    METHODS get_unsupported_objects_local
+      RETURNING
+        VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_items_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS has_remote_source
+      ABSTRACT
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool .
+    METHODS refresh_local_object
+      IMPORTING
+        !iv_obj_type TYPE tadir-object
+        !iv_obj_name TYPE tadir-obj_name
+      RAISING
+        zcx_abapgit_exception .
+    METHODS refresh_local_objects
+      RAISING
+        zcx_abapgit_exception .
+    METHODS remove_ignored_files
+      CHANGING
+        !ct_files TYPE zif_abapgit_git_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS reset_status .
     METHODS set_files_remote
       IMPORTING
         !it_files TYPE zif_abapgit_git_definitions=>ty_files_tt .
@@ -17079,10 +17156,6 @@ CLASS zcl_abapgit_repo DEFINITION
         !is_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
       RAISING
         zcx_abapgit_exception .
-    METHODS has_remote_source
-      ABSTRACT
-      RETURNING
-        VALUE(rv_yes) TYPE abap_bool .
     METHODS status
       IMPORTING
         !ii_log           TYPE REF TO zif_abapgit_log OPTIONAL
@@ -17093,39 +17166,6 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS switch_repo_type
       IMPORTING
         !iv_offline TYPE abap_bool
-      RAISING
-        zcx_abapgit_exception .
-    METHODS create_new_log
-      IMPORTING
-        !iv_title     TYPE string OPTIONAL
-      RETURNING
-        VALUE(ri_log) TYPE REF TO zif_abapgit_log .
-    METHODS get_log
-      RETURNING
-        VALUE(ri_log) TYPE REF TO zif_abapgit_log .
-    METHODS refresh_local_object
-      IMPORTING
-        !iv_obj_type TYPE tadir-object
-        !iv_obj_name TYPE tadir-obj_name
-      RAISING
-        zcx_abapgit_exception .
-    METHODS refresh_local_objects
-      RAISING
-        zcx_abapgit_exception .
-    METHODS reset_status .
-    METHODS get_unsupported_objects_local
-      RETURNING
-        VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_items_tt
-      RAISING
-        zcx_abapgit_exception .
-    METHODS remove_ignored_files
-      CHANGING
-        ct_files TYPE zif_abapgit_git_definitions=>ty_files_tt
-      RAISING
-        zcx_abapgit_exception .
-    METHODS check_and_create_package
-      IMPORTING
-        iv_package TYPE devclass
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -17145,11 +17185,7 @@ CLASS zcl_abapgit_repo DEFINITION
         VALUE(ro_dot) TYPE REF TO zcl_abapgit_apack_reader
       RAISING
         zcx_abapgit_exception .
-    METHODS set_dot_apack
-      IMPORTING
-        !io_dot_apack TYPE REF TO zcl_abapgit_apack_reader
-      RAISING
-        zcx_abapgit_exception .
+    METHODS reset_remote .
     METHODS set
       IMPORTING
         !iv_url             TYPE zif_abapgit_persistence=>ty_repo-url OPTIONAL
@@ -17164,32 +17200,43 @@ CLASS zcl_abapgit_repo DEFINITION
         !iv_switched_origin TYPE zif_abapgit_persistence=>ty_repo-switched_origin OPTIONAL
       RAISING
         zcx_abapgit_exception .
-    METHODS reset_remote .
+    METHODS set_dot_apack
+      IMPORTING
+        !io_dot_apack TYPE REF TO zcl_abapgit_apack_reader
+      RAISING
+        zcx_abapgit_exception .
   PRIVATE SECTION.
 
+    METHODS check_for_restart .
+    METHODS check_language
+      RAISING
+        zcx_abapgit_exception .
+    METHODS check_write_protect
+      RAISING
+        zcx_abapgit_exception .
+    METHODS deserialize_data
+      IMPORTING
+        !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
+      CHANGING
+        !ct_files  TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
+      RAISING
+        zcx_abapgit_exception .
     METHODS deserialize_dot_abapgit
       CHANGING
-        ct_files TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
+        !ct_files TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
     METHODS deserialize_objects
       IMPORTING
         !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
         !ii_log    TYPE REF TO zif_abapgit_log
       CHANGING
-        ct_files   TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
+        !ct_files  TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
       RAISING
-        zcx_abapgit_exception.
-
-    METHODS deserialize_data
-      IMPORTING
-        !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
+        zcx_abapgit_exception .
+    METHODS normalize_local_settings
       CHANGING
-        ct_files   TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
-      RAISING
-        zcx_abapgit_exception.
-
+        !cs_local_settings TYPE zif_abapgit_persistence=>ty_local_settings .
     METHODS notify_listener
       IMPORTING
         !is_change_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask
@@ -17198,16 +17245,9 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS update_last_deserialize
       RAISING
         zcx_abapgit_exception .
-    METHODS check_for_restart .
-    METHODS check_write_protect
+    METHODS check_abap_language_version
       RAISING
         zcx_abapgit_exception .
-    METHODS check_language
-      RAISING
-        zcx_abapgit_exception .
-    METHODS normalize_local_settings
-      CHANGING
-        cs_local_settings TYPE zif_abapgit_persistence=>ty_local_settings.
 ENDCLASS.
 CLASS zcl_abapgit_repo_checksums DEFINITION
   FINAL
@@ -23128,6 +23168,38 @@ CLASS zcl_abapgit_ui_injector DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
+CLASS zcl_abapgit_abap_language_vers DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS get_abap_language_vers_by_objt
+      IMPORTING
+        !iv_object_type                      TYPE trobjtype
+        !iv_package                          TYPE devclass
+      RETURNING
+        VALUE(rv_allowed_abap_langu_version) TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version .
+    METHODS is_import_allowed
+      IMPORTING
+        !io_repo          TYPE REF TO zif_abapgit_repo
+        !iv_package       TYPE devclass
+      RETURNING
+        VALUE(rv_allowed) TYPE abap_bool .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    METHODS get_abap_language_vers_by_devc
+      IMPORTING
+        !iv_package                     TYPE devclass
+      RETURNING
+        VALUE(rv_abap_language_version) TYPE string .
+    METHODS get_abap_language_vers_by_repo
+      IMPORTING
+        !io_repo                        TYPE REF TO zif_abapgit_repo
+      RETURNING
+        VALUE(rv_abap_language_version) TYPE string .
+ENDCLASS.
 CLASS zcl_abapgit_convert DEFINITION
   CREATE PUBLIC .
 
@@ -27847,6 +27919,90 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
     GET BIT 6 OF iv_x INTO rv_bitbyte+5(1).
     GET BIT 7 OF iv_x INTO rv_bitbyte+6(1).
     GET BIT 8 OF iv_x INTO rv_bitbyte+7(1).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_ABAP_LANGUAGE_VERS IMPLEMENTATION.
+  METHOD get_abap_language_vers_by_devc.
+
+    DATA lv_abap_lang_version_devc TYPE string.
+    DATA lo_abap_language_version_cfg TYPE REF TO object.
+
+    TRY.
+        CREATE OBJECT lo_abap_language_version_cfg TYPE ('IF_ABAP_LANGUAGE_VERSION_CFG').
+
+        CALL METHOD ('CL_ABAP_LANGUAGE_VERSION_CFG')=>('GET_INSTANCE')
+          RECEIVING
+            ro_instance = lo_abap_language_version_cfg.
+
+        CALL METHOD lo_abap_language_version_cfg->('IF_ABAP_LANGUAGE_VERSION_CFG~GET_PACKAGE_DEFAULT_VERSION')
+          EXPORTING
+            iv_package_name             = iv_package
+          RECEIVING
+            rv_default_language_version = lv_abap_lang_version_devc.
+
+        CASE lv_abap_lang_version_devc.
+          WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-standard.
+            rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-standard.
+          WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-key_user.
+            rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-key_user.
+          WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-cloud_development.
+            rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-cloud_development.
+          WHEN OTHERS.
+            rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
+        ENDCASE.
+      CATCH cx_root.
+        rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
+    ENDTRY.
+  ENDMETHOD.
+  METHOD get_abap_language_vers_by_objt.
+
+    DATA lo_abap_language_version TYPE REF TO object.
+
+    TRY.
+
+        CREATE OBJECT lo_abap_language_version TYPE ('IF_ABAP_LANGUAGE_VERSION').
+
+        CALL METHOD ('CL_ABAP_LANGUAGE_VERSION')=>('GET_INSTANCE')
+          RECEIVING
+            ro_instance = lo_abap_language_version.
+
+        CALL METHOD lo_abap_language_version->('IF_ABAP_LANGUAGE_VERSION~GET_DEFAULT_VERSION')
+          EXPORTING
+            iv_object_type     = iv_object_type
+            iv_package_name    = iv_package
+          RECEIVING
+            rv_default_version = rv_allowed_abap_langu_version.
+
+      CATCH cx_root.
+        rv_allowed_abap_langu_version = zif_abapgit_aff_types_v1=>co_abap_language_version-standard.
+        "to do: here we need to differentiate between source code object and non-source code objects
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD get_abap_language_vers_by_repo.
+    rv_abap_language_version = io_repo->get_dot_abapgit( )->get_abap_language_version( ).
+    IF rv_abap_language_version IS INITIAL.
+      rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
+    ENDIF.
+  ENDMETHOD.
+  METHOD is_import_allowed.
+
+    CASE get_abap_language_vers_by_repo( io_repo ).
+      WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
+        rv_allowed = abap_true.
+      WHEN OTHERS.
+        IF get_abap_language_vers_by_repo( io_repo ) = get_abap_language_vers_by_devc( iv_package ).
+          rv_allowed = abap_true.
+        ELSEIF
+        get_abap_language_vers_by_devc( iv_package ) = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined AND
+        get_abap_language_vers_by_repo( io_repo )    = zif_abapgit_dot_abapgit=>c_abap_language_version-standard.
+          rv_allowed = abap_true.
+        ELSE.
+          rv_allowed = abap_false.
+        ENDIF.
+    ENDCASE.
 
   ENDMETHOD.
 ENDCLASS.
@@ -58032,7 +58188,7 @@ CLASS ZCL_ABAPGIT_REPO_CHECKSUMS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
@@ -58554,6 +58710,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
     check_write_protect( ).
     check_language( ).
+    check_abap_language_version( ).
 
     rs_checks = zcl_abapgit_objects=>deserialize_checks( me ).
 
@@ -58661,6 +58818,19 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo~set_dot_abapgit.
     set( is_dot_abapgit = io_dot_abapgit->get_data( ) ).
+  ENDMETHOD.
+  METHOD check_abap_language_version.
+
+    DATA lo_abapgit_abap_language_vers TYPE REF TO zcl_abapgit_abap_language_vers.
+    DATA lv_text TYPE string.
+    CREATE OBJECT lo_abapgit_abap_language_vers.
+
+    IF lo_abapgit_abap_language_vers->is_import_allowed( io_repo = me
+                                                         iv_package = ms_data-package ) = abap_false.
+      lv_text = |Repository cannot be imported. | &&
+                |ABAP Language Version of linked package is not compatible with repository settings.|.
+      zcx_abapgit_exception=>raise( iv_text = lv_text ).
+    ENDIF.
   ENDMETHOD.
 ENDCLASS.
 
@@ -59727,6 +59897,12 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
 
     rv_yes = ms_data-use_lxe.
 
+  ENDMETHOD.
+  METHOD get_abap_language_version.
+    rv_abap_language_version = ms_data-abap_language_version.
+  ENDMETHOD.
+  METHOD set_abap_language_version.
+    ms_data-abap_language_version = iv_abap_language_version.
   ENDMETHOD.
 ENDCLASS.
 
@@ -63755,6 +63931,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     DATA lo_folder_logic TYPE REF TO zcl_abapgit_folder_logic.
     DATA lo_i18n_params TYPE REF TO zcl_abapgit_i18n_params.
     DATA lo_timer TYPE REF TO zcl_abapgit_timer.
+    DATA lo_abap_language_vers TYPE REF TO zcl_abapgit_abap_language_vers.
 
     FIELD-SYMBOLS: <ls_result>  TYPE zif_abapgit_definitions=>ty_result,
                    <lv_step_id> TYPE LINE OF zif_abapgit_definitions=>ty_deserialization_step_tt,
@@ -63811,6 +63988,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
       ii_log->add_info( |>>> Deserializing { lines( lt_items ) } objects| ).
     ENDIF.
 
+    CREATE OBJECT lo_abap_language_vers.
+
     lo_folder_logic = zcl_abapgit_folder_logic=>get_instance( ).
     LOOP AT lt_results ASSIGNING <ls_result>.
       li_progress->show( iv_current = sy-tabix
@@ -63841,6 +64020,9 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
           ENDIF.
 
           ls_item-devclass = lv_package.
+          ls_item-abap_language_version = lo_abap_language_vers->get_abap_language_vers_by_objt(
+                                                                    iv_object_type = ls_item-obj_type
+                                                                    iv_package = lv_package ).
 
           IF <ls_result>-packmove = abap_true.
             " Move object to new package
@@ -126079,8 +126261,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-23T09:11:15.477Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-23T09:11:15.477Z`.
+* abapmerge 0.16.0 - 2023-07-23T13:04:39.501Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-23T13:04:39.501Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
