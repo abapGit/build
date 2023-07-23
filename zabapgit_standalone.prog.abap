@@ -1235,6 +1235,60 @@ INTERFACE zif_abapgit_git_definitions .
       comment   TYPE string,
     END OF ty_comment .
 
+  TYPES:
+    ty_chmod TYPE c LENGTH 6 .
+
+  CONSTANTS:
+    BEGIN OF c_chmod,
+      file       TYPE ty_chmod VALUE '100644',
+      executable TYPE ty_chmod VALUE '100755',
+      dir        TYPE ty_chmod VALUE '40000 ',
+      submodule  TYPE ty_chmod VALUE '160000',
+    END OF c_chmod .
+
+  TYPES:
+    BEGIN OF ty_expanded,
+      path  TYPE string,
+      name  TYPE string,
+      sha1  TYPE ty_sha1,
+      chmod TYPE ty_chmod,
+    END OF ty_expanded .
+  TYPES:
+    ty_expanded_tt TYPE STANDARD TABLE OF ty_expanded WITH DEFAULT KEY .
+
+  TYPES:
+    BEGIN OF ty_create,
+      name   TYPE string,
+      parent TYPE string,
+    END OF ty_create .
+  TYPES:
+    BEGIN OF ty_commit,
+      sha1       TYPE ty_sha1,
+      parent1    TYPE ty_sha1,
+      parent2    TYPE ty_sha1,
+      author     TYPE string,
+      email      TYPE string,
+      time       TYPE string,
+      message    TYPE string,
+      body       TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
+      branch     TYPE string,
+      merge      TYPE string,
+      tags       TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
+      create     TYPE STANDARD TABLE OF ty_create WITH DEFAULT KEY,
+      compressed TYPE abap_bool,
+    END OF ty_commit .
+  TYPES:
+    ty_commit_tt TYPE STANDARD TABLE OF ty_commit WITH DEFAULT KEY .
+
+  CONSTANTS:
+    BEGIN OF c_type,
+      commit TYPE ty_type VALUE 'commit',                   "#EC NOTEXT
+      tree   TYPE ty_type VALUE 'tree',                     "#EC NOTEXT
+      ref_d  TYPE ty_type VALUE 'ref_d',                    "#EC NOTEXT
+      tag    TYPE ty_type VALUE 'tag',                      "#EC NOTEXT
+      blob   TYPE ty_type VALUE 'blob',                     "#EC NOTEXT
+    END OF c_type .
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_data_config .
@@ -3010,8 +3064,6 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     ty_repo_file_tt TYPE STANDARD TABLE OF ty_repo_file WITH DEFAULT KEY .
   TYPES:
-    ty_chmod TYPE c LENGTH 6 .
-  TYPES:
     BEGIN OF ty_object,
       sha1    TYPE zif_abapgit_git_definitions=>ty_sha1,
       type    TYPE zif_abapgit_git_definitions=>ty_type,
@@ -3087,29 +3139,7 @@ INTERFACE zif_abapgit_definitions .
       branch_name TYPE string,
       commit_text TYPE string,
     END OF ty_transport_to_branch .
-  TYPES:
-    BEGIN OF ty_create,
-      name   TYPE string,
-      parent TYPE string,
-    END OF ty_create .
-  TYPES:
-    BEGIN OF ty_commit,
-      sha1       TYPE zif_abapgit_git_definitions=>ty_sha1,
-      parent1    TYPE zif_abapgit_git_definitions=>ty_sha1,
-      parent2    TYPE zif_abapgit_git_definitions=>ty_sha1,
-      author     TYPE string,
-      email      TYPE string,
-      time       TYPE string,
-      message    TYPE string,
-      body       TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
-      branch     TYPE string,
-      merge      TYPE string,
-      tags       TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
-      create     TYPE STANDARD TABLE OF ty_create WITH DEFAULT KEY,
-      compressed TYPE abap_bool,
-    END OF ty_commit .
-  TYPES:
-    ty_commit_tt TYPE STANDARD TABLE OF ty_commit WITH DEFAULT KEY .
+
   TYPES:
     BEGIN OF ty_diff,
       patch_flag TYPE abap_bool,
@@ -3132,15 +3162,6 @@ INTERFACE zif_abapgit_definitions .
       delete TYPE i,
       update TYPE i,
     END OF ty_count .
-  TYPES:
-    BEGIN OF ty_expanded,
-      path  TYPE string,
-      name  TYPE string,
-      sha1  TYPE zif_abapgit_git_definitions=>ty_sha1,
-      chmod TYPE ty_chmod,
-    END OF ty_expanded .
-  TYPES:
-    ty_expanded_tt TYPE STANDARD TABLE OF ty_expanded WITH DEFAULT KEY .
   TYPES:
     BEGIN OF ty_ancestor,
       commit TYPE zif_abapgit_git_definitions=>ty_sha1,
@@ -3254,14 +3275,6 @@ INTERFACE zif_abapgit_definitions .
       update    TYPE c LENGTH 1 VALUE 'U',
     END OF c_diff .
   CONSTANTS:
-    BEGIN OF c_type,
-      commit TYPE zif_abapgit_git_definitions=>ty_type VALUE 'commit',                   "#EC NOTEXT
-      tree   TYPE zif_abapgit_git_definitions=>ty_type VALUE 'tree',                     "#EC NOTEXT
-      ref_d  TYPE zif_abapgit_git_definitions=>ty_type VALUE 'ref_d',                    "#EC NOTEXT
-      tag    TYPE zif_abapgit_git_definitions=>ty_type VALUE 'tag',                      "#EC NOTEXT
-      blob   TYPE zif_abapgit_git_definitions=>ty_type VALUE 'blob',                     "#EC NOTEXT
-    END OF c_type .
-  CONSTANTS:
     BEGIN OF c_state, " https://git-scm.com/docs/git-status
       unchanged TYPE zif_abapgit_git_definitions=>ty_item_state VALUE '',
       added     TYPE zif_abapgit_git_definitions=>ty_item_state VALUE 'A',
@@ -3269,13 +3282,6 @@ INTERFACE zif_abapgit_definitions .
       deleted   TYPE zif_abapgit_git_definitions=>ty_item_state VALUE 'D',
       mixed     TYPE zif_abapgit_git_definitions=>ty_item_state VALUE '*',
     END OF c_state .
-  CONSTANTS:
-    BEGIN OF c_chmod,
-      file       TYPE ty_chmod VALUE '100644',
-      executable TYPE ty_chmod VALUE '100755',
-      dir        TYPE ty_chmod VALUE '40000 ',
-      submodule  TYPE ty_chmod VALUE '160000',
-    END OF c_chmod .
   CONSTANTS c_english TYPE spras VALUE 'E' ##NO_TEXT.
   CONSTANTS c_root_dir TYPE string VALUE '/' ##NO_TEXT.
   CONSTANTS c_dot_abapgit TYPE string VALUE '.abapgit.xml' ##NO_TEXT.
@@ -5022,10 +5028,10 @@ INTERFACE zif_abapgit_merge .
       source   TYPE zif_abapgit_git_definitions=>ty_git_branch,
       target   TYPE zif_abapgit_git_definitions=>ty_git_branch,
       common   TYPE zif_abapgit_definitions=>ty_ancestor,
-      stree    TYPE zif_abapgit_definitions=>ty_expanded_tt,
-      ttree    TYPE zif_abapgit_definitions=>ty_expanded_tt,
-      ctree    TYPE zif_abapgit_definitions=>ty_expanded_tt,
-      result   TYPE zif_abapgit_definitions=>ty_expanded_tt,
+      stree    TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
+      ttree    TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
+      ctree    TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
+      result   TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
       stage    TYPE REF TO zcl_abapgit_stage,
       conflict TYPE string,
     END OF ty_merge .
@@ -5162,7 +5168,7 @@ INTERFACE zif_abapgit_popups .
       !iv_repo_url     TYPE string
       !iv_branch_name  TYPE string OPTIONAL
     RETURNING
-      VALUE(rs_commit) TYPE zif_abapgit_definitions=>ty_commit
+      VALUE(rs_commit) TYPE zif_abapgit_git_definitions=>ty_commit
     RAISING
       zcx_abapgit_exception .
   TYPES ty_char1 TYPE c LENGTH 1.
@@ -6395,7 +6401,7 @@ CLASS zcl_abapgit_git_commit DEFINITION
   PUBLIC SECTION.
     TYPES:
       BEGIN OF ty_pull_result,
-        commits TYPE zif_abapgit_definitions=>ty_commit_tt,
+        commits TYPE zif_abapgit_git_definitions=>ty_commit_tt,
         commit  TYPE zif_abapgit_git_definitions=>ty_sha1,
       END OF ty_pull_result .
 
@@ -6415,25 +6421,25 @@ CLASS zcl_abapgit_git_commit DEFINITION
         !iv_repo_url      TYPE string
         !iv_deepen_level  TYPE i
       RETURNING
-        VALUE(rt_commits) TYPE zif_abapgit_definitions=>ty_commit_tt
+        VALUE(rt_commits) TYPE zif_abapgit_git_definitions=>ty_commit_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS parse_commits
       IMPORTING
         !it_objects       TYPE zif_abapgit_definitions=>ty_objects_tt
       RETURNING
-        VALUE(rt_commits) TYPE zif_abapgit_definitions=>ty_commit_tt
+        VALUE(rt_commits) TYPE zif_abapgit_git_definitions=>ty_commit_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS sort_commits
       CHANGING
-        !ct_commits TYPE zif_abapgit_definitions=>ty_commit_tt
+        !ct_commits TYPE zif_abapgit_git_definitions=>ty_commit_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS reverse_sort_order
       CHANGING
-        !ct_commits TYPE zif_abapgit_definitions=>ty_commit_tt .
-    CLASS-METHODS clear_missing_parents CHANGING ct_commits TYPE zif_abapgit_definitions=>ty_commit_tt .
+        !ct_commits TYPE zif_abapgit_git_definitions=>ty_commit_tt .
+    CLASS-METHODS clear_missing_parents CHANGING ct_commits TYPE zif_abapgit_git_definitions=>ty_commit_tt .
   PROTECTED SECTION.
   PRIVATE SECTION.
     TYPES: ty_sha1_range TYPE RANGE OF zif_abapgit_git_definitions=>ty_sha1 .
@@ -6443,13 +6449,13 @@ CLASS zcl_abapgit_git_commit DEFINITION
         it_commit_sha1s TYPE ty_sha1_range
       EXPORTING
         et_commit_sha1s TYPE ty_sha1_range
-        es_1st_commit   TYPE zif_abapgit_definitions=>ty_commit
+        es_1st_commit   TYPE zif_abapgit_git_definitions=>ty_commit
       CHANGING
-        ct_commits      TYPE zif_abapgit_definitions=>ty_commit_tt .
+        ct_commits      TYPE zif_abapgit_git_definitions=>ty_commit_tt .
 
     CLASS-METHODS is_missing
       IMPORTING
-        it_commits       TYPE zif_abapgit_definitions=>ty_commit_tt
+        it_commits       TYPE zif_abapgit_git_definitions=>ty_commit_tt
         iv_sha1          TYPE zif_abapgit_git_definitions=>ty_sha1
       RETURNING
         VALUE(rv_result) TYPE abap_bool.
@@ -6458,9 +6464,9 @@ CLASS zcl_abapgit_git_commit DEFINITION
       IMPORTING
         !iv_author TYPE string
       EXPORTING
-        !ev_author TYPE zif_abapgit_definitions=>ty_commit-author
-        !ev_email  TYPE zif_abapgit_definitions=>ty_commit-email
-        !ev_time   TYPE zif_abapgit_definitions=>ty_commit-time
+        !ev_author TYPE zif_abapgit_git_definitions=>ty_commit-author
+        !ev_email  TYPE zif_abapgit_git_definitions=>ty_commit-email
+        !ev_time   TYPE zif_abapgit_git_definitions=>ty_commit-time
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -6498,7 +6504,7 @@ CLASS zcl_abapgit_git_pack DEFINITION
   PUBLIC SECTION.
     TYPES:
       BEGIN OF ty_node,
-        chmod TYPE zif_abapgit_definitions=>ty_chmod,
+        chmod TYPE zif_abapgit_git_definitions=>ty_chmod,
         name  TYPE string,
         sha1  TYPE zif_abapgit_git_definitions=>ty_sha1,
       END OF ty_node .
@@ -6722,7 +6728,7 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
         !it_objects        TYPE zif_abapgit_definitions=>ty_objects_tt
         !iv_parent         TYPE zif_abapgit_git_definitions=>ty_sha1
       RETURNING
-        VALUE(rt_expanded) TYPE zif_abapgit_definitions=>ty_expanded_tt
+        VALUE(rt_expanded) TYPE zif_abapgit_git_definitions=>ty_expanded_tt
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -6750,14 +6756,14 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
 
     CLASS-METHODS build_trees
       IMPORTING
-        !it_expanded    TYPE zif_abapgit_definitions=>ty_expanded_tt
+        !it_expanded    TYPE zif_abapgit_git_definitions=>ty_expanded_tt
       RETURNING
         VALUE(rt_trees) TYPE ty_trees_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS find_folders
       IMPORTING
-        !it_expanded      TYPE zif_abapgit_definitions=>ty_expanded_tt
+        !it_expanded      TYPE zif_abapgit_git_definitions=>ty_expanded_tt
       RETURNING
         VALUE(rt_folders) TYPE ty_folders_tt .
     CLASS-METHODS pull
@@ -6783,7 +6789,7 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
         !iv_tree           TYPE zif_abapgit_git_definitions=>ty_sha1
         !iv_base           TYPE string
       RETURNING
-        VALUE(rt_expanded) TYPE zif_abapgit_definitions=>ty_expanded_tt
+        VALUE(rt_expanded) TYPE zif_abapgit_git_definitions=>ty_expanded_tt
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS receive_pack_push
@@ -17638,7 +17644,7 @@ CLASS zcl_abapgit_merge DEFINITION
         !ct_visit  TYPE ty_visit_tt .
     METHODS all_files
       RETURNING
-        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_expanded_tt .
+        VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_expanded_tt .
     METHODS calculate_result
       RAISING
         zcx_abapgit_exception .
@@ -20968,10 +20974,10 @@ CLASS zcl_abapgit_gui_page_merge DEFINITION
 
     METHODS show_file
       IMPORTING
-        !it_expanded TYPE zif_abapgit_definitions=>ty_expanded_tt
+        !it_expanded TYPE zif_abapgit_git_definitions=>ty_expanded_tt
         !ii_html     TYPE REF TO zif_abapgit_html
-        !is_file     TYPE zif_abapgit_definitions=>ty_expanded
-        !is_result   TYPE zif_abapgit_definitions=>ty_expanded .
+        !is_file     TYPE zif_abapgit_git_definitions=>ty_expanded
+        !is_result   TYPE zif_abapgit_git_definitions=>ty_expanded .
     METHODS build_menu
       IMPORTING
         VALUE(iv_with_conflict) TYPE abap_bool OPTIONAL
@@ -22167,7 +22173,7 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
         url             TYPE zif_abapgit_persistence=>ty_repo-url,
         branch          TYPE zif_abapgit_git_definitions=>ty_git_branch-name,
         tag             TYPE zif_abapgit_git_definitions=>ty_git_tag-name,
-        commit          TYPE zif_abapgit_definitions=>ty_commit-sha1,
+        commit          TYPE zif_abapgit_git_definitions=>ty_commit-sha1,
         pull_request    TYPE string,
         head_type       TYPE ty_head_type,
         switched_origin TYPE zif_abapgit_persistence=>ty_repo-switched_origin,
@@ -22645,7 +22651,7 @@ CLASS zcl_abapgit_gui_page_tags DEFINITION
 
     METHODS choose_commit
       RETURNING
-        VALUE(rv_commit) TYPE zif_abapgit_definitions=>ty_commit-sha1
+        VALUE(rv_commit) TYPE zif_abapgit_git_definitions=>ty_commit-sha1
       RAISING
         zcx_abapgit_exception.
 
@@ -23118,7 +23124,7 @@ CLASS zcl_abapgit_popups DEFINITION
         !iv_branch_name TYPE string
       EXPORTING
         !et_value_tab   TYPE ty_commit_value_tab_tt
-        !et_commits     TYPE zif_abapgit_definitions=>ty_commit_tt
+        !et_commits     TYPE zif_abapgit_git_definitions=>ty_commit_tt
       RAISING
         zcx_abapgit_exception.
 ENDCLASS.
@@ -34203,7 +34209,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
       lv_time_string TYPE c LENGTH 10.
 
     FIELD-SYMBOLS:
-      <ls_commit>    TYPE zif_abapgit_definitions=>ty_commit,
+      <ls_commit>    TYPE zif_abapgit_git_definitions=>ty_commit,
       <ls_value_tab> TYPE ty_commit_value_tab.
 
     CLEAR: et_commits, et_value_tab.
@@ -34408,7 +34414,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD zif_abapgit_popups~commit_list_popup.
 
     DATA:
-      lt_commits         TYPE zif_abapgit_definitions=>ty_commit_tt,
+      lt_commits         TYPE zif_abapgit_git_definitions=>ty_commit_tt,
       lt_value_tab       TYPE ty_commit_value_tab_tt,
       lt_selected_values TYPE ty_commit_value_tab_tt,
       lt_columns         TYPE zif_abapgit_popups=>ty_alv_column_tt.
@@ -37267,7 +37273,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TUTORIAL IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_TAGS IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_tags IMPLEMENTATION.
   METHOD choose_commit.
 
     DATA li_popups TYPE REF TO zif_abapgit_popups.
@@ -38722,7 +38728,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REPO IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_REMO IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
   METHOD check_protection.
 
     IF mo_repo->is_offline( ) = abap_true.
@@ -56068,7 +56074,7 @@ CLASS zcl_abapgit_stage IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
+CLASS zcl_abapgit_merge IMPLEMENTATION.
   METHOD all_files.
 
     APPEND LINES OF ms_merge-stree TO rt_files.
@@ -56080,7 +56086,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
   ENDMETHOD.
   METHOD calculate_result.
 
-    DATA: lt_files        TYPE zif_abapgit_definitions=>ty_expanded_tt,
+    DATA: lt_files        TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
           lv_found_source TYPE abap_bool,
           lv_found_target TYPE abap_bool,
           lv_found_common TYPE abap_bool.
@@ -56142,7 +56148,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
 * added in source
         READ TABLE mt_objects ASSIGNING <ls_object>
           WITH KEY type COMPONENTS
-            type = zif_abapgit_definitions=>c_type-blob
+            type = zif_abapgit_git_definitions=>c_type-blob
             sha1 = <ls_source>-sha1.
         ASSERT sy-subrc = 0.
 
@@ -56167,14 +56173,14 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
         <ls_conflict>-source_sha1 = <ls_source>-sha1.
         READ TABLE mt_objects ASSIGNING <ls_object>
           WITH KEY type COMPONENTS
-            type = zif_abapgit_definitions=>c_type-blob
+            type = zif_abapgit_git_definitions=>c_type-blob
             sha1 = <ls_source>-sha1.
         <ls_conflict>-source_data = <ls_object>-data.
 
         <ls_conflict>-target_sha1 = <ls_target>-sha1.
         READ TABLE mt_objects ASSIGNING <ls_object>
           WITH KEY type COMPONENTS
-            type = zif_abapgit_definitions=>c_type-blob
+            type = zif_abapgit_git_definitions=>c_type-blob
             sha1 = <ls_target>-sha1.
         <ls_conflict>-target_data = <ls_object>-data.
 
@@ -56197,7 +56203,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
 * changed in source
         READ TABLE mt_objects ASSIGNING <ls_object>
           WITH KEY type COMPONENTS
-            type = zif_abapgit_definitions=>c_type-blob
+            type = zif_abapgit_git_definitions=>c_type-blob
             sha1 = <ls_source>-sha1.
         ASSERT sy-subrc = 0.
 
@@ -56217,14 +56223,14 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
         <ls_conflict>-source_sha1 = <ls_source>-sha1.
         READ TABLE mt_objects ASSIGNING <ls_object>
           WITH KEY type COMPONENTS
-            type = zif_abapgit_definitions=>c_type-blob
+            type = zif_abapgit_git_definitions=>c_type-blob
             sha1 = <ls_source>-sha1.
         <ls_conflict>-source_data = <ls_object>-data.
 
         <ls_conflict>-target_sha1 = <ls_target>-sha1.
         READ TABLE mt_objects ASSIGNING <ls_object>
           WITH KEY type COMPONENTS
-            type = zif_abapgit_definitions=>c_type-blob
+            type = zif_abapgit_git_definitions=>c_type-blob
             sha1 = <ls_target>-sha1.
         <ls_conflict>-target_data = <ls_object>-data.
 
@@ -56282,7 +56288,7 @@ CLASS ZCL_ABAPGIT_MERGE IMPLEMENTATION.
     LOOP AT lt_visit INTO lv_commit.
       READ TABLE mt_objects ASSIGNING <ls_object>
         WITH KEY type COMPONENTS
-          type = zif_abapgit_definitions=>c_type-commit
+          type = zif_abapgit_git_definitions=>c_type-commit
           sha1 = lv_commit.
       ASSERT sy-subrc = 0.
 
@@ -120044,11 +120050,11 @@ CLASS zcl_abapgit_hash IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD sha1_blob.
-    rv_sha1 = sha1( iv_type = zif_abapgit_definitions=>c_type-blob
+    rv_sha1 = sha1( iv_type = zif_abapgit_git_definitions=>c_type-blob
                     iv_data = iv_data ).
   ENDMETHOD.
   METHOD sha1_commit.
-    rv_sha1 = sha1( iv_type = zif_abapgit_definitions=>c_type-commit
+    rv_sha1 = sha1( iv_type = zif_abapgit_git_definitions=>c_type-commit
                     iv_data = iv_data ).
   ENDMETHOD.
   METHOD sha1_raw.
@@ -120092,11 +120098,11 @@ CLASS zcl_abapgit_hash IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD sha1_tag.
-    rv_sha1 = sha1( iv_type = zif_abapgit_definitions=>c_type-tag
+    rv_sha1 = sha1( iv_type = zif_abapgit_git_definitions=>c_type-tag
                     iv_data = iv_data ).
   ENDMETHOD.
   METHOD sha1_tree.
-    rv_sha1 = sha1( iv_type = zif_abapgit_definitions=>c_type-tree
+    rv_sha1 = sha1( iv_type = zif_abapgit_git_definitions=>c_type-tree
                     iv_data = iv_data ).
   ENDMETHOD.
 ENDCLASS.
@@ -120570,7 +120576,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
         lv_len = strlen( <ls_folder>-path ).
         IF strlen( <ls_sub>-path ) > lv_len AND <ls_sub>-path(lv_len) = <ls_folder>-path.
           APPEND INITIAL LINE TO lt_nodes ASSIGNING <ls_node>.
-          <ls_node>-chmod = zif_abapgit_definitions=>c_chmod-dir.
+          <ls_node>-chmod = zif_abapgit_git_definitions=>c_chmod-dir.
 
 * extract folder name, this can probably be done easier using regular expressions
           <ls_node>-name = <ls_sub>-path+lv_len.
@@ -120602,7 +120608,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
 
 * new tag
     ls_tag-object       = is_tag-sha1.
-    ls_tag-type         = zif_abapgit_definitions=>c_type-commit.
+    ls_tag-type         = zif_abapgit_git_definitions=>c_type-commit.
     ls_tag-tag          = is_tag-name.
     ls_tag-tagger_name  = is_tag-tagger_name.
     ls_tag-tagger_email = is_tag-tagger_email.
@@ -120616,7 +120622,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
     lv_new_tag_sha1 = zcl_abapgit_hash=>sha1_tag( lv_tag ).
 
     ls_object-sha1  = lv_new_tag_sha1.
-    ls_object-type  = zif_abapgit_definitions=>c_type-tag.
+    ls_object-type  = zif_abapgit_git_definitions=>c_type-tag.
     ls_object-data  = lv_tag.
     ls_object-index = 1.
     APPEND ls_object TO lt_objects.
@@ -120795,7 +120801,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
 
     READ TABLE it_objects INTO ls_object
       WITH KEY type COMPONENTS
-        type = zif_abapgit_definitions=>c_type-commit
+        type = zif_abapgit_git_definitions=>c_type-commit
         sha1 = iv_parent.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'commit not found' ).
@@ -120814,7 +120820,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
 
     READ TABLE it_objects INTO ls_object
       WITH KEY type COMPONENTS
-        type = zif_abapgit_definitions=>c_type-commit
+        type = zif_abapgit_git_definitions=>c_type-commit
         sha1 = iv_commit.
 
     IF sy-subrc <> 0.
@@ -120861,7 +120867,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
   ENDMETHOD.
   METHOD push.
 
-    DATA: lt_expanded TYPE zif_abapgit_definitions=>ty_expanded_tt,
+    DATA: lt_expanded TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
           lt_blobs    TYPE zif_abapgit_git_definitions=>ty_files_tt,
           lv_sha1     TYPE zif_abapgit_git_definitions=>ty_sha1,
           lv_new_tree TYPE zif_abapgit_git_definitions=>ty_sha1,
@@ -120894,7 +120900,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
             APPEND INITIAL LINE TO lt_expanded ASSIGNING <ls_exp>.
             <ls_exp>-name  = <ls_stage>-file-filename.
             <ls_exp>-path  = <ls_stage>-file-path.
-            <ls_exp>-chmod = zif_abapgit_definitions=>c_chmod-file.
+            <ls_exp>-chmod = zif_abapgit_git_definitions=>c_chmod-file.
           ENDIF.
 
           lv_sha1 = zcl_abapgit_hash=>sha1_blob( <ls_stage>-file-data ).
@@ -120974,7 +120980,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
     lv_commit = zcl_abapgit_git_pack=>encode_commit( ls_commit ).
 
     ls_object-sha1 = zcl_abapgit_hash=>sha1_commit( lv_commit ).
-    ls_object-type = zif_abapgit_definitions=>c_type-commit.
+    ls_object-type = zif_abapgit_git_definitions=>c_type-commit.
     ls_object-data = lv_commit.
     APPEND ls_object TO et_new_objects.
 
@@ -120984,7 +120990,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
 
       READ TABLE et_new_objects
         WITH KEY type COMPONENTS
-          type = zif_abapgit_definitions=>c_type-tree
+          type = zif_abapgit_git_definitions=>c_type-tree
           sha1 = ls_object-sha1
         TRANSPORTING NO FIELDS.
       IF sy-subrc = 0.
@@ -120992,7 +120998,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      ls_object-type = zif_abapgit_definitions=>c_type-tree.
+      ls_object-type = zif_abapgit_git_definitions=>c_type-tree.
       ls_object-data = <ls_tree>-data.
       lv_uindex = lv_uindex + 1.
       ls_object-index = lv_uindex.
@@ -121005,7 +121011,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
 
       READ TABLE et_new_objects
         WITH KEY type COMPONENTS
-          type = zif_abapgit_definitions=>c_type-blob
+          type = zif_abapgit_git_definitions=>c_type-blob
           sha1 = ls_object-sha1
         TRANSPORTING NO FIELDS.
       IF sy-subrc = 0.
@@ -121013,7 +121019,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      ls_object-type = zif_abapgit_definitions=>c_type-blob.
+      ls_object-type = zif_abapgit_git_definitions=>c_type-blob.
 * note <ls_blob>-data can be empty, #1857 allow empty files - some more checks needed?
       ls_object-data = <ls_blob>-data.
       lv_uindex = lv_uindex + 1.
@@ -121046,7 +121052,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
                    <ls_node> LIKE LINE OF lt_nodes.
     READ TABLE it_objects ASSIGNING <ls_tree>
       WITH KEY type COMPONENTS
-        type = zif_abapgit_definitions=>c_type-tree
+        type = zif_abapgit_git_definitions=>c_type-tree
         sha1 = iv_sha1.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'Walk, tree not found' ).
@@ -121055,10 +121061,10 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
     lt_nodes = zcl_abapgit_git_pack=>decode_tree( <ls_tree>-data ).
 
     LOOP AT lt_nodes ASSIGNING <ls_node>.
-      IF <ls_node>-chmod = zif_abapgit_definitions=>c_chmod-file.
+      IF <ls_node>-chmod = zif_abapgit_git_definitions=>c_chmod-file.
         READ TABLE it_objects ASSIGNING <ls_blob>
           WITH KEY type COMPONENTS
-            type = zif_abapgit_definitions=>c_type-blob
+            type = zif_abapgit_git_definitions=>c_type-blob
             sha1 = <ls_node>-sha1.
         IF sy-subrc <> 0.
           zcx_abapgit_exception=>raise( 'Walk, blob not found' ).
@@ -121073,7 +121079,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
-    LOOP AT lt_nodes ASSIGNING <ls_node> WHERE chmod = zif_abapgit_definitions=>c_chmod-dir.
+    LOOP AT lt_nodes ASSIGNING <ls_node> WHERE chmod = zif_abapgit_git_definitions=>c_chmod-dir.
       CONCATENATE iv_path <ls_node>-name '/' INTO lv_path.
 
       walk( EXPORTING it_objects = it_objects
@@ -121093,7 +121099,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
                    <ls_node> LIKE LINE OF lt_nodes.
     READ TABLE it_objects INTO ls_object
       WITH KEY type COMPONENTS
-        type = zif_abapgit_definitions=>c_type-tree
+        type = zif_abapgit_git_definitions=>c_type-tree
         sha1 = iv_tree.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'tree not found' ).
@@ -121102,15 +121108,15 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
 
     LOOP AT lt_nodes ASSIGNING <ls_node>.
       CASE <ls_node>-chmod.
-        WHEN zif_abapgit_definitions=>c_chmod-file
-            OR zif_abapgit_definitions=>c_chmod-executable
-            OR zif_abapgit_definitions=>c_chmod-submodule.
+        WHEN zif_abapgit_git_definitions=>c_chmod-file
+            OR zif_abapgit_git_definitions=>c_chmod-executable
+            OR zif_abapgit_git_definitions=>c_chmod-submodule.
           APPEND INITIAL LINE TO rt_expanded ASSIGNING <ls_exp>.
           <ls_exp>-path  = iv_base.
           <ls_exp>-name  = <ls_node>-name.
           <ls_exp>-sha1  = <ls_node>-sha1.
           <ls_exp>-chmod = <ls_node>-chmod.
-        WHEN zif_abapgit_definitions=>c_chmod-dir.
+        WHEN zif_abapgit_git_definitions=>c_chmod-dir.
           lt_expanded = walk_tree(
             it_objects = it_objects
             iv_tree    = <ls_node>-sha1
@@ -121150,7 +121156,7 @@ CLASS kHGwlHhZbTrIxNkYzsWttffscEwAXR IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
+CLASS zcl_abapgit_git_pack IMPLEMENTATION.
   METHOD decode.
 
     DATA: lv_x              TYPE x,
@@ -121197,7 +121203,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       get_length( IMPORTING ev_length = lv_expected
                   CHANGING cv_data = lv_data ).
 
-      IF lv_type = zif_abapgit_definitions=>c_type-ref_d.
+      IF lv_type = zif_abapgit_git_definitions=>c_type-ref_d.
         lv_ref_delta = lv_data(20).
         lv_data = lv_data+20.
       ENDIF.
@@ -121252,7 +121258,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       ls_object-adler32 = lv_data(4).
       lv_data = lv_data+4. " skip adler checksum
 
-      IF lv_type = zif_abapgit_definitions=>c_type-ref_d.
+      IF lv_type = zif_abapgit_git_definitions=>c_type-ref_d.
         ls_object-sha1 = lv_ref_delta.
         TRANSLATE ls_object-sha1 TO LOWER CASE.
       ELSE.
@@ -121346,13 +121352,13 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
           lt_deltas   LIKE ct_objects.
     LOOP AT ct_objects INTO ls_object
         USING KEY type
-        WHERE type = zif_abapgit_definitions=>c_type-ref_d.
+        WHERE type = zif_abapgit_git_definitions=>c_type-ref_d.
       INSERT ls_object INTO TABLE lt_deltas.
     ENDLOOP.
 
     DELETE ct_objects
       USING KEY type
-      WHERE type = zif_abapgit_definitions=>c_type-ref_d.
+      WHERE type = zif_abapgit_git_definitions=>c_type-ref_d.
 
     "Restore correct Delta Order
     SORT lt_deltas BY index.
@@ -121431,7 +121437,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
                lc_null       TYPE x VALUE '00'.
 
     DATA: lv_xstring TYPE xstring,
-          lv_chmod   TYPE zif_abapgit_definitions=>ty_chmod,
+          lv_chmod   TYPE zif_abapgit_git_definitions=>ty_chmod,
           lv_name    TYPE string,
           lv_string  TYPE string,
           lv_len     TYPE i,
@@ -121454,10 +121460,10 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
       CLEAR ls_node.
       ls_node-chmod = lv_chmod.
-      IF ls_node-chmod <> zif_abapgit_definitions=>c_chmod-dir
-          AND ls_node-chmod <> zif_abapgit_definitions=>c_chmod-file
-          AND ls_node-chmod <> zif_abapgit_definitions=>c_chmod-executable
-          AND ls_node-chmod <> zif_abapgit_definitions=>c_chmod-submodule.
+      IF ls_node-chmod <> zif_abapgit_git_definitions=>c_chmod-dir
+          AND ls_node-chmod <> zif_abapgit_git_definitions=>c_chmod-file
+          AND ls_node-chmod <> zif_abapgit_git_definitions=>c_chmod-executable
+          AND ls_node-chmod <> zif_abapgit_git_definitions=>c_chmod-submodule.
         zcx_abapgit_exception=>raise( |Unknown chmod| ).
       ENDIF.
 
@@ -121502,7 +121508,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
       WITH KEY sha COMPONENTS sha1 = is_object-sha1.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Base not found, { is_object-sha1 }| ).
-    ELSEIF <ls_object>-type = zif_abapgit_definitions=>c_type-ref_d.
+    ELSEIF <ls_object>-type = zif_abapgit_git_definitions=>c_type-ref_d.
 * sanity check
       zcx_abapgit_exception=>raise( |Delta, base eq delta| ).
     ENDIF.
@@ -121772,15 +121778,15 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
 
     CASE lv_xtype.
       WHEN 16.
-        rv_type = zif_abapgit_definitions=>c_type-commit.
+        rv_type = zif_abapgit_git_definitions=>c_type-commit.
       WHEN 32.
-        rv_type = zif_abapgit_definitions=>c_type-tree.
+        rv_type = zif_abapgit_git_definitions=>c_type-tree.
       WHEN 48.
-        rv_type = zif_abapgit_definitions=>c_type-blob.
+        rv_type = zif_abapgit_git_definitions=>c_type-blob.
       WHEN 64.
-        rv_type = zif_abapgit_definitions=>c_type-tag.
+        rv_type = zif_abapgit_git_definitions=>c_type-tag.
       WHEN 112.
-        rv_type = zif_abapgit_definitions=>c_type-ref_d.
+        rv_type = zif_abapgit_git_definitions=>c_type-ref_d.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( |Todo, unknown git pack type| ).
     ENDCASE.
@@ -121799,7 +121805,7 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
                    <ls_node> LIKE LINE OF it_nodes.
     LOOP AT it_nodes ASSIGNING <ls_node>.
       APPEND INITIAL LINE TO lt_sort ASSIGNING <ls_sort>.
-      IF <ls_node>-chmod = zif_abapgit_definitions=>c_chmod-dir.
+      IF <ls_node>-chmod = zif_abapgit_git_definitions=>c_chmod-dir.
         CONCATENATE <ls_node>-name '/' INTO <ls_sort>-sort.
       ELSE.
         <ls_sort>-sort = <ls_node>-name.
@@ -121823,15 +121829,15 @@ CLASS ZCL_ABAPGIT_GIT_PACK IMPLEMENTATION.
           lv_length TYPE i,
           lv_hex    TYPE x LENGTH 1.
     CASE iv_type.
-      WHEN zif_abapgit_definitions=>c_type-commit.
+      WHEN zif_abapgit_git_definitions=>c_type-commit.
         lv_type = 16.
-      WHEN zif_abapgit_definitions=>c_type-tree.
+      WHEN zif_abapgit_git_definitions=>c_type-tree.
         lv_type = 32.
-      WHEN zif_abapgit_definitions=>c_type-blob.
+      WHEN zif_abapgit_git_definitions=>c_type-blob.
         lv_type = 48.
-      WHEN zif_abapgit_definitions=>c_type-tag.
+      WHEN zif_abapgit_git_definitions=>c_type-tag.
         lv_type = 64.
-      WHEN zif_abapgit_definitions=>c_type-ref_d.
+      WHEN zif_abapgit_git_definitions=>c_type-ref_d.
         lv_type = 112.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( |Unexpected object type while encoding pack| ).
@@ -121910,7 +121916,7 @@ CLASS zcl_abapgit_git_commit IMPLEMENTATION.
 
     "Part of #4719 to handle cut commit sequences, todo
 
-    FIELD-SYMBOLS: <ls_commit> TYPE zif_abapgit_definitions=>ty_commit.
+    FIELD-SYMBOLS: <ls_commit> TYPE zif_abapgit_git_definitions=>ty_commit.
 
     LOOP AT ct_commits ASSIGNING <ls_commit>.
 
@@ -121929,11 +121935,11 @@ CLASS zcl_abapgit_git_commit IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_1st_child_commit.
 
-    DATA: lt_1stchild_commits TYPE zif_abapgit_definitions=>ty_commit_tt,
+    DATA: lt_1stchild_commits TYPE zif_abapgit_git_definitions=>ty_commit_tt,
           ls_parent           LIKE LINE OF it_commit_sha1s,
           lt_commit_sha1s     LIKE it_commit_sha1s.
 
-    FIELD-SYMBOLS: <ls_child_commit> TYPE zif_abapgit_definitions=>ty_commit.
+    FIELD-SYMBOLS: <ls_child_commit> TYPE zif_abapgit_git_definitions=>ty_commit.
 
     CLEAR: es_1st_commit.
 
@@ -121984,7 +121990,7 @@ CLASS zcl_abapgit_git_commit IMPLEMENTATION.
         ev_branch       = rs_pull_result-commit
         et_objects      = lt_objects ).
 
-    DELETE lt_objects WHERE type <> zif_abapgit_definitions=>c_type-commit.
+    DELETE lt_objects WHERE type <> zif_abapgit_git_definitions=>c_type-commit.
 
     rs_pull_result-commits = parse_commits( lt_objects ).
 
@@ -122012,7 +122018,7 @@ CLASS zcl_abapgit_git_commit IMPLEMENTATION.
       IMPORTING
         et_objects      = lt_objects ).
 
-    DELETE lt_objects WHERE type <> zif_abapgit_definitions=>c_type-commit.
+    DELETE lt_objects WHERE type <> zif_abapgit_git_definitions=>c_type-commit.
 
     rt_commits = parse_commits( lt_objects ).
     sort_commits( CHANGING ct_commits = rt_commits ).
@@ -122032,14 +122038,14 @@ CLASS zcl_abapgit_git_commit IMPLEMENTATION.
   ENDMETHOD.
   METHOD parse_commits.
 
-    DATA: ls_commit TYPE zif_abapgit_definitions=>ty_commit,
+    DATA: ls_commit TYPE zif_abapgit_git_definitions=>ty_commit,
           lt_body   TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
           ls_raw    TYPE zcl_abapgit_git_pack=>ty_commit.
 
     FIELD-SYMBOLS: <ls_object> LIKE LINE OF it_objects,
                    <lv_body>   TYPE string.
     LOOP AT it_objects ASSIGNING <ls_object> USING KEY type
-        WHERE type = zif_abapgit_definitions=>c_type-commit.
+        WHERE type = zif_abapgit_git_definitions=>c_type-commit.
       ls_raw = zcl_abapgit_git_pack=>decode_commit( <ls_object>-data ).
 
       CLEAR ls_commit.
@@ -122077,8 +122083,8 @@ CLASS zcl_abapgit_git_commit IMPLEMENTATION.
   ENDMETHOD.
   METHOD reverse_sort_order.
 
-    DATA: lt_commits           TYPE zif_abapgit_definitions=>ty_commit_tt.
-    FIELD-SYMBOLS: <ls_commit> TYPE zif_abapgit_definitions=>ty_commit.
+    DATA: lt_commits           TYPE zif_abapgit_git_definitions=>ty_commit_tt.
+    FIELD-SYMBOLS: <ls_commit> TYPE zif_abapgit_git_definitions=>ty_commit.
 
     LOOP AT ct_commits ASSIGNING <ls_commit>.
       INSERT <ls_commit> INTO lt_commits INDEX 1.
@@ -122089,12 +122095,12 @@ CLASS zcl_abapgit_git_commit IMPLEMENTATION.
   ENDMETHOD.
   METHOD sort_commits.
 
-    DATA: lt_sorted_commits TYPE zif_abapgit_definitions=>ty_commit_tt,
-          ls_next_commit    TYPE zif_abapgit_definitions=>ty_commit,
+    DATA: lt_sorted_commits TYPE zif_abapgit_git_definitions=>ty_commit_tt,
+          ls_next_commit    TYPE zif_abapgit_git_definitions=>ty_commit,
           lt_parents        TYPE ty_sha1_range,
           ls_parent         LIKE LINE OF lt_parents.
 
-    FIELD-SYMBOLS: <ls_initial_commit> TYPE zif_abapgit_definitions=>ty_commit.
+    FIELD-SYMBOLS: <ls_initial_commit> TYPE zif_abapgit_git_definitions=>ty_commit.
 
     " find initial commit
     READ TABLE ct_commits ASSIGNING <ls_initial_commit> WITH KEY parent1 = space.
@@ -126290,8 +126296,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-23T13:07:48.735Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-23T13:07:48.735Z`.
+* abapmerge 0.16.0 - 2023-07-23T13:34:48.240Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-23T13:34:48.240Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
