@@ -236,7 +236,9 @@ CLASS zcl_abapgit_persist_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_background DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_super DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_program DEFINITION DEFERRED.
+CLASS zcl_abapgit_objects_injector DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_generic DEFINITION DEFERRED.
+CLASS zcl_abapgit_objects_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_bridge DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_xslt DEFINITION DEFERRED.
@@ -10817,6 +10819,19 @@ CLASS zcl_abapgit_objects DEFINITION
       RETURNING
         VALUE(rv_extra) TYPE string.
 ENDCLASS.
+CLASS zcl_abapgit_objects_factory DEFINITION
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_objects_injector .
+
+  PUBLIC SECTION.
+    CLASS-METHODS get_gui_jumper
+      RETURNING
+        VALUE(ri_gui_jumper) TYPE REF TO zif_abapgit_gui_jumper .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CLASS-DATA gi_gui_jumper TYPE REF TO zif_abapgit_gui_jumper .
+ENDCLASS.
 CLASS zcl_abapgit_objects_generic DEFINITION
   CREATE PUBLIC .
 
@@ -10939,6 +10954,17 @@ CLASS zcl_abapgit_objects_generic DEFINITION
         !iv_package TYPE devclass
       CHANGING
         !ct_data    TYPE STANDARD TABLE .
+ENDCLASS.
+CLASS zcl_abapgit_objects_injector DEFINITION
+  CREATE PRIVATE .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS set_gui_jumper
+      IMPORTING
+        !ii_gui_jumper TYPE REF TO zif_abapgit_gui_jumper .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_objects_super DEFINITION
   ABSTRACT
@@ -23129,9 +23155,6 @@ CLASS zcl_abapgit_ui_factory DEFINITION
         !iv_disable_query_table TYPE abap_bool DEFAULT abap_true
       RETURNING
         VALUE(ri_viewer)        TYPE REF TO zif_abapgit_html_viewer .
-    CLASS-METHODS get_gui_jumper
-      RETURNING
-        VALUE(ri_gui_jumper) TYPE REF TO zif_abapgit_gui_jumper .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -23140,7 +23163,6 @@ CLASS zcl_abapgit_ui_factory DEFINITION
     CLASS-DATA go_gui TYPE REF TO zcl_abapgit_gui .
     CLASS-DATA gi_fe_services TYPE REF TO zif_abapgit_frontend_services .
     CLASS-DATA gi_gui_services TYPE REF TO zif_abapgit_gui_services .
-    CLASS-DATA gi_gui_jumper TYPE REF TO zif_abapgit_gui_jumper .
 ENDCLASS.
 CLASS zcl_abapgit_ui_injector DEFINITION
   CREATE PRIVATE .
@@ -23162,9 +23184,6 @@ CLASS zcl_abapgit_ui_injector DEFINITION
     CLASS-METHODS set_html_viewer
       IMPORTING
         !ii_html_viewer TYPE REF TO zif_abapgit_html_viewer .
-    CLASS-METHODS set_gui_jumper
-      IMPORTING
-        !ii_gui_jumper TYPE REF TO zif_abapgit_gui_jumper .
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -28047,11 +28066,6 @@ CLASS zcl_abapgit_ui_injector IMPLEMENTATION.
   METHOD set_frontend_services.
 
     zcl_abapgit_ui_factory=>gi_fe_services = ii_fe_serv.
-
-  ENDMETHOD.
-  METHOD set_gui_jumper.
-
-    zcl_abapgit_ui_factory=>gi_gui_jumper = ii_gui_jumper.
 
   ENDMETHOD.
   METHOD set_gui_services.
@@ -33327,15 +33341,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
           ii_asset_man      = li_asset_man.
     ENDIF.
     ro_gui = go_gui.
-
-  ENDMETHOD.
-  METHOD get_gui_jumper.
-
-    IF gi_gui_jumper IS INITIAL.
-      CREATE OBJECT gi_gui_jumper TYPE zcl_abapgit_gui_jumper.
-    ENDIF.
-
-    ri_gui_jumper = gi_gui_jumper.
 
   ENDMETHOD.
   METHOD get_gui_services.
@@ -42034,7 +42039,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Please install the abapGit repository| ).
     ENDIF.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_abapgit(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_abapgit(
       iv_language = lv_main_language
       iv_key      = mo_repo->get_key( ) ).
 
@@ -62816,6 +62821,16 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_objects_injector IMPLEMENTATION.
+
+  METHOD set_gui_jumper.
+
+    zcl_abapgit_objects_factory=>gi_gui_jumper = ii_gui_jumper.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
 CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
   METHOD after_import.
 
@@ -63356,6 +63371,20 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_objects_factory IMPLEMENTATION.
+
+  METHOD get_gui_jumper.
+
+    IF gi_gui_jumper IS INITIAL.
+      CREATE OBJECT gi_gui_jumper TYPE zcl_abapgit_gui_jumper.
+    ENDIF.
+
+    ri_gui_jumper = gi_gui_jumper.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
@@ -64385,7 +64414,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     IF lv_exit = abap_false.
       " Open object in new window with generic jumper
-      lv_exit = zcl_abapgit_ui_factory=>get_gui_jumper( )->jump(
+      lv_exit = zcl_abapgit_objects_factory=>get_gui_jumper( )->jump(
         is_item        = is_item
         is_sub_item    = is_sub_item
         iv_line_number = iv_line_number
@@ -68244,7 +68273,7 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
     ls_bdcdata-fval = '=ONLI'.
     APPEND ls_bdcdata TO lt_bdcdata.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SMW0'
       it_bdcdata = lt_bdcdata ).
 
@@ -68957,7 +68986,7 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
     ls_bcdata-fval = '=CLSH'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SE54'
       it_bdcdata = lt_bcdata ).
 
@@ -69524,7 +69553,7 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'RSUD3-OBJ_KEY'.
     <ls_bdcdata>-fval = ms_item-obj_name.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SD11'
       it_bdcdata = lt_bdcdata ).
 
@@ -70088,7 +70117,7 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'RSUD3-OBJ_KEY'.
     <ls_bdcdata>-fval = ms_item-obj_name.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SD11'
       it_bdcdata = lt_bdcdata ).
 
@@ -70673,7 +70702,7 @@ CLASS zcl_abapgit_object_ttyp IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
+CLASS zcl_abapgit_object_tran IMPLEMENTATION.
   METHOD add_data.
 
     DATA: ls_bcdata LIKE LINE OF mt_bcdata.
@@ -71356,7 +71385,7 @@ CLASS ZCL_ABAPGIT_OBJECT_TRAN IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'TSTC-TCODE'.
     <ls_bdcdata>-fval = ms_item-obj_name.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode      = 'SE93'
       it_bdcdata    = lt_bdcdata ).
 
@@ -74095,7 +74124,7 @@ CLASS zcl_abapgit_object_styl IMPLEMENTATION.
     ls_bcdata-fval = '=SHOW'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SE72'
       it_bdcdata = lt_bcdata ).
 
@@ -74465,7 +74494,7 @@ CLASS zcl_abapgit_object_ssst IMPLEMENTATION.
     ls_bcdata-fval = '=DISPLAY'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SMARTSTYLES'
       it_bdcdata = lt_bcdata ).
 
@@ -74858,7 +74887,7 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'BDC_OKCODE'.
     <ls_bdcdata>-fval = '=DISPLAY'.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SMARTFORMS'
       it_bdcdata = lt_bdcdata ).
 
@@ -78694,7 +78723,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
+CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
   METHOD change_sicf.
 
     DATA: lt_icfhndlist TYPE icfhndlist,
@@ -79157,7 +79186,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SICF IMPLEMENTATION.
     ls_bcdata-fval = '=ONLI'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SICF'
       it_bdcdata = lt_bcdata ).
 
@@ -79462,7 +79491,7 @@ CLASS zcl_abapgit_object_shma IMPLEMENTATION.
     ls_bcdata-fval = '=SHOW'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SHMA'
       it_bdcdata = lt_bcdata ).
 
@@ -80062,7 +80091,7 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
+CLASS zcl_abapgit_object_shi3 IMPLEMENTATION.
   METHOD clear_fields.
 
     FIELD-SYMBOLS <ls_node> LIKE LINE OF ct_nodes.
@@ -80208,7 +80237,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'BMENUNAME-ID'.
     <ls_bdcdata>-fval = ms_item-obj_name.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SE43'
       it_bdcdata = lt_bdcdata ).
 
@@ -83666,7 +83695,7 @@ CLASS zcl_abapgit_object_pers IMPLEMENTATION.
     ls_bcdata-fval = '=PERSDISPLAY'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'PERSREG'
       it_bdcdata = lt_bcdata ).
 
@@ -85938,7 +85967,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
     ls_bcdata-fval = '=DISP'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SNRO'
       it_bdcdata = lt_bcdata ).
 
@@ -86839,7 +86868,7 @@ CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'GS_SCREEN_100-VERSION'.
     <ls_bdcdata>-fval = lv_version.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = '/IWBEP/REG_SERVICE'
       it_bdcdata = lt_bdcdata ).
 
@@ -87229,7 +87258,7 @@ CLASS zcl_abapgit_object_iwmo IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'GS_MODEL_SCREEN_100-VERSION'.
     <ls_bdcdata>-fval = lv_version.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = '/IWBEP/REG_MODEL'
       it_bdcdata = lt_bdcdata ).
 
@@ -88901,7 +88930,7 @@ CLASS zcl_abapgit_object_iext IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'BDC_OKCODE'.
     <ls_bdcdata>-fval = '=DISP'.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'WE30'
       it_bdcdata = lt_bdcdata ).
 
@@ -89191,7 +89220,7 @@ CLASS zcl_abapgit_object_idoc IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'BDC_OKCODE'.
     <ls_bdcdata>-fval = '=DISP'.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'WE30'
       it_bdcdata = lt_bdcdata ).
 
@@ -90827,7 +90856,7 @@ CLASS zcl_abapgit_object_g4ba IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
+CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   METHOD check_rfc_parameters.
 
 * function module RS_FUNCTIONMODULE_INSERT does the same deep down, but the right error
@@ -91915,7 +91944,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
 
     LOOP AT lt_functions ASSIGNING <ls_function> WHERE funcname = ls_item-obj_name.
       ls_item-obj_name = <ls_function>-include.
-      rv_exit = zcl_abapgit_ui_factory=>get_gui_jumper( )->jump( ls_item ).
+      rv_exit = zcl_abapgit_objects_factory=>get_gui_jumper( )->jump( ls_item ).
       IF rv_exit = abap_true.
         RETURN.
       ENDIF.
@@ -91924,7 +91953,7 @@ CLASS ZCL_ABAPGIT_OBJECT_FUGR IMPLEMENTATION.
     lt_includes = includes( ).
 
     LOOP AT lt_includes ASSIGNING <lv_include> WHERE table_line = ls_item-obj_name.
-      rv_exit = zcl_abapgit_ui_factory=>get_gui_jumper( )->jump( ls_item ).
+      rv_exit = zcl_abapgit_objects_factory=>get_gui_jumper( )->jump( ls_item ).
       IF rv_exit = abap_true.
         RETURN.
       ENDIF.
@@ -92395,7 +92424,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'RSSCF-TDFORM'.
     <ls_bdcdata>-fval = ms_item-obj_name.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SE71'
       it_bdcdata = lt_bdcdata ).
 
@@ -96582,7 +96611,7 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DOCT IMPLEMENTATION.
+CLASS zcl_abapgit_object_doct IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor(
@@ -96688,7 +96717,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOCT IMPLEMENTATION.
     ls_bcdata-fval = '=SHOW'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SE61'
       it_bdcdata = lt_bcdata ).
 
@@ -96765,7 +96794,7 @@ CLASS zcl_abapgit_object_dial IMPLEMENTATION.
     ls_bcdata-fval = '=BACK'.
     APPEND ls_bcdata TO lt_bcdata.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode      = 'SE35'
       it_bdcdata    = lt_bcdata
       iv_new_window = abap_false ).
@@ -98782,7 +98811,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS2 IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
+CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item = is_item
@@ -98889,7 +98918,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS1 IMPLEMENTATION.
     <ls_bdc_data>-fnam = 'BDC_OKCODE'.
     <ls_bdc_data>-fval = '=ACT_DISP'.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'S_CUS_ACTIVITY'
       it_bdcdata = lt_bdc_data ).
 
@@ -99416,7 +99445,7 @@ CLASS zcl_abapgit_object_cmod IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
+CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
@@ -100146,7 +100175,7 @@ CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
     ENDCASE.
 
     IF ls_item-obj_name IS NOT INITIAL.
-      rv_exit = zcl_abapgit_ui_factory=>get_gui_jumper( )->jump( ls_item ).
+      rv_exit = zcl_abapgit_objects_factory=>get_gui_jumper( )->jump( ls_item ).
     ENDIF.
 
     " Otherwise covered by ZCL_ABAPGIT_OBJECTS=>JUMP
@@ -100510,7 +100539,7 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
     ls_bdcdata-fval = '=DISP'.
     APPEND ls_bdcdata TO lt_bdcdata.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode   = 'SCDO'
       it_bdcdata = lt_bdcdata ).
 
@@ -102224,7 +102253,7 @@ CLASS zcl_abapgit_object_aqsg IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'RS38Q-NAME'.
     <ls_bdcdata>-fval = ms_item-obj_name.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode      = 'SQ02'
       it_bdcdata    = lt_bdcdata ).
 
@@ -102312,7 +102341,7 @@ CLASS zcl_abapgit_object_aqqu IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'RS38R-QNUM'.
     <ls_bdcdata>-fval = ms_item-obj_name.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode      = 'SQ01'
       it_bdcdata    = lt_bdcdata ).
 
@@ -102426,7 +102455,7 @@ CLASS zcl_abapgit_object_aqbg IMPLEMENTATION.
     <ls_bdcdata>-fnam = 'RS38S-BGNUM'.
     <ls_bdcdata>-fval = ms_item-obj_name.
 
-    zcl_abapgit_ui_factory=>get_gui_jumper( )->jump_batch_input(
+    zcl_abapgit_objects_factory=>get_gui_jumper( )->jump_batch_input(
       iv_tcode      = 'SQ03'
       it_bdcdata    = lt_bdcdata ).
 
@@ -126261,8 +126290,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-23T13:04:39.501Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-23T13:04:39.501Z`.
+* abapmerge 0.16.0 - 2023-07-23T13:07:48.735Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-23T13:07:48.735Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
