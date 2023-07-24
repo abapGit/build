@@ -4135,6 +4135,7 @@ INTERFACE zif_abapgit_objects.
   CONSTANTS:
     BEGIN OF c_deserialize_action,
       " also used to determine priority if object has multiple changes, so don't change order
+      no_support TYPE i VALUE -1,
       none       TYPE i VALUE 0,
       add        TYPE i VALUE 1,
       update     TYPE i VALUE 2,
@@ -11066,6 +11067,14 @@ CLASS zcl_abapgit_object_common_aff DEFINITION
 
     INTERFACES zif_abapgit_object
       ABSTRACT METHODS changed_by .
+
+    METHODS constructor
+      IMPORTING
+        !is_item     TYPE zif_abapgit_definitions=>ty_item
+        !iv_language TYPE spras
+      RAISING
+        zcx_abapgit_exception.
+
   PROTECTED SECTION.
     TYPES: BEGIN OF ty_extension_mapper_pair,
              extension        TYPE string,
@@ -111547,7 +111556,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_CHECK IMPLEMENTATION.
+CLASS zcl_abapgit_objects_check IMPLEMENTATION.
   METHOD checks_adjust.
 
     warning_overwrite_adjust(
@@ -111674,6 +111683,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_CHECK IMPLEMENTATION.
   METHOD warning_overwrite_find.
 
     DATA:
+      ls_item    TYPE zif_abapgit_definitions=>ty_item,
       lv_status  TYPE c LENGTH 2,
       lt_changes TYPE STANDARD TABLE OF zif_abapgit_definitions=>ty_overwrite WITH DEFAULT KEY.
 
@@ -111687,11 +111697,16 @@ CLASS ZCL_ABAPGIT_OBJECTS_CHECK IMPLEMENTATION.
       APPEND INITIAL LINE TO lt_changes ASSIGNING <ls_changes>.
       MOVE-CORRESPONDING <ls_result> TO <ls_changes>.
       <ls_changes>-devclass = <ls_result>-package.
+      MOVE-CORRESPONDING <ls_changes> TO ls_item.
 
       IF <ls_result>-packmove = abap_true.
         <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-packmove.
         <ls_changes>-icon   = icon_package_standard.
         <ls_changes>-text   = 'Change package assignment'.
+      ELSEIF zcl_abapgit_objects=>is_supported( ls_item ) = abap_false.
+        <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-no_support.
+        <ls_changes>-icon   = icon_no_status.
+        <ls_changes>-text   = 'Object type not supported'.
       ELSE.
         CONCATENATE <ls_result>-lstate <ls_result>-rstate INTO lv_status RESPECTING BLANKS.
         <ls_changes>-state = lv_status.
@@ -113488,8 +113503,48 @@ CLASS zcl_abapgit_object_eeec IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
+  METHOD constructor.
+
+    DATA:
+      lv_is_supported TYPE abap_bool,
+      li_aff_registry TYPE REF TO zif_abapgit_aff_registry,
+      lo_handler      TYPE REF TO object.
+
+    super->constructor(
+      is_item     = is_item
+      iv_language = iv_language ).
+
+    " Check if AFF handler exists and if object type is registered and supported
+    TRY.
+        lo_handler = get_object_handler( ).
+
+        CREATE OBJECT li_aff_registry TYPE zcl_abapgit_aff_registry.
+
+        lv_is_supported = li_aff_registry->is_supported_object_type( is_item-obj_type ).
+      CATCH cx_root.
+        lv_is_supported = abap_false.
+    ENDTRY.
+
+    IF lv_is_supported IS INITIAL.
+      zcx_abapgit_exception=>raise( |Object type { is_item-obj_type } is not supported by this system| ).
+    ENDIF.
+
+  ENDMETHOD.
   METHOD get_additional_extensions.
     RETURN.
+  ENDMETHOD.
+  METHOD get_object_handler.
+
+    DATA lo_handler_factory TYPE REF TO object.
+
+    CREATE OBJECT lo_handler_factory TYPE ('CL_AFF_OBJECT_HANDLER_FACTORY').
+
+    CALL METHOD lo_handler_factory->('IF_AFF_OBJECT_HANDLER_FACTORY~GET_OBJECT_HANDLER')
+      EXPORTING
+        object_type = ms_item-obj_type
+      RECEIVING
+        result      = ro_object_handler.
+
   ENDMETHOD.
   METHOD is_file_empty.
 
@@ -113760,21 +113815,6 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
           is_item = ms_item ).
     ENDTRY.
   ENDMETHOD.
-
-  METHOD get_object_handler.
-
-    DATA lo_handler_factory TYPE REF TO object.
-
-    CREATE OBJECT lo_handler_factory TYPE ('CL_AFF_OBJECT_HANDLER_FACTORY').
-
-    CALL METHOD lo_handler_factory->('IF_AFF_OBJECT_HANDLER_FACTORY~GET_OBJECT_HANDLER')
-      EXPORTING
-        object_type = ms_item-obj_type
-      RECEIVING
-        result      = ro_object_handler.
-
-  ENDMETHOD.
-
   METHOD zif_abapgit_object~exists.
     DATA: lr_intf_aff_obj    TYPE REF TO data,
           lo_object_handler  TYPE REF TO object,
@@ -126257,8 +126297,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-23T13:58:04.883Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-23T13:58:04.883Z`.
+* abapmerge 0.16.0 - 2023-07-24T20:04:00.443Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-24T20:04:00.443Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
