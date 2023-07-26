@@ -118405,19 +118405,15 @@ CLASS ZCL_ABAPGIT_CODE_INSPECTOR IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_code_inspector~list_global_variants.
 
-    DATA lt_result TYPE if_satc_ci_variant_access=>ty_variant_infos.
-    FIELD-SYMBOLS <ls_result> LIKE LINE OF lt_result.
-    FIELD-SYMBOLS <ls_list> LIKE LINE OF rt_list.
-
-    lt_result = cl_satc_db_access=>get_ci_variants_with_filter( sy-langu ).
-    SORT lt_result BY name.
-
-* convert types
-    LOOP AT lt_result ASSIGNING <ls_result>.
-      APPEND INITIAL LINE TO rt_list ASSIGNING <ls_list>.
-      <ls_list>-name = <ls_result>-name.
-      <ls_list>-description = <ls_result>-description.
-    ENDLOOP.
+    SELECT scichkv_hd~checkvname AS name
+      scichkv_tx~text AS description
+      INTO TABLE rt_list
+      FROM scichkv_hd
+      LEFT OUTER JOIN scichkv_tx
+      ON scichkv_hd~checkvid = scichkv_tx~checkvid
+      AND scichkv_hd~ciuser  = scichkv_tx~ciuser
+      AND scichkv_tx~language = sy-langu
+      WHERE scichkv_hd~ciuser = space.
 
   ENDMETHOD.
   METHOD zif_abapgit_code_inspector~run.
@@ -126436,8 +126432,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-26T06:11:45.638Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-26T06:11:45.638Z`.
+* abapmerge 0.16.0 - 2023-07-26T09:43:35.186Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-26T09:43:35.186Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
