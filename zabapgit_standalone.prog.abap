@@ -147,6 +147,7 @@ CLASS zcl_abapgit_services_git DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_basis DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_router DEFINITION DEFERRED.
+CLASS zcl_abapgit_popup_code_insp DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_tutorial DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_tags DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_syntax DEFINITION DEFERRED.
@@ -1474,6 +1475,13 @@ INTERFACE zif_abapgit_code_inspector .
 
   TYPES ty_results TYPE STANDARD TABLE OF ty_result WITH DEFAULT KEY.
 
+  TYPES: BEGIN OF ty_variant,
+           name        TYPE sci_chkv,
+           description TYPE string,
+         END OF ty_variant.
+
+  TYPES ty_variants TYPE STANDARD TABLE OF ty_variant WITH DEFAULT KEY.
+
   METHODS run
     IMPORTING
       !iv_variant    TYPE sci_chkv
@@ -1490,6 +1498,16 @@ INTERFACE zif_abapgit_code_inspector .
   METHODS get_summary
     RETURNING
       VALUE(rv_summary) TYPE string.
+
+  METHODS validate_check_variant
+    IMPORTING
+      !iv_check_variant_name TYPE sci_chkv
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS list_global_variants
+    RETURNING
+      VALUE(rt_list) TYPE ty_variants.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_ajson_types.
@@ -7681,11 +7699,7 @@ CLASS zcl_abapgit_code_inspector DEFINITION
         !iv_package TYPE devclass
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS validate_check_variant
-      IMPORTING
-        !iv_check_variant_name TYPE sci_chkv
-      RAISING
-        zcx_abapgit_exception .
+
   PROTECTED SECTION.
     DATA mv_package TYPE devclass .
 
@@ -22004,6 +22018,8 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
+    DATA mo_popup_picklist TYPE REF TO zcl_abapgit_gui_picklist.
+
     CONSTANTS:
       BEGIN OF c_id,
         local                        TYPE string VALUE 'local',
@@ -22027,11 +22043,9 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
         choose_labels              TYPE string VALUE 'choose-labels',
         choose_check_variant       TYPE string VALUE 'choose_check_variant',
       END OF c_event .
-
     DATA mo_form TYPE REF TO zcl_abapgit_html_form .
     DATA mo_form_data TYPE REF TO zcl_abapgit_string_map .
     DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map .
-
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
     DATA ms_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings .
 
@@ -22057,22 +22071,26 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
         zcx_abapgit_exception .
     METHODS choose_labels
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS choose_check_variant
+      IMPORTING
+        iv_is_return TYPE abap_bool DEFAULT abap_false
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS choose_transport_request
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS choose_customizing_request
       RAISING
-        zcx_abapgit_exception.
+        zcx_abapgit_exception .
     METHODS is_customizing_included
       RETURNING
         VALUE(rv_result) TYPE abap_bool
       RAISING
-        zcx_abapgit_exception.
-
+        zcx_abapgit_exception .
+    METHODS handle_picklist_state
+      RAISING
+        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_sett_pers DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -22686,6 +22704,28 @@ CLASS zcl_abapgit_gui_page_tutorial DEFINITION
     CLASS-METHODS build_main_menu
       RETURNING
         VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
+
+ENDCLASS.
+CLASS zcl_abapgit_popup_code_insp DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_gui_render_item .
+    INTERFACES zif_abapgit_html_popup .
+
+    CLASS-METHODS create
+      RETURNING
+        VALUE(ri_popup) TYPE REF TO zif_abapgit_html_popup .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    METHODS fetch_list
+      RETURNING
+        VALUE(rt_list) TYPE zif_abapgit_code_inspector=>ty_variants
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_router DEFINITION
@@ -37147,6 +37187,36 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_POPUP_CODE_INSP IMPLEMENTATION.
+  METHOD create.
+    CREATE OBJECT ri_popup TYPE zcl_abapgit_popup_code_insp.
+  ENDMETHOD.
+  METHOD fetch_list.
+
+    rt_list = zcl_abapgit_factory=>get_code_inspector( '$TMP' )->list_global_variants( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_render_item~render.
+
+    FIELD-SYMBOLS <ls_item> TYPE LINE OF zif_abapgit_code_inspector=>ty_variants.
+
+    ASSIGN iv_item TO <ls_item>.
+    ASSERT sy-subrc = 0.
+
+    ri_html = zcl_abapgit_html=>create( |<b>{ <ls_item>-name }</b> - { <ls_item>-description }| ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_html_popup~create_picklist.
+
+    CREATE OBJECT ro_picklist
+      EXPORTING
+        iv_title         = 'Choose Variant'
+        it_list          = fetch_list( )
+        ii_item_renderer = me.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_GUI_PAGE_TUTORIAL IMPLEMENTATION.
   METHOD build_main_menu.
 
@@ -39894,14 +39964,28 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
   METHOD choose_check_variant.
 
-    DATA: lv_check_variant TYPE sci_chkv.
+    DATA ls_variant         TYPE zif_abapgit_code_inspector=>ty_variant.
+    DATA lv_popup_cancelled TYPE abap_bool.
 
-    lv_check_variant = zcl_abapgit_ui_factory=>get_popups( )->choose_code_insp_check_variant( ).
+    IF iv_is_return = abap_false.
 
-    IF lv_check_variant IS NOT INITIAL.
-      mo_form_data->set(
-        iv_key = c_id-code_inspector_check_variant
-        iv_val = lv_check_variant ).
+      mo_popup_picklist = zcl_abapgit_popup_code_insp=>create(
+        )->create_picklist(
+        )->set_id( c_event-choose_check_variant
+        )->set_in_page( abap_false ).
+
+    ELSE.
+
+      lv_popup_cancelled = mo_popup_picklist->was_cancelled( ).
+      IF lv_popup_cancelled = abap_false.
+        mo_popup_picklist->get_result_item( CHANGING cs_selected = ls_variant ).
+        IF ls_variant IS NOT INITIAL.
+          mo_form_data->set(
+            iv_key = c_id-code_inspector_check_variant
+            iv_val = ls_variant-name ).
+        ENDIF.
+      ENDIF.
+
     ENDIF.
 
   ENDMETHOD.
@@ -40055,6 +40139,23 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
       iv_action      = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
+  METHOD handle_picklist_state.
+
+    IF mo_popup_picklist IS BOUND AND
+      ( mo_popup_picklist->is_fulfilled( ) = abap_true OR mo_popup_picklist->is_in_page( ) = abap_false ).
+      " Picklist is either fullfilled OR
+      " it was on its own page and user went back from it via F3/ESC and the picklist had no "graceful back" handler
+      CASE mo_popup_picklist->id( ).
+        WHEN c_event-choose_check_variant.
+          choose_check_variant( iv_is_return = abap_true ).
+        WHEN OTHERS.
+          zcx_abapgit_exception=>raise( |Unexpected picklist id { mo_popup_picklist->id( ) }| ).
+      ENDCASE.
+
+      CLEAR mo_popup_picklist.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD is_customizing_included.
 
     DATA lt_files TYPE zif_abapgit_definitions=>ty_files_item_tt.
@@ -40175,7 +40276,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
     lv_check_variant = to_upper( io_form_data->get( c_id-code_inspector_check_variant ) ).
     IF lv_check_variant IS NOT INITIAL.
       TRY.
-          zcl_abapgit_code_inspector=>validate_check_variant( lv_check_variant ).
+          zcl_abapgit_factory=>get_code_inspector( mo_repo->get_package( )
+            )->validate_check_variant( lv_check_variant ).
         CATCH zcx_abapgit_exception INTO lx_error.
           ro_validation_log->set(
             iv_key = c_id-code_inspector_check_variant
@@ -40226,7 +40328,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
       WHEN c_event-choose_check_variant.
 
         choose_check_variant( ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN c_event-save.
         " Validate form entries before saving
@@ -40240,10 +40341,24 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
 
     ENDCASE.
 
+    IF mo_popup_picklist IS BOUND. " Uniform popup state handling
+      " This should happen only for a new popup because
+      " on the first re-render main component event handling is blocked
+      " and not called again until the popup distruction
+      IF mo_popup_picklist->is_in_page( ) = abap_true.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      ELSE.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
+        rs_handled-page  = zcl_abapgit_gui_page_hoc=>create(
+          ii_child_component = mo_popup_picklist
+          iv_show_as_modal   = abap_true ).
+      ENDIF.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    register_handlers( ).
+    handle_picklist_state( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -40259,6 +40374,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
       io_validation_log = mo_validation_log ) ).
 
     ri_html->add( `</div>` ).
+
+    IF mo_popup_picklist IS NOT BOUND OR mo_popup_picklist->is_in_page( ) = abap_false.
+      register_handlers( ).
+    ELSEIF mo_popup_picklist->is_in_page( ) = abap_true.
+      " Block usual page events if the popup is an in-page popup
+      ri_html->add( zcl_abapgit_gui_in_page_modal=>create( mo_popup_picklist ) ).
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -118062,7 +118184,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_CODE_INSPECTOR IMPLEMENTATION.
   METHOD cleanup.
 
     IF mo_inspection IS BOUND.
@@ -118273,28 +118395,29 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
-  METHOD validate_check_variant.
-
-    cl_ci_checkvariant=>get_ref(
-      EXPORTING
-        p_user                   = ''
-        p_name                   = iv_check_variant_name
-      EXCEPTIONS
-        chkv_not_exists          = 1
-        missing_parameter        = 2
-        OTHERS                   = 3 ).
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |No valid check variant { iv_check_variant_name  }| ).
-    ENDIF.
-
-  ENDMETHOD.
   METHOD zif_abapgit_code_inspector~get_summary.
     rv_summary = mv_summary.
   ENDMETHOD.
   METHOD zif_abapgit_code_inspector~is_successful.
 
     rv_success = mv_success.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_code_inspector~list_global_variants.
+
+    DATA lt_result TYPE if_satc_ci_variant_access=>ty_variant_infos.
+    FIELD-SYMBOLS <ls_result> LIKE LINE OF lt_result.
+    FIELD-SYMBOLS <ls_list> LIKE LINE OF rt_list.
+
+    lt_result = cl_satc_db_access=>get_ci_variants_with_filter( sy-langu ).
+    SORT lt_result BY name.
+
+* convert types
+    LOOP AT lt_result ASSIGNING <ls_result>.
+      APPEND INITIAL LINE TO rt_list ASSIGNING <ls_list>.
+      <ls_list>-name = <ls_result>-name.
+      <ls_list>-description = <ls_result>-description.
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD zif_abapgit_code_inspector~run.
@@ -118348,6 +118471,22 @@ CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
     ENDTRY.
 
     mv_summary = lo_timer->end( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_code_inspector~validate_check_variant.
+
+    cl_ci_checkvariant=>get_ref(
+      EXPORTING
+        p_user                   = ''
+        p_name                   = iv_check_variant_name
+      EXCEPTIONS
+        chkv_not_exists          = 1
+        missing_parameter        = 2
+        OTHERS                   = 3 ).
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |No valid check variant { iv_check_variant_name  }| ).
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -126297,8 +126436,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-24T20:04:00.443Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-24T20:04:00.443Z`.
+* abapmerge 0.16.0 - 2023-07-26T06:11:45.638Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-26T06:11:45.638Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
