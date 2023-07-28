@@ -15725,8 +15725,6 @@ CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM 
 
   PUBLIC SECTION.
 
-    CLASS-METHODS class_constructor.
-
     METHODS constructor
       IMPORTING is_item TYPE zif_abapgit_definitions=>ty_item
       RAISING   cx_sy_create_object_error.
@@ -15734,7 +15732,9 @@ CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM 
     INTERFACES zif_abapgit_object.
   PROTECTED SECTION.
   PRIVATE SECTION.
-    DATA: mo_plugin TYPE REF TO object.
+    DATA mo_plugin TYPE REF TO object.
+
+    CLASS-METHODS initialize.
 
     " Metadata flags (late_deser, delete_tadir, and ddic) are not required by abapGit anymore
     " We keep them to stay compatible with old bridge implementation
@@ -15753,6 +15753,7 @@ CLASS zcl_abapgit_objects_bridge DEFINITION FINAL CREATE PUBLIC INHERITING FROM 
            END OF ty_s_objtype_map,
            ty_t_objtype_map TYPE SORTED TABLE OF ty_s_objtype_map WITH UNIQUE KEY obj_typ.
 
+    CLASS-DATA gv_init TYPE abap_bool.
     CLASS-DATA gt_objtype_map TYPE ty_t_objtype_map.
 
 ENDCLASS.
@@ -62889,7 +62890,7 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
           lt_cts_key          TYPE STANDARD TABLE OF e071k WITH DEFAULT KEY.
 
     FIELD-SYMBOLS <ls_object_method> LIKE LINE OF mt_object_method.
-    ls_cts_object_entry-pgmid    = seok_pgmid_r3tr.
+    ls_cts_object_entry-pgmid    = 'R3TR'.
     ls_cts_object_entry-object   = ms_item-obj_type.
     ls_cts_object_entry-obj_name = ms_item-obj_name.
     INSERT ls_cts_object_entry INTO TABLE lt_cts_object_entry.
@@ -62944,7 +62945,7 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
     IF sy-subrc = 0.
       lv_client = sy-mandt.
 
-      ls_cts_object_entry-pgmid    = seok_pgmid_r3tr.
+      ls_cts_object_entry-pgmid    = 'R3TR'.
       ls_cts_object_entry-object   = ms_item-obj_type.
       ls_cts_object_entry-obj_name = ms_item-obj_name.
       INSERT ls_cts_object_entry INTO TABLE lt_cts_object_entry.
@@ -63438,13 +63439,19 @@ CLASS zcl_abapgit_objects_factory IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
-  METHOD class_constructor.
+  METHOD initialize.
 
     DATA lt_plugin_class    TYPE STANDARD TABLE OF seoclsname WITH DEFAULT KEY.
     DATA lv_plugin_class    LIKE LINE OF lt_plugin_class.
     DATA lo_plugin          TYPE REF TO object.
     DATA lt_plugin_obj_type TYPE STANDARD TABLE OF tadir-object WITH DEFAULT KEY.
     DATA ls_objtype_map     LIKE LINE OF gt_objtype_map.
+
+    IF gv_init = abap_true.
+      RETURN.
+    ENDIF.
+    gv_init = abap_true.
+
     SELECT clsname
       FROM seometarel
       INTO TABLE lt_plugin_class
@@ -63502,6 +63509,8 @@ CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
 
     super->constructor( is_item = is_item
                         iv_language = zif_abapgit_definitions=>c_english ).
+
+    initialize( ).
 
 *    determine the responsible plugin
     READ TABLE gt_objtype_map INTO ls_objtype_map
@@ -100313,7 +100322,7 @@ CLASS zcl_abapgit_object_chdo IMPLEMENTATION.
           ls_cts_object_entry LIKE LINE OF lt_cts_object_entry,
           lt_errormsg         TYPE STANDARD TABLE OF sprot_u WITH DEFAULT KEY.
 
-    ls_cts_object_entry-pgmid    = seok_pgmid_r3tr.
+    ls_cts_object_entry-pgmid    = 'R3TR'.
     ls_cts_object_entry-object   = ms_item-obj_type.
     ls_cts_object_entry-obj_name = ms_item-obj_name.
     INSERT ls_cts_object_entry INTO TABLE lt_cts_object_entry.
@@ -126384,8 +126393,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-27T06:13:33.079Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-27T06:13:33.079Z`.
+* abapmerge 0.16.0 - 2023-07-28T04:04:44.381Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-28T04:04:44.381Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
