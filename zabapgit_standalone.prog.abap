@@ -88527,7 +88527,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
 
     " Remove technical languages
     lt_language_filter = mo_i18n_params->build_language_filter( ).
-    DELETE lt_descriptions WHERE NOT langu IN lt_language_filter.
+    DELETE lt_descriptions WHERE NOT langu IN lt_language_filter AND langu <> mv_language.
 
     IF lines( lt_descriptions ) = 0.
       RETURN.
@@ -88552,7 +88552,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
 
     " Remove technical languages
     lt_language_filter = mo_i18n_params->build_language_filter( ).
-    DELETE lt_descriptions WHERE NOT langu IN lt_language_filter.
+    DELETE lt_descriptions WHERE NOT langu IN lt_language_filter AND langu <> mv_language.
 
     IF lines( lt_descriptions ) = 0.
       RETURN.
@@ -99510,7 +99510,7 @@ CLASS zcl_abapgit_object_cmod IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_clas IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECT_CLAS IMPLEMENTATION.
   METHOD constructor.
     super->constructor( is_item     = is_item
                         iv_language = iv_language ).
@@ -99821,7 +99821,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     ENDIF.
     " Remove technical languages
     lt_language_filter = mo_i18n_params->build_language_filter( ).
-    DELETE lt_descriptions WHERE NOT langu IN lt_language_filter.
+    DELETE lt_descriptions WHERE NOT langu IN lt_language_filter AND langu <> mv_language.
 
     ii_xml->add( iv_name = 'DESCRIPTIONS'
                  ig_data = lt_descriptions ).
@@ -99846,7 +99846,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
     ENDIF.
     " Remove technical languages
     lt_language_filter = mo_i18n_params->build_language_filter( ).
-    DELETE lt_descriptions WHERE NOT langu IN lt_language_filter.
+    DELETE lt_descriptions WHERE NOT langu IN lt_language_filter AND langu <> mv_language.
 
     ii_xml->add( iv_name = 'DESCRIPTIONS_SUB'
                  ig_data = lt_descriptions ).
@@ -103994,7 +103994,8 @@ CLASS ZCL_ABAPGIT_SOTR_HANDLER IMPLEMENTATION.
         CHECK lv_sotr-entries IS NOT INITIAL.
       ENDIF.
       lt_language_filter = io_i18n_params->build_language_filter( ).
-      DELETE lv_sotr-entries WHERE NOT langu IN lt_language_filter.
+      DELETE lv_sotr-entries WHERE NOT langu IN lt_language_filter
+        AND langu <> io_i18n_params->ms_params-main_language.
       CHECK lv_sotr-entries IS NOT INITIAL.
 
       INSERT lv_sotr INTO TABLE et_sotr.
@@ -126399,8 +126400,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-07-30T12:52:11.840Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-07-30T12:52:11.840Z`.
+* abapmerge 0.16.0 - 2023-08-01T05:17:44.020Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-01T05:17:44.020Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
