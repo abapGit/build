@@ -6090,7 +6090,8 @@ CLASS zcl_abapgit_data_deserializer DEFINITION
       IMPORTING
         !iv_name         TYPE tadir-obj_name
         !it_where        TYPE string_table
-        !ir_data         TYPE REF TO data
+        !ir_lc_data      TYPE REF TO data
+        !ir_db_data      TYPE REF TO data
       RETURNING
         VALUE(rs_result) TYPE zif_abapgit_data_deserializer=>ty_result
       RAISING
@@ -6100,6 +6101,7 @@ CLASS zcl_abapgit_data_deserializer DEFINITION
         !iv_name TYPE tadir-obj_name
         !ir_del  TYPE REF TO data
         !ir_ins  TYPE REF TO data
+        !ir_upd  TYPE REF TO data
       RAISING
         zcx_abapgit_exception .
     METHODS read_database_table
@@ -123313,23 +123315,18 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
   METHOD preview_database_changes.
 
 * method currently distinguishes between records be deleted and inserted (comparison of complete record)
-* to-do: compare records based on database key of table to determine updates to existing records
-
-    DATA lr_data TYPE REF TO data.
 
     FIELD-SYMBOLS <lg_old> TYPE ANY TABLE.
     FIELD-SYMBOLS <lg_new> TYPE ANY TABLE.
     FIELD-SYMBOLS <ls_del> TYPE any.
     FIELD-SYMBOLS <ls_ins> TYPE any.
+    FIELD-SYMBOLS <ls_upd> TYPE any.
     FIELD-SYMBOLS <lg_del> TYPE ANY TABLE.
     FIELD-SYMBOLS <lg_ins> TYPE ANY TABLE.
+    FIELD-SYMBOLS <lg_upd> TYPE ANY TABLE.
 
-    lr_data = read_database_table(
-      iv_name  = iv_name
-      it_where = it_where ).
-
-    ASSIGN lr_data->* TO <lg_old>.
-    ASSIGN ir_data->* TO <lg_new>.
+    ASSIGN ir_db_data->* TO <lg_old>.
+    ASSIGN ir_lc_data->* TO <lg_new>.
 
     rs_result-type = zif_abapgit_data_config=>c_data_type-tabu.
     rs_result-name = iv_name.
@@ -123338,6 +123335,7 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
     rs_result-updates = zcl_abapgit_data_utils=>build_table_itab( iv_name ).
     ASSIGN rs_result-deletes->* TO <lg_del>.
     ASSIGN rs_result-inserts->* TO <lg_ins>.
+    ASSIGN rs_result-updates->* TO <lg_upd>.
 
     <lg_del> = <lg_old>.
     <lg_ins> = <lg_new>.
@@ -123346,6 +123344,10 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
     LOOP AT <lg_del> ASSIGNING <ls_del>.
       READ TABLE <lg_ins> ASSIGNING <ls_ins> FROM <ls_del>.
       IF sy-subrc = 0.
+        IF <ls_del> <> <ls_ins>.
+          " Identical key but not identical component values
+          INSERT <ls_ins> INTO TABLE <lg_upd>.
+        ENDIF.
         DELETE TABLE <lg_del> FROM <ls_del>.
         DELETE TABLE <lg_ins> FROM <ls_ins>.
       ENDIF.
@@ -123373,6 +123375,7 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
 
     FIELD-SYMBOLS <lg_del> TYPE ANY TABLE.
     FIELD-SYMBOLS <lg_ins> TYPE ANY TABLE.
+    FIELD-SYMBOLS <lg_upd> TYPE ANY TABLE.
 
     IF zcl_abapgit_data_utils=>does_table_exist( iv_name ) = abap_false.
       zcx_abapgit_exception=>raise( |Table { iv_name } not found for data deserialization| ).
@@ -123380,6 +123383,7 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
 
     ASSIGN ir_del->* TO <lg_del>.
     ASSIGN ir_ins->* TO <lg_ins>.
+    ASSIGN ir_upd->* TO <lg_upd>.
 
     IF lines( <lg_del> ) > 0.
       DELETE (iv_name) FROM TABLE <lg_del>.
@@ -123392,6 +123396,13 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
       INSERT (iv_name) FROM TABLE <lg_ins>.
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise( |Error inserting { lines( <lg_ins> ) } records into table { iv_name }| ).
+      ENDIF.
+    ENDIF.
+
+    IF lines( <lg_upd> ) > 0.
+      UPDATE (iv_name) FROM TABLE <lg_upd>.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Error updating { lines( <lg_upd> ) } records into table { iv_name }| ).
       ENDIF.
     ENDIF.
 
@@ -123431,11 +123442,12 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
       write_database_table(
         iv_name = ls_result-name
         ir_del  = ls_result-deletes
-        ir_ins  = ls_result-inserts ).
+        ir_ins  = ls_result-inserts
+        ir_upd  = ls_result-updates ).
 
       ASSIGN ls_result-inserts->* TO <lt_ins>.
       ASSIGN ls_result-deletes->* TO <lt_del>.
-      ASSIGN ls_result-updates->* TO <lt_upd>. " not used
+      ASSIGN ls_result-updates->* TO <lt_upd>.
 
       IF zcl_abapgit_data_utils=>is_customizing_table( ls_result-name ) = abap_true.
         IF li_cts_api IS INITIAL.
@@ -123460,10 +123472,11 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
 * this method does not persist any changes to the database
 
     DATA lt_configs TYPE zif_abapgit_data_config=>ty_config_tt.
-    DATA ls_config LIKE LINE OF lt_configs.
-    DATA lr_data  TYPE REF TO data.
-    DATA ls_file LIKE LINE OF it_files.
-    DATA ls_result LIKE LINE OF rt_result.
+    DATA ls_config  LIKE LINE OF lt_configs.
+    DATA lr_lc_data TYPE REF TO data.
+    DATA lr_db_data TYPE REF TO data.
+    DATA ls_file    LIKE LINE OF it_files.
+    DATA ls_result  LIKE LINE OF rt_result.
 
     lt_configs = ii_config->get_configs( ).
 
@@ -123471,7 +123484,7 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
       ASSERT ls_config-type = zif_abapgit_data_config=>c_data_type-tabu. " todo
       ASSERT ls_config-name IS NOT INITIAL.
 
-      lr_data = zcl_abapgit_data_utils=>build_table_itab( ls_config-name ).
+      lr_lc_data = zcl_abapgit_data_utils=>build_table_itab( ls_config-name ).
 
       READ TABLE it_files INTO ls_file
         WITH KEY file_path
@@ -123479,13 +123492,18 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
                    filename = zcl_abapgit_data_utils=>build_data_filename( ls_config ).
       IF sy-subrc = 0.
         convert_json_to_itab(
-          ir_data = lr_data
+          ir_data = lr_lc_data
           is_file = ls_file ).
 
-        ls_result = preview_database_changes(
+        lr_db_data = read_database_table(
           iv_name  = ls_config-name
-          it_where = ls_config-where
-          ir_data  = lr_data ).
+          it_where = ls_config-where ).
+
+        ls_result = preview_database_changes(
+          iv_name    = ls_config-name
+          it_where   = ls_config-where
+          ir_lc_data = lr_lc_data
+          ir_db_data = lr_db_data ).
 
         MOVE-CORRESPONDING ls_file TO ls_result-file. " data file
 
@@ -126400,8 +126418,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-01T05:17:44.020Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-01T05:17:44.020Z`.
+* abapmerge 0.16.0 - 2023-08-02T04:36:21.314Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-02T04:36:21.314Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
