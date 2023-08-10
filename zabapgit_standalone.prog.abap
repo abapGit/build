@@ -125326,6 +125326,8 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
     WRITE: / 'Background mode'.
 
     LOOP AT lt_list ASSIGNING <ls_list>.
+      CREATE OBJECT li_log TYPE zcl_abapgit_log.
+
       TRY.
           lo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( <ls_list>-key ).
           lv_repo_name = lo_repo->get_name( ).
@@ -125336,7 +125338,6 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
             iv_username = <ls_list>-username
             iv_password = <ls_list>-password ).
 
-          CREATE OBJECT li_log TYPE zcl_abapgit_log.
           CREATE OBJECT li_background TYPE (<ls_list>-method).
 
           li_background->run(
@@ -126448,8 +126449,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-10T13:57:39.918Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-10T13:57:39.918Z`.
+* abapmerge 0.16.0 - 2023-08-10T20:32:09.866Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-10T20:32:09.866Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
