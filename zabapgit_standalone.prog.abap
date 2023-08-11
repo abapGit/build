@@ -8220,12 +8220,15 @@ CLASS zcl_abapgit_aff_registry DEFINITION
     INTERFACES:
       zif_abapgit_aff_registry.
 
+    CONSTANTS c_aff_feature TYPE string VALUE 'AFF'.
+
     METHODS:
       constructor
         IMPORTING
           io_settings TYPE REF TO zcl_abapgit_settings OPTIONAL.
   PROTECTED SECTION.
   PRIVATE SECTION.
+
     TYPES:
       BEGIN OF ty_registry_entry,
         obj_type     TYPE tadir-object,
@@ -16337,6 +16340,7 @@ CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objec
         events     TYPE dokil-id VALUE 'IE',
       END OF c_longtext_id.
 
+    DATA mv_aff_enabled TYPE abap_bool.
     DATA mi_object_oriented_object_fct TYPE REF TO zif_abapgit_oo_object_fnc .
 
     METHODS deserialize_pre_ddic
@@ -24512,10 +24516,15 @@ CLASS zcl_abapgit_settings DEFINITION
         VALUE(rv_run) TYPE abap_bool .
     METHODS set_experimental_features
       IMPORTING
-        !iv_run TYPE abap_bool .
+        !iv_features TYPE string.
     METHODS get_experimental_features
       RETURNING
-        VALUE(rv_run) TYPE abap_bool .
+        VALUE(rv_features) TYPE string.
+    METHODS is_feature_enabled
+      IMPORTING
+        !iv_feature   TYPE string OPTIONAL
+      RETURNING
+        VALUE(rv_run) TYPE abap_bool.
     METHODS set_max_lines
       IMPORTING
         !iv_lines TYPE i .
@@ -24625,7 +24634,7 @@ CLASS zcl_abapgit_settings DEFINITION
              proxy_auth               TYPE string,
              proxy_bypass             TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url,
              run_critical_tests       TYPE abap_bool,
-             experimental_features    TYPE abap_bool,
+             experimental_features    TYPE string,
              commitmsg_comment_length TYPE i,
              commitmsg_comment_deflt  TYPE string,
              commitmsg_body_size      TYPE i,
@@ -24660,7 +24669,7 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_experimental_features.
     IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
-      rv_run = ms_settings-experimental_features.
+      rv_features = ms_settings-experimental_features.
     ENDIF.
   ENDMETHOD.
   METHOD get_icon_scaling.
@@ -24745,6 +24754,17 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   METHOD get_user_settings.
     rs_settings = ms_user_settings.
   ENDMETHOD.
+  METHOD is_feature_enabled.
+    DATA lt_features TYPE string_table.
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
+      rv_run = boolc( ms_settings-experimental_features = abap_true ).
+      IF iv_feature IS NOT INITIAL.
+        SPLIT ms_settings-experimental_features AT ',' INTO TABLE lt_features.
+        READ TABLE lt_features TRANSPORTING NO FIELDS WITH TABLE KEY table_line = iv_feature.
+        rv_run = boolc( rv_run = abap_true OR sy-subrc = 0 ).
+      ENDIF.
+    ENDIF.
+  ENDMETHOD.
   METHOD set_activate_wo_popup.
     ms_user_settings-activate_wo_popup = iv_act_wo_popup.
   ENDMETHOD.
@@ -24769,7 +24789,7 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
 
     set_proxy_authentication( abap_false ).
     set_run_critical_tests( abap_false ).
-    set_experimental_features( abap_false ).
+    set_experimental_features( '' ).
     set_max_lines( 500 ).
     set_adt_jump_enanbled( abap_true ).
     set_show_default_repo( abap_false ).
@@ -24784,7 +24804,7 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
     set_link_hint_key( |t| ).
   ENDMETHOD.
   METHOD set_experimental_features.
-    ms_settings-experimental_features = iv_run.
+    ms_settings-experimental_features = iv_features.
   ENDMETHOD.
   METHOD set_icon_scaling.
     ms_user_settings-icon_scaling = iv_scaling.
@@ -41091,7 +41111,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -41172,9 +41192,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
       )->checkbox(
         iv_name        = c_id-run_critical_tests
         iv_label       = 'Enable Critical Unit Tests'
-      )->checkbox(
+      )->text(
         iv_name        = c_id-experimental_features
-        iv_label       = 'Enable Experimental Features' ).
+        iv_label       = 'Experimental Features'
+        iv_hint        = 'Set to "X" to enable all features or add feature values as a comma-separated list' ).
     ENDIF.
 
     ro_form->command(
@@ -41245,7 +41266,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
         iv_val = boolc( mo_settings->get_run_critical_tests( ) = abap_true ) ) ##TYPE.
       ro_form_data->set(
         iv_key = c_id-experimental_features
-        iv_val = boolc( mo_settings->get_experimental_features( ) = abap_true ) ) ##TYPE.
+        iv_val = mo_settings->get_experimental_features( ) ).
     ENDIF.
 
   ENDMETHOD.
@@ -41295,7 +41316,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_GLOB IMPLEMENTATION.
     " Dev Internal
     IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
       mo_settings->set_run_critical_tests( boolc( mo_form_data->get( c_id-run_critical_tests ) = abap_true ) ).
-      mo_settings->set_experimental_features( boolc( mo_form_data->get( c_id-experimental_features ) = abap_true ) ).
+      mo_settings->set_experimental_features( mo_form_data->get( c_id-experimental_features ) ).
     ENDIF.
 
     " Store in DB
@@ -42861,7 +42882,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       iv_title = 'Help'
       io_sub = zcl_abapgit_gui_chunk_lib=>help_submenu( ) ).
 
-    IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) = abap_true.
+    IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) IS NOT INITIAL.
       ro_toolbar->add(
         iv_txt   = zcl_abapgit_gui_buttons=>experimental( )
         iv_title = 'Experimental Features are Enabled'
@@ -43860,7 +43881,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_title = 'Help'
       io_sub = zcl_abapgit_gui_chunk_lib=>help_submenu( ) ).
 
-    IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) = abap_true.
+    IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) IS NOT INITIAL.
       ro_toolbar->add(
         iv_txt   = zcl_abapgit_gui_buttons=>experimental( )
         iv_title = 'Experimental Features are Enabled'
@@ -88370,12 +88391,15 @@ CLASS kHGwlUKtFBXjILcBRBJOrsxFJiznPf IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
+CLASS zcl_abapgit_object_intf IMPLEMENTATION.
   METHOD constructor.
     super->constructor(
       is_item     = is_item
       iv_language = iv_language ).
     mi_object_oriented_object_fct = zcl_abapgit_oo_factory=>make( ms_item-obj_type ).
+
+    mv_aff_enabled = zcl_abapgit_persist_factory=>get_settings( )->read( )->is_feature_enabled(
+      zcl_abapgit_aff_registry=>c_aff_feature ).
   ENDMETHOD.
   METHOD deserialize_descriptions.
     DATA:  ls_clskey TYPE seoclskey.
@@ -88442,7 +88466,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
 
     DATA ls_intf TYPE ty_intf.
 
-    IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) = abap_true.
+    IF mv_aff_enabled = abap_true.
       ls_intf = read_json( ).
     ELSE.
       ii_xml->read( EXPORTING iv_name = 'VSEOINTERF'
@@ -88643,7 +88667,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
                                                    iv_clsname = ls_clskey-clsname ).
 
     " HERE: switch with feature flag for XML or JSON file format
-    IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) = abap_true.
+    IF mv_aff_enabled = abap_true.
       lv_serialized_data = kHGwlUKtFBXjILcBRBJOrsxFJiznPf=>serialize( ls_intf ).
       zif_abapgit_object~mo_files->add_raw( iv_ext  = 'json'
                                             iv_data = lv_serialized_data ).
@@ -88737,7 +88761,7 @@ CLASS ZCL_ABAPGIT_OBJECT_INTF IMPLEMENTATION.
 
     IF iv_step = zif_abapgit_object=>gc_step_id-abap.
       " HERE: switch with feature flag between XML and JSON file format
-      IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) = abap_true.
+      IF mv_aff_enabled = abap_true.
         ls_intf = read_json( ).
       ELSE.
         ls_intf = read_xml( io_xml ).
@@ -114560,7 +114584,7 @@ CLASS zcl_abapgit_aff_registry IMPLEMENTATION.
     READ TABLE gt_registry WITH TABLE KEY obj_type = iv_obj_type INTO ls_registry_entry.
     IF sy-subrc = 0 AND ls_registry_entry-experimental = abap_false.
       rv_result = abap_true.
-    ELSEIF sy-subrc = 0 AND mo_settings->get_experimental_features( ) = abap_true.
+    ELSEIF sy-subrc = 0 AND mo_settings->is_feature_enabled( c_aff_feature ) = abap_true.
       rv_result = abap_true.
     ELSE.
       rv_result = abap_false.
@@ -126449,8 +126473,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-10T20:32:09.866Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-10T20:32:09.866Z`.
+* abapmerge 0.16.0 - 2023-08-11T06:40:41.268Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-11T06:40:41.268Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
