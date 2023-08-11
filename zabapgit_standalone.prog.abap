@@ -96300,7 +96300,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
     TRY.
         li_wb_object_operator = get_wb_object_operator( ).
 
-        CALL METHOD li_object_data_model->('IF_WB_OBJECT_OPERATOR~READ')
+        CALL METHOD li_wb_object_operator->('IF_WB_OBJECT_OPERATOR~READ')
           IMPORTING
             eo_object_data = li_object_data_model.
 
@@ -126854,8 +126854,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-11T18:10:27.012Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-11T18:10:27.012Z`.
+* abapmerge 0.16.0 - 2023-08-11T18:14:54.379Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-11T18:14:54.379Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
