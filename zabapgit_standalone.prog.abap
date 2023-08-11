@@ -30815,10 +30815,16 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'function submitSapeventForm(params, action, method, form) {' ).
     lo_buf->add( '' ).
     lo_buf->add( '  function getSapeventPrefix() {' ).
+    lo_buf->add( '    // Depending on the used browser control and its version, different URL schemes' ).
+    lo_buf->add( '    // are used which we distinguish here' ).
     lo_buf->add( '    if (document.querySelector(''a[href*="file:///SAPEVENT:"]'')) {' ).
-    lo_buf->add( '      return "file:///"; //Prefix for chromium based browser control' ).
+    lo_buf->add( '      // Prefix for old (SAPGUI <= 8.00 PL3) chromium based browser control' ).
+    lo_buf->add( '      return "file:///";' ).
+    lo_buf->add( '    } else if (document.querySelector(''a[href^="sap-cust"]'')) {' ).
+    lo_buf->add( '      // Prefix for new (SAPGUI >= 8.00 PL3 Hotfix 1) chromium based browser control' ).
+    lo_buf->add( '      return "sap-cust://sap-place-holder/";' ).
     lo_buf->add( '    } else {' ).
-    lo_buf->add( '      return "";' ).
+    lo_buf->add( '      return ""; // No prefix for old IE control' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
@@ -126848,8 +126854,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-11T17:23:49.967Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-11T17:23:49.967Z`.
+* abapmerge 0.16.0 - 2023-08-11T18:10:27.012Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-11T18:10:27.012Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
