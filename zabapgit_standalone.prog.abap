@@ -111827,7 +111827,8 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
         <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-packmove.
         <ls_changes>-icon   = icon_package_standard.
         <ls_changes>-text   = 'Change package assignment'.
-      ELSEIF zcl_abapgit_objects=>is_supported( ls_item ) = abap_false.
+      ELSEIF zcl_abapgit_objects=>is_supported( ls_item ) = abap_false
+        AND ls_item-obj_type <> zif_abapgit_data_config=>c_data_type-tabu.
         <ls_changes>-action = zif_abapgit_objects=>c_deserialize_action-no_support.
         <ls_changes>-icon   = icon_no_status.
         <ls_changes>-text   = 'Object type not supported'.
@@ -126473,8 +126474,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-11T07:28:28.763Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-11T07:28:28.763Z`.
+* abapmerge 0.16.0 - 2023-08-11T17:16:28.211Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-11T17:16:28.211Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
