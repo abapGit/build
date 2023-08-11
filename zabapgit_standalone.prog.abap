@@ -41692,7 +41692,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_BCKG IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_RUNIT IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
   METHOD build_tadir.
 
     DATA lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
@@ -41843,6 +41843,13 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_RUNIT IMPLEMENTATION.
     ASSIGN COMPONENT 'ALERTS_BY_INDICIES' OF STRUCTURE <ls_task_data> TO <lt_indices>.
     ASSIGN COMPONENT 'PROGRAMS' OF STRUCTURE <ls_task_data> TO <lt_programs>.
 
+    IF <lt_programs> IS INITIAL.
+      ri_html->add( '<div class="ci-head">' ).
+      ri_html->add( 'No unit tests found' ).
+      ri_html->add( '</div>' ).
+      RETURN.
+    ENDIF.
+
     ri_html->add( |<table class="unit_tests">| ).
 
     LOOP AT <lt_indices> ASSIGNING <ls_alert_by_index>.
@@ -41872,7 +41879,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_RUNIT IMPLEMENTATION.
 
     ri_html->add( '<div class="ci-head">' ).
     ri_html->add( |Unit tests completed with <strong>{ lv_count } errors</strong> ({ mv_summary })| ).
-    ri_html->add( `</div>` ).
+    ri_html->add( '</div>' ).
 
     ri_html->add( |<hr><table class="unit_tests">| ).
 
@@ -126841,8 +126848,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-11T17:20:36.546Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-11T17:20:36.546Z`.
+* abapmerge 0.16.0 - 2023-08-11T17:23:49.967Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-11T17:23:49.967Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
