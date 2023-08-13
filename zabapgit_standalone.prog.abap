@@ -23510,6 +23510,23 @@ CLASS zcl_abapgit_convert DEFINITION
       EXPORTING
         !ev_size   TYPE i
         !et_bintab TYPE STANDARD TABLE .
+
+    CLASS-METHODS language_sap1_to_sap2
+      IMPORTING
+        im_lang_sap1        TYPE sy-langu
+      RETURNING
+        VALUE(re_lang_sap2) TYPE string
+      EXCEPTIONS
+        no_assignment.
+
+    CLASS-METHODS language_sap2_to_sap1
+      IMPORTING
+        im_lang_sap2 TYPE laiso
+      RETURNING
+        VALUE(re_lang_sap1) TYPE sy-langu
+      EXCEPTIONS
+        no_assignment.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -28163,6 +28180,60 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
     GET BIT 7 OF iv_x INTO rv_bitbyte+6(1).
     GET BIT 8 OF iv_x INTO rv_bitbyte+7(1).
 
+  ENDMETHOD.
+
+  METHOD language_sap1_to_sap2.
+
+    DATA lv_class TYPE string.
+
+    TRY.
+        SELECT SINGLE languageisocode FROM ('I_LANGUAGE')
+          INTO re_lang_sap2
+          WHERE language = im_lang_sap1.
+        IF sy-subrc <> 0.
+          RAISE no_assignment.
+        ENDIF.
+      CATCH cx_sy_dynamic_osql_error.
+        lv_class = 'CL_I18N_LANGUAGES'.
+        CALL METHOD (lv_class)=>sap1_to_sap2
+          EXPORTING
+            im_lang_sap1  = im_lang_sap1
+          RECEIVING
+            re_lang_sap2  = re_lang_sap2
+          EXCEPTIONS
+            no_assignment = 1
+            OTHERS        = 2.
+        IF sy-subrc = 1.
+          RAISE no_assignment.
+        ENDIF.
+    ENDTRY.
+  ENDMETHOD.
+
+  METHOD language_sap2_to_sap1.
+
+    DATA lv_class TYPE string.
+
+    TRY.
+        SELECT SINGLE language FROM ('I_LANGUAGE')
+          INTO re_lang_sap1
+          WHERE languageisocode = im_lang_sap2.
+        IF sy-subrc <> 0.
+          RAISE no_assignment.
+        ENDIF.
+      CATCH cx_sy_dynamic_osql_error.
+        lv_class = 'CL_I18N_LANGUAGES'.
+        CALL METHOD (lv_class)=>sap2_to_sap1
+          EXPORTING
+            im_lang_sap2  = im_lang_sap2
+          RECEIVING
+            re_lang_sap1  = re_lang_sap1
+          EXCEPTIONS
+            no_assignment = 1
+            OTHERS        = 2.
+        IF sy-subrc = 1.
+          RAISE no_assignment.
+        ENDIF.
+    ENDTRY.
   ENDMETHOD.
 ENDCLASS.
 
@@ -92779,13 +92850,9 @@ ENDCLASS.
 CLASS zcl_abapgit_object_form IMPLEMENTATION.
   METHOD build_extra_from_header.
 
-    DATA: lv_tdspras TYPE laiso.
+    DATA lv_tdspras TYPE laiso.
 
-    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_OUTPUT'
-      EXPORTING
-        input  = is_header-tdspras
-      IMPORTING
-        output = lv_tdspras.
+    lv_tdspras = zcl_abapgit_convert=>conversion_exit_isola_output( is_header-tdspras ).
 
     rv_result = c_objectname_tdlines && '_' && lv_tdspras.
 
@@ -104994,7 +105061,7 @@ CLASS ZCL_ABAPGIT_PO_FILE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_LXE_TEXTS IMPLEMENTATION.
+CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
   METHOD check_langs_versus_installed.
 
     DATA lt_installed_hash TYPE HASHED TABLE OF laiso WITH UNIQUE KEY table_line.
@@ -105234,8 +105301,12 @@ CLASS ZCL_ABAPGIT_LXE_TEXTS IMPLEMENTATION.
 
     DATA lv_lang_iso639 TYPE laiso.
     DATA lv_country     TYPE land1.
+    DATA lv_class       TYPE string.
 
-    cl_i18n_languages=>sap2_to_iso639_1(
+    lv_class = 'CL_I18N_LANGUAGES'.
+
+" cannot find a way to do this in Steampunk, so dynamic for now,
+    CALL METHOD (lv_class)=>sap2_to_iso639_1
       EXPORTING
         im_lang_sap2   = iv_src
       IMPORTING
@@ -105243,7 +105314,7 @@ CLASS ZCL_ABAPGIT_LXE_TEXTS IMPLEMENTATION.
         ex_country     = lv_country
       EXCEPTIONS
         no_assignment  = 1
-        OTHERS         = 2 ).
+        OTHERS         = 2.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Failed to convert [{ iv_src }] lang to iso639| ).
     ENDIF.
@@ -105310,7 +105381,7 @@ CLASS ZCL_ABAPGIT_LXE_TEXTS IMPLEMENTATION.
   ENDMETHOD.
   METHOD langu_to_laiso_safe.
 
-    cl_i18n_languages=>sap1_to_sap2(
+    zcl_abapgit_convert=>language_sap1_to_sap2(
       EXPORTING
         im_lang_sap1  = iv_langu
       RECEIVING
@@ -105781,7 +105852,7 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_I18N_PARAMS IMPLEMENTATION.
+CLASS zcl_abapgit_i18n_params IMPLEMENTATION.
   METHOD build_language_filter.
     IF mt_language_filter IS INITIAL.
       " translation_languages are includes, system langs are excludes, so the do not interfere
@@ -105815,7 +105886,7 @@ CLASS ZCL_ABAPGIT_I18N_PARAMS IMPLEMENTATION.
 
     LOOP AT it_iso_filter INTO lv_laiso.
 
-      cl_i18n_languages=>sap2_to_sap1(
+      zcl_abapgit_convert=>language_sap2_to_sap1(
         EXPORTING
           im_lang_sap2  = lv_laiso
         RECEIVING
@@ -105870,7 +105941,7 @@ CLASS ZCL_ABAPGIT_I18N_PARAMS IMPLEMENTATION.
         CONTINUE. " Just keep it
       ENDIF.
 
-      cl_i18n_languages=>sap1_to_sap2(
+      zcl_abapgit_convert=>language_sap1_to_sap2(
         EXPORTING
           im_lang_sap1  = <lv_langu>
         RECEIVING
@@ -105904,7 +105975,7 @@ CLASS ZCL_ABAPGIT_I18N_PARAMS IMPLEMENTATION.
     LOOP AT ct_sap_langs INTO lv_langu.
       lv_index = sy-tabix.
 
-      cl_i18n_languages=>sap1_to_sap2(
+      zcl_abapgit_convert=>language_sap1_to_sap2(
         EXPORTING
           im_lang_sap1  = lv_langu
         RECEIVING
@@ -115077,7 +115148,7 @@ CLASS kHGwlbVxgSjWYXcuzxmbrHxeswZCbe IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_JSON_HANDLER IMPLEMENTATION.
+CLASS zcl_abapgit_json_handler IMPLEMENTATION.
   METHOD deserialize.
     DATA lv_json    TYPE string.
     DATA lo_ajson   TYPE REF TO zif_abapgit_ajson.
@@ -115181,11 +115252,7 @@ CLASS ZCL_ABAPGIT_JSON_HANDLER IMPLEMENTATION.
       lv_original_language TYPE sy-langu.
     lv_original_language = co_ajson->get_string( '/header/originalLanguage' ).
 
-    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_OUTPUT'
-      EXPORTING
-        input  = lv_original_language
-      IMPORTING
-        output = lv_iso_language.
+    lv_iso_language = zcl_abapgit_convert=>conversion_exit_isola_output( lv_original_language ).
 
     TRANSLATE lv_iso_language TO LOWER CASE.
     co_ajson->set_string( iv_path = '/header/originalLanguage'
@@ -127161,8 +127228,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-12T16:23:05.535Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-12T16:23:05.535Z`.
+* abapmerge 0.16.0 - 2023-08-13T17:52:00.882Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-13T17:52:00.882Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
