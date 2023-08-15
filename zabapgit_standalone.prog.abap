@@ -3005,6 +3005,10 @@ INTERFACE zif_abapgit_frontend_services.
     RETURNING
       VALUE(rv_is_webgui) TYPE abap_bool.
 
+  METHODS open_ie_devtools
+    RAISING
+      zcx_abapgit_exception.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_definitions .
@@ -23080,9 +23084,6 @@ CLASS zcl_abapgit_services_basis DEFINITION
         VALUE(rv_package)   TYPE devclass
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS open_ie_devtools
-      RAISING
-        zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
     CLASS-METHODS raise_error_if_package_exists
@@ -35688,6 +35689,24 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
         return = rv_is_webgui.
 
   ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~open_ie_devtools.
+
+    DATA: lv_system_directory TYPE string,
+          lv_exe_full_path    TYPE string.
+
+    IF zif_abapgit_frontend_services~is_sapgui_for_windows( ) = abap_false.
+      zcx_abapgit_exception=>raise( |IE DevTools not supported on frontend OS| ).
+    ENDIF.
+
+    zif_abapgit_frontend_services~get_system_directory( CHANGING cv_system_directory = lv_system_directory ).
+
+    cl_gui_cfw=>flush( ).
+
+    lv_exe_full_path = lv_system_directory && `\F12\IEChooser.exe`.
+
+    zif_abapgit_frontend_services~execute( iv_application = lv_exe_full_path ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_frontend_services~show_file_open_dialog.
 
     DATA:
@@ -36537,24 +36556,6 @@ CLASS zcl_abapgit_services_basis IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD open_ie_devtools.
-    DATA: lv_system_directory TYPE string,
-          lv_exe_full_path    TYPE string,
-          lo_frontend_serv    TYPE REF TO zif_abapgit_frontend_services.
-
-    lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
-
-    IF lo_frontend_serv->is_sapgui_for_windows( ) = abap_false.
-      zcx_abapgit_exception=>raise( |IE DevTools not supported on frontend OS| ).
-    ENDIF.
-
-    lo_frontend_serv->get_system_directory( CHANGING cv_system_directory = lv_system_directory ).
-
-    cl_gui_cfw=>flush( ).
-
-    lv_exe_full_path = lv_system_directory && `\F12\IEChooser.exe`.
-    lo_frontend_serv->execute( iv_application = lv_exe_full_path ).
-  ENDMETHOD.
   METHOD raise_error_if_package_exists.
 
     IF iv_devclass IS INITIAL.
@@ -37172,7 +37173,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-ie_devtools.
-        zcl_abapgit_services_basis=>open_ie_devtools( ).
+        zcl_abapgit_ui_factory=>get_frontend_services( )->open_ie_devtools( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
       WHEN zif_abapgit_definitions=>c_action-clipboard.
         lv_clip_content = ii_event->query( )->get( 'CLIPBOARD' ).
@@ -127228,8 +127229,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-13T17:52:00.882Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-13T17:52:00.882Z`.
+* abapmerge 0.16.0 - 2023-08-15T14:05:03.846Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-15T14:05:03.846Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
