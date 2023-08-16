@@ -71466,8 +71466,20 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-* looks like "changed by user" is not stored in the database
-    rv_user = c_user_unknown.
+    " Changed-by-user is not stored in transaction metadata
+    " Instead, use owner of last transport or object directory
+
+    DATA lv_transport TYPE trkorr.
+
+    lv_transport = zcl_abapgit_factory=>get_cts_api( )->get_transport_for_object( ms_item ).
+
+    IF lv_transport IS NOT INITIAL.
+      SELECT SINGLE as4user FROM e070 INTO rv_user WHERE trkorr = lv_transport.
+    ELSE.
+      SELECT SINGLE author FROM tadir INTO rv_user
+        WHERE pgmid = 'R3TR' AND object = ms_item-obj_type AND obj_name = ms_item-obj_name.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -74222,7 +74234,7 @@ CLASS zcl_abapgit_object_sucu IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+    rv_user = c_user_unknown.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -76857,7 +76869,7 @@ CLASS zcl_abapgit_object_sppf IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+    rv_user = c_user_unknown.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -87588,7 +87600,7 @@ CLASS zcl_abapgit_object_iwsg IMPLEMENTATION.
     SELECT SINGLE changed_by FROM ('/IWFND/I_MED_SRH') INTO rv_user
       WHERE srv_identifier = ms_item-obj_name.
     IF sy-subrc <> 0.
-      rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+      rv_user = c_user_unknown.
     ENDIF.
 
   ENDMETHOD.
@@ -87674,7 +87686,13 @@ CLASS zcl_abapgit_object_iwpr IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+
+    SELECT SINGLE last_chg_user_id FROM ('/IWBEP/I_SBD_PR') INTO rv_user
+      WHERE project = ms_item-obj_name.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -87765,7 +87783,13 @@ CLASS zcl_abapgit_object_iwom IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+
+    SELECT SINGLE changed_by FROM ('/IWFND/I_MED_OHD') INTO rv_user
+      WHERE model_identifier = ms_item-obj_name.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -102557,7 +102581,7 @@ CLASS zcl_abapgit_object_asfc IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+    rv_user = c_user_unknown.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -102864,7 +102888,7 @@ CLASS zcl_abapgit_object_aqsg IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+    rv_user = c_user_unknown.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -102952,7 +102976,7 @@ CLASS zcl_abapgit_object_aqqu IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+    rv_user = c_user_unknown.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -103063,7 +103087,7 @@ CLASS zcl_abapgit_object_aqbg IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
     SELECT SINGLE bgunam FROM aqgdbbg INTO rv_user WHERE num = ms_item-obj_name.
     IF sy-subrc <> 0.
-      rv_user = zcl_abapgit_objects_super=>c_user_unknown.
+      rv_user = c_user_unknown.
     ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
@@ -127209,8 +127233,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-15T15:15:36.453Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-15T15:15:36.453Z`.
+* abapmerge 0.16.0 - 2023-08-16T13:02:19.095Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-16T13:02:19.095Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
