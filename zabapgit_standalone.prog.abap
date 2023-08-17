@@ -28005,7 +28005,6 @@ CLASS kHGwldKtJfHZXmphMQgfQYNhjRNkGw IMPLEMENTATION.
               source = iv_data
             RECEIVING
               result = rv_string.
-          rv_string = rv_string(iv_length).
         ELSE.
           CALL METHOD go_conv_old->('CONVERT')
             EXPORTING
@@ -127320,8 +127319,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-16T15:25:25.789Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-16T15:25:25.789Z`.
+* abapmerge 0.16.0 - 2023-08-17T06:18:43.638Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-17T06:18:43.638Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
