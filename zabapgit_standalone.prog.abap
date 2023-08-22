@@ -144,7 +144,6 @@ CLASS zcl_abapgit_password_dialog DEFINITION DEFERRED.
 CLASS zcl_abapgit_frontend_services DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_git DEFINITION DEFERRED.
-CLASS zcl_abapgit_services_basis DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_router DEFINITION DEFERRED.
 CLASS zcl_abapgit_popup_tag_list DEFINITION DEFERRED.
@@ -17243,11 +17242,6 @@ CLASS zcl_abapgit_repo DEFINITION
     METHODS bind_listener
       IMPORTING
         !ii_listener TYPE REF TO zif_abapgit_repo_listener .
-    METHODS check_and_create_package
-      IMPORTING
-        !iv_package TYPE devclass
-      RAISING
-        zcx_abapgit_exception .
     METHODS constructor
       IMPORTING
         !is_data TYPE zif_abapgit_persistence=>ty_repo .
@@ -23071,27 +23065,6 @@ CLASS zcl_abapgit_services_abapgit DEFINITION
       RAISING
         zcx_abapgit_exception.
 ENDCLASS.
-CLASS zcl_abapgit_services_basis DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS create_package
-      IMPORTING
-        !iv_prefill_package TYPE devclass OPTIONAL
-      RETURNING
-        VALUE(rv_package)   TYPE devclass
-      RAISING
-        zcx_abapgit_exception .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    CLASS-METHODS raise_error_if_package_exists
-      IMPORTING
-        iv_devclass TYPE scompkdtln-devclass
-      RAISING
-        zcx_abapgit_exception.
-ENDCLASS.
 CLASS zcl_abapgit_services_git DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -23202,7 +23175,20 @@ CLASS zcl_abapgit_services_repo DEFINITION
       RETURNING
         VALUE(ri_log) TYPE REF TO zif_abapgit_log
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
+    CLASS-METHODS create_package
+      IMPORTING
+        !iv_prefill_package TYPE devclass OPTIONAL
+      RETURNING
+        VALUE(rv_package)   TYPE devclass
+      RAISING
+        zcx_abapgit_exception.
+    CLASS-METHODS check_and_create_package
+      IMPORTING
+        !iv_package TYPE devclass
+        !it_remote  TYPE zif_abapgit_git_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -23236,6 +23222,11 @@ CLASS zcl_abapgit_services_repo DEFINITION
         !is_repo_params TYPE zif_abapgit_services_repo=>ty_repo_params
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS raise_error_if_package_exists
+      IMPORTING
+        iv_devclass TYPE scompkdtln-devclass
+      RAISING
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_frontend_services DEFINITION
   CREATE PRIVATE
@@ -35925,6 +35916,20 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     lo_repo->refresh( iv_drop_log = abap_false ).
 
   ENDMETHOD.
+  METHOD check_and_create_package.
+
+    IF zcl_abapgit_factory=>get_sap_package( iv_package )->exists( ) = abap_false.
+      " Check if any package is included in remote
+      READ TABLE it_remote TRANSPORTING NO FIELDS
+        WITH KEY file
+        COMPONENTS filename = zcl_abapgit_filename_logic=>c_package_file.
+      IF sy-subrc <> 0.
+        " If not, prompt to create it
+        create_package( iv_package ).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD check_package.
 
     DATA:
@@ -35945,6 +35950,30 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
 
     IF li_repo IS BOUND.
       zcx_abapgit_exception=>raise( lv_reason ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD create_package.
+
+    DATA ls_package_data TYPE scompkdtln.
+    DATA lv_create       TYPE abap_bool.
+    DATA li_popup        TYPE REF TO zif_abapgit_popups.
+
+    ls_package_data-devclass = condense( to_upper( iv_prefill_package ) ).
+
+    raise_error_if_package_exists( ls_package_data-devclass ).
+
+    li_popup = zcl_abapgit_ui_factory=>get_popups( ).
+
+    li_popup->popup_to_create_package(
+      IMPORTING
+        es_package_data = ls_package_data
+        ev_create       = lv_create ).
+
+    IF lv_create = abap_true.
+      zcl_abapgit_factory=>get_sap_package( ls_package_data-devclass )->create( ls_package_data ).
+      rv_package = ls_package_data-devclass.
+      COMMIT WORK AND WAIT.
     ENDIF.
 
   ENDMETHOD.
@@ -36043,6 +36072,10 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       iv_labels         = is_repo_params-labels
       iv_main_lang_only = is_repo_params-main_lang_only ).
 
+    check_and_create_package(
+      iv_package = is_repo_params-package
+      it_remote  = ro_repo->get_files_remote( ) ).
+
     " Make sure there're no leftovers from previous repos
     ro_repo->zif_abapgit_repo~checksums( )->rebuild( ).
     ro_repo->reset_status( ). " TODO refactor later
@@ -36067,6 +36100,10 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       iv_labels         = is_repo_params-labels
       iv_ign_subpkg     = is_repo_params-ignore_subpackages
       iv_main_lang_only = is_repo_params-main_lang_only ).
+
+    check_and_create_package(
+      iv_package = is_repo_params-package
+      it_remote  = ro_repo->get_files_remote( ) ).
 
     " Make sure there're no leftovers from previous repos
     ro_repo->zif_abapgit_repo~checksums( )->rebuild( ).
@@ -36310,6 +36347,17 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
 
     lv_message = |Repository { lv_repo_name } successfully uninstalled from Package { lv_package }. |.
     MESSAGE lv_message TYPE 'S'.
+
+  ENDMETHOD.
+  METHOD raise_error_if_package_exists.
+
+    IF iv_devclass IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    IF zcl_abapgit_factory=>get_sap_package( iv_devclass )->exists( ) = abap_true.
+      zcx_abapgit_exception=>raise( |Package { iv_devclass } already exists| ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD refresh.
@@ -36613,44 +36661,6 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
     lv_text = |Tag switched to { ls_tag-display_name } |.
 
     MESSAGE lv_text TYPE 'S'.
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_services_basis IMPLEMENTATION.
-  METHOD create_package.
-
-    DATA ls_package_data TYPE scompkdtln.
-    DATA lv_create       TYPE abap_bool.
-    DATA li_popup        TYPE REF TO zif_abapgit_popups.
-
-    ls_package_data-devclass = to_upper( iv_prefill_package ).
-
-    raise_error_if_package_exists( ls_package_data-devclass ).
-
-    li_popup = zcl_abapgit_ui_factory=>get_popups( ).
-
-    li_popup->popup_to_create_package(
-      IMPORTING
-        es_package_data = ls_package_data
-        ev_create       = lv_create ).
-
-    IF lv_create = abap_true.
-      zcl_abapgit_factory=>get_sap_package( ls_package_data-devclass )->create( ls_package_data ).
-      rv_package = ls_package_data-devclass.
-      COMMIT WORK.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD raise_error_if_package_exists.
-
-    IF iv_devclass IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    IF zcl_abapgit_factory=>get_sap_package( iv_devclass )->exists( ) = abap_true.
-      zcx_abapgit_exception=>raise( |Package { iv_devclass } already exists| ).
-    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -49064,7 +49074,7 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
 
         mo_form_data->set(
           iv_key = c_id-package
-          iv_val = zcl_abapgit_services_basis=>create_package(
+          iv_val = zcl_abapgit_services_repo=>create_package(
             iv_prefill_package = |{ mo_form_data->get( c_id-package ) }| ) ).
         IF mo_form_data->get( c_id-package ) IS NOT INITIAL.
           mo_validation_log = validate_form( mo_form_data ).
@@ -49146,7 +49156,7 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
   METHOD choose_labels.
 
     DATA:
@@ -49288,7 +49298,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_ADDOFFLIN IMPLEMENTATION.
 
         mo_form_data->set(
           iv_key = c_id-package
-          iv_val = zcl_abapgit_services_basis=>create_package(
+          iv_val = zcl_abapgit_services_repo=>create_package(
             iv_prefill_package = |{ mo_form_data->get( c_id-package ) }| ) ).
         IF mo_form_data->get( c_id-package ) IS NOT INITIAL.
           mo_validation_log = validate_form( mo_form_data ).
@@ -57208,7 +57218,6 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     ls_repo-local_settings-labels = iv_labels.
 
     lo_repo->set_local_settings( ls_repo-local_settings ).
-    lo_repo->check_and_create_package( iv_package ).
 
     ri_repo = lo_repo.
 
@@ -57266,9 +57275,9 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     ls_repo-local_settings-labels = iv_labels.
 
     lo_repo->set_local_settings( ls_repo-local_settings ).
+
     lo_repo->refresh( ).
     lo_repo->find_remote_dot_abapgit( ).
-    lo_repo->check_and_create_package( iv_package ).
 
     ri_repo = lo_repo.
 
@@ -58543,32 +58552,22 @@ CLASS ZCL_ABAPGIT_REPO_CHECKSUMS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD bind_listener.
     mi_listener = ii_listener.
   ENDMETHOD.
-  METHOD check_and_create_package.
+  METHOD check_abap_language_version.
 
-    DATA ls_item TYPE zif_abapgit_definitions=>ty_item.
-    DATA lv_package TYPE devclass.
+    DATA lo_abapgit_abap_language_vers TYPE REF TO zcl_abapgit_abap_language_vers.
+    DATA lv_text TYPE string.
+    CREATE OBJECT lo_abapgit_abap_language_vers.
 
-    ls_item-obj_type = 'DEVC'.
-    ls_item-obj_name = iv_package.
-
-    IF zcl_abapgit_objects=>exists( ls_item ) = abap_false.
-      " Check if any package is included in remote
-      READ TABLE mt_remote TRANSPORTING NO FIELDS
-        WITH KEY file
-        COMPONENTS filename = zcl_abapgit_filename_logic=>c_package_file.
-      IF sy-subrc <> 0.
-        " If not, prompt to create it
-        lv_package = zcl_abapgit_services_basis=>create_package( iv_package ).
-        IF lv_package IS NOT INITIAL.
-          COMMIT WORK AND WAIT.
-        ENDIF.
-      ENDIF.
+    IF lo_abapgit_abap_language_vers->is_import_allowed( io_repo = me
+                                                         iv_package = ms_data-package ) = abap_false.
+      lv_text = |Repository cannot be imported. | &&
+                |ABAP Language Version of linked package is not compatible with repository settings.|.
+      zcx_abapgit_exception=>raise( iv_text = lv_text ).
     ENDIF.
-
   ENDMETHOD.
   METHOD check_for_restart.
 
@@ -59173,19 +59172,6 @@ CLASS ZCL_ABAPGIT_REPO IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo~set_dot_abapgit.
     set( is_dot_abapgit = io_dot_abapgit->get_data( ) ).
-  ENDMETHOD.
-  METHOD check_abap_language_version.
-
-    DATA lo_abapgit_abap_language_vers TYPE REF TO zcl_abapgit_abap_language_vers.
-    DATA lv_text TYPE string.
-    CREATE OBJECT lo_abapgit_abap_language_vers.
-
-    IF lo_abapgit_abap_language_vers->is_import_allowed( io_repo = me
-                                                         iv_package = ms_data-package ) = abap_false.
-      lv_text = |Repository cannot be imported. | &&
-                |ABAP Language Version of linked package is not compatible with repository settings.|.
-      zcx_abapgit_exception=>raise( iv_text = lv_text ).
-    ENDIF.
   ENDMETHOD.
 ENDCLASS.
 
@@ -127319,8 +127305,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-17T06:18:43.638Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-17T06:18:43.638Z`.
+* abapmerge 0.16.0 - 2023-08-22T04:42:29.614Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-22T04:42:29.614Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
