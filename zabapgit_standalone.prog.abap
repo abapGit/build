@@ -63167,7 +63167,7 @@ CLASS zcl_abapgit_objects_injector IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
   METHOD after_import.
 
     DATA: lt_cts_object_entry TYPE STANDARD TABLE OF e071 WITH DEFAULT KEY,
@@ -63266,6 +63266,9 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
 * only unique tables
     SORT mt_object_table BY tobj_name ASCENDING.
     DELETE ADJACENT DUPLICATES FROM mt_object_table COMPARING tobj_name.
+
+* back to primary key table sorting,
+    SORT mt_object_table BY objectname objecttype trwcount.
 
 * object methods
     SELECT * FROM objm INTO TABLE mt_object_method
@@ -127304,8 +127307,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-23T05:23:20.098Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-23T05:23:20.098Z`.
+* abapmerge 0.16.0 - 2023-08-23T05:51:57.471Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-23T05:51:57.471Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
