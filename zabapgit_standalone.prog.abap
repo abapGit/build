@@ -64369,6 +64369,8 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
                          iv_text    = |Prepare Deserialize: { <ls_result>-obj_type } { <ls_result>-obj_name }| ).
 
       CLEAR ls_item.
+      CLEAR: lv_path, lv_package.
+
       ls_item-obj_type = <ls_result>-obj_type.
       ls_item-obj_name = <ls_result>-obj_name.
 
@@ -64462,9 +64464,6 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
               ii_xml         = lo_xml
               io_files       = lo_files ).
           ENDIF.
-
-          CLEAR: lv_path, lv_package.
-
         CATCH zcx_abapgit_exception INTO lx_exc.
           ii_log->add_exception( ix_exc = lx_exc
                                  is_item = ls_item ).
@@ -127305,8 +127304,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-22T04:42:29.614Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-22T04:42:29.614Z`.
+* abapmerge 0.16.0 - 2023-08-23T05:23:20.098Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-23T05:23:20.098Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
