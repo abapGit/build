@@ -96263,16 +96263,22 @@ CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
     super->constructor( is_item = is_item
                         iv_language = iv_language ).
 
-    CALL FUNCTION 'RS_NAME_SPLIT_NAMESPACE'
-      EXPORTING
-        name_with_namespace    = ms_item-obj_name
-      IMPORTING
-        namespace              = lv_prefix
-        name_without_namespace = lv_bare_name.
+    IF ms_item-obj_name(1) = '/'.
 
-    mv_doc_object = |{ lv_bare_name+0(4) }{ lv_prefix }{ lv_bare_name+4(*) }|.
+      CALL FUNCTION 'RS_NAME_SPLIT_NAMESPACE'
+        EXPORTING
+          name_with_namespace    = ms_item-obj_name
+        IMPORTING
+          namespace              = lv_prefix
+          name_without_namespace = lv_bare_name.
 
+      mv_doc_object = |{ lv_bare_name+0(4) }{ lv_prefix }{ lv_bare_name+4(*) }|.
+    ELSE.
+
+      mv_doc_object = ms_item-obj_name.
+    ENDIF.
   ENDMETHOD.
+
   METHOD deserialize_dsys.
 
     DATA: ls_data      TYPE ty_data,
@@ -127329,8 +127335,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-28T19:35:51.043Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-28T19:35:51.043Z`.
+* abapmerge 0.16.0 - 2023-08-28T21:57:03.900Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-28T21:57:03.900Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
