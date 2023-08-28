@@ -1259,8 +1259,7 @@ INTERFACE zif_abapgit_git_definitions .
     END OF ty_expanded .
   TYPES:
     ty_expanded_tt TYPE STANDARD TABLE OF ty_expanded WITH DEFAULT KEY
-      WITH NON-UNIQUE SORTED KEY path_name COMPONENTS path name
-      WITH NON-UNIQUE SORTED KEY path COMPONENTS path.
+      WITH NON-UNIQUE SORTED KEY path_name COMPONENTS path name.
 
   TYPES:
     BEGIN OF ty_create,
@@ -45311,7 +45310,8 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
     LOOP AT lt_files ASSIGNING <ls_file>.
       CLEAR ls_result.
       READ TABLE ls_merge-result INTO ls_result
-        WITH KEY path = <ls_file>-path name = <ls_file>-name.
+        WITH KEY path_name
+        COMPONENTS path = <ls_file>-path name = <ls_file>-name.
 
       ri_html->add( '<tr>' ).
       show_file( it_expanded = ls_merge-stree
@@ -45344,9 +45344,8 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_show> LIKE LINE OF it_expanded.
     READ TABLE it_expanded ASSIGNING <ls_show>
-        WITH KEY
-        path = is_file-path
-        name = is_file-name.
+      WITH KEY path_name
+      COMPONENTS path = is_file-path name = is_file-name.
     IF sy-subrc = 0.
       IF <ls_show>-sha1 = is_result-sha1.
         ii_html->add( |<td>{ <ls_show>-path }{ <ls_show>-name }</td><td><b>{ <ls_show>-sha1(7) }</b></td>| ).
@@ -56485,11 +56484,14 @@ CLASS zcl_abapgit_merge IMPLEMENTATION.
       UNASSIGN <ls_common>.
 
       READ TABLE ms_merge-stree ASSIGNING <ls_source>
-        WITH KEY path = <ls_file>-path name = <ls_file>-name. "#EC CI_SUBRC
+        WITH KEY path_name
+        COMPONENTS path = <ls_file>-path name = <ls_file>-name. "#EC CI_SUBRC
       READ TABLE ms_merge-ttree ASSIGNING <ls_target>
-        WITH KEY path = <ls_file>-path name = <ls_file>-name. "#EC CI_SUBRC
+        WITH KEY path_name
+        COMPONENTS path = <ls_file>-path name = <ls_file>-name. "#EC CI_SUBRC
       READ TABLE ms_merge-ctree ASSIGNING <ls_common>
-        WITH KEY path = <ls_file>-path name = <ls_file>-name. "#EC CI_SUBRC
+        WITH KEY path_name
+        COMPONENTS path = <ls_file>-path name = <ls_file>-name. "#EC CI_SUBRC
 
       lv_found_source = boolc( <ls_source> IS ASSIGNED ).
       lv_found_target = boolc( <ls_target> IS ASSIGNED ).
@@ -56743,8 +56745,9 @@ CLASS zcl_abapgit_merge IMPLEMENTATION.
       READ TABLE mt_conflicts ASSIGNING <ls_conflict> WITH KEY path = is_conflict-path
                                                                filename = is_conflict-filename.
       IF sy-subrc = 0.
-        READ TABLE ms_merge-result ASSIGNING <ls_result> WITH KEY path = is_conflict-path
-                                                                  name = is_conflict-filename.
+        READ TABLE ms_merge-result ASSIGNING <ls_result>
+          WITH KEY path_name
+          COMPONENTS path = is_conflict-path name = is_conflict-filename.
         IF sy-subrc = 0.
           <ls_result>-sha1 = is_conflict-result_sha1.
 
@@ -121576,7 +121579,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
       CLEAR lt_nodes.
 
 * files
-      LOOP AT it_expanded ASSIGNING <ls_exp> USING KEY path WHERE path = <ls_folder>-path.
+      LOOP AT it_expanded ASSIGNING <ls_exp> USING KEY path_name WHERE path = <ls_folder>-path.
         APPEND INITIAL LINE TO lt_nodes ASSIGNING <ls_node>.
         <ls_node>-chmod = <ls_exp>-chmod.
         <ls_node>-name  = <ls_exp>-name.
@@ -127326,8 +127329,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-28T14:52:38.167Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-28T14:52:38.167Z`.
+* abapmerge 0.16.0 - 2023-08-28T19:35:51.043Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-28T19:35:51.043Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
