@@ -28342,7 +28342,6 @@ CLASS zcl_abapgit_abap_language_vers IMPLEMENTATION.
     lv_class = 'CL_ABAP_LANGUAGE_VERSION_CFG'.
 
     TRY.
-        CREATE OBJECT lo_abap_language_version_cfg TYPE ('IF_ABAP_LANGUAGE_VERSION_CFG').
 
         CALL METHOD (lv_class)=>('GET_INSTANCE')
           RECEIVING
@@ -28373,20 +28372,18 @@ CLASS zcl_abapgit_abap_language_vers IMPLEMENTATION.
     DATA lv_class TYPE string.
     DATA lo_abap_language_version TYPE REF TO object.
 
-    lv_class = 'CL_ABAP_LANGUAGE_VERSION_CFG'.
+    lv_class = 'CL_ABAP_LANGUAGE_VERSION'.
 
     TRY.
 
-        CREATE OBJECT lo_abap_language_version TYPE ('IF_ABAP_LANGUAGE_VERSION').
-
         CALL METHOD (lv_class)=>('GET_INSTANCE')
           RECEIVING
-            ro_instance = lo_abap_language_version.
+            ro_version_handler = lo_abap_language_version.
 
         CALL METHOD lo_abap_language_version->('IF_ABAP_LANGUAGE_VERSION~GET_DEFAULT_VERSION')
           EXPORTING
             iv_object_type     = iv_object_type
-            iv_package_name    = iv_package
+            iv_package         = iv_package
           RECEIVING
             rv_default_version = rv_allowed_abap_langu_version.
 
@@ -127329,8 +127326,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-28T14:49:29.211Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-28T14:49:29.211Z`.
+* abapmerge 0.16.0 - 2023-08-28T14:52:38.167Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-28T14:52:38.167Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
