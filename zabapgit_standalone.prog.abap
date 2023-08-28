@@ -122628,11 +122628,9 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
     li_progress = zcl_abapgit_progress=>get_instance( lv_objects_total ).
 
     LOOP AT it_objects ASSIGNING <ls_object>.
-      IF sy-tabix MOD 200 = 0.
-        li_progress->show(
-          iv_current = sy-tabix
-          iv_text    = |Encoding objects ( { sy-tabix } of { lv_objects_total } )| ).
-      ENDIF.
+      li_progress->show(
+        iv_current = sy-tabix
+        iv_text    = |Encoding objects ( { sy-tabix } of { lv_objects_total } )| ).
 
       lv_xstring = type_and_length(
         iv_type   = <ls_object>-type
@@ -127326,8 +127324,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-25T05:18:49.861Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-25T05:18:49.861Z`.
+* abapmerge 0.16.0 - 2023-08-28T04:53:45.305Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-28T04:53:45.305Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
