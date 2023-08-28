@@ -1258,7 +1258,9 @@ INTERFACE zif_abapgit_git_definitions .
       chmod TYPE ty_chmod,
     END OF ty_expanded .
   TYPES:
-    ty_expanded_tt TYPE STANDARD TABLE OF ty_expanded WITH DEFAULT KEY .
+    ty_expanded_tt TYPE STANDARD TABLE OF ty_expanded WITH DEFAULT KEY
+      WITH NON-UNIQUE SORTED KEY path_name COMPONENTS path name
+      WITH NON-UNIQUE SORTED KEY path COMPONENTS path.
 
   TYPES:
     BEGIN OF ty_create,
@@ -121577,7 +121579,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
       CLEAR lt_nodes.
 
 * files
-      LOOP AT it_expanded ASSIGNING <ls_exp> WHERE path = <ls_folder>-path.
+      LOOP AT it_expanded ASSIGNING <ls_exp> USING KEY path WHERE path = <ls_folder>-path.
         APPEND INITIAL LINE TO lt_nodes ASSIGNING <ls_node>.
         <ls_node>-chmod = <ls_exp>-chmod.
         <ls_node>-name  = <ls_exp>-name.
@@ -121906,7 +121908,7 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
 
           APPEND <ls_stage>-file TO lt_blobs.
 
-          READ TABLE lt_expanded ASSIGNING <ls_exp> WITH KEY
+          READ TABLE lt_expanded ASSIGNING <ls_exp> WITH TABLE KEY path_name COMPONENTS
             name = <ls_stage>-file-filename
             path = <ls_stage>-file-path.
           IF sy-subrc <> 0. " new files
@@ -121924,17 +121926,20 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
           <ls_updated>-sha1 = lv_sha1.   "New sha1
 
         WHEN zif_abapgit_definitions=>c_method-rm.
-          DELETE lt_expanded
-            WHERE name = <ls_stage>-file-filename
-            AND path = <ls_stage>-file-path.
+          READ TABLE lt_expanded ASSIGNING <ls_exp> WITH TABLE KEY path_name COMPONENTS
+            name = <ls_stage>-file-filename
+            path = <ls_stage>-file-path.
           ASSERT sy-subrc = 0.
 
+          CLEAR <ls_exp>-sha1.           " Mark as deleted
           CLEAR <ls_updated>-sha1.       " Mark as deleted
 
         WHEN OTHERS.
           zcx_abapgit_exception=>raise( 'stage method not supported, todo' ).
       ENDCASE.
     ENDLOOP.
+
+    DELETE lt_expanded WHERE sha1 IS INITIAL.
 
     lt_trees = build_trees( lt_expanded ).
 
@@ -127324,8 +127329,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-28T04:53:45.305Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-28T04:53:45.305Z`.
+* abapmerge 0.16.0 - 2023-08-28T14:49:29.211Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-28T14:49:29.211Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
