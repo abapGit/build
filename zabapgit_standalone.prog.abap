@@ -96254,7 +96254,7 @@ CLASS zcl_abapgit_object_dtdc IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
+CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
   METHOD constructor.
 
     DATA: lv_prefix    TYPE namespace,
@@ -96277,8 +96277,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DSYS IMPLEMENTATION.
 
       mv_doc_object = ms_item-obj_name.
     ENDIF.
-  ENDMETHOD.
 
+  ENDMETHOD.
   METHOD deserialize_dsys.
 
     DATA: ls_data      TYPE ty_data,
@@ -127335,8 +127335,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-28T21:57:03.900Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-28T21:57:03.900Z`.
+* abapmerge 0.16.0 - 2023-08-28T22:55:15.628Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-28T22:55:15.628Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
