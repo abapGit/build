@@ -63188,7 +63188,7 @@ CLASS zcl_abapgit_objects_injector IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
+CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
   METHOD after_import.
 
     DATA: lt_cts_object_entry TYPE STANDARD TABLE OF e071 WITH DEFAULT KEY,
@@ -63275,7 +63275,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Not found in OBJH, or not supported' ).
     ENDIF.
 
-* object tables
+    " object tables
     SELECT * FROM objsl INTO CORRESPONDING FIELDS OF TABLE mt_object_table
       WHERE objectname = is_item-obj_type
       AND objecttype = lc_logical_transport_object
@@ -63284,14 +63284,13 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
     IF mt_object_table IS INITIAL.
       zcx_abapgit_exception=>raise( |Obviously corrupted object-type { is_item-obj_type }: No tables defined| ).
     ENDIF.
-* only unique tables
-    SORT mt_object_table BY tobj_name ASCENDING.
-    DELETE ADJACENT DUPLICATES FROM mt_object_table COMPARING tobj_name.
 
-* back to primary key table sorting,
-    SORT mt_object_table BY objectname objecttype trwcount.
+    " remove duplicate table/table-key entries
+    " same table with different keys is ok
+    SORT mt_object_table BY tobj_name tobjkey.
+    DELETE ADJACENT DUPLICATES FROM mt_object_table COMPARING tobj_name tobjkey.
 
-* object methods
+    " object methods
     SELECT * FROM objm INTO TABLE mt_object_method
       WHERE objectname = is_item-obj_type
       AND objecttype = lc_logical_transport_object
@@ -63476,11 +63475,18 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
   METHOD get_primary_table.
 
     DATA: ls_object_table LIKE LINE OF mt_object_table.
-    READ TABLE mt_object_table INTO ls_object_table WITH KEY prim_table = abap_true.
+    DATA: lt_object_table LIKE mt_object_table.
+
+    " There might be several tables marked as "primary"
+    " Sort by DB key so we get first one in the list
+    lt_object_table = mt_object_table.
+    SORT lt_object_table.
+
+    READ TABLE lt_object_table INTO ls_object_table WITH KEY prim_table = abap_true.
     IF sy-subrc <> 0.
-*    Fallback. For some objects, no primary table is explicitly flagged
-*    The, the one with only one key field shall be chosen
-      READ TABLE mt_object_table INTO ls_object_table WITH KEY tobjkey = '/&'. "#EC CI_SUBRC
+      " Fallback. For some objects, no primary table is explicitly flagged
+      " Then, the one with only one key field shall be chosen
+      READ TABLE lt_object_table INTO ls_object_table WITH KEY tobjkey = '/&'. "#EC CI_SUBRC
     ENDIF.
     IF ls_object_table IS INITIAL.
       zcx_abapgit_exception=>raise( |Object { ms_item-obj_type } has got no defined primary table| ).
@@ -63548,7 +63554,6 @@ CLASS ZCL_ABAPGIT_OBJECTS_GENERIC IMPLEMENTATION.
           lv_objkey_pos = lv_objkey_pos + 1.
 *       object name
         ELSEIF <ls_object_table>-tobjkey+lv_next_objkey_pos(1) = '&'.
-          "TODO
           ls_objkey-value = ms_item-obj_name.
 *    The object name might comprise multiple key components (e. g. WDCC)
 *    This string needs to be split
@@ -127333,8 +127338,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-29T10:28:33.279Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-29T10:28:33.279Z`.
+* abapmerge 0.16.0 - 2023-08-29T20:30:50.648Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-29T20:30:50.648Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
