@@ -126344,8 +126344,6 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
     ls_data = from_xml( lv_xml ).
 
     ro_manifest_reader = create_instance( iv_package_name ).
-
-    ro_manifest_reader = create_instance( iv_package_name ).
     ro_manifest_reader->set_manifest_descriptor( ls_data ).
 
   ENDMETHOD.
@@ -127335,8 +127333,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-29T05:47:35.570Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-29T05:47:35.570Z`.
+* abapmerge 0.16.0 - 2023-08-29T05:53:46.143Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-29T05:53:46.143Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
