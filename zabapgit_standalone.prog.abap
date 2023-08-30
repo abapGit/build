@@ -17191,20 +17191,12 @@ CLASS zcl_abapgit_repo DEFINITION
         !ct_files TYPE zif_abapgit_git_definitions=>ty_files_tt
       RAISING
         zcx_abapgit_exception .
-    METHODS reset_status .
     METHODS set_files_remote
       IMPORTING
         !it_files TYPE zif_abapgit_git_definitions=>ty_files_tt .
     METHODS set_local_settings
       IMPORTING
         !is_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
-      RAISING
-        zcx_abapgit_exception .
-    METHODS status
-      IMPORTING
-        !ii_log           TYPE REF TO zif_abapgit_log OPTIONAL
-      RETURNING
-        VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
       RAISING
         zcx_abapgit_exception .
     METHODS switch_repo_type
@@ -17218,7 +17210,6 @@ CLASS zcl_abapgit_repo DEFINITION
     DATA mt_remote TYPE zif_abapgit_git_definitions=>ty_files_tt .
     DATA mv_request_local_refresh TYPE abap_bool .
     DATA mv_request_remote_refresh TYPE abap_bool .
-    DATA mt_status TYPE zif_abapgit_definitions=>ty_results_tt .
     DATA mi_log TYPE REF TO zif_abapgit_log .
     DATA mi_listener TYPE REF TO zif_abapgit_repo_listener .
     DATA mo_apack_reader TYPE REF TO zcl_abapgit_apack_reader .
@@ -36091,7 +36082,6 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
 
     " Make sure there're no leftovers from previous repos
     ro_repo->zif_abapgit_repo~checksums( )->rebuild( ).
-    ro_repo->reset_status( ). " TODO refactor later
 
     toggle_favorite( ro_repo->get_key( ) ).
 
@@ -36120,7 +36110,6 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
 
     " Make sure there're no leftovers from previous repos
     ro_repo->zif_abapgit_repo~checksums( )->rebuild( ).
-    ro_repo->reset_status( ). " TODO refactor later
 
     toggle_favorite( ro_repo->get_key( ) ).
 
@@ -36415,7 +36404,6 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     ENDIF.
 
     lo_repo->zif_abapgit_repo~checksums( )->rebuild( ).
-    lo_repo->reset_status( ). " TODO refactor later
 
     COMMIT WORK AND WAIT.
 
@@ -45891,8 +45879,8 @@ CLASS zcl_abapgit_gui_page_diff IMPLEMENTATION.
 
     lt_remote = mo_repo->get_files_remote( ).
     lt_local  = mo_repo->get_files_local( ).
-    mo_repo->reset_status( ).
-    lt_status = mo_repo->status( ).
+
+    lt_status = zcl_abapgit_repo_status=>calculate( mo_repo ).
 
     li_exit = zcl_abapgit_exit=>get_instance( ).
     li_exit->pre_calculate_repo_status(
@@ -56363,7 +56351,8 @@ CLASS zcl_abapgit_stage_logic IMPLEMENTATION.
 
     rs_files-local  = io_repo->get_files_local( ii_obj_filter = ii_obj_filter ).
     rs_files-remote = io_repo->get_files_remote( ii_obj_filter ).
-    rs_files-status = io_repo->status( ).
+    rs_files-status = zcl_abapgit_repo_status=>calculate( io_repo ).
+
     remove_identical( CHANGING cs_files = rs_files ).
     remove_ignored( EXPORTING io_repo  = io_repo
                     CHANGING  cs_files = rs_files ).
@@ -58342,8 +58331,6 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
 
     zif_abapgit_repo~checksums( )->update( ls_push-updated_files ).
 
-    reset_status( ).
-
   ENDMETHOD.
   METHOD zif_abapgit_repo_online~select_branch.
 
@@ -58755,7 +58742,9 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_status>    LIKE LINE OF lt_status,
                    <ls_repo_item> LIKE LINE OF rt_repo_items.
-    lt_status = mo_repo->status( mi_log ).
+    lt_status = zcl_abapgit_repo_status=>calculate(
+      io_repo = mo_repo
+      ii_log  = mi_log ).
 
     LOOP AT lt_status ASSIGNING <ls_status>.
       AT NEW obj_name. "obj_type + obj_name
@@ -59637,10 +59626,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   METHOD reset_remote.
     CLEAR mt_remote.
     mv_request_remote_refresh = abap_true.
-    reset_status( ).
-  ENDMETHOD.
-  METHOD reset_status.
-    CLEAR mt_status.
   ENDMETHOD.
   METHOD set.
 
@@ -59723,16 +59708,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     set( is_local_settings = is_settings ).
 
   ENDMETHOD.
-  METHOD status.
-
-    IF lines( mt_status ) = 0.
-      mt_status = zcl_abapgit_repo_status=>calculate( io_repo = me
-                                                      ii_log  = ii_log ).
-    ENDIF.
-
-    rt_results = mt_status.
-
-  ENDMETHOD.
   METHOD switch_repo_type.
 
     IF iv_offline = ms_data-offline.
@@ -59811,7 +59786,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     zif_abapgit_repo~checksums( )->update( lt_updated_files ).
 
     update_last_deserialize( ).
-    reset_status( ).
 
     COMMIT WORK AND WAIT.
 
@@ -124903,7 +124877,7 @@ CLASS zcl_abapgit_transport_mass IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_TRANSPORT_2_BRANCH IMPLEMENTATION.
+CLASS zcl_abapgit_transport_2_branch IMPLEMENTATION.
   METHOD create.
     DATA:
       lv_branch_name     TYPE string,
@@ -124921,7 +124895,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT_2_BRANCH IMPLEMENTATION.
 
     ls_stage_objects = zcl_abapgit_factory=>get_stage_logic( )->get( io_repository ).
 
-    lt_object_statuses = io_repository->status( ).
+    lt_object_statuses = zcl_abapgit_repo_status=>calculate( io_repository ).
 
     stage_transport_objects(
        it_transport_objects = it_transport_objects
@@ -127338,8 +127312,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-29T20:30:50.648Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-29T20:30:50.648Z`.
+* abapmerge 0.16.0 - 2023-08-30T14:55:16.881Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-30T14:55:16.881Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
