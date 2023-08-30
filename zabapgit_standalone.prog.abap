@@ -2214,22 +2214,6 @@ INTERFACE zif_abapgit_field_rules .
       ct_data    TYPE STANDARD TABLE.
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_sap_namespace .
-
-  METHODS exists
-    IMPORTING
-      iv_namespace TYPE trnspace-namespace
-    RETURNING
-      VALUE(rv_yes) TYPE abap_bool.
-
-  METHODS is_editable
-    IMPORTING
-      iv_namespace TYPE trnspace-namespace
-    RETURNING
-      VALUE(rv_yes) TYPE abap_bool.
-
-ENDINTERFACE.
-
 INTERFACE zif_abapgit_lxe_texts .
 
   TYPES:
@@ -3021,6 +3005,11 @@ INTERFACE zif_abapgit_definitions .
       obj_name TYPE tadir-obj_name,
       devclass TYPE devclass,
     END OF ty_item_signature .
+  TYPES:
+    BEGIN OF ty_obj_namespace,
+      namespace TYPE trnspace-namespace,
+      obj_without_namespace  TYPE tadir-obj_name,
+    END OF ty_obj_namespace.
   TYPES:
     BEGIN OF ty_item.
       INCLUDE TYPE ty_item_signature.
@@ -3835,6 +3824,31 @@ INTERFACE zif_abapgit_oo_object_fnc.
         iv_object_name       TYPE seoclsname
       RETURNING
         VALUE(rt_attributes) TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_sap_namespace .
+
+  METHODS exists
+    IMPORTING
+      iv_namespace  TYPE trnspace-namespace
+    RETURNING
+      VALUE(rv_yes) TYPE abap_bool.
+
+  METHODS is_editable
+    IMPORTING
+      iv_namespace  TYPE trnspace-namespace
+    RETURNING
+      VALUE(rv_yes) TYPE abap_bool.
+
+  METHODS split_by_name
+    IMPORTING
+      iv_obj_with_namespace   TYPE tadir-obj_name
+      iv_allow_slash_in_name  TYPE abap_bool DEFAULT abap_true
+    RETURNING
+      VALUE(rs_obj_namespace) TYPE zif_abapgit_definitions=>ty_obj_namespace
+    RAISING
+      zcx_abapgit_exception.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_sap_package .
@@ -106599,7 +106613,7 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SAP_NAMESPACE IMPLEMENTATION.
+CLASS zcl_abapgit_sap_namespace IMPLEMENTATION.
   METHOD zif_abapgit_sap_namespace~exists.
     DATA lv_editflag TYPE trnspace-editflag.
     SELECT SINGLE editflag FROM trnspace INTO lv_editflag WHERE namespace = iv_namespace.
@@ -106610,6 +106624,37 @@ CLASS ZCL_ABAPGIT_SAP_NAMESPACE IMPLEMENTATION.
     SELECT SINGLE editflag FROM trnspace INTO lv_editflag WHERE namespace = iv_namespace.
     rv_yes = boolc( sy-subrc = 0 AND lv_editflag = 'X' ).
   ENDMETHOD.
+  METHOD zif_abapgit_sap_namespace~split_by_name.
+* use this method instead of function module RS_NAME_SPLIT_NAMESPACE
+    DATA lv_regex TYPE string.
+    DATA lv_object TYPE string.
+    DATA lv_length TYPE i.
+    DATA lr_ex TYPE REF TO cx_root.
+
+    lv_regex =  '^\/[^\/]{1,8}\/'.
+
+    TRY.
+        FIND REGEX lv_regex IN iv_obj_with_namespace MATCH LENGTH lv_length.
+      CATCH cx_root INTO lr_ex.
+        zcx_abapgit_exception=>raise( lr_ex->get_text( ) ).
+    ENDTRY.
+
+    IF sy-subrc = 0 AND lv_length > 1.
+      rs_obj_namespace-namespace = iv_obj_with_namespace(lv_length).
+      rs_obj_namespace-obj_without_namespace = iv_obj_with_namespace+lv_length.
+    ELSE.
+      IF iv_obj_with_namespace(1) = '/'.
+        zcx_abapgit_exception=>raise( |The object { iv_obj_with_namespace } has an invalid namespace| ).
+      ENDIF.
+      rs_obj_namespace-obj_without_namespace = iv_obj_with_namespace.
+    ENDIF.
+
+    IF iv_allow_slash_in_name = abap_false AND rs_obj_namespace-obj_without_namespace CA '/'.
+      zcx_abapgit_exception=>raise(
+       |Object without namespace { rs_obj_namespace-obj_without_namespace } contains a '/'| ).
+    ENDIF.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_FIELD_RULES IMPLEMENTATION.
@@ -111407,32 +111452,27 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
   ENDMETHOD.
   METHOD add_namespace.
 
-    DATA:
-      lv_name      TYPE progname,
-      lv_namespace TYPE namespace.
+    DATA ls_tadir  TYPE zif_abapgit_definitions=>ty_tadir.
+    DATA ls_obj_with_namespace TYPE zif_abapgit_definitions=>ty_obj_namespace.
 
     FIELD-SYMBOLS <ls_tadir> LIKE LINE OF ct_tadir.
 
-    lv_name = iv_object.
+    TRY.
+        ls_obj_with_namespace = zcl_abapgit_factory=>get_sap_namespace(  )->split_by_name( iv_object ).
+      CATCH zcx_abapgit_exception.
+        "Ignore the exception like before the replacement of the FM RS_NAME_SPLIT_NAMESPACE
+        RETURN.
+    ENDTRY.
 
-    CALL FUNCTION 'RS_NAME_SPLIT_NAMESPACE'
-      EXPORTING
-        name_with_namespace = lv_name
-      IMPORTING
-        namespace           = lv_namespace
-      EXCEPTIONS
-        delimiter_error     = 1
-        OTHERS              = 2.
-
-    IF sy-subrc = 0 AND lv_namespace IS NOT INITIAL.
+    IF ls_obj_with_namespace-namespace IS NOT INITIAL.
 
       READ TABLE ct_tadir TRANSPORTING NO FIELDS
-        WITH KEY pgmid = 'R3TR' object = 'NSPC' obj_name = lv_namespace.
+        WITH KEY pgmid = 'R3TR' object = 'NSPC' obj_name = ls_obj_with_namespace-namespace.
       IF sy-subrc <> 0.
         APPEND INITIAL LINE TO ct_tadir ASSIGNING <ls_tadir>.
         <ls_tadir>-pgmid      = 'R3TR'.
         <ls_tadir>-object     = 'NSPC'.
-        <ls_tadir>-obj_name   = lv_namespace.
+        <ls_tadir>-obj_name   = ls_obj_with_namespace-namespace.
         <ls_tadir>-devclass   = iv_package.
         <ls_tadir>-srcsystem  = sy-sysid.
         <ls_tadir>-masterlang = sy-langu.
@@ -127312,8 +127352,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-30T14:55:16.881Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-30T14:55:16.881Z`.
+* abapmerge 0.16.0 - 2023-08-30T15:02:15.304Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-30T15:02:15.304Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
