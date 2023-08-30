@@ -56979,10 +56979,9 @@ CLASS kHGwlVCHrsAtuwxHoXzuQzYvAOqpyr IMPLEMENTATION.
   METHOD check_namespace.
 
     DATA:
-      li_namespace       TYPE REF TO zif_abapgit_sap_namespace,
-      lv_namespace       TYPE namespace,
-      lt_namespace       TYPE TABLE OF namespace,
-      lv_namespace_found TYPE abap_bool.
+      li_namespace TYPE REF TO zif_abapgit_sap_namespace,
+      lv_namespace TYPE namespace,
+      lt_namespace TYPE TABLE OF namespace.
 
     FIELD-SYMBOLS <ls_result> LIKE LINE OF it_results.
 
@@ -57003,10 +57002,6 @@ CLASS kHGwlVCHrsAtuwxHoXzuQzYvAOqpyr IMPLEMENTATION.
     li_namespace = zcl_abapgit_factory=>get_sap_namespace( ).
 
     LOOP AT lt_namespace INTO lv_namespace.
-      IF iv_root_package CS lv_namespace.
-        lv_namespace_found = abap_true.
-      ENDIF.
-
       IF li_namespace->exists( lv_namespace ) = abap_false.
         mi_log->add_warning( |Namespace { lv_namespace } does not exist.|
           && | Pull it first (or create it in transaction SE03)| ).
@@ -57014,11 +57009,6 @@ CLASS kHGwlVCHrsAtuwxHoXzuQzYvAOqpyr IMPLEMENTATION.
         mi_log->add_warning( |Namespace { lv_namespace } is not modifiable. Check it in transaction SE03| ).
       ENDIF.
     ENDLOOP.
-
-    IF lt_namespace IS NOT INITIAL AND lv_namespace_found = abap_false.
-      mi_log->add_error( |Package { iv_root_package } is not part of the contained namespaces.|
-          && | Remove repository and use a different package| ).
-    ENDIF.
 
   ENDMETHOD.
   METHOD check_package_folder.
@@ -127352,8 +127342,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-30T15:02:15.304Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-30T15:02:15.304Z`.
+* abapmerge 0.16.0 - 2023-08-30T15:09:09.974Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-30T15:09:09.974Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
