@@ -113453,19 +113453,21 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
             lv_len = strlen( lv_parentcl ).
 
             IF iv_package(lv_len) <> lv_parentcl.
-* if abapGit project is installed in package ZZZ, all subpackages should be named
-* ZZZ_something. This will define the folder name in the zip file to be "something",
-* similarily with online projects. Alternatively change to FULL folder logic
-              lv_message = 'PREFIX: Unexpected package naming (' && iv_package && ')'
-                           && 'you might switch the folder logic'.
+              " If abapGit project is installed in package ZZZ, all subpackages should be named
+              " ZZZ_something. This will define the folder name in the zip file to be "something",
+              " similarily with online projects. Alternatively change to FULL folder logic
+              lv_message = |PREFIX: Unexpected package naming |
+                        && |(top: { iv_top }, parent: { lv_parentcl }, child: { iv_package }). |
+                        && |Try using the folder logic FULL|.
               zcx_abapgit_exception=>raise( lv_message ).
             ENDIF.
           WHEN zif_abapgit_dot_abapgit=>c_folder_logic-mixed.
             lv_len = strlen( iv_top ).
 
             IF iv_package(lv_len) <> iv_top.
-              lv_message = 'MIXED: Unexpected package naming (' && iv_package && ')'
-                           && 'you might switch the folder logic'.
+              lv_message = |MIXED: Unexpected package naming |
+                        && |(top: { iv_top }, parent: { lv_parentcl }, child: { iv_package }). |
+                        && |Try using the folder logic FULL|.
               zcx_abapgit_exception=>raise( lv_message ).
             ENDIF.
           WHEN OTHERS.
@@ -127342,8 +127344,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-30T15:09:09.974Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-30T15:09:09.974Z`.
+* abapmerge 0.16.0 - 2023-08-30T16:15:07.199Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-30T16:15:07.199Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
