@@ -4981,11 +4981,15 @@ INTERFACE zif_abapgit_repo_srv .
     RAISING
       zcx_abapgit_exception .
   METHODS list
+    IMPORTING
+      !iv_offline    TYPE abap_bool DEFAULT abap_undefined
     RETURNING
       VALUE(rt_list) TYPE ty_repo_list
     RAISING
       zcx_abapgit_exception .
   METHODS list_favorites
+    IMPORTING
+      !iv_offline    TYPE abap_bool DEFAULT abap_undefined
     RETURNING
       VALUE(rt_list) TYPE ty_repo_list
     RAISING
@@ -57903,11 +57907,17 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~list.
 
+    DATA li_repo TYPE REF TO zif_abapgit_repo.
+
     IF mv_init = abap_false OR mv_only_favorites = abap_true.
       refresh_all( ).
     ENDIF.
 
-    rt_list = mt_list.
+    LOOP AT mt_list INTO li_repo.
+      IF iv_offline = abap_undefined OR li_repo->is_offline( ) = iv_offline.
+        INSERT li_repo INTO TABLE rt_list.
+      ENDIF.
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~list_favorites.
@@ -57926,7 +57936,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       READ TABLE lt_user_favorites
         TRANSPORTING NO FIELDS
         WITH KEY table_line = li_repo->get_key( ).
-      IF sy-subrc = 0.
+      IF sy-subrc = 0 AND ( iv_offline = abap_undefined OR li_repo->is_offline( ) = iv_offline ).
         APPEND li_repo TO rt_list.
       ENDIF.
     ENDLOOP.
@@ -127341,8 +127351,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-31T07:43:43.675Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-31T07:43:43.675Z`.
+* abapmerge 0.16.0 - 2023-08-31T11:49:22.963Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-31T11:49:22.963Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
