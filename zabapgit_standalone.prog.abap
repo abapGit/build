@@ -3627,6 +3627,8 @@ INTERFACE zif_abapgit_tadir .
       !iv_only_local_objects TYPE abap_bool DEFAULT abap_false
       !io_dot                TYPE REF TO zcl_abapgit_dot_abapgit OPTIONAL
       !ii_log                TYPE REF TO zif_abapgit_log OPTIONAL
+      !it_filter             TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
+      !iv_check_exists       TYPE abap_bool DEFAULT abap_true
     RETURNING
       VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
     RAISING
@@ -111701,6 +111703,8 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
   METHOD zif_abapgit_tadir~read.
 
     DATA: li_exit TYPE REF TO zif_abapgit_exit.
+    DATA: lr_tadir TYPE REF TO zif_abapgit_definitions=>ty_tadir.
+    DATA: lt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt.
 
     " Start recursion
     " hmm, some problems here, should TADIR also build path?
@@ -111719,8 +111723,26 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
       CHANGING
         ct_tadir   = rt_tadir ).
 
-    rt_tadir = check_exists( rt_tadir ).
+    IF it_filter IS NOT INITIAL.
+      "Apply filter manually instead of calling zcl_abapgit_repo_filter->apply,
+      "so that we can execute a unit test. The method applies addition filtering
+      "and does therefore additional selects
+      lt_filter = it_filter.
+      SORT lt_filter BY object obj_name.
+      LOOP AT rt_tadir REFERENCE INTO lr_tadir.
+        READ TABLE lt_filter TRANSPORTING NO FIELDS
+                 WITH KEY object = lr_tadir->object
+                          obj_name = lr_tadir->obj_name
+                          BINARY SEARCH.
+        IF sy-subrc <> 0.
+          DELETE rt_tadir.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
 
+    IF iv_check_exists = abap_true.
+      rt_tadir = check_exists( rt_tadir ).
+    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_tadir~read_single.
 
@@ -111810,7 +111832,8 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
       iv_ignore_subpackages = ms_local_settings-ignore_subpackages
       iv_only_local_objects = ms_local_settings-only_local_objects
       io_dot                = mo_dot_abapgit
-      ii_log                = ii_log ).
+      ii_log                = ii_log
+      it_filter             = it_filter ).
 
     CREATE OBJECT lo_filter.
 
@@ -127343,8 +127366,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-01T18:24:30.216Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-01T18:24:30.216Z`.
+* abapmerge 0.16.0 - 2023-09-01T19:04:19.464Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-01T19:04:19.464Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
