@@ -89042,7 +89042,7 @@ CLASS kHGwlUKtFBXjILcBRBJOrsxFJiznPf IMPLEMENTATION.
     lt_values_for_initial = get_paths_to_skip( ).
 
     lt_default_abap_langu_version-path  = '/header/abap_language_version'.
-    lt_default_abap_langu_version-value = 'standard'.
+    lt_default_abap_langu_version-value = zif_abapgit_dot_abapgit=>c_abap_language_version-standard.
     APPEND lt_default_abap_langu_version TO lt_values_for_initial.
 
     lt_enum_mappings = get_mappings( ).
@@ -115314,11 +115314,11 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
       lv_enum_abap TYPE string,
       lv_enum_json TYPE string.
     lv_enum_json = co_ajson->get_string( '/header/abap_language_version' ).
-    IF lv_enum_json = 'standard'.
+    IF lv_enum_json = zif_abapgit_dot_abapgit=>c_abap_language_version-standard.
       lv_enum_abap = zif_abapgit_aff_types_v1=>co_abap_language_version_src-standard.
-    ELSEIF lv_enum_json = 'cloudDevelopment'.
+    ELSEIF lv_enum_json = zif_abapgit_dot_abapgit=>c_abap_language_version-cloud_development.
       lv_enum_abap = zif_abapgit_aff_types_v1=>co_abap_language_version-cloud_development.
-    ELSEIF lv_enum_json = 'keyUser'.
+    ELSEIF lv_enum_json = zif_abapgit_dot_abapgit=>c_abap_language_version-key_user.
       lv_enum_abap = zif_abapgit_aff_types_v1=>co_abap_language_version-key_user.
     ENDIF.
 
@@ -115361,11 +115361,11 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
     lv_enum_abap = co_ajson->get_string( '/header/abapLanguageVersion' ).
     IF lv_enum_abap = zif_abapgit_aff_types_v1=>co_abap_language_version_src-standard
       OR lv_enum_abap = zif_abapgit_aff_types_v1=>co_abap_language_version-standard.
-      lv_enum_json = 'standard'.
+      lv_enum_json = zif_abapgit_dot_abapgit=>c_abap_language_version-standard.
     ELSEIF lv_enum_abap = zif_abapgit_aff_types_v1=>co_abap_language_version-cloud_development.
-      lv_enum_json = 'cloudDevelopment'.
+      lv_enum_json = zif_abapgit_dot_abapgit=>c_abap_language_version-cloud_development.
     ELSEIF lv_enum_abap = zif_abapgit_aff_types_v1=>co_abap_language_version-key_user.
-      lv_enum_json = 'keyUser'.
+      lv_enum_json = zif_abapgit_dot_abapgit=>c_abap_language_version-key_user.
     ENDIF.
 
     co_ajson->set_string( iv_path = '/header/abapLanguageVersion'
@@ -127346,8 +127346,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-01T04:48:35.153Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-01T04:48:35.153Z`.
+* abapmerge 0.16.0 - 2023-09-01T13:31:19.764Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-01T13:31:19.764Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
