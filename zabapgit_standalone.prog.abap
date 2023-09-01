@@ -3406,13 +3406,6 @@ INTERFACE zif_abapgit_definitions .
       skip   TYPE ty_method VALUE '?',
     END OF c_method .
 
-  CONSTANTS:
-    BEGIN OF c_abap_language_version,
-      standard         TYPE c VALUE '',
-      keyuser          TYPE c VALUE '2',
-      clouddevelopment TYPE c VALUE '5',
-    END OF c_abap_language_version.
-
   TYPES:
     ty_sap_langu_tab TYPE STANDARD TABLE OF langu WITH DEFAULT KEY.
   TYPES:
@@ -127346,8 +127339,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-01T13:31:19.764Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-01T13:31:19.764Z`.
+* abapmerge 0.16.0 - 2023-09-01T18:03:15.018Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-01T18:03:15.018Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
