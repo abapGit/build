@@ -10670,18 +10670,13 @@ CLASS zcl_abapgit_objects DEFINITION
 
     TYPES:
       ty_types_tt TYPE SORTED TABLE OF tadir-object WITH UNIQUE KEY table_line .
-    TYPES:
-      BEGIN OF ty_serialization,
-        files TYPE zif_abapgit_git_definitions=>ty_files_tt,
-        item  TYPE zif_abapgit_definitions=>ty_item,
-      END OF ty_serialization .
 
     CLASS-METHODS serialize
       IMPORTING
         !is_item                 TYPE zif_abapgit_definitions=>ty_item
         !io_i18n_params          TYPE REF TO zcl_abapgit_i18n_params
       RETURNING
-        VALUE(rs_files_and_item) TYPE ty_serialization
+        VALUE(rs_files_and_item) TYPE zif_abapgit_objects=>ty_serialization
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS deserialize
@@ -25551,7 +25546,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
           lv_folder        TYPE string,
           lv_fullpath      TYPE string,
           lv_sep           TYPE c LENGTH 1,
-          ls_files_item    TYPE zcl_abapgit_objects=>ty_serialization,
+          ls_files_item    TYPE zif_abapgit_objects=>ty_serialization,
           lo_frontend_serv TYPE REF TO zif_abapgit_frontend_services.
 
     FIELD-SYMBOLS: <ls_file> LIKE LINE OF ls_files_item-files.
@@ -127351,8 +127346,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-08-31T11:58:05.169Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-08-31T11:58:05.169Z`.
+* abapmerge 0.16.0 - 2023-09-01T04:48:35.153Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-01T04:48:35.153Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
