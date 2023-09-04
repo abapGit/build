@@ -123872,7 +123872,7 @@ CLASS zcl_abapgit_data_utils IMPLEMENTATION.
           lt_names = list_key_fields( iv_name ).
 
           APPEND INITIAL LINE TO lt_keys ASSIGNING <ls_key>.
-          <ls_key>-access_kind = cl_abap_tabledescr=>tablekind_sorted.
+          <ls_key>-access_kind = cl_abap_tabledescr=>tablekind_hashed.
           <ls_key>-key_kind    = cl_abap_tabledescr=>keydefkind_user.
           <ls_key>-is_primary  = abap_true.
           <ls_key>-is_unique   = abap_true.
@@ -127370,8 +127370,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-04T05:01:48.551Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-04T05:01:48.551Z`.
+* abapmerge 0.16.0 - 2023-09-04T05:07:22.072Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-04T05:07:22.072Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
