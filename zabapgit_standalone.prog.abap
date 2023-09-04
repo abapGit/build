@@ -8934,7 +8934,8 @@ CLASS zcl_abapgit_objects_files DEFINITION
     METHODS mark_accessed
       IMPORTING
         !iv_path TYPE zif_abapgit_git_definitions=>ty_file-path
-        !iv_file TYPE zif_abapgit_git_definitions=>ty_file-filename.
+        !iv_file TYPE zif_abapgit_git_definitions=>ty_file-filename
+        !iv_sha1 TYPE zif_abapgit_git_definitions=>ty_file-sha1.
 
 ENDCLASS.
 CLASS zcl_abapgit_serialize DEFINITION
@@ -112286,7 +112287,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
+CLASS zcl_abapgit_objects_files IMPLEMENTATION.
   METHOD add.
     APPEND is_file TO mt_files.
   ENDMETHOD.
@@ -112442,6 +112443,7 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
       APPEND INITIAL LINE TO mt_accessed_files ASSIGNING <ls_accessed>.
       <ls_accessed>-path     = iv_path.
       <ls_accessed>-filename = iv_file.
+      <ls_accessed>-sha1     = iv_sha1.
     ENDIF.
 
   ENDMETHOD.
@@ -112493,7 +112495,8 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
     " Update access table
     mark_accessed(
       iv_path = <ls_file>-path
-      iv_file = <ls_file>-filename ).
+      iv_file = <ls_file>-filename
+      iv_sha1 = <ls_file>-sha1 ).
 
     rv_data = <ls_file>-data.
 
@@ -112522,7 +112525,8 @@ CLASS ZCL_ABAPGIT_OBJECTS_FILES IMPLEMENTATION.
 
       mark_accessed(
         iv_path = <ls_file>-path
-        iv_file = <ls_file>-filename ).
+        iv_file = <ls_file>-filename
+        iv_sha1 = <ls_file>-sha1 ).
 
     ENDLOOP.
 
@@ -127366,8 +127370,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-01T19:04:19.464Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-01T19:04:19.464Z`.
+* abapmerge 0.16.0 - 2023-09-04T04:49:35.558Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-04T04:49:35.558Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
