@@ -108235,7 +108235,7 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
     DATA lv_lang          TYPE tadir-masterlang.
 
     FIELD-SYMBOLS <ls_description> LIKE LINE OF it_descriptions.
-    FIELD-SYMBOLS <ls_subcomponent> TYPE vseocompdf.
+    FIELD-SYMBOLS <ls_subcomponent> TYPE vseosubcdf.
 
     lt_descriptions = it_descriptions.
     LOOP AT lt_descriptions ASSIGNING <ls_description>.
@@ -127442,8 +127442,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-04T18:27:58.238Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-04T18:27:58.238Z`.
+* abapmerge 0.16.0 - 2023-09-04T19:27:06.946Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-04T19:27:06.946Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
