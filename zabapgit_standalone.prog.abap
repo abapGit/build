@@ -122369,7 +122369,8 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
             gzip_out       = lv_compressed
             gzip_out_len   = lv_compressed_len ).
 
-        IF lv_compressed(lv_compressed_len) <> lv_data(lv_compressed_len).
+        IF xstrlen( lv_data ) <= lv_compressed_len OR
+          lv_compressed(lv_compressed_len) <> lv_data(lv_compressed_len).
           "Lets try with zlib before error in out for good
           "This fixes issues with TFS 2017 and visualstudio.com Git repos
           zlib_decompress( CHANGING cv_data = lv_data
@@ -127442,8 +127443,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-04T19:27:06.946Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-04T19:27:06.946Z`.
+* abapmerge 0.16.0 - 2023-09-05T13:55:23.904Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-05T13:55:23.904Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
