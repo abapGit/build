@@ -3912,7 +3912,38 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_sap_report.
 
   TYPES:
-    ty_abap_language_version TYPE c LENGTH 1.
+    BEGIN OF ty_progdir,
+      name    TYPE progdir-name,
+      state   TYPE progdir-state,
+      sqlx    TYPE progdir-sqlx,
+      edtx    TYPE progdir-edtx,
+      varcl   TYPE progdir-varcl,
+      dbapl   TYPE progdir-dbapl,
+      dbna    TYPE progdir-dbna,
+      clas    TYPE progdir-clas,
+      type    TYPE progdir-type,
+      occurs  TYPE progdir-occurs,
+      subc    TYPE progdir-subc,
+      appl    TYPE progdir-appl,
+      secu    TYPE progdir-secu,
+      cnam    TYPE progdir-cnam,
+      cdat    TYPE progdir-cdat,
+      unam    TYPE progdir-unam,
+      udat    TYPE progdir-udat,
+      vern    TYPE progdir-vern,
+      levl    TYPE progdir-levl,
+      rstat   TYPE progdir-rstat,
+      rmand   TYPE progdir-rmand,
+      rload   TYPE progdir-rload,
+      fixpt   TYPE progdir-fixpt,
+      sset    TYPE progdir-sset,
+      sdate   TYPE progdir-sdate,
+      stime   TYPE progdir-stime,
+      idate   TYPE progdir-idate,
+      itime   TYPE progdir-itime,
+      ldbname TYPE progdir-ldbname,
+      uccheck TYPE progdir-uccheck,
+    END OF ty_progdir.
 
   METHODS read_report
     IMPORTING
@@ -3932,7 +3963,6 @@ INTERFACE zif_abapgit_sap_report.
       iv_program_type   TYPE c OPTIONAL
       iv_extension_type TYPE c OPTIONAL
       iv_package        TYPE devclass
-      iv_version        TYPE ty_abap_language_version OPTIONAL
       is_item           TYPE zif_abapgit_definitions=>ty_item OPTIONAL
     RAISING
       zcx_abapgit_exception.
@@ -3945,7 +3975,6 @@ INTERFACE zif_abapgit_sap_report.
       iv_program_type   TYPE c OPTIONAL
       iv_extension_type TYPE c OPTIONAL
       iv_package        TYPE devclass
-      iv_version        TYPE ty_abap_language_version OPTIONAL
       is_item           TYPE zif_abapgit_definitions=>ty_item OPTIONAL
     RETURNING
       VALUE(rv_updated) TYPE abap_bool
@@ -3956,8 +3985,24 @@ INTERFACE zif_abapgit_sap_report.
     IMPORTING
       iv_name        TYPE syrepid
       iv_raise_error TYPE abap_bool DEFAULT abap_false
-      iv_version     TYPE ty_abap_language_version OPTIONAL
       is_item        TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS read_progdir
+    IMPORTING
+      iv_name           TYPE syrepid
+      iv_state          TYPE r3state DEFAULT 'A'
+    RETURNING
+      VALUE(rs_progdir) TYPE ty_progdir
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS update_progdir
+    IMPORTING
+      is_progdir TYPE ty_progdir
+      iv_package TYPE devclass
+      iv_state   TYPE r3state DEFAULT 'I'
     RAISING
       zcx_abapgit_exception.
 
@@ -10114,15 +10159,14 @@ CLASS zcl_abapgit_sap_report DEFINITION
     METHODS get_language_version
       IMPORTING
         iv_package        TYPE devclass
-        iv_version        TYPE zif_abapgit_sap_report=>ty_abap_language_version
       RETURNING
-        VALUE(rv_version) TYPE zif_abapgit_sap_report=>ty_abap_language_version.
+        VALUE(rv_version) TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version.
 
     METHODS authorization_check
       IMPORTING
         iv_mode    TYPE csequence
         is_item    TYPE zif_abapgit_definitions=>ty_item
-        iv_version TYPE zif_abapgit_sap_report=>ty_abap_language_version OPTIONAL
+        iv_version TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version OPTIONAL
       RAISING
         zcx_abapgit_exception.
 
@@ -15866,39 +15910,6 @@ CLASS zcl_abapgit_objects_program DEFINITION
   PUBLIC SECTION.
 
     TYPES:
-      BEGIN OF ty_progdir,
-        name    TYPE progdir-name,
-        state   TYPE progdir-state,
-        sqlx    TYPE progdir-sqlx,
-        edtx    TYPE progdir-edtx,
-        varcl   TYPE progdir-varcl,
-        dbapl   TYPE progdir-dbapl,
-        dbna    TYPE progdir-dbna,
-        clas    TYPE progdir-clas,
-        type    TYPE progdir-type,
-        occurs  TYPE progdir-occurs,
-        subc    TYPE progdir-subc,
-        appl    TYPE progdir-appl,
-        secu    TYPE progdir-secu,
-        cnam    TYPE progdir-cnam,
-        cdat    TYPE progdir-cdat,
-        unam    TYPE progdir-unam,
-        udat    TYPE progdir-udat,
-        vern    TYPE progdir-vern,
-        levl    TYPE progdir-levl,
-        rstat   TYPE progdir-rstat,
-        rmand   TYPE progdir-rmand,
-        rload   TYPE progdir-rload,
-        fixpt   TYPE progdir-fixpt,
-        sset    TYPE progdir-sset,
-        sdate   TYPE progdir-sdate,
-        stime   TYPE progdir-stime,
-        idate   TYPE progdir-idate,
-        itime   TYPE progdir-itime,
-        ldbname TYPE progdir-ldbname,
-        uccheck TYPE progdir-uccheck,
-      END OF ty_progdir.
-    TYPES:
       BEGIN OF ty_cua,
         adm TYPE rsmpe_adm,
         sta TYPE STANDARD TABLE OF rsmpe_stat WITH DEFAULT KEY,
@@ -15923,14 +15934,9 @@ CLASS zcl_abapgit_objects_program DEFINITION
         !iv_extra   TYPE clike OPTIONAL
       RAISING
         zcx_abapgit_exception.
-    METHODS read_progdir
-      IMPORTING
-        !iv_program       TYPE syrepid
-      RETURNING
-        VALUE(rs_progdir) TYPE ty_progdir.
     METHODS deserialize_program
       IMPORTING
-        !is_progdir TYPE ty_progdir
+        !is_progdir TYPE zif_abapgit_sap_report=>ty_progdir
         !it_source  TYPE abaptxt255_tab
         !it_tpool   TYPE textpool_table
         !iv_package TYPE devclass
@@ -16038,7 +16044,7 @@ CLASS zcl_abapgit_objects_program DEFINITION
         VALUE(rv_title) TYPE repti .
     METHODS insert_program
       IMPORTING
-        !is_progdir TYPE ty_progdir
+        !is_progdir TYPE zif_abapgit_sap_report=>ty_progdir
         !it_source  TYPE abaptxt255_tab
         !iv_title   TYPE repti
         !iv_package TYPE devclass
@@ -16046,14 +16052,9 @@ CLASS zcl_abapgit_objects_program DEFINITION
         zcx_abapgit_exception .
     METHODS update_program
       IMPORTING
-        !is_progdir TYPE ty_progdir
+        !is_progdir TYPE zif_abapgit_sap_report=>ty_progdir
         !it_source  TYPE abaptxt255_tab
         !iv_title   TYPE repti
-      RAISING
-        zcx_abapgit_exception .
-    METHODS update_progdir
-      IMPORTING
-        !is_progdir TYPE ty_progdir
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -16475,7 +16476,7 @@ CLASS zcl_abapgit_object_prog DEFINITION INHERITING FROM zcl_abapgit_objects_pro
 
     METHODS deserialize_with_ext
       IMPORTING
-        !is_progdir TYPE ty_progdir
+        !is_progdir TYPE zif_abapgit_sap_report=>ty_progdir
         !it_source  TYPE abaptxt255_tab
         !iv_package TYPE devclass
       RAISING
@@ -23405,22 +23406,26 @@ CLASS zcl_abapgit_ui_injector DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_abap_language_vers DEFINITION
   FINAL
-  CREATE PUBLIC .
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
+
+    CONSTANTS c_feature_flag TYPE string VALUE 'ALAV'.
 
     METHODS get_abap_language_vers_by_objt
       IMPORTING
         !iv_object_type                      TYPE trobjtype
         !iv_package                          TYPE devclass
       RETURNING
-        VALUE(rv_allowed_abap_langu_version) TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version .
+        VALUE(rv_allowed_abap_langu_version) TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version.
+
     METHODS is_import_allowed
       IMPORTING
         !io_repo          TYPE REF TO zif_abapgit_repo
         !iv_package       TYPE devclass
       RETURNING
-        VALUE(rv_allowed) TYPE abap_bool .
+        VALUE(rv_allowed) TYPE abap_bool.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -23428,12 +23433,14 @@ CLASS zcl_abapgit_abap_language_vers DEFINITION
       IMPORTING
         !iv_package                     TYPE devclass
       RETURNING
-        VALUE(rv_abap_language_version) TYPE string .
+        VALUE(rv_abap_language_version) TYPE string.
+
     METHODS get_abap_language_vers_by_repo
       IMPORTING
         !io_repo                        TYPE REF TO zif_abapgit_repo
       RETURNING
-        VALUE(rv_abap_language_version) TYPE string .
+        VALUE(rv_abap_language_version) TYPE string.
+
 ENDCLASS.
 CLASS zcl_abapgit_convert DEFINITION
   CREATE PUBLIC .
@@ -28365,6 +28372,7 @@ CLASS zcl_abapgit_abap_language_vers IMPLEMENTATION.
       CATCH cx_root.
         rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
     ENDTRY.
+
   ENDMETHOD.
   METHOD get_abap_language_vers_by_objt.
 
@@ -62563,7 +62571,9 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         iv_package = iv_package ).
     ENDIF.
 
-    update_progdir( is_progdir ).
+    zcl_abapgit_factory=>get_sap_report( )->update_progdir(
+      is_progdir = is_progdir
+      iv_package = iv_package ).
 
     zcl_abapgit_objects_activation=>add(
       iv_type = 'REPS'
@@ -62721,33 +62731,6 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
 
     rv_is_text_locked = exists_a_lock_entry_for( iv_lock_object = 'EABAPTEXTE'
                                                  iv_argument    = lv_object ).
-
-  ENDMETHOD.
-  METHOD read_progdir.
-
-    DATA: ls_sapdir TYPE progdir.
-    CALL FUNCTION 'READ_PROGDIR'
-      EXPORTING
-        i_progname = iv_program
-        i_state    = 'A'
-      IMPORTING
-        e_progdir  = ls_sapdir.
-    MOVE-CORRESPONDING ls_sapdir TO rs_progdir.
-
-    CLEAR: rs_progdir-edtx,
-           rs_progdir-cnam,
-           rs_progdir-cdat,
-           rs_progdir-unam,
-           rs_progdir-udat,
-           rs_progdir-levl,
-           rs_progdir-vern,
-           rs_progdir-rmand,
-           rs_progdir-sdate,
-           rs_progdir-stime,
-           rs_progdir-idate,
-           rs_progdir-itime,
-           rs_progdir-varcl,
-           rs_progdir-state.
 
   ENDMETHOD.
   METHOD read_tpool.
@@ -62914,7 +62897,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_program.
 
-    DATA: ls_progdir      TYPE ty_progdir,
+    DATA: ls_progdir      TYPE zif_abapgit_sap_report=>ty_progdir,
           lv_program_name TYPE syrepid,
           lt_dynpros      TYPE ty_dynpro_tt,
           ls_cua          TYPE ty_cua,
@@ -62955,7 +62938,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
 
     zcl_abapgit_language=>restore_login_language( ).
 
-    ls_progdir = read_progdir( lv_program_name ).
+    ls_progdir = zcl_abapgit_factory=>get_sap_report( )->read_progdir( lv_program_name ).
 
     IF io_xml IS BOUND.
       li_xml = io_xml.
@@ -63065,59 +63048,6 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         SHIFT <ls_output>-line RIGHT BY lv_spaces PLACES IN CHARACTER MODE.
       ENDIF.
     ENDLOOP.
-
-  ENDMETHOD.
-  METHOD update_progdir.
-
-    DATA ls_progdir_new TYPE progdir.
-
-    CALL FUNCTION 'READ_PROGDIR'
-      EXPORTING
-        i_progname = is_progdir-name
-        i_state    = 'I'
-      IMPORTING
-        e_progdir  = ls_progdir_new
-      EXCEPTIONS
-        not_exists = 1
-        OTHERS     = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error reading program directory' ).
-    ENDIF.
-
-    ls_progdir_new-ldbname = is_progdir-ldbname.
-    ls_progdir_new-dbna    = is_progdir-dbna.
-    ls_progdir_new-dbapl   = is_progdir-dbapl.
-    ls_progdir_new-rload   = is_progdir-rload.
-    ls_progdir_new-fixpt   = is_progdir-fixpt.
-    ls_progdir_new-varcl   = is_progdir-varcl.
-    ls_progdir_new-appl    = is_progdir-appl.
-    ls_progdir_new-rstat   = is_progdir-rstat.
-    ls_progdir_new-sqlx    = is_progdir-sqlx.
-    ls_progdir_new-uccheck = is_progdir-uccheck.
-    ls_progdir_new-clas    = is_progdir-clas.
-    ls_progdir_new-secu    = is_progdir-secu.
-
-    CALL FUNCTION 'UPDATE_PROGDIR'
-      EXPORTING
-        i_progdir    = ls_progdir_new
-        i_progname   = ls_progdir_new-name
-        i_state      = ls_progdir_new-state
-      EXCEPTIONS
-        not_executed = 1
-        OTHERS       = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error updating program directory' ).
-    ENDIF.
-
-    " function UPDATE_PROGDIR does not update VARCL, so we do it here
-    SELECT SINGLE * FROM progdir INTO ls_progdir_new
-      WHERE name  = ls_progdir_new-name
-        AND state = ls_progdir_new-state.
-    IF sy-subrc = 0 AND is_progdir-varcl <> ls_progdir_new-varcl.
-      UPDATE progdir SET varcl = is_progdir-varcl
-        WHERE name  = ls_progdir_new-name
-          AND state = ls_progdir_new-state.               "#EC CI_SUBRC
-    ENDIF.
 
   ENDMETHOD.
   METHOD update_program.
@@ -83376,7 +83306,7 @@ CLASS zcl_abapgit_object_samc IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
+CLASS zcl_abapgit_object_prog IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lt_tpool_i18n TYPE ty_tpools_i18n,
@@ -83410,17 +83340,10 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
       iv_program_type   = is_progdir-subc
       iv_extension_type = is_progdir-name+30 ).
 
-    CALL FUNCTION 'UPDATE_PROGDIR'
-      EXPORTING
-        i_progdir    = is_progdir
-        i_progname   = is_progdir-name
-        i_state      = 'I'
-      EXCEPTIONS
-        not_executed = 1
-        OTHERS       = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error updating program directory' ).
-    ENDIF.
+    zcl_abapgit_factory=>get_sap_report( )->update_progdir(
+      is_progdir = is_progdir
+      iv_state   = 'I'
+      iv_package = iv_package ).
 
     zcl_abapgit_objects_activation=>add(
       iv_type = 'REPS'
@@ -83532,7 +83455,7 @@ CLASS ZCL_ABAPGIT_OBJECT_PROG IMPLEMENTATION.
   METHOD zif_abapgit_object~deserialize.
 
     DATA: lv_program_name TYPE syrepid,
-          ls_progdir      TYPE ty_progdir,
+          ls_progdir      TYPE zif_abapgit_sap_report=>ty_progdir,
           lt_tpool        TYPE textpool_table,
           lt_dynpros      TYPE ty_dynpro_tt,
           lt_tpool_ext    TYPE zif_abapgit_definitions=>ty_tpool_tt,
@@ -91814,7 +91737,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   METHOD deserialize_includes.
 
     DATA: lo_xml       TYPE REF TO zif_abapgit_xml_input,
-          ls_progdir   TYPE ty_progdir,
+          ls_progdir   TYPE zif_abapgit_sap_report=>ty_progdir,
           lt_includes  TYPE ty_sobj_name_tt,
           lt_tpool     TYPE textpool_table,
           lt_tpool_ext TYPE zif_abapgit_definitions=>ty_tpool_tt,
@@ -91988,7 +91911,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
   METHOD get_abap_version.
 
     DATA: lt_includes TYPE ty_sobj_name_tt,
-          ls_progdir  TYPE ty_progdir,
+          ls_progdir  TYPE zif_abapgit_sap_report=>ty_progdir,
           lo_xml      TYPE REF TO zif_abapgit_xml_input.
 
     FIELD-SYMBOLS: <lv_include> LIKE LINE OF lt_includes.
@@ -92743,7 +92666,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 * function group SUNI
 
     DATA: lt_functions    TYPE ty_function_tt,
-          ls_progdir      TYPE ty_progdir,
+          ls_progdir      TYPE zif_abapgit_sap_report=>ty_progdir,
           lv_program_name TYPE syrepid,
           lt_dynpros      TYPE ty_dynpro_tt,
           ls_cua          TYPE ty_cua.
@@ -92762,7 +92685,8 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
     serialize_includes( ).
 
     lv_program_name = main_name( ).
-    ls_progdir = read_progdir( lv_program_name ).
+
+    ls_progdir = zcl_abapgit_factory=>get_sap_report( )->read_progdir( lv_program_name ).
 
     IF mo_i18n_params->is_lxe_applicable( ) = abap_false.
       serialize_texts(
@@ -106138,16 +106062,14 @@ CLASS zcl_abapgit_sap_report IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_language_version.
 
-    ASSERT iv_version CA ' X25'.
-
     " TODO: Determine ABAP Language Version
     " https://github.com/abapGit/abapGit/issues/6154#issuecomment-1503566920)
 
     " For now, use default for ABAP source code
     IF zcl_abapgit_factory=>get_environment( )->is_sap_cloud_platform( ) = abap_true.
-      rv_version = '5'. " abap_for_cloud_development
+      rv_version = zif_abapgit_aff_types_v1=>co_abap_language_version_src-cloud_development.
     ELSE.
-      rv_version = 'X'. " standard_abap
+      rv_version = zif_abapgit_aff_types_v1=>co_abap_language_version_src-standard.
     ENDIF.
 
   ENDMETHOD.
@@ -106166,45 +106088,73 @@ CLASS zcl_abapgit_sap_report IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_sap_report~insert_report.
 
-    DATA lv_version TYPE zif_abapgit_sap_report=>ty_abap_language_version ##NEEDED.
+    DATA lv_version TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version.
     DATA lv_obj_name TYPE e071-obj_name.
 
     ASSERT iv_state CA ' AI'.
     ASSERT iv_program_type CA ' 1FIJKMST'.
 
-    lv_version = get_language_version(
-      iv_package = iv_package
-      iv_version = iv_version ).
+    lv_version = get_language_version( iv_package ).
 
     authorization_check(
       iv_mode    = 'MODIFY'
       is_item    = is_item
       iv_version = lv_version ).
 
-    " TODO: Add `VERSION lv_version` but it's not supported in lower releases
     IF iv_state IS INITIAL.
       INSERT REPORT iv_name FROM it_source.
-        "VERSION lv_version.
     ELSEIF iv_program_type IS INITIAL AND iv_extension_type IS INITIAL.
       INSERT REPORT iv_name FROM it_source
         STATE   iv_state.
-        "VERSION lv_version.
     ELSEIF iv_extension_type IS INITIAL.
       INSERT REPORT iv_name FROM it_source
         STATE        iv_state
         PROGRAM TYPE iv_program_type.
-        "VERSION      lv_version.
     ELSE.
       INSERT REPORT iv_name FROM it_source
         STATE          iv_state
         EXTENSION TYPE iv_extension_type
         PROGRAM TYPE   iv_program_type.
-        "VERSION        lv_version.
     ENDIF.
 
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Error inserting report { iv_name }| ).
     ENDIF.
+
+    " In lower releases, INSERT REPORT does not support setting ABAP Language version (VERSION)
+    " Therefore, update the flag directly
+    UPDATE progdir SET uccheck = lv_version WHERE name = iv_name AND state = iv_state.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_sap_report~read_progdir.
+
+    DATA ls_sapdir TYPE progdir.
+
+    CALL FUNCTION 'READ_PROGDIR'
+      EXPORTING
+        i_progname = iv_name
+        i_state    = iv_state
+      IMPORTING
+        e_progdir  = ls_sapdir.
+
+    MOVE-CORRESPONDING ls_sapdir TO rs_progdir.
+
+    CLEAR: rs_progdir-edtx,
+           rs_progdir-cnam,
+           rs_progdir-cdat,
+           rs_progdir-unam,
+           rs_progdir-udat,
+           rs_progdir-levl,
+           rs_progdir-vern,
+           rs_progdir-rmand,
+           rs_progdir-sdate,
+           rs_progdir-stime,
+           rs_progdir-idate,
+           rs_progdir-itime,
+           rs_progdir-varcl,
+           rs_progdir-state.
+
+    " TODO: Clear UCCHECK
 
   ENDMETHOD.
   METHOD zif_abapgit_sap_report~read_report.
@@ -106226,6 +106176,58 @@ CLASS zcl_abapgit_sap_report IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_sap_report~update_progdir.
+
+    DATA ls_progdir_new TYPE progdir.
+
+    CALL FUNCTION 'READ_PROGDIR'
+      EXPORTING
+        i_progname = is_progdir-name
+        i_state    = iv_state
+      IMPORTING
+        e_progdir  = ls_progdir_new
+      EXCEPTIONS
+        not_exists = 1
+        OTHERS     = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Error reading program directory' ).
+    ENDIF.
+
+    ls_progdir_new-ldbname = is_progdir-ldbname.
+    ls_progdir_new-dbna    = is_progdir-dbna.
+    ls_progdir_new-dbapl   = is_progdir-dbapl.
+    ls_progdir_new-rload   = is_progdir-rload.
+    ls_progdir_new-fixpt   = is_progdir-fixpt.
+    ls_progdir_new-appl    = is_progdir-appl.
+    ls_progdir_new-rstat   = is_progdir-rstat.
+    ls_progdir_new-uccheck = is_progdir-uccheck. " TODO: replace with get_language_version()
+    ls_progdir_new-sqlx    = is_progdir-sqlx.
+    ls_progdir_new-clas    = is_progdir-clas.
+    ls_progdir_new-secu    = is_progdir-secu.
+
+    CALL FUNCTION 'UPDATE_PROGDIR'
+      EXPORTING
+        i_progdir    = ls_progdir_new
+        i_progname   = ls_progdir_new-name
+        i_state      = ls_progdir_new-state
+      EXCEPTIONS
+        not_executed = 1
+        OTHERS       = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Error updating program directory' ).
+    ENDIF.
+
+    " Function UPDATE_PROGDIR does not update VARCL, so we do it here
+    SELECT SINGLE * FROM progdir INTO ls_progdir_new
+      WHERE name  = ls_progdir_new-name
+        AND state = ls_progdir_new-state.
+    IF sy-subrc = 0 AND is_progdir-varcl <> ls_progdir_new-varcl.
+      UPDATE progdir SET varcl = is_progdir-varcl
+        WHERE name  = ls_progdir_new-name
+          AND state = ls_progdir_new-state.               "#EC CI_SUBRC
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_sap_report~update_report.
 
     DATA lt_new TYPE string_table.
@@ -106236,14 +106238,13 @@ CLASS zcl_abapgit_sap_report IMPLEMENTATION.
 
     IF lt_old <> lt_new.
       zif_abapgit_sap_report~insert_report(
-        iv_name            = iv_name
-        it_source          = it_source
-        iv_state           = iv_state
-        iv_program_type    = iv_program_type
-        iv_extension_type  = iv_extension_type
-        iv_package         = iv_package
-        iv_version         = iv_version
-        is_item            = is_item ).
+        iv_name           = iv_name
+        it_source         = it_source
+        iv_state          = iv_state
+        iv_program_type   = iv_program_type
+        iv_extension_type = iv_extension_type
+        iv_package        = iv_package
+        is_item           = is_item ).
 
       rv_updated = abap_true.
     ELSE.
@@ -127443,8 +127444,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-05T13:55:23.904Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-05T13:55:23.904Z`.
+* abapmerge 0.16.0 - 2023-09-06T13:30:58.244Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-06T13:30:58.244Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
