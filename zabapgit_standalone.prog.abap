@@ -17252,7 +17252,6 @@ CLASS zcl_abapgit_repo DEFINITION
         zcx_abapgit_exception .
   PRIVATE SECTION.
 
-    METHODS check_for_restart .
     METHODS check_language
       RAISING
         zcx_abapgit_exception .
@@ -23244,6 +23243,9 @@ CLASS zcl_abapgit_services_repo DEFINITION
         iv_devclass TYPE scompkdtln-devclass
       RAISING
         zcx_abapgit_exception.
+    CLASS-METHODS check_for_restart
+      IMPORTING
+        !io_repo TYPE REF TO zif_abapgit_repo.
 ENDCLASS.
 CLASS zcl_abapgit_frontend_services DEFINITION
   CREATE PRIVATE
@@ -35951,6 +35953,35 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD check_for_restart.
+
+    CONSTANTS:
+      lc_abapgit_prog TYPE progname VALUE `ZABAPGIT`.
+
+    DATA lo_repo_online TYPE REF TO zcl_abapgit_repo_online.
+
+    IF io_repo->is_offline( ) = abap_true.
+      RETURN.
+    ENDIF.
+
+    lo_repo_online ?= io_repo.
+
+    " If abapGit was used to update itself, then restart to avoid LOAD_PROGRAM_&_MISMATCH dumps
+    " because abapGit code was changed at runtime
+    IF zcl_abapgit_ui_factory=>get_frontend_services( )->gui_is_available( ) = abap_true AND
+       zcl_abapgit_url=>is_abapgit_repo( lo_repo_online->get_url( ) ) = abap_true AND
+       sy-batch = abap_false AND
+       sy-cprog = lc_abapgit_prog.
+
+      IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_show_default_repo( ) = abap_false.
+        MESSAGE 'abapGit was updated and will restart itself' TYPE 'I'.
+      ENDIF.
+
+      SUBMIT (sy-cprog).
+
+    ENDIF.
+
+  ENDMETHOD.
   METHOD check_package.
 
     DATA:
@@ -36079,6 +36110,8 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       lv_msg = |Repository { io_repo->get_name( ) } successfully pulled for package { io_repo->get_package( ) }|.
       MESSAGE lv_msg TYPE 'S'.
     ENDIF.
+
+    check_for_restart( io_repo ).
 
   ENDMETHOD.
   METHOD new_offline.
@@ -59336,27 +59369,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       zcx_abapgit_exception=>raise( iv_text = lv_text ).
     ENDIF.
   ENDMETHOD.
-  METHOD check_for_restart.
-
-    CONSTANTS:
-      lc_abapgit_prog TYPE progname VALUE `ZABAPGIT`.
-
-    " If abapGit was used to update itself, then restart to avoid LOAD_PROGRAM_&_MISMATCH dumps
-    " because abapGit code was changed at runtime
-    IF zcl_abapgit_ui_factory=>get_frontend_services( )->gui_is_available( ) = abap_true AND
-       zcl_abapgit_url=>is_abapgit_repo( ms_data-url ) = abap_true AND
-       sy-batch = abap_false AND
-       sy-cprog = lc_abapgit_prog.
-
-      IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_show_default_repo( ) = abap_false.
-        MESSAGE 'abapGit was updated and will restart itself' TYPE 'I'.
-      ENDIF.
-
-      SUBMIT (sy-cprog).
-
-    ENDIF.
-
-  ENDMETHOD.
   METHOD check_language.
 
     DATA:
@@ -59801,8 +59813,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     update_last_deserialize( ).
 
     COMMIT WORK AND WAIT.
-
-    check_for_restart( ).
 
   ENDMETHOD.
   METHOD zif_abapgit_repo~deserialize_checks.
@@ -127444,8 +127454,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-06T14:29:36.845Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-06T14:29:36.845Z`.
+* abapmerge 0.16.0 - 2023-09-07T12:52:44.084Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-07T12:52:44.084Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
