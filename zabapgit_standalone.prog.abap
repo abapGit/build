@@ -17632,6 +17632,7 @@ CLASS zcl_abapgit_repo_status DEFINITION
       IMPORTING
         !io_repo          TYPE REF TO zcl_abapgit_repo
         !ii_log           TYPE REF TO zif_abapgit_log OPTIONAL
+        !ii_obj_filter    TYPE REF TO zif_abapgit_object_filter OPTIONAL
       RETURNING
         VALUE(rt_results) TYPE zif_abapgit_definitions=>ty_results_tt
       RAISING
@@ -56401,7 +56402,8 @@ CLASS zcl_abapgit_stage_logic IMPLEMENTATION.
 
     rs_files-local  = io_repo->get_files_local( ii_obj_filter = ii_obj_filter ).
     rs_files-remote = io_repo->get_files_remote( ii_obj_filter ).
-    rs_files-status = zcl_abapgit_repo_status=>calculate( io_repo ).
+    rs_files-status = zcl_abapgit_repo_status=>calculate( io_repo = io_repo
+                                                          ii_obj_filter = ii_obj_filter ).
 
     remove_identical( CHANGING cs_files = rs_files ).
     remove_ignored( EXPORTING io_repo  = io_repo
@@ -57272,7 +57274,8 @@ CLASS zcl_abapgit_repo_status IMPLEMENTATION.
     DATA lo_instance TYPE REF TO zcl_abapgit_repo_status.
     DATA lo_consistency_checks TYPE REF TO kHGwlVCHrsAtuwxHoXzuQzYvAOqpyr.
 
-    lt_local = io_repo->get_files_local( ii_log = ii_log ).
+    lt_local = io_repo->get_files_local( ii_log = ii_log
+                                         ii_obj_filter = ii_obj_filter ).
 
     IF lines( lt_local ) <= 2.
       " Less equal two means that we have only the .abapgit.xml and the package in
@@ -57282,7 +57285,8 @@ CLASS zcl_abapgit_repo_status IMPLEMENTATION.
       io_repo->find_remote_dot_abapgit( ).
     ENDIF.
 
-    lt_remote = io_repo->get_files_remote( iv_ignore_files = abap_true ).
+    lt_remote = io_repo->get_files_remote( ii_obj_filter = ii_obj_filter
+                                           iv_ignore_files = abap_true ).
 
     li_exit = zcl_abapgit_exit=>get_instance( ).
     li_exit->pre_calculate_repo_status(
@@ -127455,8 +127459,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-09T15:18:33.527Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-09T15:18:33.527Z`.
+* abapmerge 0.16.0 - 2023-09-09T15:35:28.038Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-09T15:35:28.038Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
