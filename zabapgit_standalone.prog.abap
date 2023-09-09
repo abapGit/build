@@ -112251,6 +112251,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
           iv_obj_name           = is_tadir-obj_name
           iv_devclass           = is_tadir-devclass
           iv_path               = is_tadir-path
+          iv_srcsystem          = is_tadir-srcsystem
           iv_language           = ms_i18n_params-main_language
           iv_main_language_only = ms_i18n_params-main_language_only
           it_translation_langs  = ms_i18n_params-translation_languages
@@ -127454,8 +127455,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-07T16:41:10.861Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-07T16:41:10.861Z`.
+* abapmerge 0.16.0 - 2023-09-09T15:18:33.527Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-09T15:18:33.527Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
