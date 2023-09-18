@@ -37462,8 +37462,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
-    rs_handled = zcl_abapgit_exit=>get_instance( )->on_event( ii_event ).
-
     IF rs_handled-state IS INITIAL.
       rs_handled = general_page_routing( ii_event ).
     ENDIF.
@@ -54772,12 +54770,16 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
         it_postdata     = it_postdata.
 
     TRY.
-        LOOP AT mt_event_handlers INTO li_handler.
-          ls_handled = li_handler->on_event( li_event ).
-          IF ls_handled-state IS NOT INITIAL AND ls_handled-state <> c_event_state-not_handled. " is handled
-            EXIT.
-          ENDIF.
-        ENDLOOP.
+        ls_handled = zcl_abapgit_exit=>get_instance( )->on_event( li_event ).
+
+        IF ls_handled-state = c_event_state-not_handled.
+          LOOP AT mt_event_handlers INTO li_handler.
+            ls_handled = li_handler->on_event( li_event ).
+            IF ls_handled-state IS NOT INITIAL AND ls_handled-state <> c_event_state-not_handled. " is handled
+              EXIT.
+            ENDIF.
+          ENDLOOP.
+        ENDIF.
 
         IF is_page_modal( mi_cur_page ) = abap_true AND NOT (
           ls_handled-state = c_event_state-re_render OR
@@ -127617,8 +127619,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-17T18:07:11.271Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-17T18:07:11.271Z`.
+* abapmerge 0.16.0 - 2023-09-18T15:38:14.864Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-18T15:38:14.864Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
