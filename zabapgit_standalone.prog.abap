@@ -3312,7 +3312,8 @@ INTERFACE zif_abapgit_definitions .
       repo_background               TYPE string VALUE 'repo_background',
       repo_infos                    TYPE string VALUE 'repo_infos',
       repo_purge                    TYPE string VALUE 'repo_purge',
-      repo_activate_objects         TYPE string VALUE 'activate_objects',
+      repo_delete_objects           TYPE string VALUE 'repo_delete_objects',
+      repo_activate_objects         TYPE string VALUE 'repo_activate_objects',
       repo_newonline                TYPE string VALUE 'repo_newonline',
       repo_newoffline               TYPE string VALUE 'repo_newoffline',
       repo_add_all_obj_to_trans_req TYPE string VALUE 'repo_add_all_obj_to_trans_req',
@@ -5064,6 +5065,7 @@ INTERFACE zif_abapgit_repo_srv .
     IMPORTING
       !ii_repo      TYPE REF TO zif_abapgit_repo
       !is_checks    TYPE zif_abapgit_definitions=>ty_delete_checks
+      !iv_keep_repo TYPE abap_bool DEFAULT abap_false
     RETURNING
       VALUE(ri_log) TYPE REF TO zif_abapgit_log
     RAISING
@@ -23170,6 +23172,7 @@ CLASS zcl_abapgit_services_repo DEFINITION
     CLASS-METHODS purge
       IMPORTING
         !iv_key       TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_keep_repo TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(ri_log) TYPE REF TO zif_abapgit_log
       RAISING
@@ -36403,8 +36406,9 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     ENDIF.
 
     ri_log = zcl_abapgit_repo_srv=>get_instance( )->purge(
-      ii_repo   = lo_repo
-      is_checks = ls_checks ).
+      ii_repo      = lo_repo
+      is_checks    = ls_checks
+      iv_keep_repo = iv_keep_repo ).
 
     COMMIT WORK.
 
@@ -37385,10 +37389,15 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
           EXPORTING
             io_repo = lo_repo.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-      WHEN zif_abapgit_definitions=>c_action-repo_purge.                      " Repo purge all objects (uninstall)
+      WHEN zif_abapgit_definitions=>c_action-repo_purge.                      " Purge all objects and repo (uninstall)
         zcl_abapgit_services_repo=>purge( lv_key ).
         rs_handled-page  = zcl_abapgit_gui_page_repo_over=>create( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
+      WHEN zif_abapgit_definitions=>c_action-repo_delete_objects.             " Purge all objects (uninstall)
+        zcl_abapgit_services_repo=>purge(
+          iv_key       = lv_key
+          iv_keep_repo = abap_true ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-repo_remove.                     " Repo remove
         zcl_abapgit_services_repo=>remove( lv_key ).
         rs_handled-page  = zcl_abapgit_gui_page_repo_over=>create( ).
@@ -42407,14 +42416,19 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ro_advanced_dropdown->add( iv_txt = 'Danger'
                                iv_typ = zif_abapgit_html=>c_action_type-separator ).
 
-    ro_advanced_dropdown->add( iv_txt   = 'Remove'
+    ro_advanced_dropdown->add( iv_txt   = 'Remove Repository'
                                iv_title = `Remove abapGit's records of the repository (the system's `
                                           && `development objects will remain unaffected)`
                                iv_act   = |{ zif_abapgit_definitions=>c_action-repo_remove }?key={ mv_key }| ).
 
+    ro_advanced_dropdown->add( iv_txt   = 'Remove Objects'
+                               iv_title = `Delete all development objects belonging to this package `
+                                          && `(and subpackages) from the system, but keep repository in abapGit`
+                               iv_act   = |{ zif_abapgit_definitions=>c_action-repo_delete_objects }?key={ mv_key }| ).
+
     ro_advanced_dropdown->add( iv_txt   = 'Uninstall'
                                iv_title = `Delete all development objects belonging to this package `
-                                          && `(and subpackages) from the system`
+                                          && `(and subpackages) from the system, and remove the repository from abapGit`
                                iv_act   = |{ zif_abapgit_definitions=>c_action-repo_purge }?key={ mv_key }|
                                iv_opt   = get_crossout(
                                             iv_authorization = zif_abapgit_auth=>c_authorization-uninstall
@@ -43735,7 +43749,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_typ = zif_abapgit_html=>c_action_type-separator ).
 
     lo_toolbar_more_sub->add(
-      iv_txt   = |Remove|
+      iv_txt   = |Remove Repository|
       iv_title = |Remove abapGit's records of the repository (the system's |
               && |development objects will remain unaffected)|
       iv_act   = |{ zif_abapgit_definitions=>c_action-repo_remove }{ lc_dummy_key }|
@@ -43743,9 +43757,17 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_li_class = |{ lc_action_class }| ).
 
     lo_toolbar_more_sub->add(
+      iv_txt      = |Remove Objects|
+      iv_title    = |Delete all development objects belonging to this package |
+                 && |(and subpackages) from the system, but keep repository in abapGit|
+      iv_act      = |{ zif_abapgit_definitions=>c_action-repo_delete_objects }{ lc_dummy_key }|
+      iv_class    = |{ lc_action_class }|
+      iv_li_class = |{ lc_action_class }| ).
+
+    lo_toolbar_more_sub->add(
       iv_txt      = |Uninstall|
       iv_title    = |Delete all development objects belonging to this package |
-                 && |(and subpackages) from the system|
+                 && |(and subpackages) from the system, and remove the repository from abapGit|
       iv_act      = |{ zif_abapgit_definitions=>c_action-repo_purge }{ lc_dummy_key }|
       iv_class    = |{ lc_action_class }|
       iv_li_class = |{ lc_action_class }| ).
@@ -58135,7 +58157,12 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
         RAISE EXCEPTION lx_error.
     ENDTRY.
 
-    zif_abapgit_repo_srv~delete( ii_repo ).
+    IF iv_keep_repo = abap_true.
+      ii_repo->refresh( ).
+      ii_repo->checksums( )->rebuild( ).
+    ELSE.
+      zif_abapgit_repo_srv~delete( ii_repo ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~validate_package.
@@ -127619,8 +127646,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-18T15:38:14.864Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-18T15:38:14.864Z`.
+* abapmerge 0.16.0 - 2023-09-19T15:04:00.060Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-19T15:04:00.060Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
