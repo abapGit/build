@@ -106425,7 +106425,7 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
         rv_are_changes_rec_in_tr_req = li_package->wbo_korr_flag.
       WHEN 1.
         " For new packages, derive from package name
-        rv_are_changes_rec_in_tr_req = boolc( mv_package(1) <> '$' ).
+        rv_are_changes_rec_in_tr_req = boolc( mv_package(1) <> '$' AND mv_package(1) <> 'T' ).
       WHEN OTHERS.
         zcx_abapgit_exception=>raise_t100( ).
     ENDCASE.
@@ -127646,8 +127646,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-19T15:04:00.060Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-19T15:04:00.060Z`.
+* abapmerge 0.16.0 - 2023-09-21T15:02:29.989Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-21T15:02:29.989Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
