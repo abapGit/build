@@ -33313,7 +33313,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    .forEach(function(input) {' ).
     lo_buf->add( '      items.push({' ).
     lo_buf->add( '        action: function() {' ).
-    lo_buf->add( '          if (input.form.action.includes(input.formAction)) {' ).
+    lo_buf->add( '          if (input.form.action.includes(input.formAction) || input.classList.contains("main")) {' ).
     lo_buf->add( '            input.form.submit();' ).
     lo_buf->add( '          } else {' ).
     lo_buf->add( '            submitSapeventForm({}, input.formAction, "post", input.form);' ).
@@ -127691,8 +127691,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-21T15:33:13.769Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-21T15:33:13.769Z`.
+* abapmerge 0.16.0 - 2023-09-25T17:17:40.965Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-25T17:17:40.965Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
