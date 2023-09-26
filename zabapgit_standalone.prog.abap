@@ -111763,11 +111763,9 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
 
     DATA ls_tadir TYPE zif_abapgit_definitions=>ty_tadir.
     DATA ls_obj_with_namespace TYPE zif_abapgit_definitions=>ty_obj_namespace.
-    DATA lv_obj_with_namespace TYPE sobj_name.
 
-    lv_obj_with_namespace = iv_object.
     TRY.
-        ls_obj_with_namespace = zcl_abapgit_factory=>get_sap_namespace(  )->split_by_name( lv_obj_with_namespace ).
+        ls_obj_with_namespace = zcl_abapgit_factory=>get_sap_namespace(  )->split_by_name( iv_object ).
       CATCH zcx_abapgit_exception.
         "Ignore the exception like before the replacement of the FM RS_NAME_SPLIT_NAMESPACE
         RETURN.
@@ -127698,8 +127696,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-25T17:21:41.317Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-25T17:21:41.317Z`.
+* abapmerge 0.16.0 - 2023-09-26T13:18:11.646Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-26T13:18:11.646Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
