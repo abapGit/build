@@ -5759,10 +5759,18 @@ CLASS zcl_abapgit_background DEFINITION
     CLASS-METHODS run
       RAISING
         zcx_abapgit_exception .
+
     CLASS-METHODS list_methods
       RETURNING VALUE(rt_methods) TYPE ty_methods.
+
+    CLASS-METHODS enqueue
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS dequeue.
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CONSTANTS gc_enq_type TYPE c LENGTH 12 VALUE 'BACKGROUND'.
 ENDCLASS.
 CLASS zcl_abapgit_background_pull DEFINITION
   CREATE PUBLIC .
@@ -126534,7 +126542,7 @@ CLASS zcl_abapgit_background_pull IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
+CLASS zcl_abapgit_background IMPLEMENTATION.
   METHOD list_methods.
 
     DATA: ls_method       LIKE LINE OF rt_methods,
@@ -126575,8 +126583,6 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
   ENDMETHOD.
   METHOD run.
 
-    CONSTANTS: lc_enq_type TYPE c LENGTH 12 VALUE 'BACKGROUND'.
-
     DATA: lo_per        TYPE REF TO zcl_abapgit_persist_background,
           lo_repo       TYPE REF TO zcl_abapgit_repo_online,
           lt_list       TYPE zcl_abapgit_persist_background=>ty_background_keys,
@@ -126586,19 +126592,13 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
           lv_repo_name  TYPE string.
 
     FIELD-SYMBOLS: <ls_list> LIKE LINE OF lt_list.
-    CALL FUNCTION 'ENQUEUE_EZABAPGIT'
-      EXPORTING
-        mode_zabapgit  = 'E'
-        type           = lc_enq_type
-        _scope         = '3'
-      EXCEPTIONS
-        foreign_lock   = 1
-        system_failure = 2
-        OTHERS         = 3.
-    IF sy-subrc <> 0.
-      WRITE: / 'Another intance of the program is already running'.
-      RETURN.
-    ENDIF.
+
+    TRY.
+        enqueue( ).
+      CATCH zcx_abapgit_exception.
+        WRITE: / 'Another intance of the program is already running'.
+        RETURN.
+    ENDTRY.
 
     CREATE OBJECT lo_per.
     lt_list = lo_per->list( ).
@@ -126639,11 +126639,32 @@ CLASS ZCL_ABAPGIT_BACKGROUND IMPLEMENTATION.
       WRITE: / 'Nothing configured'.
     ENDIF.
 
-    CALL FUNCTION 'DEQUEUE_EZABAPGIT'
-      EXPORTING
-        type = lc_enq_type.
+    dequeue( ).
 
   ENDMETHOD.
+
+  METHOD enqueue.
+    CALL FUNCTION 'ENQUEUE_EZABAPGIT'
+      EXPORTING
+        mode_zabapgit  = 'E'
+        type           = gc_enq_type
+        _scope         = '3'
+      EXCEPTIONS
+        foreign_lock   = 1
+        system_failure = 2
+        OTHERS         = 3.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD dequeue.
+    CALL FUNCTION 'DEQUEUE_EZABAPGIT'
+      EXPORTING
+        type = gc_enq_type.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_apack_writer IMPLEMENTATION.
@@ -127727,8 +127748,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-26T14:49:43.148Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-26T14:49:43.148Z`.
+* abapmerge 0.16.0 - 2023-09-27T15:01:42.810Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-27T15:01:42.810Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
