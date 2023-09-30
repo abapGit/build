@@ -11111,7 +11111,8 @@ CLASS zcl_abapgit_objects_super DEFINITION
     METHODS exists_a_lock_entry_for
       IMPORTING
         !iv_lock_object               TYPE string
-        !iv_argument                  TYPE seqg3-garg OPTIONAL
+        !iv_argument                  TYPE csequence OPTIONAL
+        !iv_prefix                    TYPE csequence OPTIONAL
       RETURNING
         VALUE(rv_exists_a_lock_entry) TYPE abap_bool
       RAISING
@@ -62389,11 +62390,20 @@ CLASS ZCL_ABAPGIT_OBJECTS_SUPER IMPLEMENTATION.
   METHOD exists_a_lock_entry_for.
 
     DATA: lt_lock_entries TYPE STANDARD TABLE OF seqg3.
+    DATA: lv_argument TYPE seqg3-garg.
+
+    IF iv_prefix IS INITIAL.
+      lv_argument = iv_argument.
+    ELSE.
+      lv_argument = |{ iv_prefix  }{ iv_argument }|.
+      OVERLAY lv_argument WITH '                                          '.
+      lv_argument = lv_argument && '*'.
+    ENDIF.
 
     CALL FUNCTION 'ENQUEUE_READ'
       EXPORTING
         guname                = '*'
-        garg                  = iv_argument
+        garg                  = lv_argument
       TABLES
         enq                   = lt_lock_entries
       EXCEPTIONS
@@ -71910,15 +71920,9 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
-
-    DATA: lv_object TYPE eqegraarg.
-
-    lv_object = |TN{ ms_item-obj_name }|.
-    OVERLAY lv_object WITH '                                          '.
-    lv_object = lv_object && '*'.
-
     rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
-                                            iv_argument    = lv_object ).
+                                            iv_argument    = ms_item-obj_name
+                                            iv_prefix      = 'TN' ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
 
@@ -84427,15 +84431,9 @@ CLASS zcl_abapgit_object_pinf IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
-
-    DATA: lv_argument TYPE eqegraarg.
-
-    lv_argument = |PF{ ms_item-obj_name }|.
-    OVERLAY lv_argument WITH '                                          *'.
-
     rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
-                                            iv_argument    = lv_argument ).
-
+                                            iv_argument    = ms_item-obj_name
+                                            iv_prefix      = 'PF' ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
@@ -85277,7 +85275,7 @@ CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
+CLASS zcl_abapgit_object_para IMPLEMENTATION.
   METHOD unlock.
 
     CALL FUNCTION 'RS_ACCESS_PERMISSION'
@@ -85428,16 +85426,9 @@ CLASS ZCL_ABAPGIT_OBJECT_PARA IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
-
-    DATA: lv_argument TYPE seqg3-garg.
-
-    lv_argument = |PA{ ms_item-obj_name }|.
-    OVERLAY lv_argument WITH '                                          '.
-    lv_argument = lv_argument && '*'.
-
     rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
-                                            iv_argument    = lv_argument ).
-
+                                            iv_argument    = ms_item-obj_name
+                                            iv_prefix      = 'PA' ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
@@ -92372,16 +92363,9 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD is_function_group_locked.
-
-    DATA: lv_object TYPE eqegraarg.
-
-    lv_object = |FG{ ms_item-obj_name }|.
-    OVERLAY lv_object WITH '                                          '.
-    lv_object = lv_object && '*'.
-
     rv_is_functions_group_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
-                                                            iv_argument    = lv_object ).
-
+                                                            iv_argument    = ms_item-obj_name
+                                                            iv_prefix      = 'FG' ).
   ENDMETHOD.
   METHOD is_part_of_other_fugr.
     " make sure that the include belongs to the function group
@@ -98521,16 +98505,9 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
-
-    DATA: lv_object TYPE eqegraarg.
-
-    lv_object = |DV{ ms_item-obj_name }|.
-    OVERLAY lv_object WITH '                                          '.
-    lv_object = lv_object && '*'.
-
     rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
-                                            iv_argument    = lv_object ).
-
+                                            iv_argument    = ms_item-obj_name
+                                            iv_prefix      = 'DV' ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
@@ -127892,8 +127869,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-30T06:22:45.147Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-30T06:22:45.147Z`.
+* abapmerge 0.16.0 - 2023-09-30T06:29:08.819Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-30T06:29:08.819Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
