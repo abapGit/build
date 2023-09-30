@@ -15542,8 +15542,6 @@ CLASS zcl_abapgit_object_w3xx_super DEFINITION
     TYPES ty_bdcdata TYPE STANDARD TABLE OF bdcdata
                            WITH NON-UNIQUE DEFAULT KEY.
 
-    METHODS get_metadata REDEFINITION.
-
     METHODS change_bdc_jump_data ABSTRACT
       CHANGING
         ct_bdcdata TYPE ty_bdcdata.
@@ -68562,10 +68560,6 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
     SHIFT rv_ext LEFT DELETING LEADING '.'.
 
   ENDMETHOD.
-  METHOD get_metadata.
-    rs_metadata         = super->get_metadata( ).
-    rs_metadata-version = 'v2.0.0'. " Serialization v2, separate data file
-  ENDMETHOD.
   METHOD normalize_params.
 
     FIELD-SYMBOLS <ls_param> LIKE LINE OF ct_params.
@@ -68775,7 +68769,8 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-    rs_metadata = get_metadata( ).
+    rs_metadata         = get_metadata( ).
+    rs_metadata-version = 'v2.0.0'. " Serialization v2, separate data file
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = is_active( ).
@@ -127869,8 +127864,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-30T06:29:08.819Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-30T06:29:08.819Z`.
+* abapmerge 0.16.0 - 2023-09-30T07:06:30.755Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-30T07:06:30.755Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
