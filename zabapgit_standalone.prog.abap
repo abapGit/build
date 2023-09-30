@@ -13847,6 +13847,7 @@ CLASS zcl_abapgit_object_sfbf DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     DATA mv_bf TYPE sfw_bfunction.
 
     METHODS:
+      unlock,
       activate
         RAISING zcx_abapgit_exception,
       create
@@ -13875,6 +13876,7 @@ CLASS zcl_abapgit_object_sfbs DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     DATA mv_bfset TYPE sfw_bset.
 
     METHODS:
+      unlock,
       activate
         RAISING zcx_abapgit_exception,
       create
@@ -13946,6 +13948,7 @@ CLASS zcl_abapgit_object_sfsw DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     DATA mv_switch TYPE sfw_switch_id.
 
     METHODS:
+      unlock,
       activate
         RAISING zcx_abapgit_exception,
       create
@@ -81496,6 +81499,17 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD unlock.
+
+    CALL FUNCTION 'DEQUEUE_EEUDB'
+      EXPORTING
+        relid     = 'SW'
+        name      = ms_item-obj_name
+        _synchron = 'X'
+        _scope    = '1'
+        mode_eudb = abap_true.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_data TYPE sfw_switch.
@@ -81583,6 +81597,8 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'error in CL_SFW_SW->SAVE_ALL' ).
     ENDIF.
 
+    unlock( ).
+
     deserialize_longtexts( ii_xml         = io_xml
                            iv_longtext_id = c_longtext_id_sfsw ).
 
@@ -81625,7 +81641,9 @@ CLASS zcl_abapgit_object_sfsw IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
-    rv_is_locked = abap_false.
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
+                                            iv_argument    = ms_item-obj_name
+                                            iv_prefix      = 'SW' ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
@@ -82199,6 +82217,17 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD unlock.
+
+    CALL FUNCTION 'DEQUEUE_EEUDB'
+      EXPORTING
+        relid     = 'SS'
+        name      = ms_item-obj_name
+        _synchron = 'X'
+        _scope    = '1'
+        mode_eudb = abap_true.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_data TYPE sfw_bs.
@@ -82285,6 +82314,8 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
 
     lo_bfs->save_all( ).
 
+    unlock( ).
+
     deserialize_longtexts( ii_xml         = io_xml
                            iv_longtext_id = c_longtext_id_sfbs ).
 
@@ -82327,7 +82358,9 @@ CLASS zcl_abapgit_object_sfbs IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
-    rv_is_locked = abap_false.
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
+                                            iv_argument    = ms_item-obj_name
+                                            iv_prefix      = 'SS' ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
@@ -82448,6 +82481,17 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
+  METHOD unlock.
+
+    CALL FUNCTION 'DEQUEUE_EEUDB'
+      EXPORTING
+        relid     = 'SF'
+        name      = ms_item-obj_name
+        _synchron = 'X'
+        _scope    = '1'
+        mode_eudb = abap_true.
+
+  ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
     DATA: ls_data TYPE sfw_bf.
@@ -82551,6 +82595,8 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
 
     lo_bf->save_all( ).
 
+    unlock( ).
+
     deserialize_longtexts( ii_xml         = io_xml
                            iv_longtext_id = c_longtext_id_sfbf ).
 
@@ -82594,9 +82640,9 @@ CLASS zcl_abapgit_object_sfbf IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
-
-    rv_is_locked = abap_false.
-
+    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'EEUDB'
+                                            iv_argument    = ms_item-obj_name
+                                            iv_prefix      = 'SF' ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     " Covered by ZCL_ABAPGIT_OBJECTS=>JUMP
@@ -127864,8 +127910,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-30T07:06:30.755Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-30T07:06:30.755Z`.
+* abapmerge 0.16.0 - 2023-09-30T12:56:27.064Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-30T12:56:27.064Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
