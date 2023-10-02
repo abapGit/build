@@ -128027,8 +128027,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-09-30T17:16:36.771Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-09-30T17:16:36.771Z`.
+* abapmerge 0.16.0 - 2023-10-02T15:20:57.729Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-02T15:20:57.729Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
