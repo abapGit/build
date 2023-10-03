@@ -99808,7 +99808,7 @@ CLASS zcl_abapgit_object_dcls IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_CUS2 IMPLEMENTATION.
+CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item = is_item
@@ -99859,6 +99859,10 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS2 IMPLEMENTATION.
     IF ls_message-msgty <> 'S'.
       zcx_abapgit_exception=>raise( |error from deserialize CUS2 { mv_img_attribute } S_CUS_ATTRIBUTES_SAVE| ).
     ENDIF.
+
+    corr_insert( iv_package ).
+
+    tadir_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -128027,8 +128031,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-02T16:07:34.805Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-02T16:07:34.805Z`.
+* abapmerge 0.16.0 - 2023-10-03T13:50:17.812Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-03T13:50:17.812Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
