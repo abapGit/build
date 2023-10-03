@@ -112752,10 +112752,10 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
       LOOP AT lt_unsupported_count ASSIGNING <ls_unsupported_count>.
         IF <ls_unsupported_count>-count = 1.
           mi_log->add_error( |Object type { <ls_unsupported_count>-obj_type } not supported, | &&
-                             |<ls_unsupported_count>-obj_name } ignored| ).
+                             |{ <ls_unsupported_count>-obj_name } ignored| ).
         ELSE.
           mi_log->add_error( |Object type { <ls_unsupported_count>-obj_type } not supported, | &&
-                             |<ls_unsupported_count>-count } objects ignored| ).
+                             |{ <ls_unsupported_count>-count } objects ignored| ).
         ENDIF.
       ENDLOOP.
     ENDIF.
@@ -128038,8 +128038,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-03T14:14:17.883Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-03T14:14:17.883Z`.
+* abapmerge 0.16.0 - 2023-10-03T15:42:39.757Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-03T15:42:39.757Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
