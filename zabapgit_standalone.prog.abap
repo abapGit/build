@@ -2638,7 +2638,7 @@ INTERFACE zif_abapgit_html_viewer .
   TYPES:
     ty_query_table TYPE STANDARD TABLE OF ty_name_value WITH DEFAULT KEY .
 
-  CONSTANTS m_id_sapevent TYPE i VALUE 1 ##NO_TEXT.
+  CONSTANTS c_id_sapevent TYPE i VALUE 1 ##NO_TEXT.
 
   EVENTS sapevent
     EXPORTING
@@ -5770,7 +5770,7 @@ CLASS zcl_abapgit_background DEFINITION
     CLASS-METHODS dequeue.
   PROTECTED SECTION.
   PRIVATE SECTION.
-    CONSTANTS gc_enq_type TYPE c LENGTH 12 VALUE 'BACKGROUND'.
+    CONSTANTS c_enq_type TYPE c LENGTH 12 VALUE 'BACKGROUND'.
 ENDCLASS.
 CLASS zcl_abapgit_background_pull DEFINITION
   CREATE PUBLIC .
@@ -9314,7 +9314,7 @@ CLASS zcl_abapgit_ecatt_helper DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS:
-      co_xml TYPE i VALUE 1. " downport of if_apl_ecatt_xml=>co_xml
+      c_xml TYPE i VALUE 1. " downport of if_apl_ecatt_xml=>co_xml
 
 ENDCLASS.
 CLASS zcl_abapgit_ecatt_script_downl DEFINITION
@@ -11264,7 +11264,7 @@ CLASS zcl_abapgit_object_evtb DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS:
-    co_table_name TYPE tabname VALUE 'EVTB_HEADER'.
+      c_table_name TYPE tabname VALUE 'EVTB_HEADER'.
 ENDCLASS.
 CLASS zcl_abapgit_object_gsmp DEFINITION
     INHERITING FROM zcl_abapgit_object_common_aff
@@ -11283,8 +11283,9 @@ CLASS zcl_abapgit_object_nont DEFINITION
   PUBLIC SECTION.
     METHODS zif_abapgit_object~changed_by REDEFINITION.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
-    CONSTANTS co_table_name TYPE tabname VALUE 'NONT_HEADER'.
+    CONSTANTS c_table_name TYPE tabname VALUE 'NONT_HEADER'.
 ENDCLASS.
 CLASS zcl_abapgit_object_ront DEFINITION
   INHERITING FROM zcl_abapgit_object_common_aff
@@ -11293,8 +11294,9 @@ CLASS zcl_abapgit_object_ront DEFINITION
   PUBLIC SECTION.
     METHODS zif_abapgit_object~changed_by REDEFINITION.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
-    CONSTANTS co_table_name TYPE tabname VALUE 'RONT_HEADER'.
+    CONSTANTS c_table_name TYPE tabname VALUE 'RONT_HEADER'.
 ENDCLASS.
 CLASS zcl_abapgit_object_smbc DEFINITION
   INHERITING FROM zcl_abapgit_object_common_aff
@@ -11485,7 +11487,7 @@ CLASS zcl_abapgit_object_apis DEFINITION
 
   PROTECTED SECTION.
   PRIVATE SECTION.
-    CONSTANTS gc_model TYPE string VALUE 'ARS_S_API_ABAPGIT'.
+    CONSTANTS c_model TYPE string VALUE 'ARS_S_API_ABAPGIT'.
     DATA mo_handler TYPE REF TO object.
     METHODS initialize.
 ENDCLASS.
@@ -12320,11 +12322,11 @@ CLASS zcl_abapgit_object_ecatt_super DEFINITION
       END OF ty_last_changed.
 
     CONSTANTS:
-      BEGIN OF co_name,
+      BEGIN OF c_name,
         version  TYPE string VALUE 'VERSION' ##NO_TEXT,
         versions TYPE string VALUE 'VERSIONS' ##NO_TEXT,
-      END OF co_name,
-      co_default_version TYPE etobj_ver VALUE '1' ##NO_TEXT.
+      END OF c_name,
+      c_default_version TYPE etobj_ver VALUE '1' ##NO_TEXT.
 
     CLASS-METHODS:
       is_change_more_recent_than
@@ -14723,8 +14725,8 @@ CLASS zcl_abapgit_object_srvd DEFINITION INHERITING FROM zcl_abapgit_objects_sup
 
     DATA mv_service_definition_key TYPE seu_objkey .
     DATA mr_service_definition TYPE REF TO data .
-    CONSTANTS mc_source_file TYPE string VALUE 'srvdsrv' ##NO_TEXT.
-    CONSTANTS mc_xml_parent_name TYPE string VALUE 'SRVD' ##NO_TEXT.
+    CONSTANTS c_source_file TYPE string VALUE 'srvdsrv' ##NO_TEXT.
+    CONSTANTS c_xml_parent_name TYPE string VALUE 'SRVD' ##NO_TEXT.
     DATA mo_object_operator TYPE REF TO object .
 
     METHODS clear_fields
@@ -14766,7 +14768,7 @@ CLASS zcl_abapgit_object_ssfo DEFINITION INHERITING FROM zcl_abapgit_objects_sup
       ty_string_range TYPE RANGE OF string .
 
     CLASS-DATA gt_range_node_codes TYPE ty_string_range .
-    CONSTANTS attrib_abapgit_leadig_spaces TYPE string VALUE 'abapgit-leadig-spaces' ##NO_TEXT.
+    CONSTANTS c_attrib_abapgit_leadig_spaces TYPE string VALUE 'abapgit-leadig-spaces' ##NO_TEXT.
 
     METHODS fix_ids
       IMPORTING
@@ -14859,7 +14861,7 @@ CLASS zcl_abapgit_object_susc DEFINITION INHERITING FROM zcl_abapgit_objects_sup
     INTERFACES zif_abapgit_object.
   PROTECTED SECTION.
 
-    CONSTANTS transobjecttype_class TYPE c LENGTH 1 VALUE 'C' ##NO_TEXT.
+    CONSTANTS c_transobjecttype_class TYPE c LENGTH 1 VALUE 'C' ##NO_TEXT.
 
     METHODS has_authorization
       IMPORTING
@@ -23625,7 +23627,7 @@ CLASS zcl_abapgit_diff DEFINITION
   CREATE PUBLIC.
 
   PUBLIC SECTION.
-    CONSTANTS co_starting_beacon TYPE i VALUE 1.
+    CONSTANTS c_starting_beacon TYPE i VALUE 1.
 
 * assumes data is UTF8 based with newlines
     METHODS constructor
@@ -27859,7 +27861,7 @@ CLASS zcl_abapgit_diff IMPLEMENTATION.
   ENDMETHOD.
   METHOD map_beacons.
 
-    DATA: lv_beacon_idx  TYPE i VALUE co_starting_beacon,
+    DATA: lv_beacon_idx  TYPE i VALUE c_starting_beacon,
           lv_offs        TYPE i,
           lv_beacon_str  TYPE string,
           lv_beacon_2lev TYPE string,
@@ -27920,9 +27922,9 @@ CLASS zcl_abapgit_diff IMPLEMENTATION.
     LOOP AT mt_diff ASSIGNING <ls_diff>
                     USING KEY new_num
                     WHERE old     = is_diff_old-old
-                    AND   new     = is_diff_old-new
-                    AND   new_num = is_diff_old-new_num
-                    AND   old_num = is_diff_old-old_num.
+                      AND new     = is_diff_old-new
+                      AND new_num = is_diff_old-new_num
+                      AND old_num = is_diff_old-old_num.
 
       <ls_diff>-patch_flag = iv_patch_flag.
       EXIT.
@@ -53513,7 +53515,7 @@ CLASS zcl_abapgit_html_viewer_gui IMPLEMENTATION.
         query_table_disabled = iv_disable_query_table
         parent               = io_container.
 
-    ls_event-eventid    = zif_abapgit_html_viewer=>m_id_sapevent.
+    ls_event-eventid    = zif_abapgit_html_viewer=>c_id_sapevent.
     ls_event-appl_event = abap_true.
     APPEND ls_event TO lt_events.
 
@@ -54858,7 +54860,7 @@ CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
+CLASS zcl_abapgit_gui IMPLEMENTATION.
   METHOD back.
 
     DATA lv_index TYPE i.
@@ -54976,8 +54978,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
   ENDMETHOD.
   METHOD go_home.
 
-    DATA: ls_stack LIKE LINE OF mt_stack,
-          lv_mode  TYPE tabname.
+    DATA ls_stack LIKE LINE OF mt_stack.
 
     IF mi_router IS BOUND.
       CLEAR: mt_stack, mt_event_handlers.
@@ -55052,7 +55053,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
         ENDCASE.
 
       CATCH zcx_abapgit_cancel ##NO_HANDLER.
-        " Do nothing = gc_event_state-no_more_act
+        " Do nothing = c_event_state-no_more_act
       CATCH zcx_abapgit_exception INTO lx_exception.
         handle_error( lx_exception ).
     ENDTRY.
@@ -55132,7 +55133,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
     ENDIF.
 
     li_html = mi_cur_page->render( ).
-    lv_html = li_html->render( iv_no_indent_jscss = abap_true ).
+    lv_html = li_html->render( abap_true ).
 
     IF mi_html_processor IS BOUND.
       lv_html = mi_html_processor->process(
@@ -55167,7 +55168,7 @@ CLASS ZCL_ABAPGIT_GUI IMPLEMENTATION.
       ENDLOOP.
     ENDIF.
 
-    ls_event-eventid    = mi_html_viewer->m_id_sapevent.
+    ls_event-eventid    = mi_html_viewer->c_id_sapevent.
     ls_event-appl_event = abap_true.
     APPEND ls_event TO lt_events.
 
@@ -74361,7 +74362,7 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
     CALL FUNCTION 'SUSR_COMMEDITCHECK'
       EXPORTING
         objectname       = lv_tr_object_name
-        transobjecttype  = transobjecttype_class
+        transobjecttype  = c_transobjecttype_class
       IMPORTING
         return_from_korr = lv_tr_return.
 
@@ -74436,7 +74437,7 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
     CALL FUNCTION 'SUSR_COMMEDITCHECK'
       EXPORTING
         objectname      = lv_objectname
-        transobjecttype = transobjecttype_class.
+        transobjecttype = c_transobjecttype_class.
 
     INSERT tobc FROM ls_tobc.                             "#EC CI_SUBRC
 * ignore sy-subrc as all fields are key fields
@@ -75266,7 +75267,7 @@ CLASS zcl_abapgit_object_ssfo IMPLEMENTATION.
                                     CHANGING  cv_within_code_section = cv_within_code_section ).
 
 * for downwards compatibility, this code can be removed sometime in the future
-        lv_leading_spaces = li_element->get_attribute_ns( name = attrib_abapgit_leadig_spaces ).
+        lv_leading_spaces = li_element->get_attribute_ns( c_attrib_abapgit_leadig_spaces ).
 
         lv_coding_line = li_element->get_value( ).
         IF strlen( lv_coding_line ) >= 1 AND lv_coding_line(1) <> | |.
@@ -75656,7 +75657,7 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
 
     io_xml->read(
       EXPORTING
-        iv_name = mc_xml_parent_name
+        iv_name = c_xml_parent_name
       CHANGING
         cg_data = <ls_metadata> ).
 
@@ -75665,13 +75666,13 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
     ASSIGN COMPONENT 'CONTENT-SOURCE' OF STRUCTURE <lg_data> TO <lv_source>.
     ASSERT sy-subrc = 0.
 
-    <lv_source> = zif_abapgit_object~mo_files->read_string( mc_source_file ).
+    <lv_source> = zif_abapgit_object~mo_files->read_string( c_source_file ).
     IF <lv_source> IS INITIAL.
       <lv_source> = zif_abapgit_object~mo_files->read_string( 'assrvd' ).
     ENDIF.
 
     CREATE OBJECT ro_object_data TYPE ('CL_SRVD_WB_OBJECT_DATA').
-    ro_object_data->set_data( p_data = <lg_data>  ).
+    ro_object_data->set_data( p_data = <lg_data> ).
 
   ENDMETHOD.
   METHOD get_wb_object_operator.
@@ -75998,11 +75999,11 @@ CLASS zcl_abapgit_object_srvd IMPLEMENTATION.
         lv_source = <lv_source>.
 
         io_xml->add(
-          iv_name = mc_xml_parent_name
+          iv_name = c_xml_parent_name
           ig_data = <lv_metadata> ).
 
         zif_abapgit_object~mo_files->add_string(
-          iv_ext    = mc_source_file
+          iv_ext    = c_source_file
           iv_string = lv_source ).
 
       CATCH cx_root INTO lx_error.
@@ -95664,7 +95665,7 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
 
     clear_elements( CHANGING ci_document = li_document ).
 
-    li_node = li_document->create_element( co_name-version ).
+    li_node = li_document->create_element( c_name-version ).
     li_node->append_child( li_document->get_root_element( ) ).
 
     ci_node->append_child( li_node ).
@@ -95675,7 +95676,7 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
     DATA: li_versions_node TYPE REF TO if_ixml_element.
     FIELD-SYMBOLS: <ls_version_info> LIKE LINE OF it_version_info.
 
-    li_versions_node = ci_document->create_element( co_name-versions ).
+    li_versions_node = ci_document->create_element( c_name-versions ).
 
     IF lines( it_version_info ) > 0.
 
@@ -95693,7 +95694,7 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
 
       serialize_version(
         EXPORTING
-          iv_version = co_default_version
+          iv_version = c_default_version
         CHANGING
           ci_node    = li_versions_node ).
 
@@ -95759,7 +95760,7 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
                                             im_name                = mv_object_name
                                             " we have to supply a version, so let's use the default version
                                             " and delete them all
-                                            im_version             = co_default_version
+                                            im_version             = c_default_version
                                             im_delete_all_versions = abap_true ).
 
       CATCH cx_ecatt_apl INTO lx_error.
@@ -95778,7 +95779,7 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
     li_document = io_xml->get_raw( ).
 
     li_versions = li_document->get_elements_by_tag_name( depth = 0
-                                                         name  = co_name-version ).
+                                                         name  = c_name-version ).
 
     li_version_iterator = li_versions->create_iterator( ).
 
@@ -95803,7 +95804,7 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
 
     TRY.
         rv_bool = cl_apl_ecatt_object=>existence_check_object( im_name               = mv_object_name
-                                                               im_version            = co_default_version
+                                                               im_version            = c_default_version
                                                                im_obj_type           = lv_object_type
                                                                im_exists_any_version = abap_true ).
 
@@ -103638,7 +103639,7 @@ CLASS zcl_abapgit_object_aqbg IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_APIS IMPLEMENTATION.
+CLASS zcl_abapgit_object_apis IMPLEMENTATION.
   METHOD constructor.
 
     DATA lr_data TYPE REF TO data.
@@ -103647,7 +103648,7 @@ CLASS ZCL_ABAPGIT_OBJECT_APIS IMPLEMENTATION.
                         iv_language = iv_language ).
 
     TRY.
-        CREATE DATA lr_data TYPE (gc_model).
+        CREATE DATA lr_data TYPE (c_model).
       CATCH cx_sy_create_error.
         zcx_abapgit_exception=>raise( |APIS not supported by your NW release| ).
     ENDTRY.
@@ -103709,7 +103710,7 @@ CLASS ZCL_ABAPGIT_OBJECT_APIS IMPLEMENTATION.
     FIELD-SYMBOLS <ls_state>  TYPE any.
     FIELD-SYMBOLS <ls_row>    TYPE any.
     FIELD-SYMBOLS <lv_simple> TYPE simple.
-    CREATE DATA lr_data TYPE (gc_model).
+    CREATE DATA lr_data TYPE (c_model).
     ASSIGN lr_data->* TO <ls_data>.
     CREATE DATA lr_data TYPE ('IF_ARS_STATE_DB_ACCESS=>TY_S_HEADER').
     ASSIGN lr_data->* TO <ls_header>.
@@ -103814,7 +103815,7 @@ CLASS ZCL_ABAPGIT_OBJECT_APIS IMPLEMENTATION.
     DATA lr_data TYPE REF TO data.
     FIELD-SYMBOLS <ls_data> TYPE any.
 
-    CREATE DATA lr_data TYPE (gc_model).
+    CREATE DATA lr_data TYPE (c_model).
     ASSIGN lr_data->* TO <ls_data>.
 
     initialize( ).
@@ -111798,7 +111799,7 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
     TRY.
         CALL METHOD cl_apl_ecatt_xml=>('CREATE') " doesn't exist in 702
           EXPORTING
-            im_type = co_xml
+            im_type = c_xml
           RECEIVING
             re_xml  = lo_xml.
 
@@ -111825,7 +111826,7 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
 
     CALL METHOD cl_apl_ecatt_xml=>('CREATE') " doesn't exist in 702
       EXPORTING
-        im_type = co_xml
+        im_type = c_xml
       RECEIVING
         re_xml  = lo_xml.
 
@@ -115039,12 +115040,12 @@ CLASS zcl_abapgit_object_ront IMPLEMENTATION.
     TRY.
 
         SELECT SINGLE changed_by INTO lv_user
-            FROM (co_table_name)
+            FROM (c_table_name)
             WHERE ront_name = ms_item-obj_name AND version = 'I'.
 
         IF lv_user IS INITIAL.
           SELECT SINGLE changed_by INTO lv_user
-            FROM (co_table_name)
+            FROM (c_table_name)
             WHERE ront_name = ms_item-obj_name AND version = 'A'.
         ENDIF.
 
@@ -115064,12 +115065,12 @@ CLASS zcl_abapgit_object_nont IMPLEMENTATION.
     TRY.
 
         SELECT SINGLE changed_by INTO lv_user
-            FROM (co_table_name)
+            FROM (c_table_name)
             WHERE nont_name = ms_item-obj_name AND version = 'I'.
 
         IF lv_user IS INITIAL.
           SELECT SINGLE changed_by INTO lv_user
-            FROM (co_table_name)
+            FROM (c_table_name)
             WHERE nont_name = ms_item-obj_name AND version = 'A'.
         ENDIF.
 
@@ -115110,21 +115111,20 @@ CLASS ZCL_ABAPGIT_OBJECT_GSMP IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_evtb IMPLEMENTATION.
-
   METHOD zif_abapgit_object~changed_by.
 
-    DATA: lv_user                TYPE string,
-          lx_error               TYPE REF TO cx_root.
+    DATA: lv_user  TYPE string,
+          lx_error TYPE REF TO cx_root.
 
     TRY.
 
         SELECT SINGLE changed_by INTO lv_user
-            FROM (co_table_name)
+            FROM (c_table_name)
             WHERE evtb_name = ms_item-obj_name AND version = 'I'.
 
         IF lv_user IS INITIAL.
           SELECT SINGLE changed_by INTO lv_user
-            FROM (co_table_name)
+            FROM (c_table_name)
             WHERE evtb_name = ms_item-obj_name AND version = 'A'.
         ENDIF.
 
@@ -115135,8 +115135,8 @@ CLASS zcl_abapgit_object_evtb IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
 ENDCLASS.
+
 CLASS zcl_abapgit_object_eeec IMPLEMENTATION.
 
   METHOD zif_abapgit_object~changed_by.
@@ -126833,6 +126833,26 @@ CLASS zcl_abapgit_background_pull IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_background IMPLEMENTATION.
+  METHOD dequeue.
+    CALL FUNCTION 'DEQUEUE_EZABAPGIT'
+      EXPORTING
+        type = c_enq_type.
+  ENDMETHOD.
+  METHOD enqueue.
+    CALL FUNCTION 'ENQUEUE_EZABAPGIT'
+      EXPORTING
+        mode_zabapgit  = 'E'
+        type           = c_enq_type
+        _scope         = '3'
+      EXCEPTIONS
+        foreign_lock   = 1
+        system_failure = 2
+        OTHERS         = 3.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+  ENDMETHOD.
   METHOD list_methods.
 
     DATA: ls_method       LIKE LINE OF rt_methods,
@@ -126932,29 +126952,6 @@ CLASS zcl_abapgit_background IMPLEMENTATION.
     dequeue( ).
 
   ENDMETHOD.
-
-  METHOD enqueue.
-    CALL FUNCTION 'ENQUEUE_EZABAPGIT'
-      EXPORTING
-        mode_zabapgit  = 'E'
-        type           = gc_enq_type
-        _scope         = '3'
-      EXCEPTIONS
-        foreign_lock   = 1
-        system_failure = 2
-        OTHERS         = 3.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD dequeue.
-    CALL FUNCTION 'DEQUEUE_EZABAPGIT'
-      EXPORTING
-        type = gc_enq_type.
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_apack_writer IMPLEMENTATION.
@@ -128038,8 +128035,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-03T15:42:39.757Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-03T15:42:39.757Z`.
+* abapmerge 0.16.0 - 2023-10-04T13:21:12.975Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-04T13:21:12.975Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
