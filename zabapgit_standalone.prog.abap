@@ -100320,7 +100320,7 @@ CLASS zcl_abapgit_object_cmpt IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |Error deleting CMPT { ms_item-obj_name }| ).
     ENDIF.
 
-    tadir_delete( ).
+    corr_insert( iv_package ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -128070,8 +128070,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-05T03:54:03.863Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-05T03:54:03.863Z`.
+* abapmerge 0.16.0 - 2023-10-05T12:37:41.376Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-05T12:37:41.376Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
