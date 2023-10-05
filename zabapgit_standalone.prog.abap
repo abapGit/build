@@ -23552,6 +23552,13 @@ CLASS zcl_abapgit_convert DEFINITION
         VALUE(rv_xstring) TYPE xstring
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS xstring_to_string_utf8_bom
+      IMPORTING
+        !iv_xstring      TYPE xstring
+      RETURNING
+        VALUE(rv_string) TYPE string
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS xstring_to_int
       IMPORTING
         !iv_xstring TYPE xstring
@@ -25271,6 +25278,8 @@ CLASS ZCL_ABAPGIT_XML_PRETTY IMPLEMENTATION.
           li_stream_factory TYPE REF TO if_ixml_stream_factory,
           li_istream        TYPE REF TO if_ixml_istream,
           li_parser         TYPE REF TO if_ixml_parser,
+          lv_xstring        TYPE xstring,
+          li_encoding       TYPE REF TO if_ixml_encoding,
           li_ostream        TYPE REF TO if_ixml_ostream,
           li_renderer       TYPE REF TO if_ixml_renderer.
     ASSERT NOT iv_xml IS INITIAL.
@@ -25279,7 +25288,8 @@ CLASS ZCL_ABAPGIT_XML_PRETTY IMPLEMENTATION.
     li_xml_doc = li_ixml->create_document( ).
 
     li_stream_factory = li_ixml->create_stream_factory( ).
-    li_istream        = li_stream_factory->create_istream_string( iv_xml ).
+    li_istream        = li_stream_factory->create_istream_xstring(
+      zcl_abapgit_convert=>string_to_xstring_utf8( iv_xml ) ).
     li_parser         = li_ixml->create_parser( stream_factory = li_stream_factory
                                                 istream        = li_istream
                                                 document       = li_xml_doc ).
@@ -25293,14 +25303,22 @@ CLASS ZCL_ABAPGIT_XML_PRETTY IMPLEMENTATION.
       ENDIF.
     ENDIF.
     li_istream->close( ).
-    li_ostream  = li_stream_factory->create_ostream_cstring( rv_xml ).
+    li_ostream  = li_stream_factory->create_ostream_xstring( lv_xstring ).
 
+    li_encoding = li_ixml->create_encoding(
+      character_set = 'utf-8'
+      byte_order    = if_ixml_encoding=>co_big_endian ).
+
+    li_xml_doc->set_encoding( li_encoding ).
     li_renderer = li_ixml->create_renderer( ostream  = li_ostream
                                             document = li_xml_doc ).
 
     li_renderer->set_normalizing( boolc( iv_unpretty = abap_false ) ).
 
     li_renderer->render( ).
+
+    rv_xml = zcl_abapgit_convert=>xstring_to_string_utf8_bom( lv_xstring ).
+    REPLACE FIRST OCCURRENCE OF 'utf-8' IN rv_xml WITH 'utf-16'.
 
   ENDMETHOD.
 ENDCLASS.
@@ -28392,6 +28410,23 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
     rv_string = kHGwldKtJfHZXmphMQgfQYNhjRNkGw=>convert(
       iv_data   = lv_data
       iv_length = lv_length ).
+
+  ENDMETHOD.
+  METHOD xstring_to_string_utf8_bom.
+
+    DATA lv_xstring TYPE xstring.
+
+    IF iv_xstring IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    lv_xstring = iv_xstring.
+    " Add UTF-8 BOM
+    IF xstrlen( lv_xstring ) < 3 OR lv_xstring(3) <> cl_abap_char_utilities=>byte_order_mark_utf8.
+      lv_xstring = cl_abap_char_utilities=>byte_order_mark_utf8 && lv_xstring.
+    ENDIF.
+
+    rv_string = xstring_to_string_utf8( lv_xstring ).
 
   ENDMETHOD.
   METHOD x_to_bitbyte.
@@ -128035,8 +128070,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-04T13:21:12.975Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-04T13:21:12.975Z`.
+* abapmerge 0.16.0 - 2023-10-05T03:54:03.863Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-05T03:54:03.863Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
