@@ -25301,7 +25301,6 @@ CLASS ZCL_ABAPGIT_XML_PRETTY IMPLEMENTATION.
         zcx_abapgit_exception=>raise( 'error parsing xml' ).
       ENDIF.
     ENDIF.
-    li_istream->close( ).
     li_ostream  = li_stream_factory->create_ostream_xstring( lv_xstring ).
 
     li_encoding = li_ixml->create_encoding(
@@ -128081,8 +128080,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-08T06:51:19.678Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-08T06:51:19.678Z`.
+* abapmerge 0.16.0 - 2023-10-08T07:01:24.739Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-08T07:01:24.739Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
