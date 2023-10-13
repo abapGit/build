@@ -19761,7 +19761,7 @@ CLASS zcl_abapgit_html_form_utils DEFINITION
         !io_form_data    TYPE REF TO zcl_abapgit_string_map
         !io_compare_with TYPE REF TO zcl_abapgit_string_map
       RETURNING
-        VALUE(rv_dirty) TYPE abap_bool .
+        VALUE(rv_dirty)  TYPE abap_bool .
 
     METHODS constructor
       IMPORTING
@@ -19792,10 +19792,10 @@ CLASS zcl_abapgit_html_form_utils DEFINITION
         !io_form_data TYPE REF TO zcl_abapgit_string_map .
     METHODS exit
       IMPORTING
-        !io_form_data            TYPE REF TO zcl_abapgit_string_map
-        !io_check_changes_versus TYPE REF TO zcl_abapgit_string_map OPTIONAL
+        !io_form_data    TYPE REF TO zcl_abapgit_string_map
+        !io_compare_with TYPE REF TO zcl_abapgit_string_map
       RETURNING
-        VALUE(rv_state)          TYPE i
+        VALUE(rv_state)  TYPE i
       RAISING
         zcx_abapgit_exception .
 
@@ -22378,10 +22378,6 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
         choose_pull_request TYPE string VALUE 'choose_pull_request',
         change_head_type    TYPE string VALUE 'change_head_type',
       END OF c_event .
-    CONSTANTS:
-      BEGIN OF c_popup,
-        pull_request TYPE string VALUE 'popup_pull_request',
-      END OF c_popup.
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
     DATA ms_settings_snapshot TYPE ty_remote_settings.
@@ -22413,7 +22409,7 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
       IMPORTING
         io_existing_form_data TYPE REF TO zcl_abapgit_string_map OPTIONAL
       RETURNING
-        VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form
+        VALUE(ro_form)        TYPE REF TO zcl_abapgit_html_form
       RAISING
         zcx_abapgit_exception.
 
@@ -39542,8 +39538,8 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-go_back.
         rs_handled-state = zcl_abapgit_html_form_utils=>create( mo_form )->exit(
-          io_form_data            = mo_form_data
-          io_check_changes_versus = read_settings( ) ).
+          io_form_data    = mo_form_data
+          io_compare_with = read_settings( ) ).
 
       WHEN c_event-save.
         " Validate all form entries
@@ -39654,7 +39650,6 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
   METHOD choose_pr.
 
     DATA ls_pull         TYPE zif_abapgit_pr_enum_provider=>ty_pull_request.
-    DATA lv_pull_request TYPE ty_remote_settings-pull_request.
     DATA lv_url TYPE ty_remote_settings-url.
     DATA lv_popup_cancelled TYPE abap_bool.
 
@@ -39963,11 +39958,11 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
       " it was on its own page and user went back from it via F3/ESC and the picklist had no "graceful back" handler
       CASE mo_popup_picklist->id( ).
         WHEN c_event-choose_pull_request.
-          choose_pr( iv_is_return = abap_true ).
+          choose_pr( abap_true ).
         WHEN c_event-choose_branch.
-          choose_branch( iv_is_return = abap_true ).
+          choose_branch( abap_true ).
         WHEN c_event-choose_tag.
-          choose_tag( iv_is_return = abap_true ).
+          choose_tag( abap_true ).
         WHEN OTHERS.
           zcx_abapgit_exception=>raise( |Unexpected picklist id { mo_popup_picklist->id( ) }| ).
       ENDCASE.
@@ -40285,8 +40280,6 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
 
     DATA:
       lv_url    TYPE ty_remote_settings-url,
-      lv_branch TYPE ty_remote_settings-branch,
-      lv_tag    TYPE ty_remote_settings-tag,
       lv_commit TYPE ty_remote_settings-commit.
 
     mo_form_data->merge( zcl_abapgit_html_form_utils=>create( mo_form )->normalize( ii_event->form_data( ) ) ).
@@ -40299,8 +40292,8 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
         ENDIF.
 
         rs_handled-state = zcl_abapgit_html_form_utils=>create( mo_form )->exit(
-          io_form_data = mo_form_data
-          io_check_changes_versus = initialize_form_data( ) ).
+          io_form_data    = mo_form_data
+          io_compare_with = initialize_form_data( ) ).
 
       WHEN c_event-choose_url.
         lv_url = choose_url( ).
@@ -40371,7 +40364,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     " If staying on form, initialize it with current settings
     IF rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render AND mo_popup_picklist IS NOT BOUND.
       " Switching tabs must change the form layout
-      mo_form = get_form_schema( io_existing_form_data = mo_form_data ).
+      mo_form = get_form_schema( mo_form_data ).
     ENDIF.
 
   ENDMETHOD.
@@ -40463,7 +40456,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -40700,7 +40693,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
     ms_settings-ui_theme = mo_form_data->get( c_id-ui_theme ).
     ms_settings-icon_scaling = mo_form_data->get( c_id-icon_scaling ).
     ms_settings-max_lines = mo_form_data->get( c_id-max_lines ).
-    ms_settings-label_colors = zcl_abapgit_repo_labels=>normalize_colors( mo_form_data->get(  c_id-label_colors ) ).
+    ms_settings-label_colors = zcl_abapgit_repo_labels=>normalize_colors( mo_form_data->get( c_id-label_colors ) ).
 
     " Interaction
     ms_settings-activate_wo_popup = mo_form_data->get( c_id-activate_wo_popup ).
@@ -40746,8 +40739,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-go_back.
         rs_handled-state = zcl_abapgit_html_form_utils=>create( mo_form )->exit(
-          io_form_data            = mo_form_data
-          io_check_changes_versus = read_settings( ) ).
+          io_form_data    = mo_form_data
+          io_compare_with = read_settings( ) ).
 
       WHEN c_event-save.
         " Validate form entries before saving
@@ -40776,7 +40769,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_PERS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
   METHOD choose_check_variant.
 
     DATA ls_variant         TYPE zif_abapgit_code_inspector=>ty_variant.
@@ -40962,7 +40955,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
       " it was on its own page and user went back from it via F3/ESC and the picklist had no "graceful back" handler
       CASE mo_popup_picklist->id( ).
         WHEN c_event-choose_check_variant.
-          choose_check_variant( iv_is_return = abap_true ).
+          choose_check_variant( abap_true ).
         WHEN OTHERS.
           zcx_abapgit_exception=>raise( |Unexpected picklist id { mo_popup_picklist->id( ) }| ).
       ENDCASE.
@@ -41122,8 +41115,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-go_back.
         rs_handled-state = zcl_abapgit_html_form_utils=>create( mo_form )->exit(
-          io_form_data            = mo_form_data
-          io_check_changes_versus = read_settings( ) ).
+          io_form_data    = mo_form_data
+          io_compare_with = read_settings( ) ).
 
       WHEN c_event-choose_transport_request.
 
@@ -41896,8 +41889,8 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-go_back.
         rs_handled-state = zcl_abapgit_html_form_utils=>create( mo_form )->exit(
-          io_form_data            = mo_form_data
-          io_check_changes_versus = read_settings( ) ).
+          io_form_data    = mo_form_data
+          io_compare_with = read_settings( ) ).
 
       WHEN c_event-save.
         " Validate form entries before saving
@@ -41926,7 +41919,7 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_BCKG IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_bckg IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -42158,8 +42151,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_BCKG IMPLEMENTATION.
     CASE ii_event->mv_action.
       WHEN zif_abapgit_definitions=>c_action-go_back.
         rs_handled-state = zcl_abapgit_html_form_utils=>create( mo_form )->exit(
-          io_form_data            = mo_form_data
-          io_check_changes_versus = read_settings( ) ).
+          io_form_data    = mo_form_data
+          io_compare_with = read_settings( ) ).
 
       WHEN c_event-save.
         save_settings( ).
@@ -50420,7 +50413,7 @@ CLASS ZCL_ABAPGIT_HTML_TABLE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTML_FORM_UTILS IMPLEMENTATION.
+CLASS zcl_abapgit_html_form_utils IMPLEMENTATION.
   METHOD constructor.
     mo_form = io_form.
   ENDMETHOD.
@@ -50432,17 +50425,10 @@ CLASS ZCL_ABAPGIT_HTML_FORM_UTILS IMPLEMENTATION.
   METHOD exit.
 
     DATA lv_answer TYPE c LENGTH 1.
-    DATA lo_compare_with LIKE io_check_changes_versus.
-
-    lo_compare_with = io_check_changes_versus.
-    IF lo_compare_with IS NOT BOUND.
-      " TODO: remove this if and make io_check_changes_versus mandatory once all forms are converted
-      lo_compare_with = mo_form_data.
-    ENDIF.
 
     IF is_dirty(
       io_form_data    = io_form_data
-      io_compare_with = lo_compare_with ) = abap_true.
+      io_compare_with = io_compare_with ) = abap_true.
       lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
         iv_display_cancel_button = abap_false
         iv_titlebar       = 'abapGit - Unsaved Changes'
@@ -128214,8 +128200,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-13T14:04:57.531Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-13T14:04:57.531Z`.
+* abapmerge 0.16.0 - 2023-10-13T20:57:00.986Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-13T20:57:00.986Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
