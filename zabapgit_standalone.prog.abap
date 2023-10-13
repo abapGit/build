@@ -9850,6 +9850,9 @@ CLASS zcl_abapgit_oo_base DEFINITION
 
   PRIVATE SECTION.
     CONSTANTS c_docu_state_active TYPE dokstate VALUE 'A'. " See include SDOC_CONSTANTS
+    CONSTANTS c_include_program_type TYPE c LENGTH 1 VALUE 'I'.
+    CONSTANTS c_ip_program_type TYPE c LENGTH 1 VALUE 'J'.
+    CONSTANTS c_cp_program_type TYPE c LENGTH 1 VALUE 'K'.
     DATA mv_skip_test_classes TYPE abap_bool .
 
 ENDCLASS.
@@ -107696,11 +107699,20 @@ CLASS zcl_abapgit_oo_interface IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD update_report.
+    DATA lv_type TYPE c LENGTH 1.
+
+    lv_type = zcl_abapgit_oo_base=>c_include_program_type.
+
+    IF iv_program+30 = srext_ext_interface_pool.
+      lv_type = zcl_abapgit_oo_base=>c_ip_program_type.
+    ENDIF.
+
     rv_updated = zcl_abapgit_factory=>get_sap_report( )->update_report(
-      iv_name    = iv_program
-      iv_package = iv_package
-      iv_version = iv_version
-      it_source  = it_source ).
+      iv_name         = iv_program
+      iv_package      = iv_package
+      iv_version      = iv_version
+      it_source       = it_source
+      iv_program_type = lv_type ).
   ENDMETHOD.
   METHOD zif_abapgit_oo_object_fnc~create.
 
@@ -108239,11 +108251,20 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD update_report.
+    DATA lv_type TYPE c LENGTH 1.
+
+    lv_type = zcl_abapgit_oo_base=>c_include_program_type.
+
+    IF iv_program+30 = srext_ext_class_pool.
+      lv_type = zcl_abapgit_oo_base=>c_cp_program_type.
+    ENDIF.
+
     rv_updated = zcl_abapgit_factory=>get_sap_report( )->update_report(
-      iv_name    = iv_program
-      iv_package = iv_package
-      iv_version = iv_version
-      it_source  = it_source ).
+      iv_name         = iv_program
+      iv_package      = iv_package
+      iv_version      = iv_version
+      it_source       = it_source
+      iv_program_type = lv_type ).
   ENDMETHOD.
   METHOD update_source_index.
 
@@ -108873,7 +108894,7 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
       WHERE clsname = is_key-clsname
         AND version <> seoc_version_deleted
         AND state = seoc_state_implemented
-        AND alias = seox_false.
+        AND alias = seox_false ORDER BY PRIMARY KEY.
 
     IF lt_components IS NOT INITIAL.
       SELECT SINGLE masterlang FROM tadir INTO lv_lang
@@ -108917,7 +108938,7 @@ CLASS zcl_abapgit_oo_base IMPLEMENTATION.
     " make sure to not damage VSEO* views by deleting texts of all subcomponents - an empty text must be kept!!
     SELECT * FROM vseosubcdf INTO TABLE lt_subcomponents
       WHERE clsname = is_key-clsname
-        AND version <> seoc_version_deleted.
+        AND version <> seoc_version_deleted ORDER BY PRIMARY KEY.
 
     IF lt_subcomponents IS NOT INITIAL.
       SELECT SINGLE masterlang FROM tadir INTO lv_lang
@@ -128192,8 +128213,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-13T06:12:50.462Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-13T06:12:50.462Z`.
+* abapmerge 0.16.0 - 2023-10-13T13:33:24.901Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-13T13:33:24.901Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
