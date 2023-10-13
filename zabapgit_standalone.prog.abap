@@ -36314,6 +36314,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       iv_package        = is_repo_params-package
       iv_folder_logic   = is_repo_params-folder_logic
       iv_labels         = is_repo_params-labels
+      iv_ign_subpkg     = is_repo_params-ignore_subpackages
       iv_main_lang_only = is_repo_params-main_lang_only ).
 
     check_and_create_package(
@@ -36398,10 +36399,9 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       zcl_abapgit_apack_helper=>dependencies_popup( lt_dependencies ).
     ENDIF.
 
-    IF  cs_checks-transport-required = abap_true
-    AND cs_checks-transport-transport IS INITIAL.
-      cs_checks-transport-transport = zcl_abapgit_ui_factory=>get_popups( )->popup_transport_request(
-        is_transport_type = cs_checks-transport-type ).
+    IF cs_checks-transport-required = abap_true AND cs_checks-transport-transport IS INITIAL.
+      cs_checks-transport-transport =
+        zcl_abapgit_ui_factory=>get_popups( )->popup_transport_request( cs_checks-transport-type ).
     ENDIF.
 
     " Update decisions
@@ -128214,8 +128214,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-13T13:59:23.281Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-13T13:59:23.281Z`.
+* abapmerge 0.16.0 - 2023-10-13T14:04:57.531Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-13T14:04:57.531Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
