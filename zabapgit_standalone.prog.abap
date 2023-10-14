@@ -11157,9 +11157,9 @@ CLASS zcl_abapgit_objects_super DEFINITION
         zcx_abapgit_exception .
     METHODS delete_ddic
       IMPORTING
-        VALUE(iv_objtype)              TYPE string
-        VALUE(iv_no_ask)               TYPE abap_bool DEFAULT abap_true
-        VALUE(iv_no_ask_delete_append) TYPE abap_bool DEFAULT abap_false
+        !iv_objtype              TYPE string
+        !iv_no_ask               TYPE abap_bool DEFAULT abap_true
+        !iv_no_ask_delete_append TYPE abap_bool DEFAULT abap_false
       RAISING
         zcx_abapgit_exception .
     METHODS set_abap_language_version
@@ -16440,7 +16440,6 @@ CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objec
         zcx_abapgit_exception .
     METHODS serialize_docu
       IMPORTING
-                !ii_xml              TYPE REF TO zif_abapgit_xml_output
                 !it_langu_additional TYPE zif_abapgit_lang_definitions=>ty_langus OPTIONAL
                 !iv_clsname          TYPE seoclsname
       RETURNING VALUE(rs_docu)       TYPE ty_docu
@@ -16448,14 +16447,12 @@ CLASS zcl_abapgit_object_intf DEFINITION FINAL INHERITING FROM zcl_abapgit_objec
                 zcx_abapgit_exception.
     METHODS serialize_descr
       IMPORTING
-                !ii_xml               TYPE REF TO zif_abapgit_xml_output
                 !iv_clsname           TYPE seoclsname
       RETURNING VALUE(rs_description) TYPE ty_intf-description
       RAISING
                 zcx_abapgit_exception.
     METHODS serialize_descr_sub
       IMPORTING
-                !ii_xml               TYPE REF TO zif_abapgit_xml_output
                 !iv_clsname           TYPE seoclsname
       RETURNING VALUE(rs_description) TYPE ty_intf-description_sub
       RAISING
@@ -62516,8 +62513,8 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   METHOD delete_longtexts.
 
     zcl_abapgit_factory=>get_longtexts( )->delete(
-        iv_longtext_id = iv_longtext_id
-        iv_object_name = ms_item-obj_name  ).
+      iv_longtext_id = iv_longtext_id
+      iv_object_name = ms_item-obj_name ).
 
   ENDMETHOD.
   METHOD deserialize_longtexts.
@@ -62585,12 +62582,12 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   METHOD serialize_longtexts.
 
     zcl_abapgit_factory=>get_longtexts( )->serialize(
-        iv_object_name   = ms_item-obj_name
-        iv_longtext_name = iv_longtext_name
-        iv_longtext_id   = iv_longtext_id
-        it_dokil         = it_dokil
-        io_i18n_params   = mo_i18n_params
-        ii_xml           = ii_xml  ).
+      iv_object_name   = ms_item-obj_name
+      iv_longtext_name = iv_longtext_name
+      iv_longtext_id   = iv_longtext_id
+      it_dokil         = it_dokil
+      io_i18n_params   = mo_i18n_params
+      ii_xml           = ii_xml ).
 
   ENDMETHOD.
   METHOD set_abap_language_version.
@@ -83863,7 +83860,8 @@ CLASS zcl_abapgit_object_prog IMPLEMENTATION.
       WHERE r3state = 'A'
       AND prog = ms_item-obj_name
       AND language <> mv_language
-      AND language IN lt_language_filter ##TOO_MANY_ITAB_FIELDS.
+      AND language IN lt_language_filter
+      ORDER BY language ##TOO_MANY_ITAB_FIELDS.
 
     SORT lt_tpool_i18n BY language ASCENDING.
     LOOP AT lt_tpool_i18n ASSIGNING <ls_tpool>.
@@ -89592,7 +89590,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
     DATA ls_intf_aff TYPE zif_abapgit_aff_intf_v1=>ty_main.
     DATA lo_aff_mapper TYPE REF TO zif_abapgit_aff_type_mapping.
 
-    lv_json_data = zif_abapgit_object~mo_files->read_raw( iv_ext = 'json' ).
+    lv_json_data = zif_abapgit_object~mo_files->read_raw( 'json' ).
     ls_intf_aff = kHGwlUKtFBXjILcBRBJOrsxFJiznPf=>deserialize( lv_json_data ).
 
     CREATE OBJECT lo_aff_mapper TYPE kHGwlUKtFBXjILcBRBJOvDDGtKNvAd.
@@ -89723,17 +89721,15 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
       FROM dokhl
       WHERE id     = c_longtext_id-interface
         AND object = ls_clskey-clsname
-        AND langu  <> mv_language.
+        AND langu  <> mv_language
+      ORDER BY langu.
 
     ls_intf-docu = serialize_docu(
-      ii_xml              = io_xml
       iv_clsname          = ls_clskey-clsname
       it_langu_additional = lt_langu_additional ).
 
-    ls_intf-description = serialize_descr( ii_xml     = io_xml
-                                           iv_clsname = ls_clskey-clsname ).
-    ls_intf-description_sub = serialize_descr_sub( ii_xml     = io_xml
-                                                   iv_clsname = ls_clskey-clsname ).
+    ls_intf-description = serialize_descr( ls_clskey-clsname ).
+    ls_intf-description_sub = serialize_descr_sub( ls_clskey-clsname ).
 
     " HERE: switch with feature flag for XML or JSON file format
     IF mv_aff_enabled = abap_true.
@@ -89859,9 +89855,9 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
           iv_version = ls_intf-vseointerf-unicode
           it_source  = lt_source ).
 
-        deserialize_descriptions( it_description = ls_intf-description ).
+        deserialize_descriptions( ls_intf-description ).
 
-        deserialize_descr_sub( it_description = ls_intf-description_sub ).
+        deserialize_descr_sub( ls_intf-description_sub ).
 
         deserialize_docu(
           is_docu = ls_intf-docu
@@ -92904,7 +92900,8 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
       FROM d010tinf
       WHERE r3state = 'A'
       AND prog = iv_prog_name
-      AND language <> mv_language ##TOO_MANY_ITAB_FIELDS.
+      AND language <> mv_language
+      ORDER BY language ##TOO_MANY_ITAB_FIELDS.
 
     mo_i18n_params->trim_saplang_keyed_table(
       EXPORTING
@@ -92950,8 +92947,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
     "   FORM GROUP_CHANGE
 
     UPDATE tlibt SET areat = iv_short_text
-                 WHERE spras = mv_language
-                 AND   area  = iv_group.
+      WHERE spras = mv_language AND area = iv_group.
 
   ENDMETHOD.
   METHOD update_where_used.
@@ -93028,26 +93024,29 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
     SELECT unam AS user udat AS date utime AS time FROM reposrc
       APPENDING CORRESPONDING FIELDS OF TABLE lt_stamps
       WHERE progname = lv_program
-      AND   r3state = 'A'.                                "#EC CI_SUBRC
+      AND r3state = 'A'
+      ORDER BY PRIMARY KEY.                               "#EC CI_SUBRC
 
     IF mt_includes_all IS NOT INITIAL AND lv_found = abap_false.
       SELECT unam AS user udat AS date utime AS time FROM reposrc
         APPENDING CORRESPONDING FIELDS OF TABLE lt_stamps
         FOR ALL ENTRIES IN mt_includes_all
         WHERE progname = mt_includes_all-table_line
-        AND   r3state = 'A'.                              "#EC CI_SUBRC
+        AND r3state = 'A'.                                "#EC CI_SUBRC
     ENDIF.
 
     SELECT unam AS user udat AS date utime AS time FROM repotext " Program text pool
       APPENDING CORRESPONDING FIELDS OF TABLE lt_stamps
       WHERE progname = lv_program
-      AND   r3state = 'A'.                                "#EC CI_SUBRC
+      AND r3state = 'A'
+      ORDER BY PRIMARY KEY.                               "#EC CI_SUBRC
 
     SELECT vautor AS user vdatum AS date vzeit AS time FROM eudb         " GUI
       APPENDING CORRESPONDING FIELDS OF TABLE lt_stamps
       WHERE relid = 'CU'
-      AND   name  = lv_program
-      AND   srtf2 = 0 ##TOO_MANY_ITAB_FIELDS.
+      AND name = lv_program
+      AND srtf2 = 0
+      ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS.
 
 * Screens: username not stored in D020S database table
 
@@ -98299,7 +98298,9 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     ENDIF.
 
     " Clean-up sub packages first
-    SELECT devclass FROM tdevc INTO TABLE lt_pack WHERE parentcl = iv_package_name.
+    SELECT devclass FROM tdevc INTO TABLE lt_pack
+      WHERE parentcl = iv_package_name
+      ORDER BY PRIMARY KEY.
 
     LOOP AT lt_pack INTO lv_pack.
       remove_obsolete_tadir( lv_pack ).
@@ -98307,7 +98308,8 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
 
     " Remove TADIR entries for objects that do not exist anymore
     SELECT * FROM tadir INTO CORRESPONDING FIELDS OF TABLE lt_tadir
-      WHERE devclass = iv_package_name ##TOO_MANY_ITAB_FIELDS.
+      WHERE devclass = iv_package_name
+      ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS.
 
     LOOP AT lt_tadir INTO ls_tadir.
       ls_item-obj_type = ls_tadir-object.
@@ -101330,7 +101332,8 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
       WHERE r3state  = 'A'
         AND prog     = mv_classpool_name
         AND language IN lt_language_filter
-        AND language <> mv_language.
+        AND language <> mv_language
+      ORDER BY language.
 
     ii_xml->add( iv_name = 'VSEOCLASS'
                  ig_data = ls_vseoclass ).
@@ -101357,7 +101360,8 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
       WHERE id     = 'CL'
         AND object = ls_clskey-clsname
         AND langu IN lt_language_filter
-        AND langu <> mv_language.
+        AND langu <> mv_language
+      ORDER BY langu.
 
     serialize_docu( ii_xml              = ii_xml
                     iv_clsname          = ls_clskey-clsname
@@ -106782,13 +106786,13 @@ CLASS zcl_abapgit_sap_report IMPLEMENTATION.
         STATE iv_state.
     ELSEIF iv_extension_type IS INITIAL.
       INSERT REPORT iv_name FROM it_source
-        STATE        iv_state
+        STATE iv_state
         PROGRAM TYPE iv_program_type.
     ELSE.
       INSERT REPORT iv_name FROM it_source
-        STATE          iv_state
+        STATE iv_state
         EXTENSION TYPE iv_extension_type
-        PROGRAM TYPE   iv_program_type.
+        PROGRAM TYPE iv_program_type.
     ENDIF.
 
     IF sy-subrc <> 0.
@@ -128258,8 +128262,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-14T08:23:55.786Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-14T08:23:55.786Z`.
+* abapmerge 0.16.0 - 2023-10-14T08:37:12.430Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-14T08:37:12.430Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
