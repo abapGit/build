@@ -26472,7 +26472,7 @@ CLASS ZCL_ABAPGIT_STRING_BUFFER IMPLEMENTATION.
     ro_me = me.
   ENDMETHOD.
   METHOD join_and_flush.
-    rv_str = concat_lines_of( table = mt_buffer ).
+    rv_str = concat_lines_of( mt_buffer ).
     CLEAR mt_buffer.
   ENDMETHOD.
   METHOD join_w_newline_and_flush.
@@ -39067,7 +39067,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
           filename = ls_file-filename.
       IF sy-subrc <> 0.
 * see https://github.com/abapGit/abapGit/issues/3073
-        zcx_abapgit_exception=>raise( iv_text =
+        zcx_abapgit_exception=>raise(
           |Unable to stage { ls_file-filename }. If the filename contains spaces, this is a known issue.| &&
           | Consider ignoring or staging the file at a later time.| ).
       ENDIF.
@@ -44813,7 +44813,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PATCH IMPLEMENTATION.
     mv_section_count = mv_section_count + 1.
 
     ii_html->add( |<th class="patch">| ).
-    ii_html->add_checkbox( iv_id = |patch_section_{ get_normalized_fname_with_path( is_diff ) }_{ mv_section_count }| ).
+    ii_html->add_checkbox( |patch_section_{ get_normalized_fname_with_path( is_diff ) }_{ mv_section_count }| ).
     ii_html->add( '</th>' ).
 
   ENDMETHOD.
@@ -48043,7 +48043,7 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_table.
 
-    ri_html = zcl_abapgit_html_table=>create( ii_renderer = me
+    ri_html = zcl_abapgit_html_table=>create( me
       )->define_column(
         iv_column_id = 'type'
         iv_column_title = 'Type'
@@ -50459,7 +50459,7 @@ CLASS ZCL_ABAPGIT_HTML_TABLE IMPLEMENTATION.
     mi_html->add( '<tr>' ).
 
     LOOP AT mt_columns ASSIGNING <ls_col>.
-      mi_html->th( iv_content = <ls_col>-column_title ).
+      mi_html->th( <ls_col>-column_title ).
     ENDLOOP.
 
     mi_html->add( '</tr>' ).
@@ -52595,7 +52595,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     APPEND `</div>` TO lt_fragments.
     APPEND `</div>` TO lt_fragments.
 
-    rv_html = concat_lines_of( table = lt_fragments ).
+    rv_html = concat_lines_of( lt_fragments ).
 
   ENDMETHOD.
   METHOD render_infopanel.
@@ -52733,7 +52733,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
 
     APPEND `</ul>` TO lt_fragments.
 
-    rv_html = concat_lines_of( table = lt_fragments ).
+    rv_html = concat_lines_of( lt_fragments ).
 
   ENDMETHOD.
   METHOD render_news.
@@ -59678,7 +59678,7 @@ CLASS ZCL_ABAPGIT_REPO_CHECKSUMS IMPLEMENTATION.
     DATA lv_cs_blob TYPE string.
 
     TRY.
-        lv_cs_blob = zcl_abapgit_persist_factory=>get_repo_cs( )->read( iv_key = mv_repo_key ).
+        lv_cs_blob = zcl_abapgit_persist_factory=>get_repo_cs( )->read( mv_repo_key ).
       CATCH zcx_abapgit_exception zcx_abapgit_not_found.
         " Ignore currently, it's not critical for execution, just return empty
         RETURN.
@@ -59748,7 +59748,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     IF lo_abapgit_abap_language_vers->is_import_allowed( ms_data-package ) = abap_false.
       lv_text = |Repository cannot be imported. | &&
                 |ABAP Language Version of linked package is not compatible with repository settings.|.
-      zcx_abapgit_exception=>raise( iv_text = lv_text ).
+      zcx_abapgit_exception=>raise( lv_text ).
     ENDIF.
   ENDMETHOD.
   METHOD check_language.
@@ -60435,7 +60435,7 @@ CLASS zcl_abapgit_object_filter_tran IMPLEMENTATION.
     DATA lr_list TYPE REF TO devclass.
     DATA ls_filter TYPE zif_abapgit_definitions=>ty_tadir.
 
-    li_package = zcl_abapgit_factory=>get_sap_package( iv_package = iv_package ).
+    li_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
     lt_list = li_package->list_subpackages( ).
     LOOP AT lt_list REFERENCE INTO lr_list.
       ls_filter-pgmid = 'R3TR'.
@@ -61682,7 +61682,7 @@ CLASS kHGwlIgZqNOMnmtzWUhGRLwWSccCqJ IMPLEMENTATION.
 
   METHOD get_own_cua.
 
-    rs_cua = serialize_cua( iv_program_name = sy-cprog ).
+    rs_cua = serialize_cua( sy-cprog ).
 
   ENDMETHOD.
 
@@ -61695,7 +61695,7 @@ CLASS kHGwlIgZqNOMnmtzWUhGRLwWSccCqJ IMPLEMENTATION.
       iv_program_name = ms_item-obj_name ).
 
     CREATE OBJECT li_log TYPE zcl_abapgit_log.
-    zcl_abapgit_objects_activation=>activate( ii_log = li_log ).
+    zcl_abapgit_objects_activation=>activate( li_log ).
     zcl_abapgit_objects_activation=>clear( ).
 
   ENDMETHOD.
@@ -67486,7 +67486,7 @@ CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
       WITH '<?xml version="1.0"?>'.
     ASSERT sy-subrc = 0.
 
-    lv_xml_xstring = zcl_abapgit_convert=>string_to_xstring( iv_str = lv_xml_string ).
+    lv_xml_xstring = zcl_abapgit_convert=>string_to_xstring( lv_xml_string ).
     ls_orig_config-xcontent = lv_xml_xstring.
 
     ASSIGN COMPONENT 'PARENT' OF STRUCTURE ls_orig_config TO <lv_data>.
@@ -67731,7 +67731,7 @@ CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
     io_xml->add( iv_name = 'RELID'
                  ig_data =  ls_orig_config-relid ).
 
-    lv_xml_string = zcl_abapgit_convert=>xstring_to_string_utf8( iv_data = lv_xml_xstring ).
+    lv_xml_string = zcl_abapgit_convert=>xstring_to_string_utf8( lv_xml_xstring ).
     IF lv_xml_string IS NOT INITIAL.
       TRY.
           lv_xml_string = zcl_abapgit_xml_pretty=>print(
@@ -68020,7 +68020,7 @@ CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
           WITH '<?xml version="1.0"?>'.
         ASSERT sy-subrc = 0.
 
-        lv_xml_xstring = zcl_abapgit_convert=>string_to_xstring( iv_str = lv_xml_string ).
+        lv_xml_xstring = zcl_abapgit_convert=>string_to_xstring( lv_xml_string ).
         UPDATE wdy_config_appl
           SET xcontent = lv_xml_xstring
           WHERE config_id   = ls_outline-config_id
@@ -68108,7 +68108,7 @@ CLASS zcl_abapgit_object_wdca IMPLEMENTATION.
       WHERE config_id = ls_outline-config_id
         AND config_type = ls_outline-config_type
         AND config_var = ls_outline-config_var.
-    lv_xml_string = zcl_abapgit_convert=>xstring_to_string_utf8( iv_data = lv_xml_xstring ).
+    lv_xml_string = zcl_abapgit_convert=>xstring_to_string_utf8( lv_xml_xstring ).
     IF lv_xml_string IS NOT INITIAL.
       TRY.
           lv_xml_string = zcl_abapgit_xml_pretty=>print(
@@ -70136,7 +70136,7 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     DATA lt_dokvl           TYPE STANDARD TABLE OF dokvl.
     DATA lv_error_status    TYPE lxestatprc.
     DATA lv_objname         TYPE lxeobjname.
-    ls_dokvl-object = build_text_name( iv_id = iv_id ).
+    ls_dokvl-object = build_text_name( iv_id ).
 
     SELECT id object langu
       FROM dokvl
@@ -74952,7 +74952,7 @@ CLASS zcl_abapgit_object_stvi IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    corr_insert( iv_package = iv_package ).
+    corr_insert( iv_package ).
 
 *   Populate user details
     ls_transaction_variant-shdtvciu-crdate = sy-datum.
@@ -82949,7 +82949,7 @@ CLASS zcl_abapgit_object_scvi IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    corr_insert( iv_package = iv_package ).
+    corr_insert( iv_package ).
 
 *   Populate user details
     ls_screen_variant-shdsvci-crdate = sy-datum.
@@ -84826,7 +84826,7 @@ CLASS zcl_abapgit_object_pers IMPLEMENTATION.
   METHOD zif_abapgit_object~is_locked.
 
     " There's no object specific locking. Just a global one.
-    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'E_SPERSREG' ).
+    rv_is_locked = exists_a_lock_entry_for( 'E_SPERSREG' ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
@@ -85412,7 +85412,7 @@ CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
     check_subrc_for( `TO_XML` ).
 
     ri_first_element ?= li_xml_dom->get_first_child( ).
-    li_elements = ri_first_element->get_elements_by_tag_name( name = 'ELEMENTS' ).
+    li_elements = ri_first_element->get_elements_by_tag_name( 'ELEMENTS' ).
     li_iterator = li_elements->create_iterator( ).
 
     DO.
@@ -85435,14 +85435,14 @@ CLASS zcl_abapgit_object_pdts IMPLEMENTATION.
         "Remove system container elements - causing too much trouble
         "Todo: This is a bad hack, but obsolete if we can fix todo above
         li_attributes = li_element->get_attributes( ).
-        lv_name = li_attributes->get_named_item( name  = 'NAME' )->get_value( ).
+        lv_name = li_attributes->get_named_item( 'NAME' )->get_value( ).
         IF lv_name(1) = '_'.
           li_element->remove_node( ).
           li_child_iterator->reset( ).
           CONTINUE.
         ENDIF.
 
-        li_attributes->remove_named_item( name = 'CHGDTA' ).
+        li_attributes->remove_named_item( 'CHGDTA' ).
 
       ENDDO.
 
@@ -90450,9 +90450,9 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
 
     DATA: lo_xml_api TYPE REF TO object.
 
-    lo_xml_api = w3_api_create_new( is_attr = is_attr ).
+    lo_xml_api = w3_api_create_new( is_attr ).
 
-    w3_api_save( io_xml_api = lo_xml_api ).
+    w3_api_save( lo_xml_api ).
 
     w3_api_set_changeable( io_xml_api    = lo_xml_api
                            iv_changeable = abap_false ).
@@ -90594,9 +90594,9 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
     w3_api_set_changeable( io_xml_api    = lo_xml_api
                            iv_changeable = abap_true ).
 
-    w3_api_delete( io_xml_api = lo_xml_api ).
+    w3_api_delete( lo_xml_api ).
 
-    w3_api_save( io_xml_api = lo_xml_api ).
+    w3_api_save( lo_xml_api ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -90612,7 +90612,7 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
                                  iv_transport = iv_transport ).
     ENDIF.
 
-    save( is_attr = ls_attr ).
+    save( ls_attr ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~exists.
@@ -90678,16 +90678,16 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
     ls_name = ms_item-obj_name.
 
-    li_template = w3_api_load( is_name = ls_name ).
+    li_template = w3_api_load( ls_name ).
 
-    es_attr = w3_api_get_attributes( ii_template = li_template ).
+    es_attr = w3_api_get_attributes( li_template ).
 
     CLEAR: es_attr-chname,
            es_attr-tdate,
            es_attr-ttime,
            es_attr-devclass.
 
-    lt_source = w3_api_get_source( ii_template = li_template ).
+    lt_source = w3_api_get_source( li_template ).
 
     CONCATENATE LINES OF lt_source INTO ev_source RESPECTING BLANKS.
 
@@ -90697,7 +90697,7 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
     DATA: lt_source   TYPE w3htmltabtype,
           lv_source   TYPE string,
           li_template TYPE REF TO if_w3_api_template.
-    li_template = w3_api_create_new( is_template_data = is_attr ).
+    li_template = w3_api_create_new( is_attr ).
 
     w3_api_set_attributes( ii_template = li_template
                            is_attr     = is_attr ).
@@ -90900,14 +90900,14 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
           ls_name     TYPE iacikeyt.
     ls_name = ms_item-obj_name.
 
-    li_template = w3_api_load( is_name = ls_name ).
+    li_template = w3_api_load( ls_name ).
 
     w3_api_set_changeable( ii_template   = li_template
                            iv_changeable = abap_true ).
 
-    w3_api_delete( ii_template = li_template ).
+    w3_api_delete( li_template ).
 
-    w3_api_save( ii_template = li_template ).
+    w3_api_save( li_template ).
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -93877,7 +93877,7 @@ CLASS zcl_abapgit_object_fdt0 IMPLEMENTATION.
       name      = 'DevelopmentPackage'
       namespace = 'FDTNS' ).
     IF lo_node_package IS BOUND.
-      lo_node_package->set_value( value = |{ iv_package }| ).
+      lo_node_package->set_value( |{ iv_package }| ).
     ENDIF.
 
     lo_node_id = co_dom_tree->find_from_name(
@@ -94034,7 +94034,7 @@ CLASS zcl_abapgit_object_fdt0 IMPLEMENTATION.
     lo_components_node = co_ixml_element->find_from_name( name      = 'ComponentReleases'
                                                           namespace = 'FDTNS' ).
     IF lo_components_node IS BOUND.
-      co_ixml_element->remove_child( old_child = lo_components_node ).
+      co_ixml_element->remove_child( lo_components_node ).
     ENDIF.
 
     " Clear user/time/system-specific fields
@@ -103476,7 +103476,7 @@ CLASS zcl_abapgit_object_area IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
-    rv_is_locked = exists_a_lock_entry_for( iv_lock_object = 'ERSDAREA' ).
+    rv_is_locked = exists_a_lock_entry_for( 'ERSDAREA' ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
   ENDMETHOD.
@@ -110686,7 +110686,7 @@ CLASS zcl_abapgit_object_enho_badi IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_UPL IMPLEMENTATION.
+CLASS zcl_abapgit_ecatt_val_obj_upl IMPLEMENTATION.
   METHOD get_business_msgs_from_dom.
 
     " downport from CL_APL_ECATT_VO_UPLOAD
@@ -111102,7 +111102,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
 
     li_insert_objects ?= template_over_all->find_from_name( 'BUSINESS_MESSAGES' ).
 
-    li_insert_objects->append_child( new_child = li_element ).
+    li_insert_objects->append_child( li_element ).
 
   ENDMETHOD.
   METHOD set_ecatt_flags.
@@ -111147,7 +111147,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
 
     li_insert_objects ?= template_over_all->find_from_name( 'VO_FLAGS' ).
 
-    li_insert_objects->append_child( new_child = li_element ).
+    li_insert_objects->append_child( li_element ).
 
     CALL METHOD lo_ecatt_vo->('GET_ERROR_PRIORITY')
       RECEIVING
@@ -111171,7 +111171,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
 
     li_insert_objects = template_over_all->find_from_name( 'VO_FLAGS' ).
 
-    li_insert_objects->append_child( new_child = li_element ).
+    li_insert_objects->append_child( li_element ).
 
   ENDMETHOD.
   METHOD set_ecatt_impl_detail.
@@ -111216,7 +111216,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
 
     li_insert_objects = template_over_all->find_from_name( 'IMPL_DETAILS' ).
 
-    li_insert_objects->append_child( new_child = li_element ).
+    li_insert_objects->append_child( li_element ).
 
   ENDMETHOD.
   METHOD zif_abapgit_ecatt_download~get_xml_stream.
@@ -111316,14 +111316,14 @@ CLASS zcl_abapgit_ecatt_system_downl IMPLEMENTATION.
           OTHERS       = 2.
       ASSERT sy-subrc = 0.
 
-      etpar_node->append_child( new_child = li_item ).
+      etpar_node->append_child( li_item ).
 
     ENDLOOP.
 
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ECATT_SP_UPLOAD IMPLEMENTATION.
   METHOD get_ecatt_sp.
 
     " downport
@@ -111345,7 +111345,7 @@ CLASS zcl_abapgit_ecatt_sp_upload IMPLEMENTATION.
           li_ixml = cl_ixml=>create( ).
           li_dom  = li_ixml->create_document( ).
           li_root ?= li_section->clone( ).
-          li_dom->append_child( new_child = li_root ).
+          li_dom->append_child( li_root ).
           CALL FUNCTION 'SDIXML_DOM_TO_XML'
             EXPORTING
               document      = li_dom
@@ -111564,7 +111564,7 @@ CLASS ZCL_ABAPGIT_ECATT_SP_DOWNLOAD IMPLEMENTATION.
         document = li_dom.
 
     li_element = li_dom->get_root_element( ).
-    li_start_profile_data_node->append_child( new_child = li_element ).
+    li_start_profile_data_node->append_child( li_element ).
 
   ENDMETHOD.
   METHOD zif_abapgit_ecatt_download~get_xml_stream.
@@ -111732,7 +111732,7 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
           free_text     = lv_errmsg ).
     ENDIF.
 
-    lv_rc = li_artmp_node->set_value( value = lv_text ).
+    lv_rc = li_artmp_node->set_value( lv_text ).
     IF lv_rc <> 0.
       raise_download_exception(
             textid        = cx_ecatt_apl_util=>download_processing
@@ -111766,7 +111766,7 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
       IMPORTING
         ex_xml_blob   = lv_text ).
 
-    lv_rc = li_blob_node->set_value( value = lv_text ).
+    lv_rc = li_blob_node->set_value( lv_text ).
     IF lv_rc <> 0.
       raise_download_exception(
             textid        = cx_ecatt_apl_util=>download_processing
@@ -111895,7 +111895,7 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
       ENDIF.
 
 * Ast in Hauptbaum haengen
-      lv_rc = li_deep_tcd->append_child( new_child = li_element ).
+      lv_rc = li_deep_tcd->append_child( li_element ).
 
       IF lv_rc <> 0.
         raise_download_exception(
@@ -112073,7 +112073,7 @@ CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_ECATT_DATA_UPLOAD IMPLEMENTATION.
+CLASS zcl_abapgit_ecatt_data_upload IMPLEMENTATION.
   METHOD upload.
     SET HANDLER on_ev_object_saved FOR ALL INSTANCES.
 
@@ -115594,7 +115594,7 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
                    <ls_msg>                   TYPE symsg,
                    <ls_extension_mapper_pair> LIKE LINE OF ls_additional_extensions.
 
-    lv_json_as_xstring = zif_abapgit_object~mo_files->read_raw( iv_ext = 'json' ).
+    lv_json_as_xstring = zif_abapgit_object~mo_files->read_raw( 'json' ).
     lv_name = ms_item-obj_name.
 
     " beyond here there will be dragons....
@@ -115648,7 +115648,7 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
 
         LOOP AT ls_additional_extensions ASSIGNING <ls_extension_mapper_pair>.
 
-          lv_file_as_xstring = zif_abapgit_object~mo_files->read_raw( iv_ext = <ls_extension_mapper_pair>-extension ).
+          lv_file_as_xstring = zif_abapgit_object~mo_files->read_raw( <ls_extension_mapper_pair>-extension ).
 
           CALL METHOD <ls_extension_mapper_pair>-file_name_mapper->('IF_AFF_FILE_NAME_MAPPER~GET_FILE_NAME_FROM_OBJECT')
             EXPORTING
@@ -115965,13 +115965,13 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
     DATA lv_json_wo_alv TYPE string.
     DATA li_json TYPE REF TO zif_abapgit_ajson.
 
-    lv_json = zcl_abapgit_convert=>xstring_to_string_utf8( iv_data = iv_json_as_xstring ).
+    lv_json = zcl_abapgit_convert=>xstring_to_string_utf8( iv_json_as_xstring ).
 
     TRY.
         li_json = zcl_abapgit_ajson=>parse( iv_json            = lv_json
                                             iv_keep_item_order = abap_true ).
         li_json->delete( '/header/abapLanguageVersion' ).
-        lv_json_wo_alv = li_json->stringify( iv_indent = 2 ).
+        lv_json_wo_alv = li_json->stringify( 2 ).
 
         rv_json_as_xstring_wo_alv = zcl_abapgit_convert=>string_to_xstring_utf8( lv_json_wo_alv ).
 
@@ -116194,7 +116194,7 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
 
     lv_json = zcl_abapgit_convert=>xstring_to_string_utf8( iv_content ).
 
-    lo_ajson = zcl_abapgit_ajson=>parse( iv_json = lv_json
+    lo_ajson = zcl_abapgit_ajson=>parse( lv_json
       )->map( zcl_abapgit_ajson_mapping=>create_to_snake_case( ) ).
 
     map2abap_original_language( CHANGING co_ajson = lo_ajson ).
@@ -116346,17 +116346,17 @@ CLASS zcl_abapgit_aff_registry IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
   METHOD initialize_registry_table.
-    register( iv_obj_type = 'CHKC' ).
-    register( iv_obj_type = 'CHKO' ).
-    register( iv_obj_type = 'CHKV' ).
-    register( iv_obj_type = 'EVTB' ).
-    register( iv_obj_type = 'EEEC' ).
-    register( iv_obj_type = 'GSMP' ).
+    register( 'CHKC' ).
+    register( 'CHKO' ).
+    register( 'CHKV' ).
+    register( 'EVTB' ).
+    register( 'EEEC' ).
+    register( 'GSMP' ).
     register( iv_obj_type     = 'INTF'
               iv_experimental = abap_true ).
-    register( iv_obj_type = 'SMBC' ).
-    register( iv_obj_type = 'NONT' ).
-    register( iv_obj_type = 'RONT' ).
+    register( 'SMBC' ).
+    register( 'NONT' ).
+    register( 'RONT' ).
   ENDMETHOD.
   METHOD register.
     DATA ls_registry_entry TYPE ty_registry_entry.
@@ -125711,7 +125711,7 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD does_folder_exist.
-    rv_folder_exist = zcl_abapgit_ui_factory=>get_frontend_services( )->directory_exist( iv_directory = iv_folder ).
+    rv_folder_exist = zcl_abapgit_ui_factory=>get_frontend_services( )->directory_exist( iv_folder ).
   ENDMETHOD.
 
   METHOD get_full_folder.
@@ -128262,8 +128262,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-14T08:37:12.430Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-14T08:37:12.430Z`.
+* abapmerge 0.16.0 - 2023-10-15T13:19:26.221Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-15T13:19:26.221Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
