@@ -72448,6 +72448,10 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
     CLEAR: ls_objh-luser,
            ls_objh-ldate.
 
+    SORT lt_objs BY objectname objecttype tabname.
+    SORT lt_objsl BY objectname objecttype trwcount.
+    SORT lt_objm BY objectname objecttype method.
+
     io_xml->add( iv_name = 'OBJH'
                  ig_data = ls_objh ).
     io_xml->add( iv_name = 'OBJT'
@@ -128268,8 +128272,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-16T21:48:25.119Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-16T21:48:25.119Z`.
+* abapmerge 0.16.0 - 2023-10-17T03:24:06.621Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-17T03:24:06.621Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
