@@ -76199,57 +76199,64 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
 
     clear_field(
       EXPORTING
-        iv_fieldname          = 'METADATA-VERSION'
+        iv_fieldname       = 'METADATA-VERSION'
       CHANGING
         cs_service_binding = cs_service_binding ).
 
     clear_field(
       EXPORTING
-        iv_fieldname          = 'METADATA-CREATED_AT'
+        iv_fieldname       = 'METADATA-CREATED_AT'
       CHANGING
         cs_service_binding = cs_service_binding ).
 
     clear_field(
       EXPORTING
-        iv_fieldname          = 'METADATA-CREATED_BY'
+        iv_fieldname       = 'METADATA-CREATED_BY'
       CHANGING
         cs_service_binding = cs_service_binding ).
 
     clear_field(
       EXPORTING
-        iv_fieldname          = 'METADATA-CHANGED_AT'
+        iv_fieldname       = 'METADATA-CHANGED_AT'
       CHANGING
         cs_service_binding = cs_service_binding ).
 
     clear_field(
       EXPORTING
-        iv_fieldname          = 'METADATA-CHANGED_BY'
+        iv_fieldname       = 'METADATA-CHANGED_BY'
       CHANGING
         cs_service_binding = cs_service_binding ).
 
     clear_field(
       EXPORTING
-        iv_fieldname          = 'METADATA-LANGUAGE'
+        iv_fieldname       = 'METADATA-LANGUAGE'
       CHANGING
         cs_service_binding = cs_service_binding ).
 
     clear_field(
       EXPORTING
-      iv_fieldname          = 'METADATA-PACKAGE_REF'
+        iv_fieldname       = 'METADATA-PACKAGE_REF'
       CHANGING
-      cs_service_binding = cs_service_binding ).
+        cs_service_binding = cs_service_binding ).
 
     clear_field(
       EXPORTING
-      iv_fieldname          = 'METADATA-MASTER_SYSTEM'
+        iv_fieldname       = 'METADATA-MASTER_SYSTEM'
       CHANGING
-      cs_service_binding = cs_service_binding ).
+        cs_service_binding = cs_service_binding ).
+
+    clear_field(
+      EXPORTING
+        iv_fieldname       = 'METADATA-LINKS'
+      CHANGING
+        cs_service_binding = cs_service_binding ).
+
   ENDMETHOD.
   METHOD constructor.
 
     super->constructor(
-        is_item     = is_item
-        iv_language = iv_language ).
+      is_item     = is_item
+      iv_language = iv_language ).
 
     mv_service_binding_key = ms_item-obj_name.
 
@@ -76261,7 +76268,7 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |SRVB not supported by your NW release| ).
     ENDTRY.
 
-    mv_is_inactive_supported = is_ai_supported(  ).
+    mv_is_inactive_supported = is_ai_supported( ).
 
   ENDMETHOD.
   METHOD get_object_data.
@@ -76286,7 +76293,7 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
     <lv_language> = mv_language.
 
     CREATE OBJECT ro_object_data TYPE ('CL_SRVB_OBJECT_DATA').
-    ro_object_data->set_data( p_data = <ls_service_binding>  ).
+    ro_object_data->set_data( p_data = <ls_service_binding> ).
 
   ENDMETHOD.
   METHOD get_wb_object_operator.
@@ -76580,8 +76587,8 @@ CLASS zcl_abapgit_object_srvb IMPLEMENTATION.
     ENDTRY.
 
     io_xml->add(
-        iv_name = 'SRVB'
-        ig_data = <ls_service_binding> ).
+      iv_name = 'SRVB'
+      ig_data = <ls_service_binding> ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -128276,8 +128283,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-19T16:33:35.471Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-19T16:33:35.471Z`.
+* abapmerge 0.16.0 - 2023-10-20T07:54:08.350Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-20T07:54:08.350Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
