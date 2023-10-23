@@ -4385,6 +4385,11 @@ INTERFACE zif_abapgit_exit .
   METHODS change_local_host
     CHANGING
       !ct_hosts TYPE zif_abapgit_definitions=>ty_string_tt .
+  METHODS change_max_parallel_processes
+    IMPORTING
+      iv_package       TYPE devclass
+    CHANGING
+      cv_max_processes TYPE i.
   METHODS change_proxy_authentication
     IMPORTING
       !iv_repo_url             TYPE csequence
@@ -4400,6 +4405,9 @@ INTERFACE zif_abapgit_exit .
       !iv_repo_url  TYPE csequence
     CHANGING
       !cv_proxy_url TYPE string .
+  METHODS change_rfc_server_group
+    CHANGING
+      cv_group TYPE rzlli_apcl.
   METHODS change_supported_data_objects
     CHANGING
       !ct_objects TYPE zif_abapgit_data_supporter=>ty_objects.
@@ -4440,6 +4448,11 @@ INTERFACE zif_abapgit_exit .
       !iv_transport_type    TYPE zif_abapgit_definitions=>ty_transport_type
     CHANGING
       !cv_transport_request TYPE trkorr .
+  METHODS enhance_repo_toolbar
+    IMPORTING
+      !io_menu TYPE REF TO zcl_abapgit_html_toolbar
+      !iv_key  TYPE zif_abapgit_persistence=>ty_value
+      !iv_act  TYPE string.
   METHODS get_ci_tests
     IMPORTING
       !iv_object   TYPE tadir-object
@@ -4487,11 +4500,6 @@ INTERFACE zif_abapgit_exit .
     IMPORTING
       !is_repo_meta TYPE zif_abapgit_persistence=>ty_repo
       !ii_html      TYPE REF TO zif_abapgit_html .
-  METHODS enhance_repo_toolbar
-    IMPORTING
-      !io_menu TYPE REF TO zcl_abapgit_html_toolbar
-      !iv_key  TYPE zif_abapgit_persistence=>ty_value
-      !iv_act  TYPE string.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_jumper.
@@ -9045,7 +9053,7 @@ CLASS zcl_abapgit_serialize DEFINITION
     TYPES:
       ty_char32 TYPE c LENGTH 32 .
 
-    CLASS-DATA gv_max_threads TYPE i .
+    CLASS-DATA gv_max_processes TYPE i .
     DATA mt_files TYPE zif_abapgit_definitions=>ty_files_item_tt .
     DATA mv_free TYPE i .
     DATA mi_log TYPE REF TO zif_abapgit_log .
@@ -9098,11 +9106,12 @@ CLASS zcl_abapgit_serialize DEFINITION
         VALUE(ct_files) TYPE zif_abapgit_definitions=>ty_files_item_tt
       RAISING
         zcx_abapgit_exception .
-    METHODS determine_max_threads
+    METHODS determine_max_processes
       IMPORTING
         !iv_force_sequential TYPE abap_bool DEFAULT abap_false
+        iv_package           TYPE devclass
       RETURNING
-        VALUE(rv_threads)    TYPE i
+        VALUE(rv_processes)  TYPE i
       RAISING
         zcx_abapgit_exception .
     METHODS filter_unsupported_objects
@@ -112753,16 +112762,11 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
 
-    DATA lo_settings TYPE REF TO zcl_abapgit_settings.
-
-    lo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
-
-    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true
-        OR lo_settings->get_parallel_proc_disabled( ) = abap_true.
-      gv_max_threads = 1.
-    ENDIF.
+    DATA li_exit TYPE REF TO zif_abapgit_exit.
 
     mv_group = 'parallel_generators'.
+    li_exit = zcl_abapgit_exit=>get_instance( ).
+    li_exit->change_rfc_server_group( CHANGING cv_group = mv_group ).
 
     mo_dot_abapgit = io_dot_abapgit.
     ms_local_settings = is_local_settings.
@@ -112794,63 +112798,83 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD determine_max_threads.
+  METHOD determine_max_processes.
+    DATA: lo_settings TYPE REF TO zcl_abapgit_settings,
+          li_exit     TYPE REF TO zif_abapgit_exit.
 
     IF iv_force_sequential = abap_true.
-      rv_threads = 1.
+      rv_processes = 1.
       RETURN.
     ENDIF.
 
-    IF gv_max_threads >= 1.
-* SPBT_INITIALIZE gives error PBT_ENV_ALREADY_INITIALIZED if called
-* multiple times in same session
-      rv_threads = gv_max_threads.
-      RETURN.
-    ENDIF.
+    IF gv_max_processes IS INITIAL.
+      lo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
 
-    CALL FUNCTION 'FUNCTION_EXISTS'
-      EXPORTING
-        funcname           = 'Z_ABAPGIT_SERIALIZE_PARALLEL'
-      EXCEPTIONS
-        function_not_exist = 1
-        OTHERS             = 2.
-    IF sy-subrc <> 0.
-      gv_max_threads = 1.
-    ELSE.
-* todo, add possibility to set group name in user exit
-      CALL FUNCTION 'SPBT_INITIALIZE'
-        EXPORTING
-          group_name                     = mv_group
-        IMPORTING
-          free_pbt_wps                   = gv_max_threads
-        EXCEPTIONS
-          invalid_group_name             = 1
-          internal_error                 = 2
-          pbt_env_already_initialized    = 3
-          currently_no_resources_avail   = 4
-          no_pbt_resources_found         = 5
-          cant_init_different_pbt_groups = 6
-          OTHERS                         = 7.
-      IF sy-subrc <> 0.
-*   fallback to running sequentially. If SPBT_INITIALIZE fails, check transactions
-*   RZ12, SM50, SM21, SARFC
-        gv_max_threads = 1.
+      IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true
+          OR lo_settings->get_parallel_proc_disabled( ) = abap_true.
+        gv_max_processes = 1.
+        RETURN.
       ENDIF.
     ENDIF.
 
-    IF gv_max_threads > 1.
-      gv_max_threads = gv_max_threads - 1.
+    IF gv_max_processes >= 1.
+      " SPBT_INITIALIZE gives error PBT_ENV_ALREADY_INITIALIZED if called
+      " multiple times in same session
+      rv_processes = gv_max_processes.
+    ELSEIF mv_group IS NOT INITIAL.
+      " The function module below should always exist here as is_merged evaluated to false above. It does however
+      " not exist in the transpiled version which then causes unit tests to fail. Therefore the check needs to stay.
+      CALL FUNCTION 'FUNCTION_EXISTS'
+        EXPORTING
+          funcname           = 'Z_ABAPGIT_SERIALIZE_PARALLEL'
+        EXCEPTIONS
+          function_not_exist = 1
+          OTHERS             = 2.
+      IF sy-subrc <> 0.
+        gv_max_processes = 1.
+      ELSE.
+        CALL FUNCTION 'SPBT_INITIALIZE'
+          EXPORTING
+            group_name                     = mv_group
+          IMPORTING
+            free_pbt_wps                   = gv_max_processes
+          EXCEPTIONS
+            invalid_group_name             = 1
+            internal_error                 = 2
+            pbt_env_already_initialized    = 3
+            currently_no_resources_avail   = 4
+            no_pbt_resources_found         = 5
+            cant_init_different_pbt_groups = 6
+            OTHERS                         = 7.
+        IF sy-subrc <> 0.
+          " fallback to running sequentially. If SPBT_INITIALIZE fails, check transactions
+          " RZ12, SM50, SM21, SARFC
+          gv_max_processes = 1.
+        ENDIF.
+      ENDIF.
+
+      IF gv_max_processes > 1.
+        gv_max_processes = gv_max_processes - 1.
+      ENDIF.
+    ELSE.
+      gv_max_processes = 1.
     ENDIF.
 
-    ASSERT gv_max_threads >= 1.
+    ASSERT gv_max_processes >= 1.
 
-    IF gv_max_threads > 32.
-* https://en.wikipedia.org/wiki/Amdahl%27s_law
-      gv_max_threads = 32.
+    IF gv_max_processes > 32.
+      " https://en.wikipedia.org/wiki/Amdahl%27s_law
+      gv_max_processes = 32.
     ENDIF.
 
-    rv_threads = gv_max_threads.
+    rv_processes = gv_max_processes.
 
+    li_exit = zcl_abapgit_exit=>get_instance( ).
+    li_exit->change_max_parallel_processes(
+      EXPORTING
+        iv_package       = iv_package
+      CHANGING
+        cv_max_processes = rv_processes ).
   ENDMETHOD.
   METHOD files_local.
 
@@ -113125,7 +113149,8 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_tadir> LIKE LINE OF it_tadir.
     CLEAR mt_files.
 
-    lv_max = determine_max_threads( iv_force_sequential ).
+    lv_max = determine_max_processes( iv_force_sequential = iv_force_sequential
+                                      iv_package          = iv_package ).
     mv_free = lv_max.
     mi_log = ii_log.
 
@@ -124446,6 +124471,20 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_exit~change_max_parallel_processes.
+
+    IF gi_exit IS NOT INITIAL.
+      TRY.
+          gi_exit->change_max_parallel_processes(
+            EXPORTING
+              iv_package       = iv_package
+            CHANGING
+              cv_max_processes = cv_max_processes ).
+        CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+      ENDTRY.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_exit~change_proxy_authentication.
 
     IF gi_exit IS NOT INITIAL.
@@ -124483,6 +124522,16 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
               iv_repo_url  = iv_repo_url
             CHANGING
               cv_proxy_url = cv_proxy_url ).
+        CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+      ENDTRY.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_exit~change_rfc_server_group.
+
+    IF gi_exit IS NOT INITIAL.
+      TRY.
+          gi_exit->change_rfc_server_group( CHANGING cv_group = cv_group ).
         CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
       ENDTRY.
     ENDIF.
@@ -128283,8 +128332,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-20T20:42:43.163Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-20T20:42:43.163Z`.
+* abapmerge 0.16.0 - 2023-10-23T21:38:17.260Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-23T21:38:17.260Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
