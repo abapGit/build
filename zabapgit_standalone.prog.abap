@@ -112938,7 +112938,6 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
       IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true
           OR lo_settings->get_parallel_proc_disabled( ) = abap_true.
         gv_max_processes = 1.
-        RETURN.
       ENDIF.
     ENDIF.
 
@@ -128457,8 +128456,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-24T04:49:23.672Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-24T04:49:23.672Z`.
+* abapmerge 0.16.0 - 2023-10-24T06:40:59.472Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-24T06:40:59.472Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
