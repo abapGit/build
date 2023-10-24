@@ -37808,17 +37808,14 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_popup_tag_list IMPLEMENTATION.
-
   METHOD create.
     CREATE OBJECT ri_popup TYPE zcl_abapgit_popup_tag_list
       EXPORTING
         iv_url = iv_url.
   ENDMETHOD.
-
   METHOD constructor.
     mv_repo_url = iv_url.
   ENDMETHOD.
-
   METHOD zif_abapgit_html_popup~create_picklist.
 
     CREATE OBJECT ro_picklist
@@ -37828,7 +37825,6 @@ CLASS zcl_abapgit_popup_tag_list IMPLEMENTATION.
         ii_item_renderer = me.
 
   ENDMETHOD.
-
   METHOD fetch_tag_list.
 
     DATA lo_branches  TYPE REF TO zcl_abapgit_git_branch_list.
@@ -37855,11 +37851,9 @@ CLASS zcl_abapgit_popup_tag_list IMPLEMENTATION.
     ri_html = zcl_abapgit_html=>create( |{ <ls_tag>-display_name }| ).
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_popup_pull_request IMPLEMENTATION.
-
   METHOD create.
 
     CREATE OBJECT ri_popup TYPE zcl_abapgit_popup_pull_request
@@ -37867,11 +37861,9 @@ CLASS zcl_abapgit_popup_pull_request IMPLEMENTATION.
         iv_url = iv_url.
 
   ENDMETHOD.
-
   METHOD constructor.
     mv_repo_url = iv_url.
   ENDMETHOD.
-
   METHOD zif_abapgit_html_popup~create_picklist.
 
     CREATE OBJECT ro_picklist
@@ -37881,7 +37873,6 @@ CLASS zcl_abapgit_popup_pull_request IMPLEMENTATION.
         ii_item_renderer = me.
 
   ENDMETHOD.
-
   METHOD fetch_pull_request_list.
 
     rt_pulls = zcl_abapgit_pr_enumerator=>new( mv_repo_url )->get_pulls( ).
@@ -37901,7 +37892,6 @@ CLASS zcl_abapgit_popup_pull_request IMPLEMENTATION.
     ri_html = zcl_abapgit_html=>create( |<b>{ <ls_pr>-number }</b> - { <ls_pr>-title } @{ <ls_pr>-user }| ).
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_POPUP_CODE_INSP IMPLEMENTATION.
@@ -37935,7 +37925,6 @@ CLASS ZCL_ABAPGIT_POPUP_CODE_INSP IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_popup_branch_list IMPLEMENTATION.
-
   METHOD create.
     CREATE OBJECT ri_popup TYPE zcl_abapgit_popup_branch_list
       EXPORTING
@@ -37943,13 +37932,11 @@ CLASS zcl_abapgit_popup_branch_list IMPLEMENTATION.
         iv_default_branch  = iv_default_branch
         iv_show_new_option = iv_show_new_option.
   ENDMETHOD.
-
   METHOD constructor.
     mv_repo_url        = iv_url.
     mv_default_branch  = zif_abapgit_git_definitions=>c_git_branch-heads_prefix && iv_default_branch.
     mv_show_new_option = iv_show_new_option.
   ENDMETHOD.
-
   METHOD zif_abapgit_html_popup~create_picklist.
 
     CREATE OBJECT ro_picklist
@@ -37959,7 +37946,6 @@ CLASS zcl_abapgit_popup_branch_list IMPLEMENTATION.
         ii_item_renderer = me.
 
   ENDMETHOD.
-
   METHOD fetch_branch_list.
 
     DATA lo_branches    TYPE REF TO zcl_abapgit_git_branch_list.
@@ -37993,7 +37979,6 @@ CLASS zcl_abapgit_popup_branch_list IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
   METHOD zif_abapgit_gui_render_item~render.
 
     DATA lv_head_marker TYPE string.
@@ -38011,7 +37996,6 @@ CLASS zcl_abapgit_popup_branch_list IMPLEMENTATION.
     ri_html = zcl_abapgit_html=>create( |{ <ls_b>-display_name }{ lv_head_marker }| ).
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_PAGE_TUTORIAL IMPLEMENTATION.
@@ -54635,7 +54619,6 @@ CLASS zcl_abapgit_gui_event IMPLEMENTATION.
     ro_string_map = mo_query.
 
   ENDMETHOD.
-
   METHOD parse_fields_upper_case_name.
 
     rt_fields = parse_fields(
@@ -54655,7 +54638,6 @@ CLASS zcl_abapgit_gui_event IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
   METHOD parse_fields.
 
     DATA:
@@ -54718,7 +54700,6 @@ CLASS zcl_abapgit_gui_event IMPLEMENTATION.
       IN CHARACTER MODE.
 
   ENDMETHOD.
-
   METHOD field_keys_to_upper.
 
     FIELD-SYMBOLS <ls_field> LIKE LINE OF ct_fields.
@@ -54728,7 +54709,6 @@ CLASS zcl_abapgit_gui_event IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-
   METHOD unescape.
 
 * do not use cl_http_utility as it does strange things with the encoding
@@ -54744,7 +54724,6 @@ CLASS zcl_abapgit_gui_event IMPLEMENTATION.
     REPLACE ALL OCCURRENCES OF gv_non_breaking_space IN rv_string WITH ` `.
 
   ENDMETHOD.
-
   METHOD class_constructor.
 
     CONSTANTS lc_nbsp TYPE xstring VALUE 'C2A0'. " &nbsp;
@@ -54756,7 +54735,6 @@ CLASS zcl_abapgit_gui_event IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_GUI_CSS_PROCESSOR IMPLEMENTATION.
@@ -60352,22 +60330,18 @@ CLASS zcl_abapgit_object_filter_tran IMPLEMENTATION.
       iv_package     = iv_package
       it_e071_filter = lt_e071_filter ).
   ENDMETHOD.
-
   METHOD get_filter_values.
     et_r_trkorr = mt_r_trkorr.
     ev_package = mv_package.
   ENDMETHOD.
-
   METHOD zif_abapgit_object_filter~get_filter.
     rt_filter = mt_filter.
   ENDMETHOD.
-
   METHOD init.
     CLEAR mt_filter.
     CLEAR mt_r_trkorr.
     CLEAR mv_package.
   ENDMETHOD.
-
   METHOD set_filter_values.
     init( ).
     mt_r_trkorr = it_r_trkorr.
@@ -60379,7 +60353,6 @@ CLASS zcl_abapgit_object_filter_tran IMPLEMENTATION.
 
     ENDIF.
   ENDMETHOD.
-
   METHOD adjust_local_filter.
 
     DATA lt_e071_filter TYPE ty_e071_filter_tt.
@@ -60444,7 +60417,6 @@ CLASS zcl_abapgit_object_filter_tran IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
   METHOD get_all_sub_packages.
 
     DATA li_package TYPE REF TO zif_abapgit_sap_package.
@@ -60462,7 +60434,6 @@ CLASS zcl_abapgit_object_filter_tran IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
@@ -62317,7 +62288,6 @@ CLASS ZCL_ABAPGIT_PERSIST_FACTORY IMPLEMENTATION.
     ri_repo = gi_repo.
 
   ENDMETHOD.
-
   METHOD get_repo_cs.
 
     IF gi_repo_cs IS INITIAL.
@@ -62327,7 +62297,6 @@ CLASS ZCL_ABAPGIT_PERSIST_FACTORY IMPLEMENTATION.
     ri_repo_cs = gi_repo_cs.
 
   ENDMETHOD.
-
   METHOD get_settings.
 
     IF gi_settings IS INITIAL.
@@ -63547,14 +63516,12 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_injector IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_OBJECTS_INJECTOR IMPLEMENTATION.
   METHOD set_gui_jumper.
 
     zcl_abapgit_objects_factory=>gi_gui_jumper = ii_gui_jumper.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
@@ -64107,8 +64074,7 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_objects_factory IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_OBJECTS_FACTORY IMPLEMENTATION.
   METHOD get_gui_jumper.
 
     IF gi_gui_jumper IS INITIAL.
@@ -64118,7 +64084,6 @@ CLASS zcl_abapgit_objects_factory IMPLEMENTATION.
     ri_gui_jumper = gi_gui_jumper.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_objects_bridge IMPLEMENTATION.
@@ -84965,7 +84930,6 @@ CLASS zcl_abapgit_object_pers IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_pdxx_super IMPLEMENTATION.
-
   METHOD check_subrc_for.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( iv_call && ' returned ' && sy-subrc ).
@@ -84990,7 +84954,6 @@ CLASS zcl_abapgit_object_pdxx_super IMPLEMENTATION.
     rv_bool = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
-
   METHOD zif_abapgit_object~changed_by.
 
     SELECT SINGLE uname
@@ -85063,7 +85026,6 @@ CLASS zcl_abapgit_object_pdxx_super IMPLEMENTATION.
     ms_objkey-objid = ms_item-obj_name.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS kHGwlvrpxwdUTiJUSNzxhvMTMsAVCJ DEFINITION DEFERRED.
@@ -107433,7 +107395,7 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_sap_namespace IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SAP_NAMESPACE IMPLEMENTATION.
   METHOD zif_abapgit_sap_namespace~exists.
     DATA lv_editflag TYPE trnspace-editflag.
     DATA lo_obj TYPE REF TO object.
@@ -107506,7 +107468,6 @@ CLASS zcl_abapgit_sap_namespace IMPLEMENTATION.
        |Object without namespace { rs_obj_namespace-obj_without_namespace } contains a '/'| ).
     ENDIF.
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_FIELD_RULES IMPLEMENTATION.
@@ -111379,8 +111340,7 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_ecatt_system_upl IMPLEMENTATION.
-
+CLASS ZCL_ABAPGIT_ECATT_SYSTEM_UPL IMPLEMENTATION.
   METHOD upload_data_from_stream.
 
     " Downport
@@ -111393,7 +111353,6 @@ CLASS zcl_abapgit_ecatt_system_upl IMPLEMENTATION.
     mv_external_xml = iv_xml.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_ecatt_system_downl IMPLEMENTATION.
@@ -111725,7 +111684,6 @@ CLASS ZCL_ABAPGIT_ECATT_SP_DOWNLOAD IMPLEMENTATION.
     rv_xml_stream = mv_xml_stream.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_ECATT_SCRIPT_UPL IMPLEMENTATION.
@@ -112245,7 +112203,6 @@ CLASS zcl_abapgit_ecatt_data_upload IMPLEMENTATION.
       raise_upload_exception( previous = mx_ecatt_apl ).
     ENDIF.
   ENDMETHOD.
-
   METHOD upload_data_from_stream.
 
     " Downport
@@ -112258,7 +112215,6 @@ CLASS zcl_abapgit_ecatt_data_upload IMPLEMENTATION.
     mv_external_xml = iv_xml.
 
   ENDMETHOD.
-
   METHOD on_ev_object_saved.
     DATA lo_ecatt_td TYPE REF TO cl_apl_ecatt_test_data.
 
@@ -112293,7 +112249,7 @@ CLASS zcl_abapgit_ecatt_data_upload IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_ecatt_data_downl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ECATT_DATA_DOWNL IMPLEMENTATION.
   METHOD download.
 
     " Downport
@@ -112352,7 +112308,6 @@ CLASS zcl_abapgit_ecatt_data_downl IMPLEMENTATION.
     rv_xml_stream = mv_xml_stream.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_ECATT_CONFIG_UPL IMPLEMENTATION.
@@ -112370,7 +112325,7 @@ CLASS ZCL_ABAPGIT_ECATT_CONFIG_UPL IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_ECATT_CONFIG_DOWNL IMPLEMENTATION.
   METHOD download.
 
     " Downport
@@ -112430,7 +112385,6 @@ CLASS zcl_abapgit_ecatt_config_downl IMPLEMENTATION.
     rv_xml_stream = mv_xml_stream.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_tadir IMPLEMENTATION.
@@ -115526,7 +115480,6 @@ CLASS zcl_abapgit_object_evtb IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_eeec IMPLEMENTATION.
-
   METHOD zif_abapgit_object~changed_by.
 
     DATA: lr_data             TYPE REF TO data,
@@ -115570,7 +115523,6 @@ CLASS zcl_abapgit_object_eeec IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
   METHOD get_object_handler.
 
     DATA lx_error TYPE REF TO cx_root.
@@ -115587,7 +115539,6 @@ CLASS zcl_abapgit_object_eeec IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
@@ -128454,8 +128405,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-24T16:22:31.761Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-24T16:22:31.761Z`.
+* abapmerge 0.16.0 - 2023-10-24T16:27:23.579Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-24T16:27:23.579Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
