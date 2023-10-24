@@ -93443,7 +93443,7 @@ CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
-    SELECT SINGLE changedby FROM ftgl_id INTO rv_user
+    SELECT SINGLE changedby FROM ('FTGL_ID') INTO rv_user
       WHERE feature_id = ms_item-obj_name AND version = 'A'.
     IF sy-subrc <> 0.
       rv_user = c_user_unknown.
@@ -128454,8 +128454,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-24T14:27:48.071Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-24T14:27:48.071Z`.
+* abapmerge 0.16.0 - 2023-10-24T14:48:03.148Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-24T14:48:03.148Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
