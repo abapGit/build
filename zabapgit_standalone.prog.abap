@@ -70938,7 +70938,38 @@ CLASS zcl_abapgit_object_ucsa IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
 
-    rv_user = c_user_unknown.
+    DATA: lv_id                     TYPE ty_id,
+          lx_root                   TYPE REF TO cx_root,
+          lo_persistence            TYPE REF TO object,
+          lr_complete_comm_assembly TYPE REF TO data.
+
+    FIELD-SYMBOLS: <lg_complete_comm_assembly> TYPE any,
+                   <lv_user>                   TYPE any.
+
+    lv_id = ms_item-obj_name.
+
+    TRY.
+        CREATE DATA lr_complete_comm_assembly TYPE ('UCONSERVASCOMPLETE').
+        ASSIGN lr_complete_comm_assembly->* TO <lg_complete_comm_assembly>.
+        ASSERT sy-subrc = 0.
+
+        lo_persistence = get_persistence( lv_id ).
+
+        CALL METHOD lo_persistence->('IF_UCON_SA_PERSIST~LOAD')
+          EXPORTING
+            version  = c_version-active
+            language = mv_language
+          IMPORTING
+            sa       = <lg_complete_comm_assembly>.
+
+        ASSIGN COMPONENT 'CHANGEDBY' OF STRUCTURE <lg_complete_comm_assembly> TO <lv_user>.
+        IF sy-subrc = 0.
+          rv_user = <lv_user>.
+        ENDIF.
+
+      CATCH cx_root INTO lx_root.
+        zcx_abapgit_exception=>raise_with_text( lx_root ).
+    ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
@@ -71063,7 +71094,6 @@ CLASS zcl_abapgit_object_ucsa IMPLEMENTATION.
 
     DATA: lv_id                     TYPE ty_id,
           lx_root                   TYPE REF TO cx_root,
-          lv_text                   TYPE string,
           lo_persistence            TYPE REF TO object,
           lr_complete_comm_assembly TYPE REF TO data.
 
@@ -71090,8 +71120,7 @@ CLASS zcl_abapgit_object_ucsa IMPLEMENTATION.
                      ig_data = <lg_complete_comm_assembly> ).
 
       CATCH cx_root INTO lx_root.
-        lv_text = lx_root->get_text( ).
-        zcx_abapgit_exception=>raise( lv_text ).
+        zcx_abapgit_exception=>raise_with_text( lx_root ).
     ENDTRY.
 
   ENDMETHOD.
@@ -74004,7 +74033,11 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
+    SELECT SINGLE modifier FROM tobjvor INTO rv_user
+      WHERE objct = mv_objectname.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -74572,7 +74605,7 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
+    rv_user = c_user_unknown. " not stored by SAP
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -74701,7 +74734,7 @@ CLASS zcl_abapgit_object_sucu IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown.
+    rv_user = c_user_unknown. " not stored by SAP
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -76876,7 +76909,20 @@ CLASS zcl_abapgit_object_sqsc IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown.
+
+    DATA lx_error TYPE REF TO cx_root.
+
+    TRY.
+        CALL METHOD mo_proxy->('IF_DBPROC_PROXY_UI~READ_FROM_SOURCE')
+          EXPORTING
+            if_version     = 'A'
+          IMPORTING
+            ef_change_user = rv_user.
+
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
+    ENDTRY.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -77343,7 +77389,7 @@ CLASS zcl_abapgit_object_sppf IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown.
+    rv_user = c_user_unknown. " not stored by SAP
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -80928,7 +80974,7 @@ CLASS zcl_abapgit_object_shi8 IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown.
+    rv_user = c_user_unknown. " not stored by SAP
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -81051,7 +81097,7 @@ CLASS zcl_abapgit_object_shi5 IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown.
+    rv_user = c_user_unknown. " not stored by SAP
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -84095,9 +84141,7 @@ ENDCLASS.
 
 CLASS zcl_abapgit_object_prag IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
-
-    rv_user = c_user_unknown.
-
+    rv_user = c_user_unknown. " not stored by SAP
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -84771,7 +84815,13 @@ CLASS zcl_abapgit_object_pers IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown.
+
+    SELECT SINGLE author FROM spers_reg INTO rv_user
+      WHERE pers_key = ms_item-obj_name.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -87658,7 +87708,35 @@ ENDCLASS.
 CLASS zcl_abapgit_object_jobd IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
 
-    rv_user = c_user_unknown.
+    DATA: lr_job_definition TYPE REF TO data,
+          lo_job_definition TYPE REF TO object,
+          lv_name           TYPE ty_jd_name.
+
+    FIELD-SYMBOLS: <lg_job_definition> TYPE any,
+                   <lg_field>          TYPE any.
+
+    lv_name = ms_item-obj_name.
+
+    TRY.
+        CREATE DATA lr_job_definition TYPE ('CL_JR_JOB_DEFINITION=>TY_JOB_DEFINITION').
+        ASSIGN lr_job_definition->* TO <lg_job_definition>.
+        ASSERT sy-subrc = 0.
+
+        CREATE OBJECT lo_job_definition TYPE ('CL_JR_JOB_DEFINITION')
+          EXPORTING
+            im_jd_name = lv_name.
+
+        CALL METHOD lo_job_definition->('GET_JD_ATTRIBUTES')
+          IMPORTING
+            ex_jd_attributes = <lg_job_definition>.
+
+        ASSIGN COMPONENT 'CHANGED_BY' OF STRUCTURE <lg_job_definition> TO <lg_field>.
+        IF sy-subrc = 0.
+          rv_user = <lg_field>.
+        ENDIF.
+
+      CATCH cx_root ##NO_HANDLER.
+    ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
@@ -87820,6 +87898,9 @@ CLASS zcl_abapgit_object_jobd IMPLEMENTATION.
         CLEAR <lg_field>.
 
         ASSIGN COMPONENT 'CREATED_TIME' OF STRUCTURE <lg_job_definition> TO <lg_field>.
+        CLEAR <lg_field>.
+
+        ASSIGN COMPONENT 'CHANGED_BY' OF STRUCTURE <lg_job_definition> TO <lg_field>.
         CLEAR <lg_field>.
 
         ASSIGN COMPONENT 'CHANGED_DATE' OF STRUCTURE <lg_job_definition> TO <lg_field>.
@@ -90609,7 +90690,7 @@ CLASS zcl_abapgit_object_iaxu IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
+    rv_user = read( )-chname.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -90922,7 +91003,13 @@ CLASS zcl_abapgit_object_iatu IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
+
+    DATA ls_attributes TYPE w3tempattr.
+
+    read( IMPORTING es_attr = ls_attributes ).
+
+    rv_user = ls_attributes-chname.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -91490,7 +91577,13 @@ CLASS zcl_abapgit_object_iarp IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown. " todo
+
+    DATA ls_attributes TYPE w3resoattr.
+
+    read( IMPORTING es_attributes = ls_attributes ).
+
+    rv_user = ls_attributes-chname.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -91775,9 +91868,7 @@ CLASS zcl_abapgit_object_iamu IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-
-    rv_user = c_user_unknown.
-
+    rv_user = read( )-attributes-chname.
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -93353,7 +93444,13 @@ CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown.
+
+    SELECT SINGLE changedby FROM ftgl_id INTO rv_user
+      WHERE feature_id = ms_item-obj_name AND version = 'A'.
+    IF sy-subrc <> 0.
+      rv_user = c_user_unknown.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -93368,7 +93465,7 @@ CLASS zcl_abapgit_object_ftgl IMPLEMENTATION.
 
     IF lv_return_code <> 0.
       zcx_abapgit_exception=>raise( |Cannot delete feature toggle { mv_toggle_id }. |
-                                 && |Error {  sy-subrc } from cl_feature_toggle_object=>delete| ).
+                                 && |Error { sy-subrc } from cl_feature_toggle_object=>delete| ).
     ENDIF.
 
     corr_insert( iv_package ).
@@ -98074,9 +98171,7 @@ ENDCLASS.
 
 CLASS zcl_abapgit_object_dial IMPLEMENTATION.
   METHOD zif_abapgit_object~changed_by.
-
-    rv_user = c_user_unknown.
-
+    rv_user = c_user_unknown. " not stored by SAP
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -100044,7 +100139,17 @@ CLASS zcl_abapgit_object_cus2 IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown.
+
+    DATA ls_header TYPE ty_customizing_attribute-header.
+
+    CALL FUNCTION 'S_CUS_ATTRIBUTES_READ'
+      EXPORTING
+        img_attribute    = mv_img_attribute
+      IMPORTING
+        attribute_header = ls_header.
+
+    rv_user = ls_header-luser.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -100169,7 +100274,17 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown.
+
+    DATA ls_header TYPE ty_customzing_activity-activity_header.
+
+    CALL FUNCTION 'S_CUS_ACTIVITY_READ'
+      EXPORTING
+        activity        = mv_customizing_activity
+      IMPORTING
+        activity_header = ls_header.
+
+    rv_user = ls_header-luser.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -100313,7 +100428,7 @@ CLASS zcl_abapgit_object_cus1 IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
+CLASS zcl_abapgit_object_cus0 IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( is_item = is_item
@@ -100323,7 +100438,17 @@ CLASS ZCL_ABAPGIT_OBJECT_CUS0 IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown.
+
+    DATA ls_header TYPE ty_img_activity-header.
+
+    CALL FUNCTION 'S_CUS_IMG_ACTIVITY_READ'
+      EXPORTING
+        img_activity        = mv_img_activity
+      IMPORTING
+        img_activity_header = ls_header.
+
+    rv_user = ls_header-luser.
+
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -103293,7 +103418,7 @@ CLASS zcl_abapgit_object_asfc IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    rv_user = c_user_unknown.
+    rv_user = c_user_unknown. " not stored by SAP
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
 
@@ -128332,8 +128457,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-23T21:38:17.260Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-23T21:38:17.260Z`.
+* abapmerge 0.16.0 - 2023-10-24T04:49:23.672Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-24T04:49:23.672Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
