@@ -4376,6 +4376,7 @@ INTERFACE zif_abapgit_exit .
       zcx_abapgit_exception .
   METHODS adjust_display_filename
     IMPORTING
+      !is_repo_meta      TYPE zif_abapgit_persistence=>ty_repo
       !iv_filename       TYPE string
     RETURNING
       VALUE(rv_filename) TYPE string .
@@ -21735,7 +21736,7 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
         VALUE(rv_srcsystem_html_code) TYPE string .
     METHODS build_origlang_code
       IMPORTING
-        !is_item                      TYPE zif_abapgit_definitions=>ty_repo_item
+        !is_item            TYPE zif_abapgit_definitions=>ty_repo_item
       RETURNING
         VALUE(rv_html_code) TYPE string .
     METHODS open_in_main_language
@@ -43203,6 +43204,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     DATA: ls_file LIKE LINE OF is_item-files.
     DATA li_exit TYPE REF TO zif_abapgit_exit.
+    DATA lv_filename TYPE string.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -43221,10 +43223,16 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       ri_html->add( |<td class="filename darkgrey">| ).
 
       IF mv_show_folders = abap_true.
-        ri_html->add( |<div>{ li_exit->adjust_display_filename( ls_file-filename ) }</div>| ).
+        lv_filename = ls_file-filename.
       ELSE.
-        ri_html->add( |<div>{ li_exit->adjust_display_filename( ls_file-path && ls_file-filename ) }</div>| ).
+        lv_filename = ls_file-path && ls_file-filename.
       ENDIF.
+
+      lv_filename = li_exit->adjust_display_filename(
+        is_repo_meta = mo_repo->ms_data
+        iv_filename  = lv_filename ).
+
+      ri_html->add( |<div>{ lv_filename }</div>| ).
 
       ri_html->add( |</td>| ).
 
@@ -124514,7 +124522,9 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
 
     IF gi_exit IS NOT INITIAL.
       TRY.
-          rv_filename = gi_exit->adjust_display_filename( iv_filename ).
+          rv_filename = gi_exit->adjust_display_filename(
+            is_repo_meta = is_repo_meta
+            iv_filename  = iv_filename ).
         CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
       ENDTRY.
     ENDIF.
@@ -128405,8 +128415,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-25T13:08:22.512Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-25T13:08:22.512Z`.
+* abapmerge 0.16.0 - 2023-10-25T14:03:33.948Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-25T14:03:33.948Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
