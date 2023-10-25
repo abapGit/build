@@ -16085,6 +16085,13 @@ CLASS zcl_abapgit_objects_program DEFINITION
       RETURNING
         VALUE(rt_tpool) TYPE zif_abapgit_definitions=>ty_tpool_tt .
   PRIVATE SECTION.
+
+    CONSTANTS:
+      BEGIN OF c_state,
+        active   TYPE r3state VALUE 'A',
+        inactive TYPE r3state VALUE 'I',
+      END OF c_state.
+
     METHODS:
       uncondense_flow
         IMPORTING it_flow        TYPE swydyflow
@@ -62798,7 +62805,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         language  = mv_language
         tr_key    = ls_tr_key
         adm       = ls_adm
-        state     = 'I'
+        state     = c_state-inactive
       TABLES
         sta       = is_cua-sta
         fun       = is_cua-fun
@@ -62969,7 +62976,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
     " Check if program already exists
     SELECT SINGLE progname FROM reposrc INTO lv_progname
       WHERE progname = is_progdir-name
-      AND r3state = 'A'.
+      AND r3state = c_state-active.
 
     IF sy-subrc = 0.
       update_program(
@@ -63006,13 +63013,13 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
     ENDIF.
 
     IF lv_language = mv_language.
-      lv_state = 'I'. "Textpool in main language needs to be activated
+      lv_state = c_state-inactive. "Textpool in main language needs to be activated
     ELSE.
-      lv_state = 'A'. "Translations are always active
+      lv_state = c_state-active. "Translations are always active
     ENDIF.
 
     IF it_tpool IS INITIAL.
-      IF iv_is_include = abap_false OR lv_state = 'A'.
+      IF iv_is_include = abap_false OR lv_state = c_state-active.
         DELETE TEXTPOOL iv_program "Remove initial description from textpool if
           LANGUAGE lv_language     "original program does not have a textpool
           STATE lv_state.
@@ -63034,7 +63041,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-    IF lv_state = 'I'. "Textpool in main language needs to be activated
+    IF lv_state = c_state-inactive. "Textpool in main language needs to be activated
       zcl_abapgit_objects_activation=>add(
         iv_type   = 'REPT'
         iv_name   = iv_program
@@ -63069,7 +63076,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
             program_name      = is_progdir-name
             program_type      = is_progdir-subc
             title_string      = iv_title
-            save_inactive     = 'I'
+            save_inactive     = c_state-inactive
             suppress_dialog   = abap_true
             uccheck           = is_progdir-uccheck " does not exist on lower releases
           TABLES
@@ -63087,7 +63094,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
             program_name      = is_progdir-name
             program_type      = is_progdir-subc
             title_string      = iv_title
-            save_inactive     = 'I'
+            save_inactive     = c_state-inactive
             suppress_dialog   = abap_true
           TABLES
             source_extended   = it_source
@@ -63107,7 +63114,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         iv_name         = is_progdir-name
         iv_package      = iv_package
         it_source       = it_source
-        iv_state        = 'A'
+        iv_state        = c_state-active
         iv_version      = is_progdir-uccheck
         iv_program_type = is_progdir-subc ).
 
@@ -63115,7 +63122,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         iv_name         = is_progdir-name
         iv_package      = iv_package
         it_source       = it_source
-        iv_state        = 'I'
+        iv_state        = c_state-inactive
         iv_version      = is_progdir-uccheck
         iv_program_type = is_progdir-subc ).
 
@@ -63189,7 +63196,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       EXPORTING
         program         = iv_program_name
         language        = mv_language
-        state           = 'A'
+        state           = c_state-active
       IMPORTING
         adm             = rs_cua-adm
       TABLES
@@ -63336,6 +63343,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
           lv_program_name TYPE syrepid,
           lt_dynpros      TYPE ty_dynpro_tt,
           ls_cua          TYPE ty_cua,
+          li_report       TYPE REF TO zif_abapgit_sap_report,
           lt_source       TYPE TABLE OF abaptxt255,
           lt_tpool        TYPE textpool_table,
           ls_tpool        LIKE LINE OF lt_tpool,
@@ -63373,7 +63381,25 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
 
     zcl_abapgit_language=>restore_login_language( ).
 
-    ls_progdir = zcl_abapgit_factory=>get_sap_report( )->read_progdir( lv_program_name ).
+    " If inactive version exists, then RPY_PROGRAM_READ does not return the active code
+    li_report = zcl_abapgit_factory=>get_sap_report( ).
+
+    TRY.
+        " Raises exception if inactive version does not exist
+        ls_progdir = li_report->read_progdir(
+          iv_name  = lv_program_name
+          iv_state = c_state-inactive ).
+
+        " Explicitly request active source code
+        lt_source = li_report->read_report(
+          iv_name  = lv_program_name
+          iv_state = c_state-active ).
+      CATCH zcx_abapgit_exception ##NO_HANDLER.
+    ENDTRY.
+
+    ls_progdir = li_report->read_progdir(
+      iv_name  = lv_program_name
+      iv_state = c_state-active ).
 
     clear_abap_language_version( CHANGING cv_abap_language_version = ls_progdir-uccheck ).
 
@@ -63495,7 +63521,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       EXPORTING
         program_name     = is_progdir-name
         title_string     = iv_title
-        save_inactive    = 'I'
+        save_inactive    = c_state-inactive
       TABLES
         source_extended  = it_source
       EXCEPTIONS
@@ -106936,7 +106962,13 @@ CLASS zcl_abapgit_sap_report IMPLEMENTATION.
         i_progname = iv_name
         i_state    = iv_state
       IMPORTING
-        e_progdir  = ls_sapdir.
+        e_progdir  = ls_sapdir
+      EXCEPTIONS
+        not_exists = 1
+        OTHERS     = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
 
     MOVE-CORRESPONDING ls_sapdir TO rs_progdir.
 
@@ -128415,8 +128447,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-25T14:03:33.948Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-25T14:03:33.948Z`.
+* abapmerge 0.16.0 - 2023-10-25T14:13:13.380Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-25T14:13:13.380Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
