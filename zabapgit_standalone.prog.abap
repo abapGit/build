@@ -6177,13 +6177,12 @@ CLASS zcl_abapgit_data_deserializer DEFINITION
     METHODS preview_database_changes
       IMPORTING
         !iv_name         TYPE tadir-obj_name
-        !it_where        TYPE string_table
         !ir_lc_data      TYPE REF TO data
         !ir_db_data      TYPE REF TO data
       RETURNING
         VALUE(rs_result) TYPE zif_abapgit_data_deserializer=>ty_result
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS write_database_table
       IMPORTING
         !iv_name TYPE tadir-obj_name
@@ -9160,7 +9159,6 @@ CLASS zcl_abapgit_tadir DEFINITION
         !io_dot                TYPE REF TO zcl_abapgit_dot_abapgit
         !iv_ignore_subpackages TYPE abap_bool DEFAULT abap_false
         !iv_only_local_objects TYPE abap_bool DEFAULT abap_false
-        !ii_log                TYPE REF TO zif_abapgit_log OPTIONAL
       RETURNING
         VALUE(rt_tadir)        TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
@@ -10347,7 +10345,7 @@ CLASS zcl_abapgit_lxe_texts DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    CONSTANTS c_custmnr TYPE lxecustmnr VALUE '999999'.
+    CONSTANTS c_custmnr TYPE lxecustmnr VALUE '999999' ##NEEDED.
     " The value for ABAP system translation is always 999999 (from lxecustmnr docs)
 
     TYPES:
@@ -10385,13 +10383,14 @@ CLASS zcl_abapgit_lxe_texts DEFINITION
       RAISING
         zcx_abapgit_exception .
 
+    " Implementation of deserialize_xml is not complete (but kept as future option)
     METHODS deserialize_xml
       IMPORTING
         !iv_lxe_text_name TYPE string DEFAULT 'LXE_TEXTS'
         !iv_object_type   TYPE tadir-object OPTIONAL
         !iv_object_name   TYPE tadir-obj_name OPTIONAL
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception ##NEEDED.
 
     METHODS deserialize_from_po
       IMPORTING
@@ -10790,7 +10789,6 @@ CLASS zcl_abapgit_objects DEFINITION
     CLASS-METHODS changed_by
       IMPORTING
         !is_item       TYPE zif_abapgit_definitions=>ty_item
-        !is_sub_item   TYPE zif_abapgit_definitions=>ty_item OPTIONAL
         !iv_filename   TYPE string OPTIONAL
       RETURNING
         VALUE(rv_user) TYPE syuname .
@@ -11204,8 +11202,9 @@ CLASS zcl_abapgit_object_common_aff DEFINITION
            END OF ty_extension_mapper_pair,
            ty_extension_mapper_pairs TYPE STANDARD TABLE OF ty_extension_mapper_pair WITH DEFAULT KEY.
 
+    " Can be redefined in subclasses
     METHODS get_additional_extensions
-      RETURNING VALUE(rv_additional_extensions) TYPE ty_extension_mapper_pairs.
+      RETURNING VALUE(rv_additional_extensions) TYPE ty_extension_mapper_pairs ##NEEDED.
     METHODS get_object_handler
       RETURNING
         VALUE(ro_object_handler) TYPE REF TO object
@@ -11400,8 +11399,6 @@ CLASS zcl_abapgit_object_aifc DEFINITION
       RAISING
         zcx_abapgit_exception.
     METHODS authorization_check
-      IMPORTING
-        !io_log           TYPE REF TO zif_abapgit_log
       RETURNING
         VALUE(rv_success) TYPE abap_bool
       RAISING
@@ -11423,7 +11420,6 @@ CLASS zcl_abapgit_object_aifc DEFINITION
     METHODS compress_interface
       IMPORTING
         !is_ifkeys        TYPE ty_aif_key_s
-        !io_log           TYPE REF TO zif_abapgit_log
       RETURNING
         VALUE(rv_success) TYPE abap_bool
       RAISING
@@ -15507,18 +15503,6 @@ CLASS zcl_abapgit_object_view DEFINITION INHERITING FROM zcl_abapgit_objects_sup
              ddtext     TYPE dd25t-ddtext,
            END OF ty_dd25_text ,
            ty_dd25_texts TYPE STANDARD TABLE OF ty_dd25_text.
-    CONSTANTS: BEGIN OF co_viewclass,
-                 help         TYPE viewclass VALUE 'H',
-                 database     TYPE viewclass VALUE 'D',
-                 projection   TYPE viewclass VALUE 'P',
-                 structure    TYPE viewclass VALUE 'S',
-                 maintenance  TYPE viewclass VALUE 'C',
-                 entity       TYPE viewclass VALUE 'E',
-                 view_variant TYPE viewclass VALUE 'V',
-                 append       TYPE viewclass VALUE 'A',
-                 external     TYPE viewclass VALUE 'X',
-                 replication  TYPE viewclass VALUE 'R',
-               END OF co_viewclass.
     CONSTANTS c_longtext_id_view TYPE dokil-id VALUE 'VW'.
 
     METHODS:
@@ -22092,10 +22076,7 @@ CLASS zcl_abapgit_gui_page_sett_info DEFINITION
         stats           TYPE string VALUE 'stats',
         stats_table     TYPE string VALUE 'stats_table',
       END OF c_id .
-    CONSTANTS:
-      BEGIN OF c_event,
-        save TYPE string VALUE 'save',
-      END OF c_event .
+
     DATA mo_form TYPE REF TO zcl_abapgit_html_form .
     DATA mo_form_data TYPE REF TO zcl_abapgit_string_map .
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
@@ -24511,8 +24492,6 @@ CLASS zcl_abapgit_xml_input DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    DATA ms_i18n_params TYPE zif_abapgit_definitions=>ty_i18n_params.
-
     METHODS fix_xml.
 
 ENDCLASS.
@@ -24528,7 +24507,6 @@ CLASS zcl_abapgit_xml_output DEFINITION
   PRIVATE SECTION.
 
     DATA mi_raw TYPE REF TO if_ixml_element .
-    DATA ms_i18n_params TYPE zif_abapgit_definitions=>ty_i18n_params .
 
     METHODS build_asx_node
       RETURNING
@@ -26415,6 +26393,8 @@ CLASS ZCL_ABAPGIT_STRING_MAP IMPLEMENTATION.
         iv_key = <ls_entry>-k
         iv_val = <ls_entry>-v ).
     ENDLOOP.
+
+    ro_instance = me.
 
   ENDMETHOD.
   METHOD set.
@@ -57275,7 +57255,6 @@ CLASS kHGwlVCHrsAtuwxHoXzuQzYvAOqpyr DEFINITION FINAL.
     METHODS check_namespace
       IMPORTING
         !it_results      TYPE zif_abapgit_definitions=>ty_results_tt
-        !iv_root_package TYPE devclass
       RAISING
         zcx_abapgit_exception .
 
@@ -57313,9 +57292,7 @@ CLASS kHGwlVCHrsAtuwxHoXzuQzYvAOqpyr IMPLEMENTATION.
     check_multiple_files( it_results ).
 
     " Check if namespaces exist already
-    check_namespace(
-      it_results      = it_results
-      iv_root_package = mv_root_package ).
+    check_namespace( it_results ).
 
     ri_log = mi_log.
 
@@ -61710,7 +61687,7 @@ CLASS kHGwlIgZqNOMnmtzWUhGXxcERFBDQR DEFINITION FINAL.
   PUBLIC SECTION.
     CLASS-METHODS get
       RETURNING
-        VALUE(rs_cua) TYPE zcl_abapgit_objects_program=>ty_cua.
+        VALUE(rs_cua) TYPE zcl_abapgit_objects_program=>ty_cua ##NEEDED.
 ENDCLASS.
 
 CLASS kHGwlIgZqNOMnmtzWUhGXxcERFBDQR IMPLEMENTATION.
@@ -79885,8 +79862,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SKTD IMPLEMENTATION.
     DATA:
       li_wb_object_operator TYPE REF TO object,
       li_object_data_model  TYPE REF TO if_wb_object_data_model,
-      lx_error              TYPE REF TO cx_root,
-      lv_source             TYPE string.
+      lx_error              TYPE REF TO cx_root.
 
     FIELD-SYMBOLS <ls_data> TYPE any.
 
@@ -85586,8 +85562,7 @@ CLASS zcl_abapgit_object_para IMPLEMENTATION.
     " We can't use FM RS_PARAMETER_DELETE because of the popup to confirm
     "Therefore we have to reimplement most of the FMs logic
 
-    DATA: lv_paramid   TYPE tpara-paramid,
-          ls_transpkey TYPE trkey.
+    DATA lv_paramid TYPE tpara-paramid.
 
     lv_paramid = ms_item-obj_name.
 
@@ -104722,7 +104697,7 @@ CLASS zcl_abapgit_object_aifc IMPLEMENTATION.
         get_content_compress( io_log = ii_log
                               is_ifkeys = ls_ifkey
                               iv_package = iv_package ).
-        IF authorization_check( ii_log ) = abap_false.
+        IF authorization_check( ) = abap_false.
           RETURN.
         ENDIF.
 
@@ -104730,8 +104705,7 @@ CLASS zcl_abapgit_object_aifc IMPLEMENTATION.
           RETURN.
         ENDIF.
 
-        IF compress_interface( is_ifkeys = ls_ifkey
-                               io_log    = ii_log ) = abap_false.
+        IF compress_interface( ls_ifkey ) = abap_false.
           RETURN.
         ENDIF.
 
@@ -105220,9 +105194,7 @@ CLASS ZCL_ABAPGIT_SOTS_HANDLER IMPLEMENTATION.
   ENDMETHOD.
   METHOD delete_sots.
 
-    DATA:
-      ls_sots     TYPE ty_sots,
-      lt_sots_use TYPE ty_sots_use_tt.
+    DATA lt_sots_use TYPE ty_sots_use_tt.
 
     FIELD-SYMBOLS <ls_sots_use> LIKE LINE OF lt_sots_use.
 
@@ -107481,7 +107453,6 @@ CLASS ZCL_ABAPGIT_SAP_NAMESPACE IMPLEMENTATION.
   METHOD zif_abapgit_sap_namespace~split_by_name.
 * use this method instead of function module RS_NAME_SPLIT_NAMESPACE
     DATA lv_regex  TYPE string.
-    DATA lv_object TYPE string.
     DATA lv_length TYPE i.
     DATA lr_ex     TYPE REF TO cx_root.
 
@@ -112724,8 +112695,7 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
       iv_package            = iv_package
       io_dot                = io_dot
       iv_ignore_subpackages = iv_ignore_subpackages
-      iv_only_local_objects = iv_only_local_objects
-      ii_log                = ii_log ).
+      iv_only_local_objects = iv_only_local_objects ).
 
     li_exit = zcl_abapgit_exit=>get_instance( ).
     li_exit->change_tadir(
@@ -125340,7 +125310,6 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
     FIELD-SYMBOLS <lg_new> TYPE ANY TABLE.
     FIELD-SYMBOLS <ls_del> TYPE any.
     FIELD-SYMBOLS <ls_ins> TYPE any.
-    FIELD-SYMBOLS <ls_upd> TYPE any.
     FIELD-SYMBOLS <lg_del> TYPE ANY TABLE.
     FIELD-SYMBOLS <lg_ins> TYPE ANY TABLE.
     FIELD-SYMBOLS <lg_upd> TYPE ANY TABLE.
@@ -125433,7 +125402,6 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
 
     DATA ls_result  LIKE LINE OF it_result.
     DATA li_cts_api TYPE REF TO zif_abapgit_cts_api.
-    DATA ls_file    LIKE LINE OF rt_accessed_files.
 
     FIELD-SYMBOLS:
       <lt_ins> TYPE ANY TABLE,
@@ -125521,7 +125489,6 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
 
         ls_result = preview_database_changes(
           iv_name    = ls_config-name
-          it_where   = ls_config-where
           ir_lc_data = lr_lc_data
           ir_db_data = lr_db_data ).
 
@@ -128447,8 +128414,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-25T14:13:13.380Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-25T14:13:13.380Z`.
+* abapmerge 0.16.0 - 2023-10-25T14:24:46.457Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-25T14:24:46.457Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
