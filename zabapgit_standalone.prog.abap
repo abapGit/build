@@ -3569,6 +3569,31 @@ INTERFACE zif_abapgit_cts_api .
     RETURNING
       VALUE(rv_messages_confirmed) TYPE abap_bool .
 
+  TYPES: BEGIN OF ty_transport_key,
+           object  TYPE e071k-object,
+           objname TYPE e071k-objname,
+           tabkey  TYPE e071k-tabkey,
+         END OF ty_transport_key.
+
+  TYPES: BEGIN OF ty_transport_data,
+           trstatus TYPE e070-trstatus,
+           keys     TYPE STANDARD TABLE OF ty_transport_key WITH DEFAULT KEY,
+         END OF ty_transport_data.
+
+  METHODS read
+    IMPORTING
+      !iv_trkorr        TYPE trkorr
+    RETURNING
+      VALUE(rs_request) TYPE ty_transport_data
+    RAISING
+      zcx_abapgit_exception .
+
+  METHODS validate_transport_request
+    IMPORTING
+      iv_transport_request TYPE trkorr
+    RAISING
+      zcx_abapgit_exception.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_data_deserializer .
@@ -6021,20 +6046,6 @@ CLASS zcl_abapgit_transport DEFINITION
         iv_key TYPE zif_abapgit_persistence=>ty_value
       RAISING
         zcx_abapgit_exception .
-
-    CLASS-METHODS read
-      IMPORTING
-        !is_trkorr        TYPE trwbo_request_header OPTIONAL
-      RETURNING
-        VALUE(rs_request) TYPE trwbo_request
-      RAISING
-        zcx_abapgit_exception .
-
-    CLASS-METHODS validate_transport_request
-      IMPORTING
-        iv_transport_request TYPE trkorr
-      RAISING
-        zcx_abapgit_exception.
 
   PROTECTED SECTION.
 
@@ -41054,7 +41065,7 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
     lv_transport_request = io_form_data->get( c_id-transport_request ).
     IF lv_transport_request IS NOT INITIAL.
       TRY.
-          zcl_abapgit_transport=>validate_transport_request( lv_transport_request ).
+          zcl_abapgit_factory=>get_cts_api( )->validate_transport_request( lv_transport_request ).
         CATCH zcx_abapgit_exception INTO lx_error.
           ro_validation_log->set(
             iv_key = c_id-transport_request
@@ -41065,7 +41076,7 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
     lv_customizing_request = io_form_data->get( c_id-customizing_request ).
     IF lv_customizing_request IS NOT INITIAL.
       TRY.
-          zcl_abapgit_transport=>validate_transport_request( lv_customizing_request ).
+          zcl_abapgit_factory=>get_cts_api( )->validate_transport_request( lv_customizing_request ).
         CATCH zcx_abapgit_exception INTO lx_error.
           ro_validation_log->set(
             iv_key = c_id-customizing_request
@@ -48144,7 +48155,7 @@ CLASS zcl_abapgit_gui_page_data IMPLEMENTATION.
 
     DATA lt_trkorr  TYPE trwbo_request_headers.
     DATA ls_trkorr  LIKE LINE OF lt_trkorr.
-    DATA ls_request TYPE trwbo_request.
+    DATA ls_request TYPE zif_abapgit_cts_api=>ty_transport_data.
     DATA ls_key     LIKE LINE OF ls_request-keys.
     DATA lv_where   TYPE string.
     DATA ls_config  TYPE zif_abapgit_data_config=>ty_config.
@@ -48156,7 +48167,7 @@ CLASS zcl_abapgit_gui_page_data IMPLEMENTATION.
     READ TABLE lt_trkorr INDEX 1 INTO ls_trkorr.
     ASSERT sy-subrc = 0.
 
-    ls_request = zcl_abapgit_transport=>read( ls_trkorr ).
+    ls_request = zcl_abapgit_factory=>get_cts_api( )->read( ls_trkorr-trkorr ).
 
     IF lines( ls_request-keys ) = 0.
       zcx_abapgit_exception=>raise( |No keys found, select task| ).
@@ -126167,29 +126178,6 @@ CLASS zcl_abapgit_transport IMPLEMENTATION.
 
     READ TABLE lt_super INDEX lines( lt_super ) INTO rv_package.
   ENDMETHOD.
-  METHOD read.
-
-    rs_request-h-trkorr = is_trkorr-trkorr.
-
-    CALL FUNCTION 'TRINT_READ_REQUEST'
-      EXPORTING
-        iv_read_e070       = abap_true
-        iv_read_e07t       = abap_true
-        iv_read_e070c      = abap_true
-        iv_read_e070m      = abap_true
-        iv_read_objs_keys  = abap_true
-        iv_read_objs       = abap_true
-        iv_read_attributes = abap_true
-      CHANGING
-        cs_request         = rs_request
-      EXCEPTIONS
-        error_occured      = 1
-        OTHERS             = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-  ENDMETHOD.
   METHOD read_requests.
     DATA lt_requests LIKE rt_requests.
     FIELD-SYMBOLS <ls_trkorr> LIKE LINE OF it_trkorr.
@@ -126288,33 +126276,6 @@ CLASS zcl_abapgit_transport IMPLEMENTATION.
     rt_tadir = resolve(
       it_requests        = lt_requests
       iv_deleted_objects = iv_deleted_objects ).
-
-  ENDMETHOD.
-  METHOD validate_transport_request.
-
-    CONSTANTS:
-      BEGIN OF c_tr_status,
-        modifiable                   TYPE trstatus VALUE 'D',
-        modifiable_protected         TYPE trstatus VALUE 'L',
-        release_started              TYPE trstatus VALUE 'O',
-        released                     TYPE trstatus VALUE 'R',
-        released_with_import_protect TYPE trstatus VALUE 'N', " Released (with Import Protection for Repaired Objects)
-      END OF c_tr_status.
-
-    DATA:
-      ls_trkorr  TYPE trwbo_request_header,
-      ls_request TYPE trwbo_request.
-
-    ls_trkorr-trkorr = iv_transport_request.
-
-    ls_request = read( ls_trkorr ).
-
-    IF  ls_request-h-trstatus <> c_tr_status-modifiable
-    AND ls_request-h-trstatus <> c_tr_status-modifiable_protected.
-      " Task/request &1 has already been released
-      MESSAGE e064(tk) WITH iv_transport_request INTO zcx_abapgit_exception=>null.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
 
   ENDMETHOD.
   METHOD zip.
@@ -126735,9 +126696,9 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
 
       IF lv_type_check_result = 'L'.
         LOOP AT lt_tlock ASSIGNING <ls_tlock>
-            WHERE object =  ls_lock_key-obj
-            AND   hikey  >= ls_lock_key-low
-            AND   lokey  <= ls_lock_key-hi.               "#EC PORTABLE
+            WHERE object = ls_lock_key-obj
+            AND hikey >= ls_lock_key-low
+            AND lokey <= ls_lock_key-hi.               "#EC PORTABLE
           lv_request = <ls_tlock>-trkorr.
           EXIT.
         ENDLOOP.
@@ -126875,6 +126836,63 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
     rv_messages_confirmed = abap_true.
 
   ENDMETHOD.
+
+  METHOD zif_abapgit_cts_api~read.
+
+    DATA ls_request TYPE trwbo_request.
+    DATA ls_key     LIKE LINE OF ls_request-keys.
+
+    FIELD-SYMBOLS <ls_key> LIKE LINE OF rs_request-keys.
+    ls_request-h-trkorr = iv_trkorr.
+
+    CALL FUNCTION 'TRINT_READ_REQUEST'
+      EXPORTING
+        iv_read_e070       = abap_true
+        iv_read_e07t       = abap_true
+        iv_read_e070c      = abap_true
+        iv_read_e070m      = abap_true
+        iv_read_objs_keys  = abap_true
+        iv_read_objs       = abap_true
+        iv_read_attributes = abap_true
+      CHANGING
+        cs_request         = ls_request
+      EXCEPTIONS
+        error_occured      = 1
+        OTHERS             = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+* move to output structure
+    rs_request-trstatus = ls_request-h-trstatus.
+    LOOP AT ls_request-keys INTO ls_key.
+      APPEND INITIAL LINE TO rs_request-keys ASSIGNING <ls_key>.
+      MOVE-CORRESPONDING ls_key TO <ls_key>.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_cts_api~validate_transport_request.
+
+    CONSTANTS:
+      BEGIN OF c_tr_status,
+        modifiable           TYPE trstatus VALUE 'D',
+        modifiable_protected TYPE trstatus VALUE 'L',
+      END OF c_tr_status.
+
+    DATA ls_request TYPE zif_abapgit_cts_api=>ty_transport_data.
+
+    ls_request = zif_abapgit_cts_api~read( iv_transport_request ).
+
+    IF ls_request-trstatus <> c_tr_status-modifiable
+        AND ls_request-trstatus <> c_tr_status-modifiable_protected.
+      " Task/request &1 has already been released
+      MESSAGE e064(tk) WITH iv_transport_request INTO zcx_abapgit_exception=>null.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_background_push_fi IMPLEMENTATION.
@@ -128414,8 +128432,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-25T14:24:46.457Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-25T14:24:46.457Z`.
+* abapmerge 0.16.0 - 2023-10-25T18:13:26.587Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-25T18:13:26.587Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
