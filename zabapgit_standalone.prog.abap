@@ -691,15 +691,15 @@ CLASS zcx_abapgit_exception DEFINITION
     "! @raising zcx_abapgit_exception | Exception
     CLASS-METHODS raise_t100
       IMPORTING
-        VALUE(iv_msgid) TYPE symsgid DEFAULT sy-msgid
-        VALUE(iv_msgno) TYPE symsgno DEFAULT sy-msgno
-        VALUE(iv_msgv1) TYPE symsgv DEFAULT sy-msgv1
-        VALUE(iv_msgv2) TYPE symsgv DEFAULT sy-msgv2
-        VALUE(iv_msgv3) TYPE symsgv DEFAULT sy-msgv3
-        VALUE(iv_msgv4) TYPE symsgv DEFAULT sy-msgv4
-        !ii_log         TYPE REF TO zif_abapgit_log OPTIONAL
-        !ix_previous    TYPE REF TO cx_root OPTIONAL
-        !iv_longtext    TYPE csequence OPTIONAL
+        !iv_msgid    TYPE symsgid DEFAULT sy-msgid
+        !iv_msgno    TYPE symsgno DEFAULT sy-msgno
+        !iv_msgv1    TYPE symsgv DEFAULT sy-msgv1
+        !iv_msgv2    TYPE symsgv DEFAULT sy-msgv2
+        !iv_msgv3    TYPE symsgv DEFAULT sy-msgv3
+        !iv_msgv4    TYPE symsgv DEFAULT sy-msgv4
+        !ii_log      TYPE REF TO zif_abapgit_log OPTIONAL
+        !ix_previous TYPE REF TO cx_root OPTIONAL
+        !iv_longtext TYPE csequence OPTIONAL
       RAISING
         zcx_abapgit_exception .
     "! Raise with text from previous exception
@@ -1135,7 +1135,7 @@ INTERFACE zif_abapgit_background .
       VALUE(rv_description) TYPE string .
   CLASS-METHODS get_settings
     CHANGING
-      VALUE(ct_settings) TYPE ty_settings_tt .
+      ct_settings TYPE ty_settings_tt .
   METHODS run
     IMPORTING
       !io_repo     TYPE REF TO zcl_abapgit_repo_online
@@ -13602,7 +13602,7 @@ INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
 
     set_elements_changeable
       IMPORTING
-        VALUE(iv_changeable) TYPE abap_bool
+        iv_changeable TYPE abap_bool
       RAISING
         zcx_abapgit_exception,
 
@@ -13618,7 +13618,7 @@ INTERFACE iUFTsqJyKbsVHldwKaGdXoRoiJNIwT.
 
     set_changeable
       IMPORTING
-        VALUE(iv_changeable) TYPE abap_bool
+        iv_changeable TYPE abap_bool
       RAISING
         zcx_abapgit_exception,
 
@@ -15432,7 +15432,7 @@ CLASS zcl_abapgit_object_ueno DEFINITION
     CONSTANTS c_text_object_type TYPE lxeobjtype VALUE 'IM' ##NO_TEXT.
     CONSTANTS c_active_state TYPE as4local VALUE 'A' ##NO_TEXT.
     METHODS build_text_name
-      IMPORTING VALUE(iv_id)     TYPE tdid
+      IMPORTING iv_id            TYPE tdid
       RETURNING VALUE(rv_result) TYPE doku_obj.
 
     METHODS is_name_permitted
@@ -15479,7 +15479,7 @@ CLASS zcl_abapgit_object_ueno DEFINITION
         zcx_abapgit_exception.
 
     METHODS serialize_docu_xxxx
-      IMPORTING VALUE(iv_id)     TYPE tdid
+      IMPORTING iv_id            TYPE tdid
       RETURNING VALUE(rt_result) TYPE ty_docu_lines.
 
     METHODS serialize_docu_usp
@@ -17095,7 +17095,7 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
         zcx_abapgit_exception .
     METHODS set_i18n_languages
       IMPORTING
-        VALUE(it_languages) TYPE zif_abapgit_definitions=>ty_languages
+        it_languages TYPE zif_abapgit_definitions=>ty_languages
       RAISING
         zcx_abapgit_exception .
     METHODS get_signature
@@ -21176,9 +21176,9 @@ CLASS zcl_abapgit_gui_page_merge DEFINITION
         !is_result   TYPE zif_abapgit_git_definitions=>ty_expanded .
     METHODS build_menu
       IMPORTING
-        VALUE(iv_with_conflict) TYPE abap_bool OPTIONAL
+        !iv_with_conflict TYPE abap_bool OPTIONAL
       RETURNING
-        VALUE(ro_menu)          TYPE REF TO zcl_abapgit_html_toolbar .
+        VALUE(ro_menu)    TYPE REF TO zcl_abapgit_html_toolbar .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_merge_res DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -128456,8 +128456,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-26T14:29:55.139Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-26T14:29:55.139Z`.
+* abapmerge 0.16.0 - 2023-10-26T14:41:32.532Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-26T14:41:32.532Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
