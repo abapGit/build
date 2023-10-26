@@ -67462,7 +67462,7 @@ CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
     FIELD-SYMBOLS: <lv_data> TYPE any.
 
     io_xml->read( EXPORTING iv_name = 'CONFIG_ID'
-                  CHANGING  cg_data = ls_orig_config-config_id  ).
+                  CHANGING  cg_data = ls_orig_config-config_id ).
 
     io_xml->read( EXPORTING iv_name = 'CONFIG_TYPE'
                   CHANGING  cg_data = ls_orig_config-config_type ).
@@ -67701,7 +67701,7 @@ CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
     FIELD-SYMBOLS: <lv_data> TYPE any.
 
     io_xml->add( iv_name = 'OBJECT_NAME'
-                 ig_data =  ms_item-obj_name ).
+                 ig_data = ms_item-obj_name ).
 
     ls_config_key-config_id = ms_item-obj_name+0(32).
     ls_config_key-config_type = ms_item-obj_name+32(2).
@@ -67724,43 +67724,43 @@ CLASS zcl_abapgit_object_wdcc IMPLEMENTATION.
     ENDTRY.
 
     io_xml->add( iv_name = 'CONFIG_ID'
-                 ig_data =  ls_orig_config-config_id ).
+                 ig_data = ls_orig_config-config_id ).
 
     io_xml->add( iv_name = 'CONFIG_TYPE'
-                 ig_data =  ls_orig_config-config_type ).
+                 ig_data = ls_orig_config-config_type ).
 
     io_xml->add( iv_name = 'CONFIG_VAR'
-                 ig_data =  ls_orig_config-config_var ).
+                 ig_data = ls_orig_config-config_var ).
 
     io_xml->add( iv_name = 'WDA_COMPONENT'
-                 ig_data =  ls_orig_config-component ).
+                 ig_data = ls_orig_config-component ).
 
     ASSIGN COMPONENT 'CONFIG_IDPAR' OF STRUCTURE ls_orig_config TO <lv_data>.
     IF sy-subrc = 0.
       io_xml->add( iv_name = 'CONFIG_IDPAR'
-                   ig_data =  <lv_data> ).
+                   ig_data = <lv_data> ).
     ENDIF.
 
     ASSIGN COMPONENT 'CONFIG_TYPEPAR' OF STRUCTURE ls_orig_config TO <lv_data>.
     IF sy-subrc = 0.
       io_xml->add( iv_name = 'CONFIG_TYPEPAR'
-                   ig_data =  <lv_data> ).
+                   ig_data = <lv_data> ).
     ENDIF.
 
     ASSIGN COMPONENT 'CONFIG_VARPAR' OF STRUCTURE ls_orig_config TO <lv_data>.
     IF sy-subrc = 0.
       io_xml->add( iv_name = 'CONFIG_VARPAR'
-                   ig_data =  <lv_data> ).
+                   ig_data = <lv_data> ).
     ENDIF.
 
     ASSIGN COMPONENT 'PARENT' OF STRUCTURE ls_orig_config TO <lv_data>.
     IF sy-subrc = 0.
       io_xml->add( iv_name = 'PARENT'
-                   ig_data =  <lv_data> ).
+                   ig_data = <lv_data> ).
     ENDIF.
 
     io_xml->add( iv_name = 'RELID'
-                 ig_data =  ls_orig_config-relid ).
+                 ig_data = ls_orig_config-relid ).
 
     lv_xml_string = zcl_abapgit_convert=>xstring_to_string_utf8( lv_xml_xstring ).
     IF lv_xml_string IS NOT INITIAL.
@@ -69818,7 +69818,7 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
 
-    super->constructor( is_item  =  is_item
+    super->constructor( is_item     = is_item
                         iv_language = iv_language ).
 
     mv_entity_id = is_item-obj_name.
@@ -70396,7 +70396,7 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
 
-    super->constructor( is_item  =  is_item
+    super->constructor( is_item  = is_item
                         iv_language = iv_language ).
     " Conversion to Data model
     mv_data_model = is_item-obj_name.
@@ -70476,8 +70476,8 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
       INTO ls_header-tdversion
       FROM dokhl
       WHERE id = c_lxe_text_type
-      AND   object = mv_text_object
-      AND   langu = ls_udmo_long_text-language.
+      AND object = mv_text_object
+      AND langu  = ls_udmo_long_text-language.
 
       " Increment the version
       ls_header-tdversion = ls_header-tdversion + 1.
@@ -70534,9 +70534,9 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
       SELECT SINGLE *
         FROM dm40t
         INTO ls_dm40t
-        WHERE sprache  = ls_udmo_text-sprache
-        AND   dmoid    = ls_udmo_text-dmoid
-        AND   as4local = mv_activation_state.
+        WHERE sprache = ls_udmo_text-sprache
+        AND dmoid     = ls_udmo_text-dmoid
+        AND as4local  = mv_activation_state.
 
       IF sy-subrc = 0.
         " There is already an active description for this language
@@ -70639,7 +70639,7 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
       FROM dm40t
       INTO TABLE lt_udmo_languages
       WHERE dmoid    = mv_data_model
-      AND   as4local = mv_activation_state
+      AND as4local = mv_activation_state
       ORDER BY sprache ASCENDING.                       "#EC CI_NOFIRST
 
     " For every language for which a short text is maintained,
@@ -70691,7 +70691,7 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
     FROM dm40l
     INTO ls_dm40l
     WHERE dmoid    = mv_data_model
-    AND   as4local = mv_activation_state.
+    AND as4local = mv_activation_state.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'error from UDMO - model serialisation' ).
     ENDIF.
@@ -70719,7 +70719,7 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
       FROM dm40t
       INTO CORRESPONDING FIELDS OF TABLE lt_udmo_texts
       WHERE dmoid    = mv_data_model
-      AND   as4local = mv_activation_state
+      AND as4local = mv_activation_state
       ORDER BY sprache ASCENDING.                       "#EC CI_NOFIRST
 
     " You are reminded that descriptions in other languages do not have to be in existence.
@@ -70813,9 +70813,8 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
 
     "  See Function Module SDU_MODEL_EXISTS
 
-    SELECT COUNT( * ) FROM  dm40l
-           WHERE  dmoid     = mv_data_model
-           AND    as4local  = mv_activation_state.
+    SELECT COUNT( * ) FROM dm40l
+      WHERE dmoid = mv_data_model AND as4local = mv_activation_state.
 
     rv_bool = boolc( sy-subrc = 0 ).
 
@@ -72044,7 +72043,7 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
 
     lv_dynpro = ls_tstc-dypno.
 
-    IF     ls_tstc-cinfo O lc_hex_rep.
+    IF ls_tstc-cinfo O lc_hex_rep.
       lv_type = c_variant_type-report.
     ELSEIF ls_tstc-cinfo O lc_hex_obj.
       lv_type = c_variant_type-object.
@@ -78852,7 +78851,7 @@ CLASS zcl_abapgit_object_sobj IMPLEMENTATION.
     SELECT SINGLE progname INTO rv_program FROM tojtb WHERE name = ms_item-obj_name.
   ENDMETHOD.
   METHOD is_locked.
-    rv_is_locked = boolc( is_objtype_locked( ) = abap_true OR is_program_locked(  ) = abap_true ).
+    rv_is_locked = boolc( is_objtype_locked( ) = abap_true OR is_program_locked( ) = abap_true ).
   ENDMETHOD.
   METHOD is_objtype_locked.
     CONSTANTS lc_tabname TYPE tabname VALUE 'SWOTBASDAT'.
@@ -78882,7 +78881,7 @@ CLASS zcl_abapgit_object_sobj IMPLEMENTATION.
     DATA lv_progname TYPE progname.
 
     rv_is_locked = abap_false.
-    lv_progname = get_program(  ).
+    lv_progname = get_program( ).
 
     IF lv_progname IS NOT INITIAL.
       CALL FUNCTION 'ENQUEUE_ESRDIRE'
@@ -78954,7 +78953,7 @@ CLASS zcl_abapgit_object_sobj IMPLEMENTATION.
     rv_active = is_active( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_locked.
-    rv_is_locked = is_locked(  ).
+    rv_is_locked = is_locked( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
     "No need as GENERIC class already handles it
@@ -78992,7 +78991,7 @@ CLASS zcl_abapgit_object_smtg IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |SMTG not supported| ).
     ENDIF.
 
-    ls_component-name =  iv_fielname.
+    ls_component-name = iv_fielname.
     ls_component-type ?= lo_typedescr.
     INSERT ls_component INTO TABLE ct_components.
 
@@ -85878,7 +85877,7 @@ CLASS zcl_abapgit_object_otgr IMPLEMENTATION.
 
     IF <lt_parents> IS ASSIGNED.
       io_xml->read( EXPORTING iv_name = 'PARENTS'
-                    CHANGING  cg_data = <lt_parents>  ).
+                    CHANGING  cg_data = <lt_parents> ).
 
       LOOP AT <lt_parents> ASSIGNING <ls_parent>.
         ASSIGN COMPONENT 'ACTIVATION_STATE' OF STRUCTURE <ls_parent> TO <lv_field>.
@@ -86230,26 +86229,26 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |ODSO is not supported on this system| ).
     ENDTRY.
 
-    ASSIGN lr_details->*     TO <lg_details>.
+    ASSIGN lr_details->* TO <lg_details>.
     ASSIGN lr_infoobjects->* TO <lt_infoobjects>.
-    ASSIGN lr_navigation->*  TO <lt_navigation>.
-    ASSIGN lr_indexes->*     TO <lt_indexes>.
-    ASSIGN lr_index_iobj->*  TO <lt_index_iobj>.
+    ASSIGN lr_navigation->* TO <lt_navigation>.
+    ASSIGN lr_indexes->* TO <lt_indexes>.
+    ASSIGN lr_index_iobj->* TO <lt_index_iobj>.
 
     io_xml->read( EXPORTING iv_name = 'ODSO'
                   CHANGING  cg_data = <lg_details> ).
 
     io_xml->read( EXPORTING iv_name = 'INFOOBJECTS'
-                  CHANGING  cg_data =  <lt_infoobjects> ).
+                  CHANGING  cg_data = <lt_infoobjects> ).
 
     io_xml->read( EXPORTING iv_name = 'NAVIGATION'
-                  CHANGING  cg_data =  <lt_navigation> ).
+                  CHANGING  cg_data = <lt_navigation> ).
 
     io_xml->read( EXPORTING iv_name = 'INDEXES'
-                  CHANGING  cg_data =  <lt_indexes> ).
+                  CHANGING  cg_data = <lt_indexes> ).
 
     io_xml->read( EXPORTING iv_name = 'INDEX_IOBJ'
-                  CHANGING  cg_data =  <lt_index_iobj> ).
+                  CHANGING  cg_data = <lt_index_iobj> ).
     TRY.
 
         ASSIGN COMPONENT 'ODSOBJECT' OF STRUCTURE <lg_details> TO <lg_odsobject>.
@@ -86280,7 +86279,7 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
               return               = lt_return.
         ENDIF.
 
-      CATCH  cx_sy_dyn_call_illegal_func.
+      CATCH cx_sy_dyn_call_illegal_func.
         zcx_abapgit_exception=>raise( |Necessary BW function modules not found or object not supported| ).
     ENDTRY.
 
@@ -86354,7 +86353,7 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
 
     DATA: lv_object TYPE eqegraarg.
 
-    lv_object =  ms_item-obj_name.
+    lv_object = ms_item-obj_name.
     OVERLAY lv_object WITH '                                          '.
     lv_object = lv_object && '*'.
 
@@ -86398,11 +86397,11 @@ CLASS zcl_abapgit_object_odso IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |ODSO is not supported on this system| ).
     ENDTRY.
 
-    ASSIGN lr_details->*     TO <lg_details>.
+    ASSIGN lr_details->* TO <lg_details>.
     ASSIGN lr_infoobjects->* TO <lt_infoobjects>.
-    ASSIGN lr_navigation->*  TO <lt_navigation>.
-    ASSIGN lr_indexes->*     TO <lt_indexes>.
-    ASSIGN lr_index_iobj->*  TO <lt_index_iobj>.
+    ASSIGN lr_navigation->* TO <lt_navigation>.
+    ASSIGN lr_indexes->* TO <lt_indexes>.
+    ASSIGN lr_index_iobj->* TO <lt_index_iobj>.
 
     lv_dsonam = ms_item-obj_name.
 
@@ -88772,7 +88771,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
           zcx_abapgit_exception=>raise( |Error when activating iobj: { ls_return-message }| ).
         ENDIF.
 
-      CATCH  cx_sy_dyn_call_illegal_func.
+      CATCH cx_sy_dyn_call_illegal_func.
         zcx_abapgit_exception=>raise( |Necessary BW function modules not found| ).
     ENDTRY.
 
@@ -88842,7 +88841,7 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
 
     DATA: lv_object TYPE eqegraarg.
 
-    lv_object =  ms_item-obj_name.
+    lv_object = ms_item-obj_name.
     OVERLAY lv_object WITH '                                          '.
     lv_object = lv_object && '*'.
 
@@ -91138,11 +91137,11 @@ CLASS zcl_abapgit_object_iasp IMPLEMENTATION.
 
     w3_api_set_attributes(
         ii_service    = li_service
-        is_attributes = is_attr  ).
+        is_attributes = is_attr ).
 
     w3_api_set_parameters(
         ii_service    = li_service
-        it_parameters = it_parameters  ).
+        it_parameters = it_parameters ).
 
     w3_api_save( li_service ).
 
@@ -102583,7 +102582,7 @@ CLASS zcl_abapgit_object_bdef IMPLEMENTATION.
 
     CREATE OBJECT ro_object_data TYPE ('CL_BLUE_SOURCE_OBJECT_DATA').
 
-    ro_object_data->set_data(  p_data = <lg_data>  ).
+    ro_object_data->set_data( p_data = <lg_data> ).
 
   ENDMETHOD.
   METHOD get_wb_object_operator.
@@ -103522,7 +103521,7 @@ CLASS zcl_abapgit_object_area IMPLEMENTATION.
       lr_area       TYPE REF TO object.
 
     io_xml->read( EXPORTING iv_name = 'NODENAME'
-                  CHANGING cg_data = lv_nodename  ).
+                  CHANGING cg_data = lv_nodename ).
 
     io_xml->read( EXPORTING iv_name = 'PARENTNAME'
                   CHANGING  cg_data = lv_parentname ).
@@ -103700,7 +103699,7 @@ CLASS zcl_abapgit_object_area IMPLEMENTATION.
     ASSIGN COMPONENT 'PARENTNAME' OF STRUCTURE <ls_tree> TO <lv_parentname>.
 
     io_xml->add( iv_name = 'NODENAME'
-                 ig_data =  ms_item-obj_name ).
+                 ig_data = ms_item-obj_name ).
 
     io_xml->add( iv_name = 'PARENTNAME'
                  ig_data = <lv_parentname> ).
@@ -104622,7 +104621,7 @@ CLASS zcl_abapgit_object_aifc IMPLEMENTATION.
     ENDTRY.
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
-    DATA  lx_dyn_call_error TYPE REF TO cx_sy_dyn_call_error.
+    DATA lx_dyn_call_error TYPE REF TO cx_sy_dyn_call_error.
 
     DATA ls_icd_data_key TYPE ty_icd_data_key.
     ls_icd_data_key-depl_scenario = ms_icd_data_key-depl_scenario.
@@ -104688,7 +104687,7 @@ CLASS zcl_abapgit_object_aifc IMPLEMENTATION.
 
           CLEAR lr_tabledescr.
           lr_structdescr ?= cl_abap_typedescr=>describe_by_name( p_name = lr_content->tabname ).
-          lr_tabledescr =  cl_abap_tabledescr=>create( p_line_type = lr_structdescr ).
+          lr_tabledescr = cl_abap_tabledescr=>create( p_line_type = lr_structdescr ).
 
           CREATE DATA lr_table TYPE HANDLE lr_tabledescr.
           ASSIGN lr_table->* TO <lt_table>.
@@ -104710,19 +104709,19 @@ CLASS zcl_abapgit_object_aifc IMPLEMENTATION.
             ASSIGN COMPONENT 'NS' OF STRUCTURE <ls_table> TO <lv_value>.
             IF <lv_value> IS ASSIGNED.
               ls_ifkey-ns = <lv_value>.
-              UNASSIGN  <lv_value>.
+              UNASSIGN <lv_value>.
             ENDIF.
 
             ASSIGN COMPONENT 'IFNAME' OF STRUCTURE <ls_table> TO <lv_value>.
             IF <lv_value> IS ASSIGNED.
               ls_ifkey-ifname = <lv_value>.
-              UNASSIGN  <lv_value>.
+              UNASSIGN <lv_value>.
             ENDIF.
 
             ASSIGN COMPONENT 'IFVERSION' OF STRUCTURE <ls_table> TO <lv_value>.
             IF <lv_value> IS ASSIGNED.
               ls_ifkey-ifver = <lv_value>.
-              UNASSIGN  <lv_value>.
+              UNASSIGN <lv_value>.
             ENDIF.
           ENDIF.
 
@@ -104840,7 +104839,7 @@ CLASS zcl_abapgit_object_aifc IMPLEMENTATION.
 
     TRY.
 
-        ASSIGN  lr_data TO <ls_data>.
+        ASSIGN lr_data TO <ls_data>.
         IF NOT <ls_data> IS ASSIGNED.
           RETURN.
         ENDIF.
@@ -104916,7 +104915,7 @@ CLASS zcl_abapgit_object_aifc IMPLEMENTATION.
     DATA: lx_root TYPE REF TO cx_root.
 
     lr_structdescr ?= cl_abap_typedescr=>describe_by_name( p_name = '/AIF/T_FINF' ).
-    lr_tabledescr =  cl_abap_tabledescr=>create( p_line_type = lr_structdescr ).
+    lr_tabledescr = cl_abap_tabledescr=>create( p_line_type = lr_structdescr ).
 
     CREATE DATA lr_table TYPE HANDLE lr_tabledescr.
     ASSIGN lr_table->* TO <lt_table>.
@@ -128457,8 +128456,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-26T13:43:44.889Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-26T13:43:44.889Z`.
+* abapmerge 0.16.0 - 2023-10-26T14:29:55.139Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-26T14:29:55.139Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
