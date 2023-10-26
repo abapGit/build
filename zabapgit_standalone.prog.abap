@@ -34690,8 +34690,8 @@ CLASS kHGwlrVRrOJtQtrmwQhfHRNBLGiCES IMPLEMENTATION.
 
       lo_column ?= ls_column-r_column.
 
-      IF    iv_selection_mode    = if_salv_c_selection_mode=>multiple
-        AND ls_column-columnname = c_fieldname_selected.
+      IF iv_selection_mode    = if_salv_c_selection_mode=>multiple AND
+         ls_column-columnname = c_fieldname_selected.
         lo_column->set_cell_type( if_salv_c_cell_type=>checkbox_hotspot ).
         lo_column->set_output_length( 20 ).
         lo_column->set_short_text( |{ iv_select_column_text }| ).
@@ -38168,7 +38168,7 @@ CLASS zcl_abapgit_gui_page_tags IMPLEMENTATION.
       ms_tag-type = io_form_data->get( c_id-tag_type ).
     ENDIF.
 
-    lv_commitmsg_comment_length =  mo_settings->get_commitmsg_comment_length( ).
+    lv_commitmsg_comment_length = mo_settings->get_commitmsg_comment_length( ).
 
     ro_form = zcl_abapgit_html_form=>create(
                 iv_form_id   = 'create-tag-form'
@@ -38694,7 +38694,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     lt_files = io_stage->get_all( ).
 
     DELETE lt_files WHERE method <> zif_abapgit_definitions=>c_method-add
-                    AND   method <> zif_abapgit_definitions=>c_method-rm.
+                      AND method <> zif_abapgit_definitions=>c_method-rm.
 
     CREATE OBJECT lo_page
       EXPORTING
@@ -38830,7 +38830,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     ENDCASE.
 
     ri_html->add( '<td class="user">' ).
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_user_name( iv_changed_by  ) ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_user_name( iv_changed_by ) ).
     ri_html->add( '</td>' ).
 
     ri_html->add( '<td class="transport">' ).
@@ -47232,7 +47232,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
             val = lv_source
             del = ` ` ) ).
           SPLIT lv_method AT '~' INTO lv_rest lv_method.
-          ri_html->add( |<tr><td>{ lv_method }</td><td class="center">|  ).
+          ri_html->add( |<tr><td>{ lv_method }</td><td class="center">| ).
           IF lv_source IS INITIAL OR lv_source = 'RETURN.' OR lv_source = 'EXIT.'.
             ri_html->add( 'No' ).
           ELSE.
@@ -48621,7 +48621,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
       iv_form_id   = 'commit-form'
       iv_help_page = 'https://docs.abapgit.org/guide-stage-commit.html' ).
 
-    lv_commitmsg_comment_length =  mo_settings->get_commitmsg_comment_length( ).
+    lv_commitmsg_comment_length = mo_settings->get_commitmsg_comment_length( ).
 
     ro_form->text(
       iv_name        = c_id-comment
@@ -50340,15 +50340,15 @@ CLASS zcl_abapgit_html_toolbar IMPLEMENTATION.
       ENDIF.
       IF <ls_item>-cur = abap_true.
         IF <ls_item>-li_class IS INITIAL.
-          lv_class_value =  'current-menu-item'.
+          lv_class_value = 'current-menu-item'.
         ELSE.
-          lv_class_value =  |current-menu-item { <ls_item>-li_class }|.
+          lv_class_value = |current-menu-item { <ls_item>-li_class }|.
         ENDIF.
       ELSE.
-        lv_class_value =  <ls_item>-li_class.
+        lv_class_value = <ls_item>-li_class.
       ENDIF.
       IF lv_class_value IS NOT INITIAL.
-        lv_class =   | class="{ lv_class_value }"|.
+        lv_class = | class="{ lv_class_value }"|.
       ENDIF.
       IF <ls_item>-aux IS NOT INITIAL.
         lv_aux = | data-aux="{ <ls_item>-aux }"|.
@@ -51910,7 +51910,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
     li_documentation_link->add_a(
         iv_txt = 'Documentation'
         iv_typ = zif_abapgit_html=>c_action_type-url
-        iv_act =  'https://docs.abapgit.org/guide-sapgui.html#sap-gui-for-windows' ).
+        iv_act = 'https://docs.abapgit.org/guide-sapgui.html#sap-gui-for-windows' ).
 
     ii_html->add( '<div id="browser-control-warning" class="browser-control-warning">' ).
     ii_html->add( zcl_abapgit_gui_chunk_lib=>render_warning_banner(
@@ -53598,7 +53598,7 @@ CLASS zcl_abapgit_exception_viewer IMPLEMENTATION.
           lo_event   TYPE REF TO cl_salv_events_table,
           lo_columns TYPE REF TO cl_salv_columns_table,
           lo_alv     TYPE REF TO cl_salv_table.
-    DATA  ls_position TYPE zif_abapgit_popups=>ty_popup_position.
+    DATA ls_position TYPE zif_abapgit_popups=>ty_popup_position.
 
     TRY.
         cl_salv_table=>factory(
@@ -54507,8 +54507,8 @@ CLASS ZCL_ABAPGIT_GUI_HOTKEY_CTL IMPLEMENTATION.
         DELETE mt_hotkeys INDEX sy-tabix. " Later registered commands enjoys the priority
       ENDIF.
 
-      IF  ms_user_settings-link_hints_enabled = abap_true
-      AND ms_user_settings-link_hint_key      = <ls_hotkey>-hotkey.
+      IF ms_user_settings-link_hints_enabled = abap_true AND
+         ms_user_settings-link_hint_key      = <ls_hotkey>-hotkey.
         " Link hint activation key is more important
         CONTINUE.
       ENDIF.
@@ -128459,8 +128459,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-26T04:36:00.665Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-26T04:36:00.665Z`.
+* abapmerge 0.16.0 - 2023-10-26T04:42:08.525Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-26T04:42:08.525Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
