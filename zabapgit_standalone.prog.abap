@@ -36810,7 +36810,7 @@ CLASS zcl_abapgit_services_git IMPLEMENTATION.
         INTO ls_comment-comment SEPARATED BY cl_abap_char_utilities=>newline.
     ENDIF.
 
-    zcl_abapgit_exit=>get_instance(  )->validate_before_push(
+    zcl_abapgit_exit=>get_instance( )->validate_before_push(
       is_comment = ls_comment
       io_stage   = io_stage
       io_repo    = io_repo ).
@@ -60009,7 +60009,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
                    io_dot     = get_dot_abapgit( ) ).
 
     DELETE mt_local WHERE item-obj_type = iv_obj_type
-                    AND   item-obj_name = iv_obj_name.
+                      AND item-obj_name = iv_obj_name.
 
     READ TABLE lt_tadir INTO ls_tadir
                         WITH KEY object   = iv_obj_type
@@ -60450,7 +60450,7 @@ CLASS zcl_abapgit_object_filter_tran IMPLEMENTATION.
   METHOD get_all_sub_packages.
 
     DATA li_package TYPE REF TO zif_abapgit_sap_package.
-    DATA lt_list TYPE  zif_abapgit_sap_package=>ty_devclass_tt.
+    DATA lt_list TYPE zif_abapgit_sap_package=>ty_devclass_tt.
     DATA lr_list TYPE REF TO devclass.
     DATA ls_filter TYPE zif_abapgit_definitions=>ty_tadir.
 
@@ -64414,7 +64414,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
       WHEN 2.
         zcx_abapgit_exception=>raise( |Object type { iv_obj_type } not allowed for package { iv_package }| ).
       WHEN OTHERS.
-        zcx_abapgit_exception=>raise_t100(  ).
+        zcx_abapgit_exception=>raise_t100( ).
     ENDCASE.
 
   ENDMETHOD.
@@ -89064,9 +89064,9 @@ CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd IMPLEMENTATION.
     SELECT sub_component~cmpname sub_component~sconame sub_component_text~descript sub_component~scotype
       INTO TABLE lt_sub_components
       FROM seosubco AS sub_component JOIN seosubcotx AS sub_component_text
-      ON  sub_component~clsname = sub_component_text~clsname
-          AND sub_component~cmpname = sub_component_text~cmpname
-          AND sub_component~sconame = sub_component_text~sconame
+      ON sub_component~clsname = sub_component_text~clsname AND
+         sub_component~cmpname = sub_component_text~cmpname AND
+         sub_component~sconame = sub_component_text~sconame
       INNER JOIN seocompodf AS df
       ON sub_component~clsname = df~clsname AND
          sub_component~cmpname = df~cmpname
@@ -105189,10 +105189,10 @@ CLASS ZCL_ABAPGIT_SOTS_HANDLER IMPLEMENTATION.
       lv_concept = <ls_sots>-header-concept.
 
       PERFORM btfr_create IN PROGRAM saplsotr_db_string
-        USING    lv_object
-                 sy-langu
-                 abap_false
-                 abap_true
+        USING lv_object
+              sy-langu
+              abap_false
+              abap_true
         CHANGING lt_text_tab
                  lt_string_tab
                  ls_header
@@ -105818,7 +105818,7 @@ CLASS ZCL_ABAPGIT_PO_FILE IMPLEMENTATION.
       READ TABLE mt_pairs ASSIGNING <ls_out> WITH KEY source = <ls_in>-s_text.
       IF sy-subrc <> 0.
         ls_out-source = <ls_in>-s_text.
-        INSERT ls_out INTO  TABLE mt_pairs ASSIGNING <ls_out>.
+        INSERT ls_out INTO TABLE mt_pairs ASSIGNING <ls_out>.
         ASSERT sy-subrc = 0.
       ENDIF.
 
@@ -106610,8 +106610,7 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
 
     SELECT * FROM dokil
       INTO TABLE lt_dokil
-      WHERE id     = iv_longtext_id
-      AND   object LIKE lv_object ESCAPE '#'.
+      WHERE id = iv_longtext_id AND object LIKE lv_object ESCAPE '#'.
 
     LOOP AT lt_dokil ASSIGNING <ls_dokil>.
 
@@ -106672,8 +106671,7 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
     " If not, delete the texts
     SELECT * FROM dokil
       INTO TABLE lt_dokil
-      WHERE id     = iv_longtext_id
-      AND   object LIKE lv_object ESCAPE '#'.
+      WHERE id = iv_longtext_id AND object LIKE lv_object ESCAPE '#'.
 
     LOOP AT lt_dokil ASSIGNING <ls_dokil>.
 
@@ -112465,7 +112463,7 @@ CLASS zcl_abapgit_tadir IMPLEMENTATION.
     DATA ls_obj_with_namespace TYPE zif_abapgit_definitions=>ty_obj_namespace.
 
     TRY.
-        ls_obj_with_namespace = zcl_abapgit_factory=>get_sap_namespace(  )->split_by_name( iv_object ).
+        ls_obj_with_namespace = zcl_abapgit_factory=>get_sap_namespace( )->split_by_name( iv_object ).
       CATCH zcx_abapgit_exception.
         "Ignore the exception like before the replacement of the FM RS_NAME_SPLIT_NAMESPACE
         RETURN.
@@ -115679,7 +115677,7 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
             result = lo_aff_log.
 
         CREATE DATA lr_intf_aff_log TYPE REF TO ('IF_AFF_LOG').
-        ASSIGN lr_intf_aff_log->* TO  <ls_intf_aff_log>.
+        ASSIGN lr_intf_aff_log->* TO <ls_intf_aff_log>.
         <ls_intf_aff_log> ?= lo_aff_log.
 
         CALL METHOD lo_object_handler->('IF_AFF_OBJECT_HANDLER~DELETE')
@@ -115848,7 +115846,7 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
         <ls_intf_files_container> ?= lo_files_container.
 
         CREATE DATA lr_intf_aff_log TYPE REF TO ('IF_AFF_LOG').
-        ASSIGN lr_intf_aff_log->* TO  <ls_intf_aff_log>.
+        ASSIGN lr_intf_aff_log->* TO <ls_intf_aff_log>.
         <ls_intf_aff_log> ?= lo_aff_log.
 
         CREATE DATA lr_intf_aff_settings TYPE REF TO ('IF_AFF_SETTINGS_DESERIALIZE').
@@ -116369,7 +116367,7 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
                   CHANGING  co_ajson    = lo_ajson ).
     map2abap_abap_language_version( CHANGING co_ajson = lo_ajson ).
     map2abap_custom_enum( EXPORTING it_enum_mappings = iv_enum_mappings
-                          CHANGING co_ajson          = lo_ajson  ).
+                          CHANGING co_ajson          = lo_ajson ).
 
     lo_ajson->to_abap( IMPORTING ev_container = ev_data ).
 
@@ -125126,7 +125124,7 @@ CLASS zcl_abapgit_data_supporter IMPLEMENTATION.
     " The list of supported objects can be enhanced using an exit
     " Name patterns are allowed. For example, TABU T009*
     li_exit = zcl_abapgit_exit=>get_instance( ).
-    li_exit->change_supported_data_objects( CHANGING ct_objects =  mt_supported_objects ).
+    li_exit->change_supported_data_objects( CHANGING ct_objects = mt_supported_objects ).
 
   ENDMETHOD.
   METHOD zif_abapgit_data_supporter~is_object_supported.
@@ -125457,7 +125455,7 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
           obj_type = ls_result-type
           obj_name = ls_result-name
           decision = zif_abapgit_definitions=>c_yes.
-      IF sy-subrc <>  0.
+      IF sy-subrc <> 0.
         CONTINUE.
       ENDIF.
 
@@ -128459,8 +128457,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-26T04:42:08.525Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-26T04:42:08.525Z`.
+* abapmerge 0.16.0 - 2023-10-26T13:43:44.889Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-26T13:43:44.889Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
