@@ -190,6 +190,7 @@ CLASS zcl_abapgit_html_action_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_picklist DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_hoc DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_menus DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_in_page_modal DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_component DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_chunk_lib DEFINITION DEFERRED.
@@ -19032,26 +19033,6 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS advanced_submenu
-      RETURNING
-        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
-    CLASS-METHODS help_submenu
-      RETURNING
-        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
-    CLASS-METHODS back_toolbar
-      RETURNING
-        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
-    CLASS-METHODS settings_toolbar
-      IMPORTING
-        !iv_act        TYPE string
-      RETURNING
-        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
-    CLASS-METHODS settings_repo_toolbar
-      IMPORTING
-        !iv_key        TYPE zif_abapgit_persistence=>ty_repo-key
-        !iv_act        TYPE string
-      RETURNING
-        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
     CLASS-METHODS render_branch_name
       IMPORTING
         !iv_branch      TYPE string OPTIONAL
@@ -19296,6 +19277,44 @@ CLASS zcl_abapgit_gui_in_page_modal DEFINITION
         height TYPE i,
       END OF ms_attrs.
 
+ENDCLASS.
+CLASS zcl_abapgit_gui_menus DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS advanced
+      RETURNING
+        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
+
+    CLASS-METHODS help
+      RETURNING
+        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
+
+    CLASS-METHODS back
+      RETURNING
+        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
+
+    CLASS-METHODS settings
+      IMPORTING
+        !iv_act        TYPE string
+      RETURNING
+        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
+
+    CLASS-METHODS repo_settings
+      IMPORTING
+        !iv_key        TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_act        TYPE string
+      RETURNING
+        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
+
+    CLASS-METHODS experimental
+      IMPORTING
+        io_menu TYPE REF TO zcl_abapgit_html_toolbar.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
   INHERITING FROM zcl_abapgit_gui_component
@@ -38024,7 +38043,7 @@ CLASS zcl_abapgit_popup_branch_list IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_TUTORIAL IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_tutorial IMPLEMENTATION.
   METHOD build_main_menu.
 
     CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-main'.
@@ -38039,16 +38058,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_TUTORIAL IMPLEMENTATION.
       iv_txt = zcl_abapgit_gui_buttons=>new_offline( )
       iv_act = zif_abapgit_definitions=>c_action-repo_newoffline
     )->add(
-      iv_txt = zcl_abapgit_gui_buttons=>settings( )
-      iv_act = zif_abapgit_definitions=>c_action-go_settings
-    )->add(
-      iv_txt = zcl_abapgit_gui_buttons=>advanced( )
-      iv_title = 'Utilities'
-      io_sub = zcl_abapgit_gui_chunk_lib=>advanced_submenu( )
-    )->add(
       iv_txt = zcl_abapgit_gui_buttons=>help( )
-      iv_title = 'Help'
-      io_sub = zcl_abapgit_gui_chunk_lib=>help_submenu( ) ).
+      io_sub = zcl_abapgit_gui_menus=>help( ) ).
 
   ENDMETHOD.
   METHOD create.
@@ -39233,7 +39244,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
       iv_page_title      = 'Repository Settings'
-      io_page_menu       = zcl_abapgit_gui_chunk_lib=>settings_repo_toolbar(
+      io_page_menu       = zcl_abapgit_gui_menus=>repo_settings(
                              iv_key = io_repo->get_key( )
                              iv_act = zif_abapgit_definitions=>c_action-repo_settings )
       ii_child_component = lo_component ).
@@ -39772,7 +39783,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
       iv_page_title      = 'Remote Settings'
-      io_page_menu       = zcl_abapgit_gui_chunk_lib=>settings_repo_toolbar(
+      io_page_menu       = zcl_abapgit_gui_menus=>repo_settings(
                              iv_key = io_repo->get_key( )
                              iv_act = zif_abapgit_definitions=>c_action-repo_remote_settings )
       ii_child_component = lo_component ).
@@ -40504,8 +40515,7 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
       iv_page_title      = 'Personal Settings'
-      io_page_menu       = zcl_abapgit_gui_chunk_lib=>settings_toolbar(
-        zif_abapgit_definitions=>c_action-go_settings_personal )
+      io_page_menu       = zcl_abapgit_gui_menus=>settings( zif_abapgit_definitions=>c_action-go_settings_personal )
       ii_child_component = lo_component ).
 
   ENDMETHOD.
@@ -40893,7 +40903,7 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
       iv_page_title      = 'Local Settings & Checks'
-      io_page_menu       = zcl_abapgit_gui_chunk_lib=>settings_repo_toolbar(
+      io_page_menu       = zcl_abapgit_gui_menus=>repo_settings(
                              iv_key = io_repo->get_key( )
                              iv_act = zif_abapgit_definitions=>c_action-repo_local_settings )
       ii_child_component = lo_component ).
@@ -41242,7 +41252,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
       iv_page_title      = 'Repository Stats'
-      io_page_menu       = zcl_abapgit_gui_chunk_lib=>settings_repo_toolbar(
+      io_page_menu       = zcl_abapgit_gui_menus=>repo_settings(
                              iv_key = io_repo->get_key( )
                              iv_act = zif_abapgit_definitions=>c_action-repo_infos )
       ii_child_component = lo_component ).
@@ -41692,8 +41702,7 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
       iv_page_title      = 'Global Settings'
-      io_page_menu       = zcl_abapgit_gui_chunk_lib=>settings_toolbar(
-                             zif_abapgit_definitions=>c_action-go_settings )
+      io_page_menu       = zcl_abapgit_gui_menus=>settings( zif_abapgit_definitions=>c_action-go_settings )
       ii_child_component = lo_component ).
 
   ENDMETHOD.
@@ -41969,7 +41978,7 @@ CLASS zcl_abapgit_gui_page_sett_bckg IMPLEMENTATION.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
       iv_page_title      = 'Background Mode'
-      io_page_menu       = zcl_abapgit_gui_chunk_lib=>settings_repo_toolbar(
+      io_page_menu       = zcl_abapgit_gui_menus=>repo_settings(
                              iv_key = io_repo->get_key( )
                              iv_act = zif_abapgit_definitions=>c_action-repo_background )
       ii_child_component = lo_component ).
@@ -42520,7 +42529,7 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_RUN_BCKG IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_run_bckg IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
@@ -42534,7 +42543,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_RUN_BCKG IMPLEMENTATION.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
       iv_page_title      = 'Background Run'
-      io_page_menu       = zcl_abapgit_gui_chunk_lib=>back_toolbar( )
+      io_page_menu       = zcl_abapgit_gui_menus=>back( )
       ii_child_component = lo_component ).
 
   ENDMETHOD.
@@ -43521,15 +43530,9 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       iv_act = zif_abapgit_definitions=>c_action-abapgit_home
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>help( )
-      iv_title = 'Help'
-      io_sub = zcl_abapgit_gui_chunk_lib=>help_submenu( ) ).
+      io_sub = zcl_abapgit_gui_menus=>help( ) ).
 
-    IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) IS NOT INITIAL.
-      ro_toolbar->add(
-        iv_txt   = zcl_abapgit_gui_buttons=>experimental( )
-        iv_title = 'Experimental Features are Enabled'
-        iv_act   = zif_abapgit_definitions=>c_action-go_settings ).
-    ENDIF.
+    zcl_abapgit_gui_menus=>experimental( ro_toolbar ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
@@ -44524,19 +44527,12 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_act = zif_abapgit_definitions=>c_action-go_settings
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>advanced( )
-      iv_title = 'Utilities'
-      io_sub = zcl_abapgit_gui_chunk_lib=>advanced_submenu( )
+      io_sub = zcl_abapgit_gui_menus=>advanced( )
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>help( )
-      iv_title = 'Help'
-      io_sub = zcl_abapgit_gui_chunk_lib=>help_submenu( ) ).
+      io_sub = zcl_abapgit_gui_menus=>help( ) ).
 
-    IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) IS NOT INITIAL.
-      ro_toolbar->add(
-        iv_txt   = zcl_abapgit_gui_buttons=>experimental( )
-        iv_title = 'Experimental Features are Enabled'
-        iv_act   = zif_abapgit_definitions=>c_action-go_settings ).
-    ENDIF.
+    zcl_abapgit_gui_menus=>experimental( ro_toolbar ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
@@ -52164,6 +52160,120 @@ CLASS ZCL_ABAPGIT_GUI_PAGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_gui_menus IMPLEMENTATION.
+  METHOD advanced.
+
+    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-advanced'.
+
+    ro_menu->add(
+      iv_txt = 'Database Utility'
+      iv_act = zif_abapgit_definitions=>c_action-go_db
+    )->add(
+      iv_txt = 'Package to ZIP'
+      iv_act = zif_abapgit_definitions=>c_action-zip_package
+    )->add(
+      iv_txt = 'Transport to ZIP'
+      iv_act = zif_abapgit_definitions=>c_action-zip_transport
+    )->add(
+      iv_txt = 'Object to Files'
+      iv_act = zif_abapgit_definitions=>c_action-zip_object
+    )->add(
+      iv_txt = 'Debug Info'
+      iv_act = zif_abapgit_definitions=>c_action-go_debuginfo ).
+
+    IF zcl_abapgit_ui_factory=>get_frontend_services( )->is_sapgui_for_windows( ) = abap_true.
+      ro_menu->add(
+        iv_txt = 'Open IE DevTools'
+        iv_act = zif_abapgit_definitions=>c_action-ie_devtools ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD back.
+
+    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-back'.
+
+    ro_menu->add(
+      iv_txt = 'Back'
+      iv_act = zif_abapgit_definitions=>c_action-go_back ).
+
+  ENDMETHOD.
+  METHOD experimental.
+
+    IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ) IS NOT INITIAL.
+      io_menu->add(
+        iv_txt = zcl_abapgit_gui_buttons=>experimental( )
+        iv_act = zif_abapgit_definitions=>c_action-go_settings ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD help.
+
+    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-help'.
+
+    ro_menu->add(
+      iv_txt = 'Tutorial'
+      iv_act = zif_abapgit_definitions=>c_action-go_tutorial
+    )->add(
+      iv_txt = 'Documentation'
+      iv_act = zif_abapgit_definitions=>c_action-documentation
+    )->add(
+      iv_txt = 'Explore'
+      iv_act = zif_abapgit_definitions=>c_action-go_explore
+    )->add(
+      iv_txt = 'Changelog'
+      iv_act = zif_abapgit_definitions=>c_action-changelog
+    )->add(
+      iv_txt = 'Hotkeys'
+      iv_act = zif_abapgit_definitions=>c_action-show_hotkeys ).
+
+  ENDMETHOD.
+  METHOD repo_settings.
+
+    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-repo-settings'.
+
+    ro_menu->add(
+      iv_txt = 'Repository'
+      iv_act = |{ zif_abapgit_definitions=>c_action-repo_settings }?key={ iv_key }|
+      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_settings )
+    )->add(
+      iv_txt = 'Local'
+      iv_act = |{ zif_abapgit_definitions=>c_action-repo_local_settings }?key={ iv_key }|
+      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_local_settings )
+    )->add(
+      iv_txt = 'Remote'
+      iv_act = |{ zif_abapgit_definitions=>c_action-repo_remote_settings }?key={ iv_key }|
+      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_remote_settings )
+    )->add(
+      iv_txt = 'Background'
+      iv_act = |{ zif_abapgit_definitions=>c_action-repo_background }?key={ iv_key }|
+      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_background )
+    )->add(
+      iv_txt = 'Stats'
+      iv_act = |{ zif_abapgit_definitions=>c_action-repo_infos }?key={ iv_key }|
+      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_infos ) ).
+
+    zcl_abapgit_exit=>get_instance( )->enhance_repo_toolbar(
+      io_menu = ro_menu
+      iv_key  = iv_key
+      iv_act  = iv_act ).
+
+  ENDMETHOD.
+  METHOD settings.
+
+    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-settings'.
+
+    ro_menu->add(
+      iv_txt = 'Global'
+      iv_act = zif_abapgit_definitions=>c_action-go_settings
+      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-go_settings )
+    )->add(
+      iv_txt = 'Personal'
+      iv_act = zif_abapgit_definitions=>c_action-go_settings_personal
+      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-go_settings_personal ) ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_gui_in_page_modal IMPLEMENTATION.
   METHOD constructor.
 
@@ -52256,46 +52366,6 @@ CLASS ZCL_ABAPGIT_GUI_COMPONENT IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
-  METHOD advanced_submenu.
-
-    DATA lv_supports_ie_devtools TYPE abap_bool.
-
-    lv_supports_ie_devtools = zcl_abapgit_ui_factory=>get_frontend_services( )->is_sapgui_for_windows( ).
-
-    CREATE OBJECT ro_menu.
-
-    ro_menu->add(
-      iv_txt = 'Database Utility'
-      iv_act = zif_abapgit_definitions=>c_action-go_db
-    )->add(
-      iv_txt = 'Package to ZIP'
-      iv_act = zif_abapgit_definitions=>c_action-zip_package
-    )->add(
-      iv_txt = 'Transport to ZIP'
-      iv_act = zif_abapgit_definitions=>c_action-zip_transport
-    )->add(
-      iv_txt = 'Object to Files'
-      iv_act = zif_abapgit_definitions=>c_action-zip_object
-    )->add(
-      iv_txt = 'Debug Info'
-      iv_act = zif_abapgit_definitions=>c_action-go_debuginfo ).
-
-    IF lv_supports_ie_devtools = abap_true.
-      ro_menu->add(
-        iv_txt = 'Open IE DevTools'
-        iv_act = zif_abapgit_definitions=>c_action-ie_devtools ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD back_toolbar.
-
-    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-back'.
-
-    ro_menu->add(
-      iv_txt = 'Back'
-      iv_act = zif_abapgit_definitions=>c_action-go_back ).
-
-  ENDMETHOD.
   METHOD class_constructor.
 
     DATA lv_fm TYPE string.
@@ -52363,27 +52433,6 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     IF rv_text CO ' 0123456789&'.
       CLEAR rv_text.
     ENDIF.
-
-  ENDMETHOD.
-  METHOD help_submenu.
-
-    CREATE OBJECT ro_menu.
-
-    ro_menu->add(
-      iv_txt = 'Tutorial'
-      iv_act = zif_abapgit_definitions=>c_action-go_tutorial
-    )->add(
-      iv_txt = 'Documentation'
-      iv_act = zif_abapgit_definitions=>c_action-documentation
-    )->add(
-      iv_txt = 'Explore'
-      iv_act = zif_abapgit_definitions=>c_action-go_explore
-    )->add(
-      iv_txt = 'Changelog'
-      iv_act = zif_abapgit_definitions=>c_action-changelog
-    )->add(
-      iv_txt = 'Hotkeys'
-      iv_act = zif_abapgit_definitions=>c_action-show_hotkeys ).
 
   ENDMETHOD.
   METHOD normalize_program_name.
@@ -53319,51 +53368,6 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ri_html->add( '</div>' ).
 
   ENDMETHOD.
-  METHOD settings_repo_toolbar.
-
-    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-repo-settings'.
-
-    ro_menu->add(
-      iv_txt = 'Repository'
-      iv_act = |{ zif_abapgit_definitions=>c_action-repo_settings }?key={ iv_key }|
-      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_settings )
-    )->add(
-      iv_txt = 'Local'
-      iv_act = |{ zif_abapgit_definitions=>c_action-repo_local_settings }?key={ iv_key }|
-      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_local_settings )
-    )->add(
-      iv_txt = 'Remote'
-      iv_act = |{ zif_abapgit_definitions=>c_action-repo_remote_settings }?key={ iv_key }|
-      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_remote_settings )
-    )->add(
-      iv_txt = 'Background'
-      iv_act = |{ zif_abapgit_definitions=>c_action-repo_background }?key={ iv_key }|
-      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_background )
-    )->add(
-      iv_txt = 'Stats'
-      iv_act = |{ zif_abapgit_definitions=>c_action-repo_infos }?key={ iv_key }|
-      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_infos ) ).
-
-    zcl_abapgit_exit=>get_instance( )->enhance_repo_toolbar(
-      io_menu = ro_menu
-      iv_key  = iv_key
-      iv_act  = iv_act ).
-
-  ENDMETHOD.
-  METHOD settings_toolbar.
-
-    CREATE OBJECT ro_menu EXPORTING iv_id = 'toolbar-settings'.
-
-    ro_menu->add(
-      iv_txt = 'Global'
-      iv_act = zif_abapgit_definitions=>c_action-go_settings
-      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-go_settings )
-    )->add(
-      iv_txt = 'Personal'
-      iv_act = zif_abapgit_definitions=>c_action-go_settings_personal
-      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-go_settings_personal ) ).
-
-  ENDMETHOD.
   METHOD shorten_repo_url.
     DATA lv_new_length TYPE i.
     DATA lv_length_to_truncate_to TYPE i.
@@ -53386,25 +53390,31 @@ ENDCLASS.
 
 CLASS zcl_abapgit_gui_buttons IMPLEMENTATION.
   METHOD advanced.
-    rv_html_string = `<i class="icon icon-tools-solid"></i>`.
+    rv_html_string = zcl_abapgit_html=>icon(
+      iv_name = 'tools-solid'
+      iv_hint = 'Utilities' ).
   ENDMETHOD.
   METHOD experimental.
-    rv_html_string = `<i class="icon icon-vial-solid red"></i>`.
+    rv_html_string = zcl_abapgit_html=>icon(
+      iv_name = 'vial-solid/red'
+      iv_hint = 'Experimental Features are Enabled' ).
   ENDMETHOD.
   METHOD help.
-    rv_html_string = `<i class="icon icon-question-circle-solid"></i>`.
+    rv_html_string = zcl_abapgit_html=>icon(
+      iv_name = 'question-circle-solid'
+      iv_hint = 'Help' ).
   ENDMETHOD.
   METHOD new_offline.
-    rv_html_string = `<i class="icon icon-plug"></i> New Offline`.
+    rv_html_string = zcl_abapgit_html=>icon( 'plug' ) && ' New Offline'.
   ENDMETHOD.
   METHOD new_online.
-    rv_html_string = `<i class="icon icon-cloud-upload-alt"></i> New Online`.
+    rv_html_string = zcl_abapgit_html=>icon( 'cloud-upload-alt' ) && ' New Online'.
   ENDMETHOD.
   METHOD repo_list.
-    rv_html_string = `<i class="icon icon-bars"></i> Repository List`.
+    rv_html_string = zcl_abapgit_html=>icon( 'bars' ) && ' Repository List'.
   ENDMETHOD.
   METHOD settings.
-    rv_html_string = `<i class="icon icon-cog"></i> Settings`.
+    rv_html_string = zcl_abapgit_html=>icon( 'cog' ) && ' Settings'.
   ENDMETHOD.
 ENDCLASS.
 
@@ -128456,8 +128466,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-26T14:41:32.532Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-26T14:41:32.532Z`.
+* abapmerge 0.16.0 - 2023-10-27T06:19:58.661Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-27T06:19:58.661Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
