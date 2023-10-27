@@ -88,6 +88,7 @@ INTERFACE zif_abapgit_ecatt_upload DEFERRED.
 INTERFACE zif_abapgit_ecatt_download DEFERRED.
 INTERFACE zif_abapgit_ecatt DEFERRED.
 INTERFACE zif_abapgit_tadir DEFERRED.
+INTERFACE zif_abapgit_function_module DEFERRED.
 INTERFACE zif_abapgit_aff_types_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_oo_types_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_intf_v1 DEFERRED.
@@ -431,6 +432,7 @@ CLASS zcl_abapgit_objects_files DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_check DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_activation DEFINITION DEFERRED.
 CLASS zcl_abapgit_item_graph DEFINITION DEFERRED.
+CLASS zcl_abapgit_function_module DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_filename_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_file_deserialize DEFINITION DEFERRED.
@@ -2099,6 +2101,17 @@ INTERFACE zif_abapgit_aff_intf_v1.
       proxy          TYPE abap_bool,
       descriptions   TYPE zif_abapgit_aff_oo_types_v1=>ty_descriptions,
     END OF ty_main.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_function_module.
+
+  METHODS:
+    function_exists
+      IMPORTING
+        iv_function_module_name TYPE clike
+      RETURNING
+        VALUE(rv_exists)        TYPE abap_bool.
 
 ENDINTERFACE.
 
@@ -8693,6 +8706,15 @@ CLASS zcl_abapgit_folder_logic DEFINITION
         WITH UNIQUE KEY devclass .
     DATA mt_top_subpackages TYPE ty_devclass_info_tt .
     DATA mt_parent TYPE ty_devclass_info_tt .
+ENDCLASS.
+CLASS zcl_abapgit_function_module DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_function_module.
+
 ENDCLASS.
 CLASS zcl_abapgit_item_graph DEFINITION
   CREATE PUBLIC .
@@ -24631,6 +24653,9 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-METHODS get_sap_report
       RETURNING
         VALUE(ri_report) TYPE REF TO zif_abapgit_sap_report.
+    CLASS-METHODS: get_function_module
+        RETURNING
+          VALUE(ri_function_module) TYPE REF TO zif_abapgit_function_module.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -24662,6 +24687,7 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-DATA gi_lxe_texts TYPE REF TO zif_abapgit_lxe_texts .
     CLASS-DATA gi_sap_namespace TYPE REF TO zif_abapgit_sap_namespace .
     CLASS-DATA gi_sap_report TYPE REF TO zif_abapgit_sap_report.
+    CLASS-DATA gi_function_module TYPE REF TO zif_abapgit_function_module.
 ENDCLASS.
 CLASS zcl_abapgit_injector DEFINITION
   CREATE PRIVATE.
@@ -24703,6 +24729,9 @@ CLASS zcl_abapgit_injector DEFINITION
     CLASS-METHODS set_sap_report
       IMPORTING
         !ii_report TYPE REF TO zif_abapgit_sap_report.
+    CLASS-METHODS set_function_module
+      IMPORTING
+        ii_function_module TYPE REF TO zif_abapgit_function_module.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -25217,6 +25246,12 @@ CLASS zcl_abapgit_injector IMPLEMENTATION.
   METHOD set_tadir.
     zcl_abapgit_factory=>gi_tadir = ii_tadir.
   ENDMETHOD.
+  METHOD set_function_module.
+
+    zcl_abapgit_factory=>gi_function_module = ii_function_module.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_factory IMPLEMENTATION.
@@ -25341,6 +25376,16 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
     ri_tadir = gi_tadir.
 
   ENDMETHOD.
+  METHOD get_function_module.
+
+    IF gi_function_module IS INITIAL.
+      CREATE OBJECT gi_function_module TYPE zcl_abapgit_function_module.
+    ENDIF.
+
+    ri_function_module = gi_function_module.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_XML_PRETTY IMPLEMENTATION.
@@ -35320,13 +35365,7 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_popups~popup_to_create_package.
-    CALL FUNCTION 'FUNCTION_EXISTS'
-      EXPORTING
-        funcname           = 'PB_POPUP_PACKAGE_CREATE'
-      EXCEPTIONS
-        function_not_exist = 1
-        OTHERS             = 2.
-    IF sy-subrc = 1.
+    IF zcl_abapgit_factory=>get_function_module( )->function_exists( 'PB_POPUP_PACKAGE_CREATE' ) = abap_false.
 * looks like the function module used does not exist on all
 * versions since 702, so show an error
       zcx_abapgit_exception=>raise( 'Your system does not support automatic creation of packages.' &&
@@ -61403,13 +61442,7 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_DB IMPLEMENTATION.
   METHOD get_update_function.
     IF mv_update_function IS INITIAL.
       mv_update_function = 'CALL_V1_PING'.
-      CALL FUNCTION 'FUNCTION_EXISTS'
-        EXPORTING
-          funcname = mv_update_function
-        EXCEPTIONS
-          OTHERS   = 2.
-
-      IF sy-subrc <> 0.
+      IF zcl_abapgit_factory=>get_function_module( )->function_exists( mv_update_function ) = abap_false.
         mv_update_function = 'BANK_OBJ_WORKL_RELEASE_LOCKS'.
       ENDIF.
     ENDIF.
@@ -80787,18 +80820,11 @@ CLASS zcl_abapgit_object_shlp IMPLEMENTATION.
 
     CONSTANTS lc_standard_exit TYPE dd30v-selmexit VALUE 'RS_DD_SELMEXIT'.
 
-    IF cv_exit IS NOT INITIAL.
+    IF cv_exit IS NOT INITIAL
+    AND zcl_abapgit_factory=>get_function_module( )->function_exists( cv_exit ) = abap_false.
       " If exit function does not exist, replace it with standard SAP function
       " which exists in 7.02 and higher
-      CALL FUNCTION 'FUNCTION_EXISTS'
-        EXPORTING
-          funcname           = cv_exit
-        EXCEPTIONS
-          function_not_exist = 1
-          OTHERS             = 2.
-      IF sy-subrc <> 0.
-        cv_exit = lc_standard_exit.
-      ENDIF.
+      cv_exit = lc_standard_exit.
     ENDIF.
 
   ENDMETHOD.
@@ -92372,14 +92398,7 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
         CONTINUE. "with next function module
       ENDIF.
 
-      CALL FUNCTION 'FUNCTION_EXISTS'
-        EXPORTING
-          funcname           = <ls_func>-funcname
-        IMPORTING
-          include            = lv_include
-        EXCEPTIONS
-          function_not_exist = 1.
-      IF sy-subrc = 0.
+      IF zcl_abapgit_factory=>get_function_module( )->function_exists( <ls_func>-funcname ) = abap_true.
 * delete the function module to make sure the parameters are updated
 * havent found a nice way to update the paramters
         CALL FUNCTION 'FUNCTION_DELETE'
@@ -97511,13 +97530,7 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
       lv_function = |CONVERSION_EXIT_{ cv_exit }_INPUT|.
 
       " If exit function does not exist, remove it
-      CALL FUNCTION 'FUNCTION_EXISTS'
-        EXPORTING
-          funcname           = lv_function
-        EXCEPTIONS
-          function_not_exist = 1
-          OTHERS             = 2.
-      IF sy-subrc <> 0.
+      IF zcl_abapgit_factory=>get_function_module( )->function_exists( lv_function ) = abap_false.
         cv_exit = ''.
       ENDIF.
     ENDIF.
@@ -103419,13 +103432,7 @@ CLASS zcl_abapgit_object_auth IMPLEMENTATION.
     rv_is_locked = abap_false.
   ENDMETHOD.
   METHOD zif_abapgit_object~jump.
-    CALL FUNCTION 'FUNCTION_EXISTS'
-      EXPORTING
-        funcname           = 'SU20_MAINTAIN_SNGL'
-      EXCEPTIONS
-        function_not_exist = 1
-        OTHERS             = 2.
-    IF sy-subrc = 0.
+    IF zcl_abapgit_factory=>get_function_module( )->function_exists( 'SU20_MAINTAIN_SNGL' ) = abap_true.
       " this function module does not exist in 740
       CALL FUNCTION 'SU20_MAINTAIN_SNGL'
         EXPORTING
@@ -112986,13 +112993,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
     ELSEIF mv_group IS NOT INITIAL.
       " The function module below should always exist here as is_merged evaluated to false above. It does however
       " not exist in the transpiled version which then causes unit tests to fail. Therefore the check needs to stay.
-      CALL FUNCTION 'FUNCTION_EXISTS'
-        EXPORTING
-          funcname           = 'Z_ABAPGIT_SERIALIZE_PARALLEL'
-        EXCEPTIONS
-          function_not_exist = 1
-          OTHERS             = 2.
-      IF sy-subrc <> 0.
+      IF zcl_abapgit_factory=>get_function_module( )->function_exists( 'Z_ABAPGIT_SERIALIZE_PARALLEL' ) = abap_false.
         gv_max_processes = 1.
       ELSE.
         CALL FUNCTION 'SPBT_INITIALIZE'
@@ -114433,13 +114434,7 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
   ENDMETHOD.
   METHOD use_new_activation_logic.
 
-    CALL FUNCTION 'FUNCTION_EXISTS'
-      EXPORTING
-        funcname           = 'DD_MASS_ACT_C3'
-      EXCEPTIONS
-        function_not_exist = 1
-        OTHERS             = 2.
-    IF sy-subrc = 0.
+    IF zcl_abapgit_factory=>get_function_module( )->function_exists( 'DD_MASS_ACT_C3' ) = abap_true.
       rv_use_new_activation_logic = abap_true.
     ENDIF.
 
@@ -114502,6 +114497,26 @@ CLASS ZCL_ABAPGIT_ITEM_GRAPH IMPLEMENTATION.
       from-obj_type = ls_vertex-obj_type AND
       from-obj_name = ls_vertex-obj_name.
   ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_function_module IMPLEMENTATION.
+
+  METHOD zif_abapgit_function_module~function_exists.
+
+    DATA: lv_function_module_name TYPE c LENGTH 30.
+
+    lv_function_module_name = iv_function_module_name.
+
+    CALL FUNCTION 'FUNCTION_EXISTS'
+      EXPORTING
+        funcname           = lv_function_module_name
+      EXCEPTIONS
+        function_not_exist = 1
+        OTHERS             = 2.
+    rv_exists = boolc( sy-subrc = 0 ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
@@ -128497,8 +128512,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-27T06:31:57.027Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-27T06:31:57.027Z`.
+* abapmerge 0.16.0 - 2023-10-27T11:17:43.880Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-27T11:17:43.880Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
