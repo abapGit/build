@@ -170,6 +170,7 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge_sel DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge_res DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_flow DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_ex_pckage DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_ex_object DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_diff DEFINITION DEFERRED.
@@ -479,6 +480,7 @@ CLASS zcl_abapgit_git_pack DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_commit DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_branch_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_add_patch DEFINITION DEFERRED.
+CLASS zcl_abapgit_gitv2_porcelain DEFINITION DEFERRED.
 CLASS zcl_abapgit_exit DEFINITION DEFERRED.
 CLASS zcl_abapgit_auth DEFINITION DEFERRED.
 CLASS zcl_abapgit_data_utils DEFINITION DEFERRED.
@@ -3318,82 +3320,83 @@ INTERFACE zif_abapgit_definitions .
   CONSTANTS c_author_regex TYPE string VALUE '^(.+) <(.*)> (\d{10})\s?.\d{4}$' ##NO_TEXT.
   CONSTANTS:
     BEGIN OF c_action,
-      repo_refresh                  TYPE string VALUE 'repo_refresh',
-      repo_remove                   TYPE string VALUE 'repo_remove',
-      repo_settings                 TYPE string VALUE 'repo_settings',
-      repo_local_settings           TYPE string VALUE 'repo_local_settings',
-      repo_remote_settings          TYPE string VALUE 'repo_remote_settings',
-      repo_background               TYPE string VALUE 'repo_background',
-      repo_infos                    TYPE string VALUE 'repo_infos',
-      repo_purge                    TYPE string VALUE 'repo_purge',
-      repo_delete_objects           TYPE string VALUE 'repo_delete_objects',
-      repo_activate_objects         TYPE string VALUE 'repo_activate_objects',
-      repo_newonline                TYPE string VALUE 'repo_newonline',
-      repo_newoffline               TYPE string VALUE 'repo_newoffline',
-      repo_add_all_obj_to_trans_req TYPE string VALUE 'repo_add_all_obj_to_trans_req',
-      repo_refresh_checksums        TYPE string VALUE 'repo_refresh_checksums',
-      repo_toggle_fav               TYPE string VALUE 'repo_toggle_fav',
-      repo_transport_to_branch      TYPE string VALUE 'repo_transport_to_branch',
-      repo_syntax_check             TYPE string VALUE 'repo_syntax_check',
-      repo_code_inspector           TYPE string VALUE 'repo_code_inspector',
-      repo_open_in_master_lang      TYPE string VALUE 'repo_open_in_master_lang',
-      repo_log                      TYPE string VALUE 'repo_log',
       abapgit_home                  TYPE string VALUE 'abapgit_home',
-      zip_import                    TYPE string VALUE 'zip_import',
-      zip_export                    TYPE string VALUE 'zip_export',
-      zip_export_transport          TYPE string VALUE 'zip_export_transport',
-      zip_package                   TYPE string VALUE 'zip_package',
-      zip_transport                 TYPE string VALUE 'zip_transport',
-      zip_object                    TYPE string VALUE 'zip_object',
-      rfc_compare                   TYPE string VALUE 'rfc_compare',
-      performance_test              TYPE string VALUE 'performance_test',
-      ie_devtools                   TYPE string VALUE 'ie_devtools',
-      git_pull                      TYPE string VALUE 'git_pull',
+      bg_update                     TYPE string VALUE 'bg_update',
+      change_order_by               TYPE string VALUE 'change_order_by',
+      changelog                     TYPE string VALUE 'changelog',
+      clipboard                     TYPE string VALUE 'clipboard',
+      db_display                    TYPE string VALUE 'db_display',
+      db_edit                       TYPE string VALUE 'db_edit',
+      direction                     TYPE string VALUE 'direction',
+      documentation                 TYPE string VALUE 'documentation',
+      flow                          TYPE string VALUE 'flow',
       git_branch_create             TYPE string VALUE 'git_branch_create',
-      git_branch_switch             TYPE string VALUE 'git_branch_switch',
       git_branch_delete             TYPE string VALUE 'git_branch_delete',
       git_branch_merge              TYPE string VALUE 'git_branch_merge',
+      git_branch_switch             TYPE string VALUE 'git_branch_switch',
+      git_commit                    TYPE string VALUE 'git_commit',
+      git_pull                      TYPE string VALUE 'git_pull',
       git_tag_create                TYPE string VALUE 'git_tag_create',
       git_tag_delete                TYPE string VALUE 'git_tag_delete',
       git_tag_switch                TYPE string VALUE 'git_tag_switch',
-      git_commit                    TYPE string VALUE 'git_commit',
-      db_display                    TYPE string VALUE 'db_display',
-      db_edit                       TYPE string VALUE 'db_edit',
-      bg_update                     TYPE string VALUE 'bg_update',
-      go_home                       TYPE string VALUE 'go_home',
       go_back                       TYPE string VALUE 'go_back',
-      go_explore                    TYPE string VALUE 'go_explore',
-      go_repo                       TYPE string VALUE 'go_repo',
-      go_db                         TYPE string VALUE 'go_db',
       go_background                 TYPE string VALUE 'go_background',
       go_background_run             TYPE string VALUE 'go_background_run',
-      go_repo_diff                  TYPE string VALUE 'go_repo_diff',
-      go_file_diff                  TYPE string VALUE 'go_file_diff',
-      go_stage                      TYPE string VALUE 'go_stage',
-      go_stage_transport            TYPE string VALUE 'go_stage_transport',
       go_commit                     TYPE string VALUE 'go_commit',
+      go_db                         TYPE string VALUE 'go_db',
       go_debuginfo                  TYPE string VALUE 'go_debuginfo',
+      go_explore                    TYPE string VALUE 'go_explore',
+      go_file_diff                  TYPE string VALUE 'go_file_diff',
+      go_home                       TYPE string VALUE 'go_home',
+      go_patch                      TYPE string VALUE 'go_patch',
+      go_repo                       TYPE string VALUE 'go_repo',
+      go_repo_diff                  TYPE string VALUE 'go_repo_diff',
       go_settings                   TYPE string VALUE 'go_settings',
       go_settings_personal          TYPE string VALUE 'go_settings_personal',
+      go_stage                      TYPE string VALUE 'go_stage',
+      go_stage_transport            TYPE string VALUE 'go_stage_transport',
       go_tutorial                   TYPE string VALUE 'go_tutorial',
-      go_patch                      TYPE string VALUE 'go_patch',
+      goto_message                  TYPE string VALUE 'goto_message',
+      goto_source                   TYPE string VALUE 'goto_source',
+      homepage                      TYPE string VALUE 'homepage',
+      ie_devtools                   TYPE string VALUE 'ie_devtools',
       jump                          TYPE string VALUE 'jump',
       jump_transport                TYPE string VALUE 'jump_transport',
       jump_user                     TYPE string VALUE 'jump_user',
-      url                           TYPE string VALUE 'url',
-      goto_source                   TYPE string VALUE 'goto_source',
+      performance_test              TYPE string VALUE 'performance_test',
+      repo_activate_objects         TYPE string VALUE 'repo_activate_objects',
+      repo_add_all_obj_to_trans_req TYPE string VALUE 'repo_add_all_obj_to_trans_req',
+      repo_background               TYPE string VALUE 'repo_background',
+      repo_code_inspector           TYPE string VALUE 'repo_code_inspector',
+      repo_delete_objects           TYPE string VALUE 'repo_delete_objects',
+      repo_infos                    TYPE string VALUE 'repo_infos',
+      repo_local_settings           TYPE string VALUE 'repo_local_settings',
+      repo_log                      TYPE string VALUE 'repo_log',
+      repo_newoffline               TYPE string VALUE 'repo_newoffline',
+      repo_newonline                TYPE string VALUE 'repo_newonline',
+      repo_open_in_master_lang      TYPE string VALUE 'repo_open_in_master_lang',
+      repo_purge                    TYPE string VALUE 'repo_purge',
+      repo_refresh                  TYPE string VALUE 'repo_refresh',
+      repo_refresh_checksums        TYPE string VALUE 'repo_refresh_checksums',
+      repo_remote_settings          TYPE string VALUE 'repo_remote_settings',
+      repo_remove                   TYPE string VALUE 'repo_remove',
+      repo_settings                 TYPE string VALUE 'repo_settings',
+      repo_syntax_check             TYPE string VALUE 'repo_syntax_check',
+      repo_toggle_fav               TYPE string VALUE 'repo_toggle_fav',
+      repo_transport_to_branch      TYPE string VALUE 'repo_transport_to_branch',
+      rfc_compare                   TYPE string VALUE 'rfc_compare',
       show_callstack                TYPE string VALUE 'show_callstack',
-      change_order_by               TYPE string VALUE 'change_order_by',
-      toggle_favorites              TYPE string VALUE 'toggle_favorites',
-      goto_message                  TYPE string VALUE 'goto_message',
-      direction                     TYPE string VALUE 'direction',
-      documentation                 TYPE string VALUE 'documentation',
-      changelog                     TYPE string VALUE 'changelog',
-      homepage                      TYPE string VALUE 'homepage',
-      sponsor                       TYPE string VALUE 'sponsor',
-      clipboard                     TYPE string VALUE 'clipboard',
-      yank_to_clipboard             TYPE string VALUE 'yank_to_clipboard',
       show_hotkeys                  TYPE string VALUE 'show_hotkeys',
+      sponsor                       TYPE string VALUE 'sponsor',
+      toggle_favorites              TYPE string VALUE 'toggle_favorites',
+      url                           TYPE string VALUE 'url',
+      yank_to_clipboard             TYPE string VALUE 'yank_to_clipboard',
+      zip_export                    TYPE string VALUE 'zip_export',
+      zip_export_transport          TYPE string VALUE 'zip_export_transport',
+      zip_import                    TYPE string VALUE 'zip_import',
+      zip_object                    TYPE string VALUE 'zip_object',
+      zip_package                   TYPE string VALUE 'zip_package',
+      zip_transport                 TYPE string VALUE 'zip_transport',
     END OF c_action.
   CONSTANTS c_spagpa_param_repo_key TYPE c LENGTH 20 VALUE 'REPO_KEY' ##NO_TEXT.
   CONSTANTS c_spagpa_param_package TYPE c LENGTH 20 VALUE 'PACKAGE' ##NO_TEXT.
@@ -6434,6 +6437,66 @@ CLASS zcl_abapgit_exit DEFINITION
     CLASS-DATA gi_exit TYPE REF TO zif_abapgit_exit.
 
 ENDCLASS.
+CLASS zcl_abapgit_gitv2_porcelain DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS list_branches
+      IMPORTING
+        !iv_url        TYPE string
+        !iv_prefix     TYPE string OPTIONAL
+      RETURNING
+        VALUE(ro_list) TYPE REF TO zcl_abapgit_git_branch_list
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS list_no_blobs
+      IMPORTING
+        !iv_url            TYPE string
+        !iv_sha1           TYPE zif_abapgit_git_definitions=>ty_sha1
+      RETURNING
+        VALUE(rt_expanded) TYPE zif_abapgit_git_definitions=>ty_expanded_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS list_no_blobs_multi
+      IMPORTING
+        !iv_url           TYPE string
+        !it_sha1          TYPE zif_abapgit_git_definitions=>ty_sha1_tt
+      RETURNING
+        VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    CONSTANTS:
+      BEGIN OF c_service,
+        receive TYPE string VALUE 'receive',                "#EC NOTEXT
+        upload  TYPE string VALUE 'upload',                 "#EC NOTEXT
+      END OF c_service .
+
+    CONSTANTS c_flush_pkt TYPE c LENGTH 4 VALUE '0000'.
+    CONSTANTS c_delim_pkt TYPE c LENGTH 4 VALUE '0001'.
+
+    CLASS-METHODS send_command
+      IMPORTING
+        iv_url             TYPE string
+        iv_service         TYPE string
+        iv_command         TYPE string
+        it_arguments       TYPE string_table OPTIONAL
+      RETURNING
+        VALUE(rv_response) TYPE xstring
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS decode_pack
+      IMPORTING
+        iv_xstring TYPE xstring
+      RETURNING
+        VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
+      RAISING
+        zcx_abapgit_exception.
+
+ENDCLASS.
 CLASS zcl_abapgit_git_add_patch DEFINITION
   FINAL
   CREATE PUBLIC.
@@ -7519,10 +7582,18 @@ CLASS zcl_abapgit_http DEFINITION
     CLASS-METHODS get_agent
       RETURNING
         VALUE(rv_agent) TYPE string .
+
+    TYPES: BEGIN OF ty_key_value,
+             key   TYPE string,
+             value TYPE string,
+           END OF ty_key_value.
+    TYPES ty_headers TYPE STANDARD TABLE OF ty_key_value WITH DEFAULT KEY.
+
     CLASS-METHODS create_by_url
       IMPORTING
         !iv_url          TYPE string
         !iv_service      TYPE string
+        it_headers       TYPE ty_headers OPTIONAL
       RETURNING
         VALUE(ro_client) TYPE REF TO zcl_abapgit_http_client
       RAISING
@@ -7606,6 +7677,13 @@ CLASS zcl_abapgit_http_client DEFINITION CREATE PUBLIC.
         IMPORTING iv_url     TYPE string
                   iv_service TYPE string
         RAISING   zcx_abapgit_exception.
+
+    METHODS set_header
+      IMPORTING
+        iv_key   TYPE string
+        iv_value TYPE string
+      RAISING
+        zcx_abapgit_exception.
 
   PRIVATE SECTION.
     DATA: mi_client TYPE REF TO if_http_client,
@@ -18936,6 +19014,9 @@ CLASS zcl_abapgit_gui_buttons DEFINITION
     CLASS-METHODS new_online
       RETURNING VALUE(rv_html_string) TYPE string.
 
+    CLASS-METHODS flow
+      RETURNING VALUE(rv_html_string) TYPE string.
+
     CLASS-METHODS new_offline
       RETURNING VALUE(rv_html_string) TYPE string.
 
@@ -21180,6 +21261,31 @@ CLASS zcl_abapgit_gui_page_ex_pckage DEFINITION
     METHODS export_package
       RAISING
         zcx_abapgit_exception.
+ENDCLASS.
+CLASS zcl_abapgit_gui_page_flow DEFINITION
+  INHERITING FROM zcl_abapgit_gui_component
+  FINAL
+  CREATE PRIVATE.
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
+    INTERFACES zif_abapgit_gui_menu_provider.
+
+    CLASS-METHODS create
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS constructor
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_merge DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -37691,6 +37797,9 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-repo_newonline.                  " New offline repo
         rs_handled-page  = zcl_abapgit_gui_page_addonline=>create( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-flow.                            " Flow page
+        rs_handled-page  = zcl_abapgit_gui_page_flow=>create( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-repo_refresh_checksums.          " Rebuild local checksums
         zcl_abapgit_services_repo=>refresh_local_checksums( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
@@ -44557,6 +44666,12 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     CREATE OBJECT ro_toolbar EXPORTING iv_id = 'toolbar-main'.
 
+    IF zcl_abapgit_persist_factory=>get_settings( )->read( )->is_feature_enabled( 'FLOW' ) = abap_true.
+      ro_toolbar->add(
+        iv_txt = zcl_abapgit_gui_buttons=>flow( )
+        iv_act = zif_abapgit_definitions=>c_action-flow ).
+    ENDIF.
+
     ro_toolbar->add(
       iv_txt = zcl_abapgit_gui_buttons=>new_online( )
       iv_act = zif_abapgit_definitions=>c_action-repo_newonline
@@ -45813,6 +45928,114 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
       WHEN OTHERS.
         rs_handled = super->zif_abapgit_gui_event_handler~on_event( ii_event ).
     ENDCASE.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio DEFINITION DEFERRED.
+*"* use this source file for the definition and implementation of
+*"* local helper classes, interface definitions and type
+*"* declarations
+
+* renamed: zcl_abapgit_gui_page_flow :: lcl_helper
+CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio DEFINITION FINAL.
+  PUBLIC SECTION.
+    CLASS-METHODS list_changes_per_branch
+      IMPORTING
+        io_online TYPE REF TO zcl_abapgit_repo_online
+      RAISING
+        zcx_abapgit_exception.
+ENDCLASS.
+
+CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
+
+  METHOD list_changes_per_branch.
+
+    DATA lt_branches TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt.
+    DATA ls_branch   LIKE LINE OF lt_branches.
+    DATA lt_sha1     TYPE zif_abapgit_git_definitions=>ty_sha1_tt.
+    DATA lt_expanded TYPE zif_abapgit_git_definitions=>ty_expanded_tt.
+    DATA lt_objects  TYPE zif_abapgit_definitions=>ty_objects_tt.
+    DATA lv_starting_folder TYPE string.
+
+    lt_branches = zcl_abapgit_gitv2_porcelain=>list_branches(
+      iv_url    = io_online->get_url( )
+      iv_prefix = 'refs/heads/' )->get_all( ).
+    LOOP AT lt_branches INTO ls_branch WHERE is_head = abap_false.
+      APPEND ls_branch-sha1 TO lt_sha1.
+    ENDLOOP.
+
+    lt_objects = zcl_abapgit_gitv2_porcelain=>list_no_blobs_multi(
+      iv_url  = io_online->get_url( )
+      it_sha1 = lt_sha1 ).
+
+    lv_starting_folder = io_online->get_dot_abapgit( )->get_starting_folder( ) && '*'.
+
+    LOOP AT lt_branches INTO ls_branch WHERE is_head = abap_false.
+      lt_expanded = zcl_abapgit_git_porcelain=>full_tree(
+        it_objects = lt_objects
+        iv_parent  = ls_branch-sha1 ).
+      DELETE lt_expanded WHERE path NP lv_starting_folder.
+    ENDLOOP.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_gui_page_flow IMPLEMENTATION.
+  METHOD constructor.
+    super->constructor( ).
+
+  ENDMETHOD.
+  METHOD create.
+
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_flow.
+
+    CREATE OBJECT lo_component.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title         = 'Flow'
+      ii_page_menu_provider = lo_component
+      ii_child_component    = lo_component ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_menu_provider~get_menu.
+
+    CREATE OBJECT ro_toolbar EXPORTING iv_id = 'toolbar-main'.
+
+    ro_toolbar->add(
+      iv_txt = zcl_abapgit_gui_buttons=>repo_list( )
+      iv_act = zif_abapgit_definitions=>c_action-abapgit_home ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+    DATA lt_favorites TYPE zif_abapgit_repo_srv=>ty_repo_list.
+    DATA li_favorite  LIKE LINE OF lt_favorites.
+    DATA lo_online    TYPE REF TO zcl_abapgit_repo_online.
+    register_handlers( ).
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ri_html->add( '<div class="repo-overview">' ).
+
+* list branches on favorite transported repos
+    lt_favorites = zcl_abapgit_repo_srv=>get_instance( )->list_favorites( abap_false ).
+    LOOP AT lt_favorites INTO li_favorite.
+      " todo, IF zcl_abapgit_factory=>get_sap_package( li_favorite->get_package( )
+      " todo,     )->are_changes_recorded_in_tr_req( ) = abap_false.
+      " todo,   CONTINUE.
+      " todo, ENDIF.
+
+      lo_online ?= li_favorite.
+      ri_html->add( '<u>' && li_favorite->get_name( ) && '</u><br>' ).
+
+      kHGwlHbtMQYaNXTWgQdwprsTTRQzio=>list_changes_per_branch( lo_online ).
+    ENDLOOP.
+
+* list open transports for current user
+* todo
+
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -53451,6 +53674,9 @@ CLASS zcl_abapgit_gui_buttons IMPLEMENTATION.
   ENDMETHOD.
   METHOD new_online.
     rv_html_string = zcl_abapgit_html=>icon( 'cloud-upload-alt' ) && ' New Online'.
+  ENDMETHOD.
+  METHOD flow.
+    rv_html_string = zcl_abapgit_html=>icon( 'flow' ) && ' Flow'.
   ENDMETHOD.
   METHOD repo_list.
     rv_html_string = zcl_abapgit_html=>icon( 'bars' ) && ' Repository List'.
@@ -120980,6 +121206,12 @@ CLASS zcl_abapgit_http_client IMPLEMENTATION.
   METHOD set_digest.
     mo_digest = io_digest.
   ENDMETHOD.
+  METHOD set_header.
+    mi_client->request->set_header_field(
+      name  = iv_key
+      value = iv_value ).
+  ENDMETHOD.
+
   METHOD set_headers.
 
     DATA: lv_value TYPE string.
@@ -121209,7 +121441,7 @@ CLASS ZCL_ABAPGIT_HTTP_AGENT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
+CLASS zcl_abapgit_http IMPLEMENTATION.
   METHOD acquire_login_details.
 
     DATA: lv_default_user TYPE string,
@@ -121274,6 +121506,7 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
           lv_scheme              TYPE string,
           lv_authorization       TYPE string,
           li_client              TYPE REF TO if_http_client,
+          ls_header              LIKE LINE OF it_headers,
           lo_proxy_configuration TYPE REF TO zcl_abapgit_proxy_config,
           lv_text                TYPE string.
     CREATE OBJECT lo_proxy_configuration.
@@ -121336,6 +121569,12 @@ CLASS ZCL_ABAPGIT_HTTP IMPLEMENTATION.
     li_client->request->set_header_field(
         name  = '~request_uri'
         value = lv_uri ).
+
+    LOOP AT it_headers INTO ls_header.
+      li_client->request->set_header_field(
+        name  = ls_header-key
+        value = ls_header-value ).
+    ENDLOOP.
 
     " Disable internal auth dialog (due to its unclarity)
     li_client->propertytype_logon_popup = if_http_client=>co_disabled.
@@ -122338,8 +122577,8 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
     CONSTANTS lc_content_regex TYPE string VALUE '^[0-9a-f]{4}#'.
     CONSTANTS lc_content_type  TYPE string VALUE 'application/x-git-<service>-pack-advertisement'.
 
-    DATA: lv_data TYPE string.
-    DATA: lv_expected_content_type TYPE string.
+    DATA lv_data                  TYPE string.
+    DATA lv_expected_content_type TYPE string.
 
     eo_client = zcl_abapgit_http=>create_by_url(
       iv_url     = iv_url
@@ -124573,6 +124812,162 @@ CLASS ZCL_ABAPGIT_GIT_ADD_PATCH IMPLEMENTATION.
     lv_string = lv_string && cl_abap_char_utilities=>newline.
 
     rv_patch_binary = zcl_abapgit_convert=>string_to_xstring_utf8( lv_string ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_gitv2_porcelain IMPLEMENTATION.
+  METHOD list_branches.
+    DATA lv_xstring   TYPE xstring.
+    DATA lt_arguments TYPE string_table.
+    DATA lv_argument  TYPE string.
+    DATA lv_data      TYPE string.
+
+    IF iv_prefix IS NOT INITIAL.
+      lv_argument = |ref-prefix { iv_prefix }|.
+      APPEND lv_argument TO lt_arguments.
+    ENDIF.
+
+    lv_xstring = send_command(
+      iv_url       = iv_url
+      iv_service   = c_service-upload
+      iv_command   = |ls-refs|
+      it_arguments = lt_arguments ).
+
+    " add dummy packet so the v1 branch parsing can be reused
+    lv_data = |0004\n{ zcl_abapgit_convert=>xstring_to_string_utf8( lv_xstring ) }|.
+
+    CREATE OBJECT ro_list
+      EXPORTING
+        iv_data = lv_data.
+
+  ENDMETHOD.
+  METHOD list_no_blobs_multi.
+
+    DATA lv_xstring   TYPE xstring.
+    DATA lt_arguments TYPE string_table.
+    DATA lv_argument  TYPE string.
+    DATA lv_sha1      LIKE LINE OF it_sha1.
+    ASSERT lines( it_sha1 ) > 0.
+
+    APPEND 'deepen 1' TO lt_arguments.
+    LOOP AT it_sha1 INTO lv_sha1.
+      lv_argument = |want { lv_sha1 }|.
+      APPEND lv_argument TO lt_arguments.
+    ENDLOOP.
+    APPEND 'filter blob:none' TO lt_arguments.
+    APPEND 'no-progress' TO lt_arguments.
+    APPEND 'done' TO lt_arguments.
+
+    lv_xstring = send_command(
+      iv_url       = iv_url
+      iv_service   = c_service-upload
+      iv_command   = |fetch|
+      it_arguments = lt_arguments ).
+
+    rt_objects = decode_pack( lv_xstring ).
+
+  ENDMETHOD.
+
+  METHOD decode_pack.
+
+    DATA lv_xstring TYPE xstring.
+    DATA lv_contents  TYPE xstring.
+    DATA lv_pack      TYPE xstring.
+    DATA lv_pktlen    TYPE i.
+    DATA lv_hex4      TYPE xstring.
+
+    lv_xstring = iv_xstring.
+
+* The data transfer of the packfile is always multiplexed, using the same semantics of the
+* side-band-64k capability from protocol version 1
+    WHILE xstrlen( lv_xstring ) > 0.
+      lv_hex4 = lv_xstring(4).
+      lv_pktlen = zcl_abapgit_git_utils=>length_utf8_hex( lv_hex4 ).
+      IF lv_pktlen = 0.
+        EXIT.
+      ELSEIF lv_pktlen = 1.
+* its a delimiter package
+        lv_xstring = lv_xstring+4.
+        CONTINUE.
+      ENDIF.
+      lv_contents = lv_xstring(lv_pktlen).
+      IF lv_contents+4(1) = '01'.
+        CONCATENATE lv_pack lv_contents+5 INTO lv_pack IN BYTE MODE.
+      ENDIF.
+      lv_xstring = lv_xstring+lv_pktlen.
+    ENDWHILE.
+
+    rt_objects = zcl_abapgit_git_pack=>decode( lv_pack ).
+
+  ENDMETHOD.
+
+  METHOD list_no_blobs.
+
+    DATA lt_sha1    TYPE zif_abapgit_git_definitions=>ty_sha1_tt.
+    DATA lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt.
+
+    ASSERT iv_sha1 IS NOT INITIAL.
+    APPEND iv_sha1 TO lt_sha1.
+
+    lt_objects = list_no_blobs_multi(
+      iv_url  = iv_url
+      it_sha1 = lt_sha1 ).
+
+    rt_expanded = zcl_abapgit_git_porcelain=>full_tree(
+      it_objects = lt_objects
+      iv_parent  = iv_sha1 ).
+
+  ENDMETHOD.
+  METHOD send_command.
+
+    CONSTANTS lc_content_regex TYPE string VALUE '^[0-9a-f]{4}#'.
+
+    DATA lo_client   TYPE REF TO zcl_abapgit_http_client.
+    DATA lv_cmd_pkt  TYPE string.
+    DATA lt_headers  TYPE zcl_abapgit_http=>ty_headers.
+    DATA ls_header   LIKE LINE OF lt_headers.
+    DATA lv_argument TYPE string.
+    ls_header-key = 'Git-Protocol'.
+    ls_header-value = 'version=2'.
+    APPEND ls_header TO lt_headers.
+
+    lo_client = zcl_abapgit_http=>create_by_url(
+      iv_url     = iv_url
+      iv_service = c_service-upload
+      it_headers = lt_headers ).
+
+    lo_client->check_smart_response(
+      iv_expected_content_type = |application/x-git-{ iv_service }-pack-advertisement|
+      iv_content_regex         = lc_content_regex ).
+
+    lv_cmd_pkt = zcl_abapgit_git_utils=>pkt_string( |command={ iv_command }\n| )
+      && zcl_abapgit_git_utils=>pkt_string( |agent={ zcl_abapgit_http=>get_agent( ) }\n| ).
+    IF lines( it_arguments ) > 0.
+      lv_cmd_pkt = lv_cmd_pkt && c_delim_pkt.
+      LOOP AT it_arguments INTO lv_argument.
+        lv_cmd_pkt = lv_cmd_pkt && zcl_abapgit_git_utils=>pkt_string( lv_argument ).
+      ENDLOOP.
+    ENDIF.
+    lv_cmd_pkt = lv_cmd_pkt && c_flush_pkt.
+
+    lo_client->set_header(
+      iv_key   = '~request_uri'
+      iv_value = zcl_abapgit_url=>path_name( iv_url ) && |/git-{ iv_service }-pack| ).
+
+    lo_client->set_header(
+      iv_key   = '~request_method'
+      iv_value = 'POST' ).
+
+    lo_client->set_header(
+      iv_key   = 'Content-Type'
+      iv_value = |application/x-git-{ iv_service }-pack-request| ).
+
+    lo_client->set_header(
+      iv_key   = 'Accept'
+      iv_value = |application/x-git-{ iv_service }-pack-result| ).
+
+    rv_response = lo_client->send_receive_close( zcl_abapgit_convert=>string_to_xstring_utf8( lv_cmd_pkt ) ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -128522,8 +128917,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-27T15:31:45.040Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-27T15:31:45.040Z`.
+* abapmerge 0.16.0 - 2023-10-28T04:55:56.189Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-28T04:55:56.189Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
