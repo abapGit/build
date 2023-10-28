@@ -20331,26 +20331,33 @@ CLASS zcl_abapgit_gui_page_addonline DEFINITION
         zcx_abapgit_exception.
 
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_abapgit_gui_page.
+CLASS zcl_abapgit_gui_page_codi_base DEFINITION
+  INHERITING FROM zcl_abapgit_gui_component.
+
   PUBLIC SECTION.
-    METHODS:
-      zif_abapgit_gui_event_handler~on_event
-        REDEFINITION.
 
   PROTECTED SECTION.
 
     CONSTANTS:
       BEGIN OF c_actions,
-        rerun  TYPE string VALUE 'rerun' ##NO_TEXT,
-        sort_1 TYPE string VALUE 'sort_1'  ##NO_TEXT,
-        sort_2 TYPE string VALUE 'sort_2'  ##NO_TEXT,
-        sort_3 TYPE string VALUE 'sort_3'  ##NO_TEXT,
-        stage  TYPE string VALUE 'stage' ##NO_TEXT,
-        commit TYPE string VALUE 'commit' ##NO_TEXT,
+        rerun  TYPE string VALUE 'rerun',
+        sort_1 TYPE string VALUE 'sort_1',
+        sort_2 TYPE string VALUE 'sort_2',
+        sort_3 TYPE string VALUE 'sort_3',
+        stage  TYPE string VALUE 'stage',
+        commit TYPE string VALUE 'commit',
       END OF c_actions .
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
     DATA mt_result TYPE zif_abapgit_code_inspector=>ty_results .
     DATA mv_summary TYPE string.
+
+    METHODS on_event
+      IMPORTING
+        ii_event          TYPE REF TO zif_abapgit_gui_event
+      RETURNING
+        VALUE(rs_handled) TYPE zif_abapgit_gui_event_handler=>ty_handling_result
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS render_variant
       IMPORTING
@@ -20385,48 +20392,48 @@ CLASS zcl_abapgit_gui_page_codi_base DEFINITION ABSTRACT INHERITING FROM zcl_aba
     CONSTANTS c_object_separator TYPE c LENGTH 1 VALUE '|'.
     CONSTANTS c_ci_sig TYPE string VALUE 'cinav:'.
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_code_insp DEFINITION FINAL CREATE PUBLIC
-    INHERITING FROM zcl_abapgit_gui_page_codi_base.
+CLASS zcl_abapgit_gui_page_code_insp DEFINITION
+  INHERITING FROM zcl_abapgit_gui_page_codi_base
+  FINAL
+  CREATE PRIVATE.
 
   PUBLIC SECTION.
-    INTERFACES: zif_abapgit_gui_hotkeys.
+
+    INTERFACES:
+      zif_abapgit_gui_event_handler,
+      zif_abapgit_gui_hotkeys,
+      zif_abapgit_gui_menu_provider,
+      zif_abapgit_gui_renderable.
+
+    CLASS-METHODS create
+      IMPORTING
+        io_repo                  TYPE REF TO zcl_abapgit_repo
+        io_stage                 TYPE REF TO zcl_abapgit_stage OPTIONAL
+        iv_check_variant         TYPE sci_chkv OPTIONAL
+        iv_raise_when_no_results TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(ri_page)           TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS:
       constructor
         IMPORTING
-          io_repo          TYPE REF TO zcl_abapgit_repo
-          io_stage         TYPE REF TO zcl_abapgit_stage OPTIONAL
-          iv_check_variant TYPE sci_chkv OPTIONAL
+          io_repo                  TYPE REF TO zcl_abapgit_repo
+          io_stage                 TYPE REF TO zcl_abapgit_stage OPTIONAL
+          iv_check_variant         TYPE sci_chkv OPTIONAL
+          iv_raise_when_no_results TYPE abap_bool DEFAULT abap_false
         RAISING
-          zcx_abapgit_exception,
-
-      is_nothing_to_display
-        RETURNING
-          VALUE(rv_yes) TYPE abap_bool,
-
-      zif_abapgit_gui_event_handler~on_event
-        REDEFINITION,
-
-      zif_abapgit_gui_renderable~render
-        REDEFINITION.
+          zcx_abapgit_exception.
 
   PROTECTED SECTION.
-
-    METHODS:
-      render_content   REDEFINITION.
-
   PRIVATE SECTION.
+
     DATA:
       mo_stage         TYPE REF TO zcl_abapgit_stage,
       mv_check_variant TYPE sci_chkv.
 
     METHODS:
-      build_menu
-        RETURNING
-          VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar
-        RAISING
-          zcx_abapgit_exception,
-
       run_code_inspector
         RAISING
           zcx_abapgit_exception,
@@ -22883,41 +22890,45 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
-CLASS zcl_abapgit_gui_page_syntax DEFINITION FINAL CREATE PUBLIC
-    INHERITING FROM zcl_abapgit_gui_page_codi_base.
+CLASS zcl_abapgit_gui_page_syntax DEFINITION
+  INHERITING FROM zcl_abapgit_gui_page_codi_base
+  FINAL
+  CREATE PRIVATE.
 
   PUBLIC SECTION.
+
+    INTERFACES:
+      zif_abapgit_gui_event_handler,
+      zif_abapgit_gui_hotkeys,
+      zif_abapgit_gui_menu_provider,
+      zif_abapgit_gui_renderable.
+
+    CLASS-METHODS create
+      IMPORTING
+        io_repo        TYPE REF TO zcl_abapgit_repo
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS:
       constructor
         IMPORTING
           io_repo TYPE REF TO zcl_abapgit_repo
         RAISING
-          zcx_abapgit_exception,
-
-      zif_abapgit_gui_event_handler~on_event
-        REDEFINITION,
-
-      zif_abapgit_gui_renderable~render
-        REDEFINITION.
+          zcx_abapgit_exception.
 
   PROTECTED SECTION.
-    CONSTANTS: c_variant TYPE c LENGTH 30 VALUE 'SYNTAX_CHECK'.
 
-    METHODS:
-      render_content REDEFINITION.
+    CONSTANTS c_variant TYPE c LENGTH 30 VALUE 'SYNTAX_CHECK'.
 
   PRIVATE SECTION.
-    METHODS:
-      build_menu
-        RETURNING
-          VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar
-        RAISING
-          zcx_abapgit_exception,
 
+    METHODS:
       run_syntax_check
         RAISING
           zcx_abapgit_exception.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_tags DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -37518,7 +37529,6 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
           lv_key                 TYPE zif_abapgit_persistence=>ty_repo-key,
           lv_seed                TYPE string,
           lo_stage_page          TYPE REF TO zcl_abapgit_gui_page_stage,
-          lo_code_inspector_page TYPE REF TO zcl_abapgit_gui_page_code_insp,
           lv_sci_result          TYPE zif_abapgit_definitions=>ty_sci_result,
           lx_error               TYPE REF TO cx_sy_move_cast_error.
 
@@ -37540,15 +37550,16 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
     ENDIF.
 
     IF lo_repo->get_local_settings( )-code_inspector_check_variant IS NOT INITIAL.
-      CREATE OBJECT lo_code_inspector_page
-        EXPORTING
-          io_repo = lo_repo.
 
-      IF lo_code_inspector_page->is_nothing_to_display( ) = abap_true.
-        lv_sci_result = zif_abapgit_definitions=>c_sci_result-passed.
-      ELSE.
-        ri_page = lo_code_inspector_page.
-      ENDIF.
+      TRY.
+          ri_page = zcl_abapgit_gui_page_code_insp=>create(
+            io_repo                  = lo_repo
+            iv_raise_when_no_results = abap_true ).
+
+        CATCH zcx_abapgit_exception.
+          lv_sci_result = zif_abapgit_definitions=>c_sci_result-passed.
+      ENDTRY.
+
     ENDIF.
 
     IF ri_page IS INITIAL.
@@ -37768,15 +37779,11 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-repo_refresh.                    " Repo refresh
         zcl_abapgit_services_repo=>refresh( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN zif_abapgit_definitions=>c_action-repo_syntax_check.
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_syntax " Syntax check
-          EXPORTING
-            io_repo = lo_repo.
+      WHEN zif_abapgit_definitions=>c_action-repo_syntax_check.               " Syntax check
+        rs_handled-page  = zcl_abapgit_gui_page_syntax=>create( lo_repo ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-repo_code_inspector.             " Code inspector
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_code_insp
-          EXPORTING
-            io_repo = lo_repo.
+        rs_handled-page  = zcl_abapgit_gui_page_code_insp=>create( lo_repo ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-repo_purge.                      " Purge all objects and repo (uninstall)
         zcl_abapgit_services_repo=>purge( lv_key ).
@@ -38571,41 +38578,23 @@ CLASS zcl_abapgit_gui_page_tags IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
-  METHOD build_menu.
-
-    ro_menu = build_base_menu( ).
-
-  ENDMETHOD.
   METHOD constructor.
     super->constructor( ).
-    ms_control-page_title = 'Syntax Check'.
     mo_repo = io_repo.
     run_syntax_check( ).
   ENDMETHOD.
-  METHOD render_content.
+  METHOD create.
 
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_syntax.
 
-    ri_html->add( `<div class="repo">` ).
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( io_repo        = mo_repo
-                                                              iv_show_commit = abap_false ) ).
-    ri_html->add( `</div>` ).
+    CREATE OBJECT lo_component
+      EXPORTING
+        io_repo = io_repo.
 
-    ri_html->add( '<div class="toc">' ).
-
-    ri_html->add( render_variant(
-      iv_variant = c_variant
-      iv_summary = mv_summary ) ).
-
-    IF lines( mt_result ) = 0.
-      ri_html->add( '<div class="dummydiv success">' ).
-      ri_html->add( ri_html->icon( 'check' ) ).
-      ri_html->add( 'No syntax errors' ).
-      ri_html->add( '</div>' ).
-    ELSE.
-      render_result( ii_html   = ri_html
-                     it_result = mt_result ).
-    ENDIF.
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title         = 'Syntax Check'
+      ii_page_menu_provider = lo_component
+      ii_child_component    = lo_component ).
 
   ENDMETHOD.
   METHOD run_syntax_check.
@@ -38633,14 +38622,57 @@ CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN OTHERS.
-        rs_handled = super->zif_abapgit_gui_event_handler~on_event( ii_event ).
+        rs_handled = on_event( ii_event ).
     ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_hotkeys~get_hotkey_actions.
+
+    DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
+
+    ls_hotkey_action-ui_component = 'Syntax Check'.
+
+    ls_hotkey_action-description = |Re-Run|.
+    ls_hotkey_action-action = c_actions-rerun.
+    ls_hotkey_action-hotkey = |r|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_menu_provider~get_menu.
+
+    ro_toolbar = build_base_menu( ).
+
+    ro_toolbar->add(
+      iv_txt = 'Back'
+      iv_act = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    ms_control-page_menu = build_menu( ).
-    ri_html = super->zif_abapgit_gui_renderable~render( ).
+    register_handlers( ).
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( `<div class="repo">` ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( io_repo        = mo_repo
+                                                              iv_show_commit = abap_false ) ).
+    ri_html->add( `</div>` ).
+
+    ri_html->add( '<div class="toc">' ).
+
+    ri_html->add( render_variant(
+      iv_variant = c_variant
+      iv_summary = mv_summary ) ).
+
+    IF lines( mt_result ) = 0.
+      ri_html->add( '<div class="dummydiv success">' ).
+      ri_html->add( ri_html->icon( 'check' ) ).
+      ri_html->add( 'No syntax errors' ).
+      ri_html->add( '</div>' ).
+    ELSE.
+      render_result( ii_html   = ri_html
+                     it_result = mt_result ).
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -42406,7 +42438,6 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
   METHOD create.
 
     DATA lo_component TYPE REF TO zcl_abapgit_gui_page_runit.
-    DATA lo_page_code_inspector TYPE REF TO zcl_abapgit_gui_page_code_insp.
 
     TRY.
         CREATE OBJECT lo_component EXPORTING io_repo = io_repo.
@@ -42420,12 +42451,9 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
 
         " Fallback as either SAPLSAUCV_GUI_RUNNER is not available in old releases
         " or passport=>get is private in newer releases NW >= 756
-        CREATE OBJECT lo_page_code_inspector
-          EXPORTING
-            io_repo          = io_repo
-            iv_check_variant = 'SWF_ABAP_UNIT'.
-
-        ri_page = lo_page_code_inspector.
+        ri_page = zcl_abapgit_gui_page_code_insp=>create(
+                    io_repo          = io_repo
+                    iv_check_variant = 'SWF_ABAP_UNIT' ).
 
     ENDTRY.
 
@@ -45901,10 +45929,9 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
 
         IF mo_repo->get_local_settings( )-code_inspector_check_variant IS NOT INITIAL.
 
-          CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_code_insp
-            EXPORTING
-              io_repo  = mo_repo
-              io_stage = mi_merge->get_result( )-stage.
+          rs_handled-page = zcl_abapgit_gui_page_code_insp=>create(
+            io_repo  = mo_repo
+            io_stage = mi_merge->get_result( )-stage ).
 
         ELSE.
 
@@ -49140,8 +49167,7 @@ CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
                   io_sub = lo_sort_menu ).
 
     ro_menu->add( iv_txt = 'Re-Run'
-                  iv_act = c_actions-rerun
-                  iv_cur = abap_false ).
+                  iv_act = c_actions-rerun ).
 
   ENDMETHOD.
   METHOD build_nav_link.
@@ -49218,6 +49244,58 @@ CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
 
     lo_result->set_info( ls_info ).
     lo_result->if_ci_test~navigate( ).
+
+  ENDMETHOD.
+  METHOD on_event.
+
+    DATA: ls_item          TYPE zif_abapgit_definitions=>ty_item,
+          ls_sub_item      TYPE zif_abapgit_definitions=>ty_item,
+          lv_temp          TYPE string,
+          lv_main_object   TYPE string,
+          lv_sub_object    TYPE string,
+          lv_line_number_s TYPE string,
+          lv_line_number   TYPE i.
+
+    lv_temp = replace( val   = ii_event->mv_action
+                       regex = |^{ c_ci_sig }|
+                       with  = `` ).
+
+    IF lv_temp <> ii_event->mv_action. " CI navigation request detected
+
+      SPLIT lv_temp AT c_object_separator INTO lv_main_object lv_sub_object lv_line_number_s.
+      ls_item-obj_type = to_upper( lv_main_object(4) ).
+      ls_item-obj_name = to_upper( lv_main_object+4(*) ).
+
+      IF lv_sub_object IS NOT INITIAL.
+        ls_sub_item-obj_type = to_upper( lv_sub_object(4) ).
+        ls_sub_item-obj_name = to_upper( lv_sub_object+4(*) ).
+      ENDIF.
+
+      lv_line_number = lv_line_number_s.
+
+      jump( is_item        = ls_item
+            is_sub_item    = ls_sub_item
+            iv_line_number = lv_line_number ).
+
+      rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
+
+    ENDIF.
+
+    CASE ii_event->mv_action.
+
+      WHEN c_actions-sort_1.
+        SORT mt_result BY objtype objname test code sobjtype sobjname line col.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN c_actions-sort_2.
+        SORT mt_result BY objtype objname sobjtype sobjname line col test code.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN c_actions-sort_3.
+        SORT mt_result BY test code objtype objname sobjtype sobjname line col.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-go_back.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+
+    ENDCASE.
 
   ENDMETHOD.
   METHOD render_result.
@@ -49331,55 +49409,6 @@ CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
     ri_html->add( `</div>` ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_gui_event_handler~on_event.
-    DATA: ls_item          TYPE zif_abapgit_definitions=>ty_item,
-          ls_sub_item      TYPE zif_abapgit_definitions=>ty_item,
-          lv_temp          TYPE string,
-          lv_main_object   TYPE string,
-          lv_sub_object    TYPE string,
-          lv_line_number_s TYPE string,
-          lv_line_number   TYPE i.
-
-    lv_temp = replace( val   = ii_event->mv_action
-                       regex = |^{ c_ci_sig }|
-                       with  = `` ).
-
-    IF lv_temp <> ii_event->mv_action. " CI navigation request detected
-
-      SPLIT lv_temp AT c_object_separator INTO lv_main_object lv_sub_object lv_line_number_s.
-      ls_item-obj_type = to_upper( lv_main_object(4) ).
-      ls_item-obj_name = to_upper( lv_main_object+4(*) ).
-
-      IF lv_sub_object IS NOT INITIAL.
-        ls_sub_item-obj_type = to_upper( lv_sub_object(4) ).
-        ls_sub_item-obj_name = to_upper( lv_sub_object+4(*) ).
-      ENDIF.
-
-      lv_line_number = lv_line_number_s.
-
-      jump( is_item        = ls_item
-            is_sub_item    = ls_sub_item
-            iv_line_number = lv_line_number ).
-
-      rs_handled-state = zcl_abapgit_gui=>c_event_state-no_more_act.
-
-    ENDIF.
-
-    CASE ii_event->mv_action.
-
-      WHEN c_actions-sort_1.
-        SORT mt_result BY objtype objname test code sobjtype sobjname line col.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN c_actions-sort_2.
-        SORT mt_result BY objtype objname sobjtype sobjname line col test code.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN c_actions-sort_3.
-        SORT mt_result BY test code objtype objname sobjtype sobjname line col.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-
-    ENDCASE.
-
-  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
@@ -49392,48 +49421,34 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD build_menu.
-
-    DATA: lv_opt TYPE c LENGTH 1.
-
-    ro_menu = build_base_menu( ).
-
-    IF is_stage_allowed( ) = abap_false.
-      lv_opt = zif_abapgit_html=>c_html_opt-crossout.
-    ENDIF.
-
-    IF mo_repo->is_offline( ) = abap_true.
-      RETURN.
-    ENDIF.
-
-    IF mo_stage IS BOUND.
-
-      " Staging info already available, we can directly
-      " offer to commit
-
-      ro_menu->add( iv_txt = 'Commit'
-                    iv_act = c_actions-commit
-                    iv_cur = abap_false
-                    iv_opt = lv_opt ).
-
-    ELSE.
-
-      ro_menu->add( iv_txt = 'Stage'
-                    iv_act = c_actions-stage
-                    iv_cur = abap_false
-                    iv_opt = lv_opt ).
-
-    ENDIF.
-
-  ENDMETHOD.
   METHOD constructor.
     super->constructor( ).
     mo_repo = io_repo.
     mo_stage = io_stage.
     mv_check_variant = iv_check_variant.
-    ms_control-page_title = 'Code Inspector'.
     determine_check_variant( ).
     run_code_inspector( ).
+
+    IF mt_result IS INITIAL AND iv_raise_when_no_results = abap_true.
+      zcx_abapgit_exception=>raise( 'No results' ).
+    ENDIF.
+  ENDMETHOD.
+  METHOD create.
+
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_code_insp.
+
+    CREATE OBJECT lo_component
+      EXPORTING
+        io_repo                  = io_repo
+        io_stage                 = io_stage
+        iv_check_variant         = iv_check_variant
+        iv_raise_when_no_results = iv_raise_when_no_results.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title         = 'Code Inspector'
+      ii_page_menu_provider = lo_component
+      ii_child_component    = lo_component ).
+
   ENDMETHOD.
   METHOD determine_check_variant.
 
@@ -49455,45 +49470,10 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     rv_has_inspection_errors = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
-  METHOD is_nothing_to_display.
-    rv_yes = boolc( lines( mt_result ) = 0 ).
-  ENDMETHOD.
   METHOD is_stage_allowed.
 
     rv_is_stage_allowed = boolc( NOT ( mo_repo->get_local_settings( )-block_commit = abap_true
                                            AND has_inspection_errors( ) = abap_true ) ).
-
-  ENDMETHOD.
-  METHOD render_content.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( `<div class="repo">` ).
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( io_repo        = mo_repo
-                                                              iv_show_commit = abap_false ) ).
-    ri_html->add( `</div>` ).
-
-    IF mv_check_variant IS INITIAL.
-      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_error( iv_error = 'No check variant supplied.' ) ).
-      RETURN.
-    ENDIF.
-
-    register_handlers( ).
-
-    ri_html->add( render_variant(
-      iv_variant = mv_check_variant
-      iv_summary = mv_summary ) ).
-
-    IF lines( mt_result ) = 0.
-      ri_html->add( '<div class="dummydiv success">' ).
-      ri_html->add( ri_html->icon( 'check' ) ).
-      ri_html->add( 'No code inspector findings' ).
-      ri_html->add( '</div>' ).
-    ELSE.
-      render_result(
-        ii_html   = ri_html
-        it_result = mt_result ).
-    ENDIF.
 
   ENDMETHOD.
   METHOD run_code_inspector.
@@ -49574,7 +49554,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
       WHEN OTHERS.
-        rs_handled = super->zif_abapgit_gui_event_handler~on_event( ii_event ).
+        rs_handled = on_event( ii_event ).
     ENDCASE.
 
   ENDMETHOD.
@@ -49582,7 +49562,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
 
     DATA: ls_hotkey_action LIKE LINE OF rt_hotkey_actions.
 
-    ls_hotkey_action-ui_component = 'Code inspector'.
+    ls_hotkey_action-ui_component = 'Code Inspector'.
 
     ls_hotkey_action-description = |Stage|.
     ls_hotkey_action-action = c_actions-stage.
@@ -49595,10 +49575,72 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_menu_provider~get_menu.
+
+    DATA: lv_opt TYPE c LENGTH 1.
+
+    ro_toolbar = build_base_menu( ).
+
+    IF is_stage_allowed( ) = abap_false.
+      lv_opt = zif_abapgit_html=>c_html_opt-crossout.
+    ENDIF.
+
+    IF mo_repo->is_offline( ) = abap_true.
+      RETURN.
+    ENDIF.
+
+    IF mo_stage IS BOUND.
+
+      " Staging info already available, we can directly
+      " offer to commit
+
+      ro_toolbar->add( iv_txt = 'Commit'
+                       iv_act = c_actions-commit
+                       iv_opt = lv_opt ).
+
+    ELSE.
+
+      ro_toolbar->add( iv_txt = 'Stage'
+                       iv_act = c_actions-stage
+                       iv_opt = lv_opt ).
+
+    ENDIF.
+
+    ro_toolbar->add(
+      iv_txt = 'Back'
+      iv_act = zif_abapgit_definitions=>c_action-go_back ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    ms_control-page_menu = build_menu( ).
-    ri_html = super->zif_abapgit_gui_renderable~render( ).
+    register_handlers( ).
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( `<div class="repo">` ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( io_repo        = mo_repo
+                                                              iv_show_commit = abap_false ) ).
+    ri_html->add( `</div>` ).
+
+    IF mv_check_variant IS INITIAL.
+      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_error( iv_error = 'No check variant supplied.' ) ).
+      RETURN.
+    ENDIF.
+
+    ri_html->add( render_variant(
+      iv_variant = mv_check_variant
+      iv_summary = mv_summary ) ).
+
+    IF lines( mt_result ) = 0.
+      ri_html->add( '<div class="dummydiv success">' ).
+      ri_html->add( ri_html->icon( 'check' ) ).
+      ri_html->add( 'No code inspector findings' ).
+      ri_html->add( '</div>' ).
+    ELSE.
+      render_result(
+        ii_html   = ri_html
+        it_result = mt_result ).
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -128917,8 +128959,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-28T04:55:56.189Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-28T04:55:56.189Z`.
+* abapmerge 0.16.0 - 2023-10-28T05:46:17.442Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-28T05:46:17.442Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
