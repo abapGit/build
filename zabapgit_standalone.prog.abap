@@ -4948,14 +4948,23 @@ INTERFACE zif_abapgit_repo .
     RETURNING
       VALUE(rs_settings) TYPE zif_abapgit_persistence=>ty_repo-local_settings .
 
-  METHODS get_files_local
+  METHODS get_files_local_filtered
     IMPORTING
+      !ii_obj_filter  TYPE REF TO zif_abapgit_object_filter
       !ii_log         TYPE REF TO zif_abapgit_log OPTIONAL
-      !ii_obj_filter  TYPE REF TO zif_abapgit_object_filter OPTIONAL
     RETURNING
       VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_item_tt
     RAISING
       zcx_abapgit_exception .
+
+  METHODS get_files_local
+    IMPORTING
+      !ii_log         TYPE REF TO zif_abapgit_log OPTIONAL
+    RETURNING
+      VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_item_tt
+    RAISING
+      zcx_abapgit_exception .
+
   METHODS get_files_remote
     IMPORTING
       !ii_obj_filter   TYPE REF TO zif_abapgit_object_filter OPTIONAL
@@ -17338,6 +17347,8 @@ CLASS zcl_abapgit_repo DEFINITION
       FOR zif_abapgit_repo~get_dot_abapgit .
     ALIASES get_files_local
       FOR zif_abapgit_repo~get_files_local .
+    ALIASES get_files_local_filtered
+      FOR zif_abapgit_repo~get_files_local_filtered .
     ALIASES get_files_remote
       FOR zif_abapgit_repo~get_files_remote .
     ALIASES get_key
@@ -38066,7 +38077,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         lo_obj_filter_trans->set_filter_values( iv_package  = lo_repo->get_package( )
                                                 it_r_trkorr = lt_r_trkorr ).
 
-        lv_xstr = zcl_abapgit_zip=>encode_files( lo_repo->get_files_local( ii_obj_filter = lo_obj_filter_trans ) ).
+        lv_xstr = zcl_abapgit_zip=>encode_files( lo_repo->get_files_local_filtered( lo_obj_filter_trans ) ).
         lo_repo->refresh( ).
         file_download( iv_package = lo_repo->get_package( )
                        iv_xstr    = lv_xstr ).
@@ -57222,7 +57233,12 @@ CLASS zcl_abapgit_stage_logic IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_stage_logic~get.
 
-    rs_files-local  = io_repo->get_files_local( ii_obj_filter = ii_obj_filter ).
+    IF ii_obj_filter IS INITIAL.
+      rs_files-local  = io_repo->get_files_local( ).
+    ELSE.
+      rs_files-local  = io_repo->get_files_local_filtered( ii_obj_filter ).
+    ENDIF.
+
     rs_files-remote = io_repo->get_files_remote( ii_obj_filter ).
     rs_files-status = zcl_abapgit_repo_status=>calculate( io_repo = io_repo
                                                           ii_obj_filter = ii_obj_filter ).
@@ -58093,8 +58109,13 @@ CLASS zcl_abapgit_repo_status IMPLEMENTATION.
     DATA lo_instance TYPE REF TO zcl_abapgit_repo_status.
     DATA lo_consistency_checks TYPE REF TO kHGwlVCHrsAtuwxHoXzuQzYvAOqpyr.
 
-    lt_local = io_repo->get_files_local( ii_log = ii_log
-                                         ii_obj_filter = ii_obj_filter ).
+    IF ii_obj_filter IS INITIAL.
+      lt_local = io_repo->get_files_local( ii_log ).
+    ELSE.
+      lt_local = io_repo->get_files_local_filtered(
+        ii_log        = ii_log
+        ii_obj_filter = ii_obj_filter ).
+    ENDIF.
 
     IF lines( lt_local ) <= 2.
       " Less equal two means that we have only the .abapgit.xml and the package in
@@ -60677,10 +60698,29 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       EXPORTING
         is_data = ms_data-dot_abapgit.
   ENDMETHOD.
-  METHOD zif_abapgit_repo~get_files_local.
+  METHOD zif_abapgit_repo~get_files_local_filtered.
 
     DATA lo_serialize TYPE REF TO zcl_abapgit_serialize.
     DATA lt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    CREATE OBJECT lo_serialize
+      EXPORTING
+        io_dot_abapgit    = get_dot_abapgit( )
+        is_local_settings = get_local_settings( ).
+
+    lt_filter = ii_obj_filter->get_filter( ).
+
+    rt_files = lo_serialize->files_local(
+      iv_package     = get_package( )
+      ii_data_config = get_data_config( )
+      ii_log         = ii_log
+      it_filter      = lt_filter ).
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_repo~get_files_local.
+
+    DATA lo_serialize TYPE REF TO zcl_abapgit_serialize.
+
     " Serialization happened before and no refresh request
     IF lines( mt_local ) > 0 AND mv_request_local_refresh = abap_false.
       rt_files = mt_local.
@@ -60692,15 +60732,10 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
         io_dot_abapgit    = get_dot_abapgit( )
         is_local_settings = get_local_settings( ).
 
-    IF ii_obj_filter IS NOT INITIAL.
-      lt_filter = ii_obj_filter->get_filter( ).
-    ENDIF.
-
     rt_files = lo_serialize->files_local(
       iv_package     = get_package( )
       ii_data_config = get_data_config( )
-      ii_log         = ii_log
-      it_filter      = lt_filter ).
+      ii_log         = ii_log ).
 
     mt_local                 = rt_files.
     mv_request_local_refresh = abap_false. " Fulfill refresh
@@ -129089,8 +129124,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-30T13:49:51.750Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-30T13:49:51.750Z`.
+* abapmerge 0.16.0 - 2023-10-30T13:59:02.656Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-30T13:59:02.656Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
