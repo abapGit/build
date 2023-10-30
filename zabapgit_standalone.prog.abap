@@ -39595,6 +39595,15 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
         iv_value       = zif_abapgit_dot_abapgit=>c_abap_language_version-cloud_development ).
     ENDIF.
 
+    ro_form->text(
+      iv_name        = c_id-version_constant
+      iv_label       = 'Version Constant'
+      iv_placeholder = 'ZVERSION_CLASS=>VERSION_CONSTANT'
+    )->text(
+      iv_name        = c_id-version_value
+      iv_label       = 'Version Value'
+      iv_readonly    = abap_true ).
+
     ro_form->command(
       iv_label       = 'Save Settings'
       iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
@@ -129124,8 +129133,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-30T14:08:21.704Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-30T14:08:21.704Z`.
+* abapmerge 0.16.0 - 2023-10-30T15:58:10.016Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-30T15:58:10.016Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
