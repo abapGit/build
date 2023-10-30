@@ -19476,13 +19476,13 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
 
     METHODS constructor RAISING zcx_abapgit_exception.
 
-  PROTECTED SECTION.
-
     CONSTANTS:
       BEGIN OF c_page_layout,
         centered   TYPE string VALUE `centered`,
         full_width TYPE string VALUE `full_width`,
       END OF c_page_layout.
+
+  PROTECTED SECTION.
 
     DATA ms_control TYPE ty_control .
 
@@ -129124,8 +129124,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-30T13:59:02.656Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-30T13:59:02.656Z`.
+* abapmerge 0.16.0 - 2023-10-30T14:08:21.704Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-30T14:08:21.704Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
