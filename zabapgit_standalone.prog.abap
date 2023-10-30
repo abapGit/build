@@ -3499,6 +3499,11 @@ INTERFACE zif_abapgit_cts_api .
       delete TYPE c LENGTH 1 VALUE 'D',
     END OF c_transport_mode.
 
+  CONSTANTS:
+    BEGIN OF c_transport_status,
+      modifiable TYPE c LENGTH 1 VALUE 'D',
+    END OF c_transport_status.
+
   TYPES: BEGIN OF ty_transport,
            obj_type TYPE tadir-object,
            obj_name TYPE tadir-obj_name,
@@ -3506,6 +3511,19 @@ INTERFACE zif_abapgit_cts_api .
          END OF ty_transport.
 
   TYPES ty_transport_list TYPE SORTED TABLE OF ty_transport WITH NON-UNIQUE KEY obj_type obj_name.
+
+  TYPES ty_trkorr_tt TYPE STANDARD TABLE OF trkorr WITH DEFAULT KEY.
+
+  TYPES: BEGIN OF ty_transport_key,
+           object  TYPE e071k-object,
+           objname TYPE e071k-objname,
+           tabkey  TYPE e071k-tabkey,
+         END OF ty_transport_key.
+
+  TYPES: BEGIN OF ty_transport_data,
+           trstatus TYPE e070-trstatus,
+           keys     TYPE STANDARD TABLE OF ty_transport_key WITH DEFAULT KEY,
+         END OF ty_transport_data.
 
   "! Returns the transport request / task the object is currently in
   "! @parameter is_item | Object
@@ -3518,6 +3536,7 @@ INTERFACE zif_abapgit_cts_api .
       VALUE(rv_transport) TYPE trkorr
     RAISING
       zcx_abapgit_exception .
+
   "! Check if change recording is possible for the given package
   "! @parameter iv_package | Package
   "! @parameter rv_possible | Change recording is possible
@@ -3529,6 +3548,7 @@ INTERFACE zif_abapgit_cts_api .
       VALUE(rv_possible) TYPE abap_bool
     RAISING
       zcx_abapgit_exception .
+
   METHODS get_transports_for_list
     IMPORTING
       !it_items            TYPE zif_abapgit_definitions=>ty_items_tt
@@ -3536,6 +3556,7 @@ INTERFACE zif_abapgit_cts_api .
       VALUE(rt_transports) TYPE ty_transport_list
     RAISING
       zcx_abapgit_exception .
+
   METHODS get_r3tr_obj_for_limu_obj
     IMPORTING
       iv_object   TYPE tadir-object
@@ -3586,17 +3607,6 @@ INTERFACE zif_abapgit_cts_api .
     RETURNING
       VALUE(rv_messages_confirmed) TYPE abap_bool .
 
-  TYPES: BEGIN OF ty_transport_key,
-           object  TYPE e071k-object,
-           objname TYPE e071k-objname,
-           tabkey  TYPE e071k-tabkey,
-         END OF ty_transport_key.
-
-  TYPES: BEGIN OF ty_transport_data,
-           trstatus TYPE e070-trstatus,
-           keys     TYPE STANDARD TABLE OF ty_transport_key WITH DEFAULT KEY,
-         END OF ty_transport_data.
-
   METHODS read
     IMPORTING
       !iv_trkorr        TYPE trkorr
@@ -3608,6 +3618,14 @@ INTERFACE zif_abapgit_cts_api .
   METHODS validate_transport_request
     IMPORTING
       iv_transport_request TYPE trkorr
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS list_open_requests_by_user
+    IMPORTING
+      iv_user TYPE sy-uname DEFAULT sy-uname
+    RETURNING
+      VALUE(rt_trkorr) TYPE ty_trkorr_tt
     RAISING
       zcx_abapgit_exception.
 
@@ -5940,7 +5958,7 @@ CLASS zcl_abapgit_cts_api DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    DATA: mv_confirm_transp_msgs_called TYPE abap_bool.
+    DATA mv_confirm_transp_msgs_called TYPE abap_bool.
 
     "! Returns the transport request / task the object is currently locked in
     "! @parameter iv_program_id | Program ID
@@ -127000,7 +127018,7 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_cts_api IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_CTS_API IMPLEMENTATION.
   METHOD get_current_transport_for_obj.
     DATA: lv_object_lockable   TYPE abap_bool,
           lv_locked            TYPE abap_bool,
@@ -127118,6 +127136,60 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
         pe_result = lv_type_check_result.
 
     rv_transportable = boolc( lv_type_check_result CA 'RTL' ).
+  ENDMETHOD.
+  METHOD zif_abapgit_cts_api~confirm_transport_messages.
+
+    TYPES: BEGIN OF ty_s_message,
+             id TYPE symsgid,
+             ty TYPE symsgty,
+             no TYPE symsgno,
+             v1 TYPE symsgv,
+             v2 TYPE symsgv,
+             v3 TYPE symsgv,
+             v4 TYPE symsgv,
+           END OF ty_s_message.
+
+    DATA ls_message TYPE ty_s_message.
+
+    FIELD-SYMBOLS: <lt_confirmed_messages> TYPE STANDARD TABLE.
+
+    IF mv_confirm_transp_msgs_called = abap_true.
+      RETURN.
+    ENDIF.
+
+    " remember the call to avoid duplicates in GT_CONFIRMED_MESSAGES
+    mv_confirm_transp_msgs_called = abap_true.
+    " Auto-confirm certain messages (requires SAP Note 1609940)
+    PERFORM dummy IN PROGRAM saplstrd IF FOUND.  "load function group STRD once into memory
+
+    ASSIGN ('(SAPLSTRD)GT_CONFIRMED_MESSAGES') TO <lt_confirmed_messages>.
+
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    " Object can only be created in package of namespace
+    ls_message-id = 'TR'.
+    ls_message-no = '007'.
+    INSERT ls_message INTO TABLE <lt_confirmed_messages>.
+
+    " Original system set to "SAP"
+    ls_message-id = 'TR'.
+    ls_message-no = '013'.
+    INSERT ls_message INTO TABLE <lt_confirmed_messages>.
+
+    " Make repairs in foreign namespaces only if they are urgent
+    ls_message-id = 'TR'.
+    ls_message-no = '852'.
+    INSERT ls_message INTO TABLE <lt_confirmed_messages>.
+
+    " Make repairs in foreign namespaces only if they are urgent
+    ls_message-id = 'TK'.
+    ls_message-no = '016'.
+    INSERT ls_message INTO TABLE <lt_confirmed_messages>.
+
+    rv_messages_confirmed = abap_true.
+
   ENDMETHOD.
   METHOD zif_abapgit_cts_api~create_transport_entries.
 
@@ -127295,75 +127367,32 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
       rv_possible = zcl_abapgit_factory=>get_sap_package( iv_package )->are_changes_recorded_in_tr_req( ).
     ENDIF.
   ENDMETHOD.
-  METHOD zif_abapgit_cts_api~read_description.
+  METHOD zif_abapgit_cts_api~list_open_requests_by_user.
 
-    SELECT SINGLE as4text FROM e07t
-      INTO rv_description
-      WHERE trkorr = iv_trkorr
-      AND langu = sy-langu ##SUBRC_OK.
+    TYPES: BEGIN OF ty_e070,
+             trkorr     TYPE e070-trkorr,
+             trfunction TYPE e070-trfunction,
+             strkorr    TYPE e070-strkorr,
+           END OF ty_e070.
+    DATA lt_e070 TYPE STANDARD TABLE OF ty_e070 WITH DEFAULT KEY.
 
-  ENDMETHOD.
-  METHOD zif_abapgit_cts_api~read_user.
+* find all tasks first
+    SELECT trkorr trfunction strkorr
+      FROM e070 INTO TABLE lt_e070
+      WHERE as4user = sy-uname
+      AND trstatus = zif_abapgit_cts_api=>c_transport_status-modifiable
+      AND strkorr <> ''
+      ORDER BY PRIMARY KEY.
 
-    SELECT SINGLE as4user FROM e070 INTO rv_uname
-      WHERE trkorr = iv_trkorr ##SUBRC_OK.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_cts_api~confirm_transport_messages.
-
-    TYPES: BEGIN OF ty_s_message,
-             id TYPE symsgid,
-             ty TYPE symsgty,
-             no TYPE symsgno,
-             v1 TYPE symsgv,
-             v2 TYPE symsgv,
-             v3 TYPE symsgv,
-             v4 TYPE symsgv,
-           END OF ty_s_message.
-
-    DATA ls_message TYPE ty_s_message.
-
-    FIELD-SYMBOLS: <lt_confirmed_messages> TYPE STANDARD TABLE.
-
-    IF mv_confirm_transp_msgs_called = abap_true.
-      RETURN.
+    IF lines( lt_e070 ) > 0.
+      SELECT trkorr FROM e070
+        INTO TABLE rt_trkorr
+        FOR ALL ENTRIES IN lt_e070
+        WHERE trkorr = lt_e070-strkorr
+        AND trfunction = zif_abapgit_cts_api=>c_transport_type-wb_request.
     ENDIF.
 
-    " remember the call to avoid duplicates in GT_CONFIRMED_MESSAGES
-    mv_confirm_transp_msgs_called = abap_true.
-    " Auto-confirm certain messages (requires SAP Note 1609940)
-    PERFORM dummy IN PROGRAM saplstrd IF FOUND.  "load function group STRD once into memory
-
-    ASSIGN ('(SAPLSTRD)GT_CONFIRMED_MESSAGES') TO <lt_confirmed_messages>.
-
-    IF sy-subrc <> 0.
-      RETURN.
-    ENDIF.
-
-    " Object can only be created in package of namespace
-    ls_message-id = 'TR'.
-    ls_message-no = '007'.
-    INSERT ls_message INTO TABLE <lt_confirmed_messages>.
-
-    " Original system set to "SAP"
-    ls_message-id = 'TR'.
-    ls_message-no = '013'.
-    INSERT ls_message INTO TABLE <lt_confirmed_messages>.
-
-    " Make repairs in foreign namespaces only if they are urgent
-    ls_message-id = 'TR'.
-    ls_message-no = '852'.
-    INSERT ls_message INTO TABLE <lt_confirmed_messages>.
-
-    " Make repairs in foreign namespaces only if they are urgent
-    ls_message-id = 'TK'.
-    ls_message-no = '016'.
-    INSERT ls_message INTO TABLE <lt_confirmed_messages>.
-
-    rv_messages_confirmed = abap_true.
-
   ENDMETHOD.
-
   METHOD zif_abapgit_cts_api~read.
 
     DATA ls_request TYPE trwbo_request.
@@ -127398,7 +127427,20 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+  METHOD zif_abapgit_cts_api~read_description.
 
+    SELECT SINGLE as4text FROM e07t
+      INTO rv_description
+      WHERE trkorr = iv_trkorr
+      AND langu = sy-langu ##SUBRC_OK.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_cts_api~read_user.
+
+    SELECT SINGLE as4user FROM e070 INTO rv_uname
+      WHERE trkorr = iv_trkorr ##SUBRC_OK.
+
+  ENDMETHOD.
   METHOD zif_abapgit_cts_api~validate_transport_request.
 
     CONSTANTS:
@@ -127419,7 +127461,6 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_background_push_fi IMPLEMENTATION.
@@ -128959,8 +129000,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-28T05:46:17.442Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-28T05:46:17.442Z`.
+* abapmerge 0.16.0 - 2023-10-30T05:32:34.869Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-30T05:32:34.869Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
