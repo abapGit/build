@@ -19123,13 +19123,18 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         !ix_error      TYPE REF TO zcx_abapgit_exception
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-    CLASS-METHODS render_order_by_header_cells
+    CLASS-METHODS render_table_header
       IMPORTING
         !it_col_spec         TYPE zif_abapgit_definitions=>ty_col_spec_tt
         !iv_order_by         TYPE string
         !iv_order_descending TYPE abap_bool
       RETURNING
         VALUE(ri_html)       TYPE REF TO zif_abapgit_html .
+    CLASS-METHODS render_table_footer
+      IMPORTING
+        !iv_message    TYPE string
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     CLASS-METHODS render_warning_banner
       IMPORTING
         !iv_text       TYPE string
@@ -21997,7 +22002,10 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
     METHODS open_in_main_language
       RAISING
         zcx_abapgit_exception .
-    METHODS render_order_by
+    METHODS render_table_header
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+    METHODS render_table_footer
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS apply_order_by
@@ -43620,10 +43628,46 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ri_html->add( '</td>' ).
 
   ENDMETHOD.
-  METHOD render_order_by.
+  METHOD render_parent_dir.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( '<tr class="folder">' ).
+    ri_html->add( |<td class="icon">{ ri_html->icon( 'folder' ) }</td>| ).
+    ri_html->add( |<td class="dir" colspan="4">{ build_dir_jump_link( '..' ) }</td>| ).
+    IF mo_repo->has_remote_source( ) = abap_true.
+      ri_html->add( |<td colspan="1"></td>| ). " Dummy for online
+    ENDIF.
+    ri_html->add( '</tr>' ).
+
+  ENDMETHOD.
+  METHOD render_scripts.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_palette(
+      iv_action = zif_abapgit_definitions=>c_action-go_repo ) ).
+
+  ENDMETHOD.
+  METHOD render_table_footer.
+
+    DATA lv_action TYPE string.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    IF mv_changes_only = abap_true.
+      lv_action = ri_html->a(
+        iv_txt = 'Show All'
+        iv_act = c_actions-toggle_changes ).
+
+      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_table_footer( |(Only changes are shown. { lv_action })| ) ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD render_table_header.
 
     DATA:
-      lv_icon     TYPE string,
       lt_col_spec TYPE zif_abapgit_definitions=>ty_col_spec_tt,
       ls_col_spec TYPE zif_abapgit_definitions=>ty_col_spec.
 
@@ -43660,44 +43704,10 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ls_col_spec-css_class = 'cmd'.
     APPEND ls_col_spec TO lt_col_spec.
 
-    ri_html->add( |<thead>| ).
-    ri_html->add( |<tr>| ).
-
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_order_by_header_cells(
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_table_header(
       it_col_spec         = lt_col_spec
       iv_order_by         = mv_order_by
       iv_order_descending = mv_order_descending ) ).
-
-    IF mv_diff_first = abap_true.
-      lv_icon = 'check/blue'.
-    ELSE.
-      lv_icon = 'check/grey'.
-    ENDIF.
-
-    ri_html->add( '</tr>' ).
-    ri_html->add( '</thead>' ).
-
-  ENDMETHOD.
-  METHOD render_parent_dir.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add( '<tr class="folder">' ).
-    ri_html->add( |<td class="icon">{ ri_html->icon( 'folder' ) }</td>| ).
-    ri_html->add( |<td class="dir" colspan="4">{ build_dir_jump_link( '..' ) }</td>| ).
-    IF mo_repo->has_remote_source( ) = abap_true.
-      ri_html->add( |<td colspan="1"></td>| ). " Dummy for online
-    ENDIF.
-    ri_html->add( '</tr>' ).
-
-  ENDMETHOD.
-  METHOD render_scripts.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_palette(
-      iv_action = zif_abapgit_definitions=>c_action-go_repo ) ).
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -43939,7 +43949,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
           " Repo content table
           ri_html->add( '<table class="repo_tab">' ).
 
-          ri_html->add( render_order_by( ) ).
+          ri_html->add( render_table_header( ) ).
 
           IF zcl_abapgit_path=>is_root( mv_cur_dir ) = abap_false.
             ri_html->add( render_parent_dir( ) ).
@@ -43954,14 +43964,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
                                        iv_render_transports = mv_are_changes_recorded_in_tr ) ).
           ENDLOOP.
 
-          IF mv_changes_only = abap_true.
-            ri_html->add( `<tfoot><tr><td class="grey" colspan="5">` ).
-            ri_html->add( `(Only changes are shown. ` ).
-            ri_html->add( ri_html->a(
-              iv_txt   = |Show All|
-              iv_act   = |{ c_actions-toggle_changes }| ) ).
-            ri_html->add( `)</td></tr></tfoot>` ).
-          ENDIF.
+          ri_html->add( render_table_footer( ) ).
 
           ri_html->add( '</table>' ).
         ENDIF.
@@ -44508,31 +44511,23 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_table_footer.
 
+    DATA lv_action TYPE string.
+
     IF ms_list_settings-only_favorites = abap_true.
-      ii_html->add( `<tfoot>` ).
-      ii_html->add( `<tr><td colspan="100%">` ).
-      ii_html->add( |(Only favorites are shown. {
-        ii_html->a(
-          iv_txt   = |Show All|
-          iv_act   = |{ zif_abapgit_definitions=>c_action-toggle_favorites }?force_state={ abap_false }| )
-      })| ).
-      ii_html->add( `</td></tr>` ).
-      ii_html->add( `</tfoot>` ).
+      lv_action = ii_html->a(
+        iv_txt = 'Show All'
+        iv_act = |{ zif_abapgit_definitions=>c_action-toggle_favorites }?force_state={ abap_false }| ).
+
+      ii_html->add( zcl_abapgit_gui_chunk_lib=>render_table_footer( |(Only favorites are shown. { lv_action })| ) ).
     ENDIF.
 
   ENDMETHOD.
   METHOD render_table_header.
 
-    ii_html->add( |<thead>| ).
-    ii_html->add( |<tr>| ).
-
-    ii_html->add( zcl_abapgit_gui_chunk_lib=>render_order_by_header_cells(
+    ii_html->add( zcl_abapgit_gui_chunk_lib=>render_table_header(
       it_col_spec         = build_table_scheme( )
       iv_order_by         = ms_list_settings-order_by
       iv_order_descending = ms_list_settings-order_descending ) ).
-
-    ii_html->add( '</tr>' ).
-    ii_html->add( '</thead>' ).
 
   ENDMETHOD.
   METHOD render_table_item.
@@ -53376,64 +53371,6 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       io_content = ri_html ).
 
   ENDMETHOD.
-  METHOD render_order_by_header_cells.
-
-    DATA:
-      lv_tmp       TYPE string,
-      lv_disp_name TYPE string.
-
-    FIELD-SYMBOLS <ls_col> LIKE LINE OF it_col_spec.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    LOOP AT it_col_spec ASSIGNING <ls_col>.
-      " e.g. <th class="ro-detail">Created at [{ gv_time_zone }]</th>
-      lv_tmp = '<th'.
-      IF <ls_col>-css_class IS NOT INITIAL.
-        lv_tmp = lv_tmp && | class="{ <ls_col>-css_class }"|.
-      ENDIF.
-      lv_tmp = lv_tmp && '>'.
-
-      IF <ls_col>-display_name IS NOT INITIAL.
-        lv_disp_name = <ls_col>-display_name.
-        IF <ls_col>-add_tz = abap_true.
-          lv_disp_name = lv_disp_name && | [{ gv_time_zone }]|.
-        ENDIF.
-        IF <ls_col>-tech_name = iv_order_by.
-          IF iv_order_descending = abap_true.
-            lv_tmp = lv_tmp && ri_html->a(
-              iv_txt   = lv_disp_name
-              iv_act   = |{ zif_abapgit_definitions=>c_action-change_order_by }|
-              iv_title = <ls_col>-title ).
-          ELSE.
-            lv_tmp = lv_tmp && ri_html->a(
-              iv_txt   = lv_disp_name
-              iv_act   = |{ zif_abapgit_definitions=>c_action-direction }?direction=DESCENDING|
-              iv_title = <ls_col>-title ).
-          ENDIF.
-        ELSEIF <ls_col>-allow_order_by = abap_true.
-          lv_tmp = lv_tmp && ri_html->a(
-            iv_txt   = lv_disp_name
-            iv_act   = |{ zif_abapgit_definitions=>c_action-change_order_by }?orderBy={ <ls_col>-tech_name }|
-            iv_title = <ls_col>-title ).
-        ELSE.
-          lv_tmp = lv_tmp && lv_disp_name.
-        ENDIF.
-      ENDIF.
-      IF <ls_col>-tech_name = iv_order_by
-      AND iv_order_by IS NOT INITIAL.
-        IF iv_order_descending = abap_true.
-          lv_tmp = lv_tmp && | &#x25BE;|. " arrow down
-        ELSE.
-          lv_tmp = lv_tmp && | &#x25B4;|. " arrow up
-        ENDIF.
-      ENDIF.
-
-      lv_tmp = lv_tmp && '</th>'.
-      ri_html->add( lv_tmp ).
-    ENDLOOP.
-
-  ENDMETHOD.
   METHOD render_package_name.
 
     DATA:
@@ -53746,6 +53683,85 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       WHEN OTHERS. " Including NO_RUN
         RETURN.
     ENDCASE.
+
+  ENDMETHOD.
+  METHOD render_table_footer.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( '<tfoot>' ).
+    ri_html->add( '<tr>' ).
+    ri_html->add( '<td colspan="100%">' ).
+
+    ri_html->add( iv_message ).
+
+    ri_html->add( '</td>' ).
+    ri_html->add( '</tr>' ).
+    ri_html->add( '</tfoot>' ).
+
+  ENDMETHOD.
+  METHOD render_table_header.
+
+    DATA:
+      lv_tmp       TYPE string,
+      lv_disp_name TYPE string.
+
+    FIELD-SYMBOLS <ls_col> LIKE LINE OF it_col_spec.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( '<thead>' ).
+    ri_html->add( '<tr>' ).
+
+    LOOP AT it_col_spec ASSIGNING <ls_col>.
+      " e.g. <th class="ro-detail">Created at [{ gv_time_zone }]</th>
+      lv_tmp = '<th'.
+      IF <ls_col>-css_class IS NOT INITIAL.
+        lv_tmp = lv_tmp && | class="{ <ls_col>-css_class }"|.
+      ENDIF.
+      lv_tmp = lv_tmp && '>'.
+
+      IF <ls_col>-display_name IS NOT INITIAL.
+        lv_disp_name = <ls_col>-display_name.
+        IF <ls_col>-add_tz = abap_true.
+          lv_disp_name = lv_disp_name && | [{ gv_time_zone }]|.
+        ENDIF.
+        IF <ls_col>-tech_name = iv_order_by.
+          IF iv_order_descending = abap_true.
+            lv_tmp = lv_tmp && ri_html->a(
+              iv_txt   = lv_disp_name
+              iv_act   = |{ zif_abapgit_definitions=>c_action-change_order_by }|
+              iv_title = <ls_col>-title ).
+          ELSE.
+            lv_tmp = lv_tmp && ri_html->a(
+              iv_txt   = lv_disp_name
+              iv_act   = |{ zif_abapgit_definitions=>c_action-direction }?direction=DESCENDING|
+              iv_title = <ls_col>-title ).
+          ENDIF.
+        ELSEIF <ls_col>-allow_order_by = abap_true.
+          lv_tmp = lv_tmp && ri_html->a(
+            iv_txt   = lv_disp_name
+            iv_act   = |{ zif_abapgit_definitions=>c_action-change_order_by }?orderBy={ <ls_col>-tech_name }|
+            iv_title = <ls_col>-title ).
+        ELSE.
+          lv_tmp = lv_tmp && lv_disp_name.
+        ENDIF.
+      ENDIF.
+      IF <ls_col>-tech_name = iv_order_by
+      AND iv_order_by IS NOT INITIAL.
+        IF iv_order_descending = abap_true.
+          lv_tmp = lv_tmp && | &#x25BE;|. " arrow down
+        ELSE.
+          lv_tmp = lv_tmp && | &#x25B4;|. " arrow up
+        ENDIF.
+      ENDIF.
+
+      lv_tmp = lv_tmp && '</th>'.
+      ri_html->add( lv_tmp ).
+    ENDLOOP.
+
+    ri_html->add( '</tr>' ).
+    ri_html->add( '</thead>' ).
 
   ENDMETHOD.
   METHOD render_text_input.
@@ -129192,8 +129208,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-31T13:34:45.673Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-31T13:34:45.673Z`.
+* abapmerge 0.16.0 - 2023-10-31T14:48:56.192Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-31T14:48:56.192Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
