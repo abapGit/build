@@ -115,6 +115,7 @@ INTERFACE zif_abapgit_apack_definitions DEFERRED.
 CLASS zcl_abapgit_settings DEFINITION DEFERRED.
 CLASS zcl_abapgit_migrations DEFINITION DEFERRED.
 CLASS zcl_abapgit_injector DEFINITION DEFERRED.
+CLASS zcl_abapgit_feature DEFINITION DEFERRED.
 CLASS zcl_abapgit_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml_pretty DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml_output DEFINITION DEFERRED.
@@ -8464,10 +8465,6 @@ CLASS zcl_abapgit_aff_registry DEFINITION
 
     CONSTANTS c_aff_feature TYPE string VALUE 'AFF'.
 
-    METHODS:
-      constructor
-        IMPORTING
-          io_settings TYPE REF TO zcl_abapgit_settings OPTIONAL.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -8480,8 +8477,6 @@ CLASS zcl_abapgit_aff_registry DEFINITION
     CLASS-DATA:
       gt_registry TYPE HASHED TABLE OF ty_registry_entry WITH UNIQUE KEY obj_type.
 
-    DATA:
-      mo_settings TYPE REF TO zcl_abapgit_settings.
     METHODS initialize_registry_table.
 
     CLASS-METHODS:
@@ -22803,7 +22798,6 @@ CLASS zcl_abapgit_gui_page_sett_repo DEFINITION
 
     DATA mo_repo TYPE REF TO zcl_abapgit_repo .
     DATA mv_requirements_count TYPE i .
-    DATA mv_feature_enabled TYPE abap_bool.
 
     METHODS validate_form
       IMPORTING
@@ -24884,6 +24878,24 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-DATA gi_sap_report TYPE REF TO zif_abapgit_sap_report.
     CLASS-DATA gi_function_module TYPE REF TO zif_abapgit_function_module.
 ENDCLASS.
+CLASS zcl_abapgit_feature DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    " For dependency injection/testing, use the following
+    " zcl_abapgit_persist_factory=>get_settings( )->read( )->set_experimental_features( )
+
+    CLASS-METHODS is_enabled
+      IMPORTING
+        !iv_feature   TYPE string OPTIONAL
+      RETURNING
+        VALUE(rv_run) TYPE abap_bool.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_injector DEFINITION
   CREATE PRIVATE.
 
@@ -24999,11 +25011,6 @@ CLASS zcl_abapgit_settings DEFINITION
     METHODS get_experimental_features
       RETURNING
         VALUE(rv_features) TYPE string.
-    METHODS is_feature_enabled
-      IMPORTING
-        !iv_feature   TYPE string OPTIONAL
-      RETURNING
-        VALUE(rv_run) TYPE abap_bool.
     METHODS set_max_lines
       IMPORTING
         !iv_lines TYPE i .
@@ -25233,17 +25240,6 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   METHOD get_user_settings.
     rs_settings = ms_user_settings.
   ENDMETHOD.
-  METHOD is_feature_enabled.
-    DATA lt_features TYPE string_table.
-    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
-      rv_run = boolc( ms_settings-experimental_features = abap_true ).
-      IF iv_feature IS NOT INITIAL.
-        SPLIT ms_settings-experimental_features AT ',' INTO TABLE lt_features.
-        READ TABLE lt_features TRANSPORTING NO FIELDS WITH TABLE KEY table_line = iv_feature.
-        rv_run = boolc( rv_run = abap_true OR sy-subrc = 0 ).
-      ENDIF.
-    ENDIF.
-  ENDMETHOD.
   METHOD set_activate_wo_popup.
     ms_user_settings-activate_wo_popup = iv_act_wo_popup.
   ENDMETHOD.
@@ -25447,6 +25443,31 @@ CLASS zcl_abapgit_injector IMPLEMENTATION.
 
   ENDMETHOD.
 
+ENDCLASS.
+
+CLASS zcl_abapgit_feature IMPLEMENTATION.
+  METHOD is_enabled.
+
+    DATA:
+      lv_features TYPE string,
+      lt_features TYPE string_table.
+
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true.
+      RETURN.
+    ENDIF.
+
+    lv_features = zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ).
+    CONDENSE lv_features NO-GAPS.
+
+    rv_run = boolc( lv_features = abap_true ).
+
+    IF iv_feature IS NOT INITIAL.
+      SPLIT lv_features AT ',' INTO TABLE lt_features.
+      READ TABLE lt_features TRANSPORTING NO FIELDS WITH TABLE KEY table_line = iv_feature.
+      rv_run = boolc( rv_run = abap_true OR sy-subrc = 0 ).
+    ENDIF.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_factory IMPLEMENTATION.
@@ -28762,13 +28783,9 @@ ENDCLASS.
 CLASS zcl_abapgit_abap_language_vers IMPLEMENTATION.
   METHOD constructor.
 
-    DATA lo_settings TYPE REF TO zcl_abapgit_settings.
-
     mo_dot_abapgit = io_dot_abapgit.
 
-    lo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
-
-    IF lo_settings->is_feature_enabled( c_feature_flag ) = abap_false.
+    IF zcl_abapgit_feature=>is_enabled( c_feature_flag ) = abap_false.
       mv_has_abap_language_vers = abap_false.
     ELSEIF get_abap_language_vers_by_repo( ) = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
       mv_has_abap_language_vers = abap_false.
@@ -39506,7 +39523,6 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
 
     " Feature for ABAP Language Version
     lo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
-    mv_feature_enabled = lo_settings->is_feature_enabled( zcl_abapgit_abap_language_vers=>c_feature_flag ).
 
     CREATE OBJECT mo_validation_log.
     CREATE OBJECT mo_form_data.
@@ -39590,7 +39606,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
       iv_label       = 'Minimum Patch'
       iv_width       = '30%' ).
 
-    IF mv_feature_enabled = abap_true.
+    IF zcl_abapgit_feature=>is_enabled( zcl_abapgit_abap_language_vers=>c_feature_flag ) = abap_true.
       ro_form->radio(
         iv_name        = c_id-abap_langu_vers
         iv_default_value = ''
@@ -39722,7 +39738,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
       iv_key = |{ c_id-requirements }-{ zif_abapgit_html_form=>c_rows }|
       iv_val = |{ mv_requirements_count }| ).
 
-    IF mv_feature_enabled = abap_true.
+    IF zcl_abapgit_feature=>is_enabled( zcl_abapgit_abap_language_vers=>c_feature_flag ) = abap_true.
       ro_form_data->set(
         iv_key = c_id-abap_langu_vers
         iv_val = ls_dot-abap_language_version ).
@@ -39744,7 +39760,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
     lo_dot->set_starting_folder( mo_form_data->get( c_id-starting_folder ) ).
     lo_dot->set_version_constant( mo_form_data->get( c_id-version_constant ) ).
 
-    IF mv_feature_enabled = abap_true.
+    IF zcl_abapgit_feature=>is_enabled( zcl_abapgit_abap_language_vers=>c_feature_flag ) = abap_true.
       lo_dot->set_abap_language_version( mo_form_data->get( c_id-abap_langu_vers ) ).
     ENDIF.
 
@@ -44789,7 +44805,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     CREATE OBJECT ro_toolbar EXPORTING iv_id = 'toolbar-main'.
 
-    IF zcl_abapgit_persist_factory=>get_settings( )->read( )->is_feature_enabled( 'FLOW' ) = abap_true.
+    IF zcl_abapgit_feature=>is_enabled( 'FLOW' ) = abap_true.
       ro_toolbar->add(
         iv_txt = zcl_abapgit_gui_buttons=>flow( )
         iv_act = zif_abapgit_definitions=>c_action-flow ).
@@ -90077,8 +90093,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
       iv_language = iv_language ).
     mi_object_oriented_object_fct = zcl_abapgit_oo_factory=>make( ms_item-obj_type ).
 
-    mv_aff_enabled = zcl_abapgit_persist_factory=>get_settings( )->read( )->is_feature_enabled(
-      zcl_abapgit_aff_registry=>c_aff_feature ).
+    mv_aff_enabled = zcl_abapgit_feature=>is_enabled( zcl_abapgit_abap_language_vers=>c_feature_flag ).
   ENDMETHOD.
   METHOD deserialize_descriptions.
     DATA:  ls_clskey TYPE seoclskey.
@@ -116990,13 +117005,6 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_aff_registry IMPLEMENTATION.
-  METHOD constructor.
-    IF io_settings IS SUPPLIED.
-      mo_settings = io_settings.
-    ELSE.
-      mo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
-    ENDIF.
-  ENDMETHOD.
   METHOD initialize_registry_table.
     register( 'CHKC' ).
     register( 'CHKO' ).
@@ -117028,7 +117036,7 @@ CLASS zcl_abapgit_aff_registry IMPLEMENTATION.
     READ TABLE gt_registry WITH TABLE KEY obj_type = iv_obj_type INTO ls_registry_entry.
     IF sy-subrc = 0 AND ls_registry_entry-experimental = abap_false.
       rv_result = abap_true.
-    ELSEIF sy-subrc = 0 AND mo_settings->is_feature_enabled( c_aff_feature ) = abap_true.
+    ELSEIF sy-subrc = 0 AND zcl_abapgit_feature=>is_enabled( c_aff_feature ) = abap_true.
       rv_result = abap_true.
     ELSE.
       rv_result = abap_false.
@@ -129138,8 +129146,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-31T05:32:47.299Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-31T05:32:47.299Z`.
+* abapmerge 0.16.0 - 2023-10-31T13:29:55.430Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-31T13:29:55.430Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
