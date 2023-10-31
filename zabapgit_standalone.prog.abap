@@ -21335,11 +21335,26 @@ CLASS zcl_abapgit_gui_page_flow DEFINITION
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_merge DEFINITION
-  INHERITING FROM zcl_abapgit_gui_page
+  INHERITING FROM zcl_abapgit_gui_component
   FINAL
-  CREATE PUBLIC .
+  CREATE PRIVATE.
 
   PUBLIC SECTION.
+
+    INTERFACES:
+      zif_abapgit_gui_event_handler,
+      zif_abapgit_gui_menu_provider,
+      zif_abapgit_gui_renderable.
+
+    CLASS-METHODS create
+      IMPORTING
+        io_repo        TYPE REF TO zcl_abapgit_repo_online
+        iv_source      TYPE string
+        iv_target      TYPE string
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS constructor
       IMPORTING
@@ -21347,41 +21362,49 @@ CLASS zcl_abapgit_gui_page_merge DEFINITION
         iv_source TYPE string
         iv_target TYPE string
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
 
-    METHODS zif_abapgit_gui_event_handler~on_event
-        REDEFINITION.
   PROTECTED SECTION.
-    METHODS render_content REDEFINITION.
-
   PRIVATE SECTION.
 
-    DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
-    DATA mi_merge TYPE REF TO zif_abapgit_merge .
+    DATA mo_repo TYPE REF TO zcl_abapgit_repo_online.
+    DATA mi_merge TYPE REF TO zif_abapgit_merge.
+
     CONSTANTS:
       BEGIN OF c_actions,
-        merge         TYPE string VALUE 'merge' ##NO_TEXT,
-        res_conflicts TYPE string VALUE 'res_conflicts' ##NO_TEXT,
-      END OF c_actions .
+        merge         TYPE string VALUE 'merge',
+        res_conflicts TYPE string VALUE 'res_conflicts',
+      END OF c_actions.
 
     METHODS show_file
       IMPORTING
         !it_expanded TYPE zif_abapgit_git_definitions=>ty_expanded_tt
         !ii_html     TYPE REF TO zif_abapgit_html
         !is_file     TYPE zif_abapgit_git_definitions=>ty_expanded
-        !is_result   TYPE zif_abapgit_git_definitions=>ty_expanded .
-    METHODS build_menu
-      IMPORTING
-        !iv_with_conflict TYPE abap_bool OPTIONAL
-      RETURNING
-        VALUE(ro_menu)    TYPE REF TO zcl_abapgit_html_toolbar .
+        !is_result   TYPE zif_abapgit_git_definitions=>ty_expanded.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_merge_res DEFINITION
-  INHERITING FROM zcl_abapgit_gui_page
+  INHERITING FROM zcl_abapgit_gui_component
   FINAL
-  CREATE PUBLIC .
+  CREATE PRIVATE.
 
   PUBLIC SECTION.
+
+    INTERFACES:
+      zif_abapgit_gui_event_handler,
+      zif_abapgit_gui_menu_provider,
+      zif_abapgit_gui_renderable.
+
+    CLASS-METHODS create
+      IMPORTING
+        io_repo        TYPE REF TO zcl_abapgit_repo_online
+        io_merge_page  TYPE REF TO zcl_abapgit_gui_page_merge
+        io_merge       TYPE REF TO zif_abapgit_merge
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
 
     METHODS constructor
       IMPORTING
@@ -21391,11 +21414,7 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
       RAISING
         zcx_abapgit_exception.
 
-    METHODS zif_abapgit_gui_event_handler~on_event
-        REDEFINITION .
   PROTECTED SECTION.
-    METHODS render_content REDEFINITION.
-
   PRIVATE SECTION.
 
     TYPES:
@@ -21436,9 +21455,6 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
         !ii_event TYPE REF TO zif_abapgit_gui_event
       RAISING
         zcx_abapgit_exception .
-    METHODS build_menu
-      RETURNING
-        VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS is_binary
       IMPORTING
         !iv_d1        TYPE xstring
@@ -45448,8 +45464,6 @@ CLASS zcl_abapgit_gui_page_merge_sel IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
-    DATA lo_merge TYPE REF TO zcl_abapgit_gui_page_merge.
-
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
@@ -45461,13 +45475,11 @@ CLASS zcl_abapgit_gui_page_merge_sel IMPLEMENTATION.
           zcx_abapgit_exception=>raise( 'Select different branches' ).
         ENDIF.
 
-        CREATE OBJECT lo_merge
-          EXPORTING
-            io_repo   = mo_repo
-            iv_source = mo_form_data->get( c_id-source )
-            iv_target = mo_form_data->get( c_id-target ).
+        rs_handled-page  = zcl_abapgit_gui_page_merge=>create(
+          io_repo   = mo_repo
+          iv_source = mo_form_data->get( c_id-source )
+          iv_target = mo_form_data->get( c_id-target ) ).
 
-        rs_handled-page = lo_merge.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
 
     ENDCASE.
@@ -45516,22 +45528,11 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
     mo_merge->resolve_conflict( <ls_conflict> ).
 
   ENDMETHOD.
-  METHOD build_menu.
-
-    CREATE OBJECT ro_menu.
-    ro_menu->add( iv_txt = 'Toggle merge mode'
-                  iv_act = c_actions-toggle_mode ).
-    ro_menu->add( iv_txt = 'Cancel'
-                  iv_act = c_actions-cancel ).
-
-  ENDMETHOD.
   METHOD constructor.
 
     super->constructor( ).
 
     mo_repo = io_repo.
-    ms_control-page_title = 'Resolve Conflicts'.
-    ms_control-page_menu  = build_menu( ).
 
     mo_merge_page = io_merge_page.
     mo_merge = io_merge.
@@ -45540,9 +45541,26 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
     mt_conflicts = io_merge->get_conflicts( ).
 
   ENDMETHOD.
+  METHOD create.
+
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_merge_res.
+
+    CREATE OBJECT lo_component
+      EXPORTING
+        io_repo       = io_repo
+        io_merge_page = io_merge_page
+        io_merge      = io_merge.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title         = 'Resolve Merge Conflicts'
+      ii_page_menu_provider = lo_component
+      ii_child_component    = lo_component ).
+
+  ENDMETHOD.
   METHOD is_binary.
 
     FIELD-SYMBOLS <lv_data> LIKE iv_d1.
+
     IF iv_d1 IS NOT INITIAL. " One of them might be new and so empty
       ASSIGN iv_d1 TO <lv_data>.
     ELSE.
@@ -45565,6 +45583,7 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
     ELSE.
       lv_beacon = '---'.
     ENDIF.
+
     ri_html->add( '<thead class="nav_line">' ).
     ri_html->add( '<tr>' ).
 
@@ -45575,23 +45594,11 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
     ri_html->add( '</thead>' ).
 
   ENDMETHOD.
-  METHOD render_content.
-
-    resolve_diff( ).
-    IF ms_diff_file IS INITIAL.
-      zcx_abapgit_exception=>raise( 'no conflict found' ).
-    ENDIF.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-    ri_html->add( |<div id="diff-list" data-repo-key="{ mo_repo->get_key( ) }">| ).
-    ri_html->add( render_diff( ms_diff_file ) ).
-    ri_html->add( '</div>' ).
-
-  ENDMETHOD.
   METHOD render_diff.
 
-    DATA: lv_target_content TYPE string.
-    FIELD-SYMBOLS: <ls_conflict> TYPE zif_abapgit_merge=>ty_merge_conflict.
+    DATA lv_target_content TYPE string.
+
+    FIELD-SYMBOLS <ls_conflict> TYPE zif_abapgit_merge=>ty_merge_conflict.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -45667,7 +45674,7 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_diff_head.
 
-    DATA: ls_stats TYPE zif_abapgit_definitions=>ty_count.
+    DATA ls_stats TYPE zif_abapgit_definitions=>ty_count.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -45806,8 +45813,9 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
   ENDMETHOD.
   METHOD resolve_diff.
 
-    DATA: lv_offs TYPE i.
-    FIELD-SYMBOLS: <ls_conflict> TYPE zif_abapgit_merge=>ty_merge_conflict.
+    DATA lv_offs TYPE i.
+
+    FIELD-SYMBOLS <ls_conflict> TYPE zif_abapgit_merge=>ty_merge_conflict.
 
     CLEAR ms_diff_file.
 
@@ -45852,7 +45860,7 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
-    FIELD-SYMBOLS: <ls_conflict> TYPE zif_abapgit_merge=>ty_merge_conflict.
+    FIELD-SYMBOLS <ls_conflict> TYPE zif_abapgit_merge=>ty_merge_conflict.
 
     CASE ii_event->mv_action.
       WHEN c_actions-apply_merge
@@ -45897,23 +45905,35 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
     ENDCASE.
 
   ENDMETHOD.
+  METHOD zif_abapgit_gui_menu_provider~get_menu.
+
+    CREATE OBJECT ro_toolbar.
+
+    ro_toolbar->add( iv_txt = 'Toggle merge mode'
+                     iv_act = c_actions-toggle_mode ).
+    ro_toolbar->add( iv_txt = 'Cancel'
+                     iv_act = c_actions-cancel ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    register_handlers( ).
+
+    resolve_diff( ).
+
+    IF ms_diff_file IS INITIAL.
+      zcx_abapgit_exception=>raise( 'no conflict found' ).
+    ENDIF.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ri_html->add( |<div id="diff-list" data-repo-key="{ mo_repo->get_key( ) }">| ).
+    ri_html->add( render_diff( ms_diff_file ) ).
+    ri_html->add( '</div>' ).
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
-  METHOD build_menu.
-
-    CREATE OBJECT ro_menu.
-
-    ro_menu->add( iv_txt = 'Merge'
-                  iv_act = c_actions-merge
-                  iv_cur = abap_false ).
-
-    IF iv_with_conflict = abap_true.
-      ro_menu->add( iv_txt = 'Resolve Conflicts'
-                    iv_act = c_actions-res_conflicts ).
-    ENDIF.
-
-  ENDMETHOD.
   METHOD constructor.
 
     super->constructor( ).
@@ -45926,24 +45946,109 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
       EXPORTING
         io_repo          = io_repo
         iv_source_branch = iv_source.
+
     mi_merge->run( ).
 
-    ms_control-page_title = 'Merge'.
-    ms_control-page_menu  = build_menu( mi_merge->has_conflicts( ) ).
+  ENDMETHOD.
+  METHOD create.
+
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_merge.
+
+    CREATE OBJECT lo_component
+      EXPORTING
+        io_repo   = io_repo
+        iv_source = iv_source
+        iv_target = iv_target.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title         = 'Merge'
+      ii_page_menu_provider = lo_component
+      ii_child_component    = lo_component ).
 
   ENDMETHOD.
-  METHOD render_content.
+  METHOD show_file.
+
+    FIELD-SYMBOLS <ls_show> LIKE LINE OF it_expanded.
+
+    READ TABLE it_expanded ASSIGNING <ls_show>
+      WITH KEY path_name
+      COMPONENTS path = is_file-path name = is_file-name.
+    IF sy-subrc = 0.
+      IF <ls_show>-sha1 = is_result-sha1.
+        ii_html->add( |<td>{ <ls_show>-path }{ <ls_show>-name }</td><td><b>{ <ls_show>-sha1(7) }</b></td>| ).
+      ELSE.
+        ii_html->add( |<td>{ <ls_show>-path }{ <ls_show>-name }</td><td>{ <ls_show>-sha1(7) }</td>| ).
+      ENDIF.
+    ELSE.
+      ii_html->add( '<td></td><td></td>' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+
+    CASE ii_event->mv_action.
+      WHEN c_actions-merge.
+        IF mi_merge->has_conflicts( ) = abap_true.
+          zcx_abapgit_exception=>raise( 'conflicts exists' ).
+        ENDIF.
+
+        IF mi_merge->get_result( )-stage->count( ) = 0.
+          zcx_abapgit_exception=>raise( 'nothing to merge' ).
+        ENDIF.
+
+        IF mo_repo->get_local_settings( )-code_inspector_check_variant IS NOT INITIAL.
+
+          rs_handled-page = zcl_abapgit_gui_page_code_insp=>create(
+            io_repo  = mo_repo
+            io_stage = mi_merge->get_result( )-stage ).
+
+        ELSE.
+
+          rs_handled-page = zcl_abapgit_gui_page_commit=>create(
+            io_repo  = mo_repo
+            io_stage = mi_merge->get_result( )-stage ).
+
+        ENDIF.
+
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
+
+      WHEN c_actions-res_conflicts.
+
+        rs_handled-page = zcl_abapgit_gui_page_merge_res=>create(
+          io_repo       = mo_repo
+          io_merge_page = me
+          io_merge      = mi_merge ).
+
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
+
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_menu_provider~get_menu.
+
+    CREATE OBJECT ro_toolbar.
+
+    ro_toolbar->add( iv_txt = 'Merge'
+                     iv_act = c_actions-merge
+                     iv_cur = abap_false ).
+
+    IF mi_merge->has_conflicts( ) = abap_true.
+      ro_toolbar->add( iv_txt = 'Resolve Conflicts'
+                       iv_act = c_actions-res_conflicts ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
 
     DATA: ls_merge  TYPE zif_abapgit_merge=>ty_merge,
           lt_files  LIKE ls_merge-stree,
           ls_result LIKE LINE OF ls_merge-result.
 
-    FIELD-SYMBOLS: <ls_file> LIKE LINE OF lt_files.
+    FIELD-SYMBOLS <ls_file> LIKE LINE OF lt_files.
+
+    register_handlers( ).
 
     ls_merge = mi_merge->get_result( ).
-
-    "If now exists no conflicts anymore, conflicts button should disappear
-    ms_control-page_menu = build_menu( mi_merge->has_conflicts( ) ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -46021,65 +46126,6 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
     ri_html->add( ls_merge-conflict ).
     ri_html->add( '</b>' ).
     ri_html->add( '</div>' ).
-
-  ENDMETHOD.
-  METHOD show_file.
-
-    FIELD-SYMBOLS: <ls_show> LIKE LINE OF it_expanded.
-    READ TABLE it_expanded ASSIGNING <ls_show>
-      WITH KEY path_name
-      COMPONENTS path = is_file-path name = is_file-name.
-    IF sy-subrc = 0.
-      IF <ls_show>-sha1 = is_result-sha1.
-        ii_html->add( |<td>{ <ls_show>-path }{ <ls_show>-name }</td><td><b>{ <ls_show>-sha1(7) }</b></td>| ).
-      ELSE.
-        ii_html->add( |<td>{ <ls_show>-path }{ <ls_show>-name }</td><td>{ <ls_show>-sha1(7) }</td>| ).
-      ENDIF.
-    ELSE.
-      ii_html->add( '<td></td><td></td>' ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_gui_event_handler~on_event.
-
-    CASE ii_event->mv_action.
-      WHEN c_actions-merge.
-        IF mi_merge->has_conflicts( ) = abap_true.
-          zcx_abapgit_exception=>raise( 'conflicts exists' ).
-        ENDIF.
-
-        IF mi_merge->get_result( )-stage->count( ) = 0.
-          zcx_abapgit_exception=>raise( 'nothing to merge' ).
-        ENDIF.
-
-        IF mo_repo->get_local_settings( )-code_inspector_check_variant IS NOT INITIAL.
-
-          rs_handled-page = zcl_abapgit_gui_page_code_insp=>create(
-            io_repo  = mo_repo
-            io_stage = mi_merge->get_result( )-stage ).
-
-        ELSE.
-
-          rs_handled-page = zcl_abapgit_gui_page_commit=>create(
-            io_repo  = mo_repo
-            io_stage = mi_merge->get_result( )-stage ).
-
-        ENDIF.
-
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-
-      WHEN c_actions-res_conflicts.
-
-        CREATE OBJECT rs_handled-page TYPE zcl_abapgit_gui_page_merge_res
-          EXPORTING
-            io_repo       = mo_repo
-            io_merge_page = me
-            io_merge      = mi_merge.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-
-      WHEN OTHERS.
-        rs_handled = super->zif_abapgit_gui_event_handler~on_event( ii_event ).
-    ENDCASE.
 
   ENDMETHOD.
 ENDCLASS.
@@ -129146,8 +129192,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-31T13:29:55.430Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-31T13:29:55.430Z`.
+* abapmerge 0.16.0 - 2023-10-31T13:34:45.673Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-31T13:34:45.673Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
