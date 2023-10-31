@@ -7404,12 +7404,8 @@ CLASS zcl_abapgit_zlib_convert DEFINITION FINAL
       RETURNING
         VALUE(rv_int) TYPE i.
 
-    CLASS-METHODS int_to_hex
-      IMPORTING
-        !iv_int       TYPE i
-      RETURNING
-        VALUE(rv_hex) TYPE xstring.
-
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_zlib_huffman DEFINITION
   CREATE PUBLIC .
@@ -122172,17 +122168,14 @@ ENDCLASS.
 CLASS ZCL_ABAPGIT_ZLIB_CONVERT IMPLEMENTATION.
   METHOD bits_to_int.
 
-    DATA: lv_c    TYPE c LENGTH 1,
-          lv_bits TYPE string.
+    DATA lv_i      TYPE i.
+    DATA lv_offset TYPE i.
 
-    lv_bits = iv_bits.
-
-    WHILE NOT lv_bits IS INITIAL.
-      lv_c = lv_bits.
-      rv_int = rv_int * 2.
-      rv_int = rv_int + lv_c.
-      lv_bits = lv_bits+1.
-    ENDWHILE.
+    DO strlen( iv_bits ) TIMES.
+      lv_i = iv_bits+lv_offset(1).
+      rv_int = rv_int * 2 + lv_i.
+      lv_offset = lv_offset + 1.
+    ENDDO.
 
   ENDMETHOD.
   METHOD hex_to_bits.
@@ -122203,16 +122196,9 @@ CLASS ZCL_ABAPGIT_ZLIB_CONVERT IMPLEMENTATION.
     ENDWHILE.
 
   ENDMETHOD.
-  METHOD int_to_hex.
-
-    DATA: lv_x TYPE x.
-    lv_x = iv_int.
-    rv_hex = lv_x.
-
-  ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
+CLASS zcl_abapgit_zlib IMPLEMENTATION.
   METHOD copy_out.
 
 * copy one byte at a time, it is not possible to copy using
@@ -122266,7 +122252,7 @@ CLASS ZCL_ABAPGIT_ZLIB IMPLEMENTATION.
       lv_symbol = decode( go_lencode ).
 
       IF lv_symbol < 256.
-        lv_x = zcl_abapgit_zlib_convert=>int_to_hex( lv_symbol ).
+        lv_x = lv_symbol.
         CONCATENATE gv_out lv_x INTO gv_out IN BYTE MODE.
       ELSEIF lv_symbol = 256.
         EXIT.
@@ -129152,8 +129138,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-10-30T16:30:02.530Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-30T16:30:02.530Z`.
+* abapmerge 0.16.0 - 2023-10-31T05:32:47.299Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-10-31T05:32:47.299Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
