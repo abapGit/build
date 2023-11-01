@@ -103,6 +103,7 @@ INTERFACE zif_abapgit_http_response DEFERRED.
 INTERFACE zif_abapgit_http_agent DEFERRED.
 INTERFACE zif_abapgit_pr_enum_provider DEFERRED.
 INTERFACE zif_abapgit_git_definitions DEFERRED.
+INTERFACE zif_abapgit_gitv2_porcelain DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
 INTERFACE zif_abapgit_data_supporter DEFERRED.
@@ -479,6 +480,7 @@ CLASS zcl_abapgit_git_time DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_tag DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_porcelain DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_pack DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_commit DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_branch_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_add_patch DEFINITION DEFERRED.
@@ -1417,6 +1419,8 @@ INTERFACE zif_abapgit_pr_enum_provider .
       head_branch     TYPE string,
       created_at      TYPE string, " TODO change to D after date parsing fixed
       is_for_upstream TYPE abap_bool,
+      draft           TYPE abap_bool,
+      html_url        TYPE string,
     END OF ty_pull_request.
   TYPES:
     ty_pull_requests TYPE STANDARD TABLE OF ty_pull_request WITH KEY base_url number.
@@ -3480,6 +3484,34 @@ INTERFACE zif_abapgit_apack_definitions .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_cts_api .
+  TYPES:
+    BEGIN OF ty_transport,
+      obj_type TYPE tadir-object,
+      obj_name TYPE tadir-obj_name,
+      trkorr   TYPE trkorr,
+    END OF ty_transport .
+  TYPES:
+    ty_transport_list TYPE SORTED TABLE OF ty_transport WITH NON-UNIQUE KEY obj_type obj_name .
+  TYPES:
+    ty_trkorr_tt TYPE STANDARD TABLE OF trkorr WITH DEFAULT KEY .
+  TYPES:
+    BEGIN OF ty_transport_key,
+      object  TYPE e071k-object,
+      objname TYPE e071k-objname,
+      tabkey  TYPE e071k-tabkey,
+    END OF ty_transport_key .
+  TYPES:
+    BEGIN OF ty_transport_data,
+      trstatus TYPE e070-trstatus,
+      keys     TYPE STANDARD TABLE OF ty_transport_key WITH DEFAULT KEY,
+    END OF ty_transport_data .
+  TYPES:
+    BEGIN OF ty_transport_obj,
+      object   TYPE e071-object,
+      obj_name TYPE e071-obj_name,
+    END OF ty_transport_obj .
+  TYPES:
+    ty_transport_obj_tt TYPE STANDARD TABLE OF ty_transport_obj WITH DEFAULT KEY .
 
   CONSTANTS:
     BEGIN OF c_transport_type,
@@ -3488,46 +3520,50 @@ INTERFACE zif_abapgit_cts_api .
       wb_task      TYPE c LENGTH 1 VALUE 'S', "workbench task
       cust_request TYPE c LENGTH 1 VALUE 'W', "customizing request
       cust_task    TYPE c LENGTH 1 VALUE 'Q', "customizing task
-    END OF c_transport_type.
-
+    END OF c_transport_type .
   CONSTANTS:
     BEGIN OF c_transport_category,
       workbench   TYPE c LENGTH 4 VALUE 'SYST',
       customizing TYPE c LENGTH 4 VALUE 'CUST',
-    END OF c_transport_category.
-
+    END OF c_transport_category .
   CONSTANTS:
     BEGIN OF c_transport_mode,
       insert TYPE c LENGTH 1 VALUE 'I',
       delete TYPE c LENGTH 1 VALUE 'D',
-    END OF c_transport_mode.
-
+    END OF c_transport_mode .
   CONSTANTS:
     BEGIN OF c_transport_status,
       modifiable TYPE c LENGTH 1 VALUE 'D',
-    END OF c_transport_status.
+    END OF c_transport_status .
 
-  TYPES: BEGIN OF ty_transport,
-           obj_type TYPE tadir-object,
-           obj_name TYPE tadir-obj_name,
-           trkorr   TYPE trkorr,
-         END OF ty_transport.
-
-  TYPES ty_transport_list TYPE SORTED TABLE OF ty_transport WITH NON-UNIQUE KEY obj_type obj_name.
-
-  TYPES ty_trkorr_tt TYPE STANDARD TABLE OF trkorr WITH DEFAULT KEY.
-
-  TYPES: BEGIN OF ty_transport_key,
-           object  TYPE e071k-object,
-           objname TYPE e071k-objname,
-           tabkey  TYPE e071k-tabkey,
-         END OF ty_transport_key.
-
-  TYPES: BEGIN OF ty_transport_data,
-           trstatus TYPE e070-trstatus,
-           keys     TYPE STANDARD TABLE OF ty_transport_key WITH DEFAULT KEY,
-         END OF ty_transport_data.
-
+  METHODS confirm_transport_messages
+    RETURNING
+      VALUE(rv_messages_confirmed) TYPE abap_bool .
+  METHODS create_transport_entries
+    IMPORTING
+      !iv_transport TYPE trkorr
+      !it_table_ins TYPE ANY TABLE
+      !it_table_upd TYPE ANY TABLE
+      !it_table_del TYPE ANY TABLE
+      !iv_tabname   TYPE tabname
+    RAISING
+      zcx_abapgit_exception .
+  METHODS get_r3tr_obj_for_limu_obj
+    IMPORTING
+      !iv_object   TYPE tadir-object
+      !iv_obj_name TYPE trobj_name
+    EXPORTING
+      !ev_object   TYPE tadir-object
+      !ev_obj_name TYPE trobj_name
+    RAISING
+      zcx_abapgit_exception .
+  METHODS get_transports_for_list
+    IMPORTING
+      !it_items            TYPE zif_abapgit_definitions=>ty_items_tt
+    RETURNING
+      VALUE(rt_transports) TYPE ty_transport_list
+    RAISING
+      zcx_abapgit_exception .
   "! Returns the transport request / task the object is currently in
   "! @parameter is_item | Object
   "! @parameter rv_transport | Transport request / task
@@ -3539,7 +3575,19 @@ INTERFACE zif_abapgit_cts_api .
       VALUE(rv_transport) TYPE trkorr
     RAISING
       zcx_abapgit_exception .
-
+  METHODS insert_transport_object
+    IMPORTING
+      !iv_pgmid    TYPE tadir-pgmid DEFAULT 'R3TR'
+      !iv_object   TYPE tadir-object
+      !iv_obj_name TYPE csequence
+      !iv_package  TYPE devclass
+      !iv_language TYPE sy-langu DEFAULT sy-langu
+      !iv_mode     TYPE c DEFAULT 'I'
+    EXPORTING
+      !ev_object   TYPE tadir-object
+      !ev_obj_name TYPE trobj_name
+    RAISING
+      zcx_abapgit_exception .
   "! Check if change recording is possible for the given package
   "! @parameter iv_package | Package
   "! @parameter rv_possible | Change recording is possible
@@ -3551,65 +3599,20 @@ INTERFACE zif_abapgit_cts_api .
       VALUE(rv_possible) TYPE abap_bool
     RAISING
       zcx_abapgit_exception .
-
-  METHODS get_transports_for_list
+  METHODS list_open_requests_by_user
     IMPORTING
-      !it_items            TYPE zif_abapgit_definitions=>ty_items_tt
+      !iv_user         TYPE sy-uname DEFAULT sy-uname
     RETURNING
-      VALUE(rt_transports) TYPE ty_transport_list
+      VALUE(rt_trkorr) TYPE ty_trkorr_tt
     RAISING
       zcx_abapgit_exception .
-
-  METHODS get_r3tr_obj_for_limu_obj
+  METHODS list_r3tr_by_request
     IMPORTING
-      iv_object   TYPE tadir-object
-      iv_obj_name TYPE trobj_name
-    EXPORTING
-      ev_object   TYPE tadir-object
-      ev_obj_name TYPE trobj_name
+      !iv_request    TYPE trkorr
+    RETURNING
+      VALUE(rt_list) TYPE ty_transport_obj_tt
     RAISING
       zcx_abapgit_exception .
-
-  METHODS read_description
-    IMPORTING
-      iv_trkorr             TYPE trkorr
-    RETURNING
-      VALUE(rv_description) TYPE string.
-
-  METHODS read_user
-    IMPORTING
-      iv_trkorr       TYPE trkorr
-    RETURNING
-      VALUE(rv_uname) TYPE uname.
-
-  METHODS create_transport_entries
-    IMPORTING
-      iv_transport TYPE trkorr
-      it_table_ins TYPE ANY TABLE
-      it_table_upd TYPE ANY TABLE
-      it_table_del TYPE ANY TABLE
-      iv_tabname   TYPE tabname
-    RAISING
-      zcx_abapgit_exception.
-
-  METHODS insert_transport_object
-    IMPORTING
-      iv_pgmid    TYPE tadir-pgmid DEFAULT 'R3TR'
-      iv_object   TYPE tadir-object
-      iv_obj_name TYPE csequence
-      iv_package  TYPE devclass
-      iv_language TYPE sy-langu DEFAULT sy-langu
-      iv_mode     TYPE c DEFAULT 'I'
-    EXPORTING
-      ev_object   TYPE tadir-object
-      ev_obj_name TYPE trobj_name
-    RAISING
-      zcx_abapgit_exception.
-
-  METHODS confirm_transport_messages
-    RETURNING
-      VALUE(rv_messages_confirmed) TYPE abap_bool .
-
   METHODS read
     IMPORTING
       !iv_trkorr        TYPE trkorr
@@ -3617,21 +3620,21 @@ INTERFACE zif_abapgit_cts_api .
       VALUE(rs_request) TYPE ty_transport_data
     RAISING
       zcx_abapgit_exception .
-
+  METHODS read_description
+    IMPORTING
+      !iv_trkorr            TYPE trkorr
+    RETURNING
+      VALUE(rv_description) TYPE string .
+  METHODS read_user
+    IMPORTING
+      !iv_trkorr      TYPE trkorr
+    RETURNING
+      VALUE(rv_uname) TYPE uname .
   METHODS validate_transport_request
     IMPORTING
-      iv_transport_request TYPE trkorr
+      !iv_transport_request TYPE trkorr
     RAISING
-      zcx_abapgit_exception.
-
-  METHODS list_open_requests_by_user
-    IMPORTING
-      iv_user TYPE sy-uname DEFAULT sy-uname
-    RETURNING
-      VALUE(rt_trkorr) TYPE ty_trkorr_tt
-    RAISING
-      zcx_abapgit_exception.
-
+      zcx_abapgit_exception .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_data_deserializer .
@@ -3672,6 +3675,43 @@ INTERFACE zif_abapgit_data_deserializer .
       VALUE(rt_accessed_files) TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
     RAISING
       zcx_abapgit_exception .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_gitv2_porcelain .
+
+  METHODS list_branches
+    IMPORTING
+      !iv_url        TYPE string
+      !iv_prefix     TYPE string OPTIONAL
+    RETURNING
+      VALUE(ro_list) TYPE REF TO zcl_abapgit_git_branch_list
+    RAISING
+      zcx_abapgit_exception .
+  METHODS list_no_blobs
+    IMPORTING
+      !iv_url            TYPE string
+      !iv_sha1           TYPE zif_abapgit_git_definitions=>ty_sha1
+    RETURNING
+      VALUE(rt_expanded) TYPE zif_abapgit_git_definitions=>ty_expanded_tt
+    RAISING
+      zcx_abapgit_exception .
+  METHODS list_no_blobs_multi
+    IMPORTING
+      !iv_url           TYPE string
+      !it_sha1          TYPE zif_abapgit_git_definitions=>ty_sha1_tt
+    RETURNING
+      VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
+    RAISING
+      zcx_abapgit_exception .
+  METHODS commits_last_year
+    IMPORTING
+      !iv_url           TYPE string
+      !it_sha1          TYPE zif_abapgit_git_definitions=>ty_sha1_tt
+    RETURNING
+      VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
+    RAISING
+      zcx_abapgit_exception .
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_tadir .
@@ -4368,6 +4408,7 @@ INTERFACE zif_abapgit_persistence.
       labels                       TYPE string,
       transport_request            TYPE trkorr,
       customizing_request          TYPE trkorr,
+      flow                         TYPE abap_bool,
     END OF ty_local_settings.
 
   TYPES: ty_local_checksum_tt TYPE STANDARD TABLE OF ty_local_checksum WITH DEFAULT KEY.
@@ -6474,30 +6515,8 @@ CLASS zcl_abapgit_gitv2_porcelain DEFINITION
 
   PUBLIC SECTION.
 
-    CLASS-METHODS list_branches
-      IMPORTING
-        !iv_url        TYPE string
-        !iv_prefix     TYPE string OPTIONAL
-      RETURNING
-        VALUE(ro_list) TYPE REF TO zcl_abapgit_git_branch_list
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS list_no_blobs
-      IMPORTING
-        !iv_url            TYPE string
-        !iv_sha1           TYPE zif_abapgit_git_definitions=>ty_sha1
-      RETURNING
-        VALUE(rt_expanded) TYPE zif_abapgit_git_definitions=>ty_expanded_tt
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS list_no_blobs_multi
-      IMPORTING
-        !iv_url           TYPE string
-        !it_sha1          TYPE zif_abapgit_git_definitions=>ty_sha1_tt
-      RETURNING
-        VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
-      RAISING
-        zcx_abapgit_exception .
+    INTERFACES zif_abapgit_gitv2_porcelain.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS:
@@ -6522,7 +6541,7 @@ CLASS zcl_abapgit_gitv2_porcelain DEFINITION
 
     CLASS-METHODS decode_pack
       IMPORTING
-        iv_xstring TYPE xstring
+        iv_xstring        TYPE xstring
       RETURNING
         VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
       RAISING
@@ -6728,6 +6747,17 @@ CLASS zcl_abapgit_git_commit DEFINITION
         !ev_time   TYPE zif_abapgit_git_definitions=>ty_commit-time
       RAISING
         zcx_abapgit_exception .
+ENDCLASS.
+CLASS zcl_abapgit_git_factory DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    CLASS-METHODS
+      get_v2_porcelain
+        RETURNING VALUE(ri_v2) TYPE REF TO zif_abapgit_gitv2_porcelain.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS kHGwlHhZbTrIxNkYzsWttffscEwAXR DEFINITION DEFERRED.
 *"* use this source file for any type of declarations (class
@@ -7142,6 +7172,13 @@ CLASS zcl_abapgit_git_time DEFINITION
         VALUE(rv_time) TYPE ty_unixtime
       RAISING
         zcx_abapgit_exception .
+
+    CLASS-METHODS get_one_year_ago
+      RETURNING
+        VALUE(rv_time) TYPE i
+      RAISING
+        zcx_abapgit_exception .
+
     CLASS-METHODS get_utc
       IMPORTING
         !iv_unix TYPE ty_unixtime
@@ -21353,6 +21390,10 @@ CLASS zcl_abapgit_gui_page_flow DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
+    CONSTANTS: BEGIN OF c_action,
+                 refresh TYPE string VALUE 'refresh',
+               END OF c_action.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_merge DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -22468,6 +22509,7 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
         checks                       TYPE string VALUE 'checks',
         code_inspector_check_variant TYPE string VALUE 'code_inspector_check_variant',
         block_commit                 TYPE string VALUE 'block_commit',
+        flow                         TYPE string VALUE 'flow',
       END OF c_id .
     CONSTANTS:
       BEGIN OF c_event,
@@ -41311,8 +41353,15 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
     )->checkbox(
       iv_name        = c_id-main_language_only
       iv_label       = 'Only Serialize Main Language'
-      iv_hint        = 'Ignore translations; serialize only main language of repository'
-    )->start_group(
+      iv_hint        = 'Ignore translations; serialize only main language of repository' ).
+
+    IF zcl_abapgit_feature=>is_enabled( 'FLOW' ) = abap_true.
+      ro_form->checkbox(
+        iv_name  = c_id-flow
+        iv_label = 'Enable Flow Page' ).
+    ENDIF.
+
+    ro_form->start_group(
       iv_name        = c_id-checks
       iv_label       = 'Local Checks'
       iv_hint        = 'Code Inspector check performed to run from menu and before commit'
@@ -41401,6 +41450,9 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
       iv_key = c_id-main_language_only
       iv_val = boolc( ms_settings-main_language_only = abap_true ) ) ##TYPE.
     ro_form_data->set(
+      iv_key = c_id-flow
+      iv_val = boolc( ms_settings-flow = abap_true ) ) ##TYPE.
+    ro_form_data->set(
       iv_key = c_id-write_protected
       iv_val = boolc( ms_settings-write_protected = abap_true ) ) ##TYPE.
     ro_form_data->set(
@@ -41422,6 +41474,7 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
     ms_settings-labels                       = zcl_abapgit_repo_labels=>normalize( mo_form_data->get( c_id-labels ) ).
     ms_settings-ignore_subpackages           = mo_form_data->get( c_id-ignore_subpackages ).
     ms_settings-main_language_only           = mo_form_data->get( c_id-main_language_only ).
+    ms_settings-flow                         = mo_form_data->get( c_id-flow ).
     ms_settings-write_protected              = mo_form_data->get( c_id-write_protected ).
     ms_settings-only_local_objects           = mo_form_data->get( c_id-only_local_objects ).
     ms_settings-code_inspector_check_variant = mo_form_data->get( c_id-code_inspector_check_variant ).
@@ -46143,55 +46196,660 @@ CLASS zcl_abapgit_gui_page_merge IMPLEMENTATION.
 ENDCLASS.
 
 CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio DEFINITION DEFERRED.
+CLASS kHGwlHbtMQYaNXTWgQdwmgPrpXDFKn DEFINITION DEFERRED.
+CLASS kHGwlHbtMQYaNXTWgQdwhPIfZcUzJG DEFINITION DEFERRED.
 *"* use this source file for the definition and implementation of
 *"* local helper classes, interface definitions and type
 *"* declarations
 
+* renamed: zcl_abapgit_gui_page_flow :: lcl_sha1_stack
+CLASS kHGwlHbtMQYaNXTWgQdwhPIfZcUzJG DEFINITION.
+  PUBLIC SECTION.
+    METHODS clear
+      RETURNING
+        VALUE(ro_stack) TYPE REF TO kHGwlHbtMQYaNXTWgQdwhPIfZcUzJG.
+
+    METHODS push
+      IMPORTING
+        iv_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1.
+
+    METHODS pop
+      RETURNING
+        VALUE(rv_sha1) TYPE zif_abapgit_git_definitions=>ty_sha1.
+
+    METHODS size
+      RETURNING
+        VALUE(rv_size) TYPE i.
+  PRIVATE SECTION.
+    DATA mt_list TYPE STANDARD TABLE OF zif_abapgit_git_definitions=>ty_sha1 WITH DEFAULT KEY.
+ENDCLASS.
+
+CLASS kHGwlHbtMQYaNXTWgQdwhPIfZcUzJG IMPLEMENTATION.
+  METHOD clear.
+    CLEAR mt_list.
+    ro_stack = me.
+  ENDMETHOD.
+
+  METHOD push.
+    INSERT iv_sha1 INTO mt_list INDEX 1.
+  ENDMETHOD.
+
+  METHOD pop.
+    READ TABLE mt_list INDEX 1 INTO rv_sha1.
+    ASSERT sy-subrc = 0.
+    DELETE mt_list INDEX 1.
+  ENDMETHOD.
+
+  METHOD size.
+    rv_size = lines( mt_list ).
+  ENDMETHOD.
+ENDCLASS.
+
+***************************************************
+
+* renamed: zcl_abapgit_gui_page_flow :: lcl_filter
+CLASS kHGwlHbtMQYaNXTWgQdwmgPrpXDFKn DEFINITION FINAL.
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_object_filter.
+
+    METHODS constructor
+      IMPORTING
+        it_filter TYPE zif_abapgit_definitions=>ty_tadir_tt.
+
+  PRIVATE SECTION.
+    DATA mt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt.
+ENDCLASS.
+
+CLASS kHGwlHbtMQYaNXTWgQdwmgPrpXDFKn IMPLEMENTATION.
+  METHOD constructor.
+    mt_filter = it_filter.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_object_filter~get_filter.
+    rt_filter = mt_filter.
+  ENDMETHOD.
+ENDCLASS.
+
+***************************************************
+
 * renamed: zcl_abapgit_gui_page_flow :: lcl_helper
 CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio DEFINITION FINAL.
   PUBLIC SECTION.
-    CLASS-METHODS list_changes_per_branch
-      IMPORTING
-        io_online TYPE REF TO zcl_abapgit_repo_online
+
+    TYPES:
+      BEGIN OF ty_path_name,
+        path        TYPE string,
+        name        TYPE string,
+        remote_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1,
+        local_sha1  TYPE zif_abapgit_git_definitions=>ty_sha1,
+      END OF ty_path_name.
+    TYPES:
+      ty_path_name_tt TYPE HASHED TABLE OF ty_path_name WITH UNIQUE KEY path name.
+
+    TYPES: BEGIN OF ty_feature,
+             repo_name       TYPE string,
+             package         TYPE devclass,
+             BEGIN OF branch,
+               display_name TYPE string,
+               sha1         TYPE zif_abapgit_git_definitions=>ty_sha1,
+               up_to_date   TYPE abap_bool,
+             END OF branch,
+             BEGIN OF pr,
+               title TYPE string,
+               url   TYPE string,
+               draft TYPE abap_bool,
+             END OF pr,
+             BEGIN OF transport,
+               trkorr TYPE trkorr,
+               title  TYPE string,
+             END OF transport,
+             changed_files   TYPE ty_path_name_tt,
+             changed_objects TYPE zif_abapgit_definitions=>ty_items_ts,
+           END OF ty_feature.
+    TYPES ty_features TYPE STANDARD TABLE OF ty_feature WITH DEFAULT KEY.
+
+    CLASS-METHODS get_information
+      RETURNING
+        VALUE(rt_features) TYPE ty_features
       RAISING
         zcx_abapgit_exception.
+  PRIVATE SECTION.
+    CONSTANTS c_main TYPE string VALUE 'main'.
+
+    TYPES: BEGIN OF ty_transport,
+             trkorr   TYPE trkorr,
+             title    TYPE string,
+             object   TYPE e071-object,
+             obj_name TYPE e071-obj_name,
+             devclass TYPE tadir-devclass,
+           END OF ty_transport.
+
+    TYPES ty_transports_tt TYPE STANDARD TABLE OF ty_transport WITH DEFAULT KEY.
+
+    CLASS-METHODS map_files_to_objects
+      IMPORTING
+        it_files                  TYPE ty_path_name_tt
+        io_online                 TYPE REF TO zcl_abapgit_repo_online
+      RETURNING
+        VALUE(rt_changed_objects) TYPE zif_abapgit_definitions=>ty_items_ts
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS find_changed_files_all
+      IMPORTING
+        io_online        TYPE REF TO zcl_abapgit_repo_online
+        it_branches      TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt
+      EXPORTING
+        et_main_expanded TYPE zif_abapgit_git_definitions=>ty_expanded_tt
+      CHANGING
+        ct_features      TYPE ty_features
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS try_matching_transports
+      IMPORTING
+        ii_repo          TYPE REF TO zif_abapgit_repo
+        it_main_expanded TYPE zif_abapgit_git_definitions=>ty_expanded_tt
+      CHANGING
+        ct_features      TYPE ty_features
+        ct_transports    TYPE ty_transports_tt
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS find_up_to_date
+      IMPORTING
+        iv_url      TYPE string
+        it_branches TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt
+      CHANGING
+        ct_features TYPE ty_features
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS find_prs
+      IMPORTING
+        iv_url      TYPE string
+      CHANGING
+        ct_features TYPE ty_features
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS add_local_status
+      IMPORTING
+        io_online   TYPE REF TO zcl_abapgit_repo_online
+      CHANGING
+        ct_features TYPE ty_features
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS find_open_transports
+      RETURNING
+        VALUE(rt_transports) TYPE ty_transports_tt
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS find_changed_files
+      IMPORTING
+        it_expanded1    TYPE zif_abapgit_git_definitions=>ty_expanded_tt
+        it_expanded2    TYPE zif_abapgit_git_definitions=>ty_expanded_tt
+      RETURNING
+        VALUE(rt_files) TYPE ty_path_name_tt.
 ENDCLASS.
 
 CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
 
-  METHOD list_changes_per_branch.
+  METHOD find_prs.
 
-    DATA lt_branches TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt.
-    DATA ls_branch   LIKE LINE OF lt_branches.
-    DATA lt_sha1     TYPE zif_abapgit_git_definitions=>ty_sha1_tt.
-    DATA lt_expanded TYPE zif_abapgit_git_definitions=>ty_expanded_tt.
-    DATA lt_objects  TYPE zif_abapgit_definitions=>ty_objects_tt.
-    DATA lv_starting_folder TYPE string.
+    DATA lt_pulls TYPE zif_abapgit_pr_enum_provider=>ty_pull_requests.
+    DATA ls_pull LIKE LINE OF lt_pulls.
 
-    lt_branches = zcl_abapgit_gitv2_porcelain=>list_branches(
-      iv_url    = io_online->get_url( )
-      iv_prefix = 'refs/heads/' )->get_all( ).
-    LOOP AT lt_branches INTO ls_branch WHERE is_head = abap_false.
+    FIELD-SYMBOLS <ls_branch> LIKE LINE OF ct_features.
+    IF lines( ct_features ) = 0.
+      " only main branch
+      RETURN.
+    ENDIF.
+
+    lt_pulls = zcl_abapgit_pr_enumerator=>new( iv_url )->get_pulls( ).
+
+    LOOP AT ct_features ASSIGNING <ls_branch>.
+      READ TABLE lt_pulls INTO ls_pull WITH KEY head_branch = <ls_branch>-branch-display_name.
+      IF sy-subrc = 0.
+        <ls_branch>-pr-title = |{ ls_pull-title } #{ ls_pull-number }|.
+        <ls_branch>-pr-url = ls_pull-html_url.
+        <ls_branch>-pr-draft = ls_pull-draft.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD get_information.
+
+    DATA lt_branches   TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt.
+    DATA ls_branch     LIKE LINE OF lt_branches.
+    DATA ls_result     LIKE LINE OF rt_features.
+    DATA lt_favorites  TYPE zif_abapgit_repo_srv=>ty_repo_list.
+    DATA li_favorite   LIKE LINE OF lt_favorites.
+    DATA lo_online     TYPE REF TO zcl_abapgit_repo_online.
+    DATA lt_features   LIKE rt_features.
+    DATA lt_transports TYPE ty_transports_tt.
+    DATA lt_main_expanded TYPE zif_abapgit_git_definitions=>ty_expanded_tt.
+    lt_transports = find_open_transports( ).
+
+* list branches on favorite + flow enabled + transported repos
+    lt_favorites = zcl_abapgit_repo_srv=>get_instance( )->list_favorites( abap_false ).
+    LOOP AT lt_favorites INTO li_favorite.
+      IF li_favorite->get_local_settings( )-flow = abap_false.
+        CONTINUE.
+      ELSEIF zcl_abapgit_factory=>get_sap_package( li_favorite->get_package( )
+          )->are_changes_recorded_in_tr_req( ) = abap_false.
+        CONTINUE.
+      ENDIF.
+
+      lo_online ?= li_favorite.
+
+      lt_branches = zcl_abapgit_git_factory=>get_v2_porcelain( )->list_branches(
+        iv_url    = lo_online->get_url( )
+        iv_prefix = 'refs/heads/' )->get_all( ).
+
+      CLEAR lt_features.
+      LOOP AT lt_branches INTO ls_branch WHERE display_name <> c_main.
+        ls_result-repo_name = li_favorite->get_name( ).
+        ls_result-package = li_favorite->get_package( ).
+        ls_result-branch-display_name = ls_branch-display_name.
+        ls_result-branch-sha1 = ls_branch-sha1.
+        INSERT ls_result INTO TABLE lt_features.
+      ENDLOOP.
+
+      find_changed_files_all(
+        EXPORTING
+          io_online   = lo_online
+          it_branches = lt_branches
+        IMPORTING
+          et_main_expanded = lt_main_expanded
+        CHANGING
+          ct_features = lt_features ).
+
+      try_matching_transports(
+        EXPORTING
+          ii_repo       = li_favorite
+          it_main_expanded = lt_main_expanded
+        CHANGING
+          ct_transports = lt_transports
+          ct_features   = lt_features ).
+
+      find_up_to_date(
+        EXPORTING
+          iv_url      = lo_online->get_url( )
+          it_branches = lt_branches
+        CHANGING
+          ct_features = lt_features ).
+
+      find_prs(
+        EXPORTING
+          iv_url      = lo_online->get_url( )
+        CHANGING
+          ct_features = lt_features ).
+
+      add_local_status(
+        EXPORTING
+          io_online   = lo_online
+        CHANGING
+          ct_features = lt_features ).
+
+      INSERT LINES OF lt_features INTO TABLE rt_features.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD try_matching_transports.
+
+    DATA lt_trkorr   LIKE ct_transports.
+    DATA ls_trkorr   LIKE LINE OF lt_trkorr.
+    DATA ls_result   LIKE LINE OF ct_features.
+    DATA lt_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt.
+    DATA lv_package  LIKE LINE OF lt_packages.
+    DATA lv_found    TYPE abap_bool.
+    DATA ls_changed  LIKE LINE OF ls_result-changed_objects.
+    DATA lo_filter   TYPE REF TO kHGwlHbtMQYaNXTWgQdwmgPrpXDFKn.
+    DATA lt_filter   TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    DATA lt_local  TYPE zif_abapgit_definitions=>ty_files_item_tt.
+    DATA ls_changed_file LIKE LINE OF ls_result-changed_files.
+
+    FIELD-SYMBOLS <ls_feature>   LIKE LINE OF ct_features.
+    FIELD-SYMBOLS <ls_transport> LIKE LINE OF ct_transports.
+    FIELD-SYMBOLS <ls_local>     LIKE LINE OF lt_local.
+    FIELD-SYMBOLS <ls_filter>    LIKE LINE OF lt_filter.
+    FIELD-SYMBOLS <ls_changed>   LIKE LINE OF <ls_feature>-changed_objects.
+    FIELD-SYMBOLS <ls_main_expanded> LIKE LINE OF it_main_expanded.
+    SORT ct_transports BY object obj_name.
+
+    LOOP AT ct_features ASSIGNING <ls_feature>.
+      LOOP AT <ls_feature>-changed_objects ASSIGNING <ls_changed>.
+        READ TABLE ct_transports ASSIGNING <ls_transport>
+          WITH KEY object = <ls_changed>-obj_type obj_name = <ls_changed>-obj_name BINARY SEARCH.
+        IF sy-subrc = 0.
+          <ls_feature>-transport-trkorr = <ls_transport>-trkorr.
+          <ls_feature>-transport-title = <ls_transport>-title.
+
+          DELETE ct_transports WHERE trkorr = <ls_transport>-trkorr.
+* todo, fill changed objects/files?
+          EXIT.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+
+* unmatched transports
+    lt_trkorr = ct_transports.
+    SORT lt_trkorr BY trkorr.
+    DELETE ADJACENT DUPLICATES FROM lt_trkorr COMPARING trkorr.
+
+    lt_packages = zcl_abapgit_factory=>get_sap_package( ii_repo->get_package( ) )->list_subpackages( ).
+
+    LOOP AT lt_trkorr INTO ls_trkorr.
+      lv_found = abap_false.
+      LOOP AT lt_packages INTO lv_package.
+        READ TABLE ct_transports ASSIGNING <ls_transport> WITH KEY trkorr = ls_trkorr-trkorr devclass = lv_package.
+        IF sy-subrc = 0.
+          lv_found = abap_true.
+        ENDIF.
+      ENDLOOP.
+      IF lv_found = abap_false.
+        CONTINUE.
+      ENDIF.
+
+      CLEAR ls_result.
+      CLEAR lt_filter.
+      ls_result-repo_name = ii_repo->get_name( ).
+      ls_result-package = ii_repo->get_package( ).
+      ls_result-transport-trkorr = <ls_transport>-trkorr.
+      ls_result-transport-title = <ls_transport>-title.
+      LOOP AT ct_transports ASSIGNING <ls_transport> WHERE trkorr = ls_trkorr-trkorr.
+        ls_changed-obj_type = <ls_transport>-object.
+        ls_changed-obj_name = <ls_transport>-obj_name.
+        INSERT ls_changed INTO TABLE ls_result-changed_objects.
+
+        APPEND INITIAL LINE TO lt_filter ASSIGNING <ls_filter>.
+        <ls_filter>-object = <ls_transport>-object.
+        <ls_filter>-obj_name = <ls_transport>-obj_name.
+      ENDLOOP.
+
+      CREATE OBJECT lo_filter EXPORTING it_filter = lt_filter.
+      lt_local = ii_repo->get_files_local_filtered( lo_filter ).
+      LOOP AT lt_local ASSIGNING <ls_local> WHERE file-filename <> zif_abapgit_definitions=>c_dot_abapgit.
+        ls_changed_file-path       = <ls_local>-file-path.
+        ls_changed_file-name       = <ls_local>-file-filename.
+        ls_changed_file-local_sha1 = <ls_local>-file-sha1.
+
+        READ TABLE it_main_expanded ASSIGNING <ls_main_expanded>
+          WITH TABLE KEY path_name COMPONENTS
+          path = ls_changed_file-path
+          name = ls_changed_file-name.
+        IF sy-subrc = 0.
+          ls_changed_file-remote_sha1 = <ls_main_expanded>-sha1.
+        ENDIF.
+
+        INSERT ls_changed_file INTO TABLE ls_result-changed_files.
+      ENDLOOP.
+
+      INSERT ls_result INTO TABLE ct_features.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD find_open_transports.
+
+    DATA lt_trkorr   TYPE zif_abapgit_cts_api=>ty_trkorr_tt.
+    DATA lv_trkorr   LIKE LINE OF lt_trkorr.
+    DATA ls_result   LIKE LINE OF rt_transports.
+    DATA lt_objects  TYPE zif_abapgit_cts_api=>ty_transport_obj_tt.
+    DATA lv_obj_name TYPE tadir-obj_name.
+
+    FIELD-SYMBOLS <ls_object> LIKE LINE OF lt_objects.
+    lt_trkorr = zcl_abapgit_factory=>get_cts_api( )->list_open_requests_by_user( ).
+
+    LOOP AT lt_trkorr INTO lv_trkorr.
+      ls_result-trkorr  = lv_trkorr.
+      ls_result-title   = zcl_abapgit_factory=>get_cts_api( )->read_description( lv_trkorr ).
+
+      lt_objects = zcl_abapgit_factory=>get_cts_api( )->list_r3tr_by_request( lv_trkorr ).
+      LOOP AT lt_objects ASSIGNING <ls_object>.
+        ls_result-object = <ls_object>-object.
+        ls_result-obj_name = <ls_object>-obj_name.
+
+        lv_obj_name = <ls_object>-obj_name.
+        ls_result-devclass = zcl_abapgit_factory=>get_tadir( )->read_single(
+          iv_object   = ls_result-object
+          iv_obj_name = lv_obj_name )-devclass.
+        INSERT ls_result INTO TABLE rt_transports.
+      ENDLOOP.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD find_up_to_date.
+
+    DATA ls_branch  LIKE LINE OF it_branches.
+    DATA lt_commits TYPE zif_abapgit_definitions=>ty_objects_tt.
+    DATA ls_main    LIKE LINE OF it_branches.
+    DATA lv_current TYPE zif_abapgit_git_definitions=>ty_sha1.
+    DATA lt_sha1    TYPE zif_abapgit_git_definitions=>ty_sha1_tt.
+    DATA lo_visit   TYPE REF TO kHGwlHbtMQYaNXTWgQdwhPIfZcUzJG.
+    DATA ls_raw     TYPE zcl_abapgit_git_pack=>ty_commit.
+
+    DATA lt_main_reachable TYPE HASHED TABLE OF zif_abapgit_git_definitions=>ty_sha1 WITH UNIQUE KEY table_line.
+
+    FIELD-SYMBOLS <ls_branch> LIKE LINE OF ct_features.
+    FIELD-SYMBOLS <ls_commit> LIKE LINE OF lt_commits.
+    IF lines( it_branches ) = 1.
+      " only main branch
+      RETURN.
+    ENDIF.
+
+    READ TABLE it_branches INTO ls_main WITH KEY display_name = c_main.
+    ASSERT sy-subrc = 0.
+
+    LOOP AT it_branches INTO ls_branch WHERE is_head = abap_false.
       APPEND ls_branch-sha1 TO lt_sha1.
     ENDLOOP.
 
-    lt_objects = zcl_abapgit_gitv2_porcelain=>list_no_blobs_multi(
+    lt_commits = zcl_abapgit_git_factory=>get_v2_porcelain( )->commits_last_year(
+      iv_url  = iv_url
+      it_sha1 = lt_sha1 ).
+
+    CREATE OBJECT lo_visit.
+    lo_visit->clear( )->push( ls_main-sha1 ).
+    WHILE lo_visit->size( ) > 0.
+      lv_current = lo_visit->pop( ).
+      INSERT lv_current INTO TABLE lt_main_reachable.
+      READ TABLE lt_commits ASSIGNING <ls_commit> WITH TABLE KEY sha COMPONENTS sha1 = lv_current.
+      IF sy-subrc = 0.
+        ls_raw = zcl_abapgit_git_pack=>decode_commit( <ls_commit>-data ).
+        lo_visit->push( ls_raw-parent ).
+        IF ls_raw-parent2 IS NOT INITIAL.
+          lo_visit->push( ls_raw-parent2 ).
+        ENDIF.
+      ENDIF.
+    ENDWHILE.
+
+    LOOP AT ct_features ASSIGNING <ls_branch>.
+      <ls_branch>-branch-up_to_date = abap_undefined.
+      lo_visit->clear( )->push( <ls_branch>-branch-sha1 ).
+
+      WHILE lo_visit->size( ) > 0.
+        lv_current = lo_visit->pop( ).
+        IF lv_current = ls_main-sha1.
+          <ls_branch>-branch-up_to_date = abap_true.
+          EXIT.
+        ENDIF.
+
+        READ TABLE lt_main_reachable WITH KEY table_line = lv_current TRANSPORTING NO FIELDS.
+        IF sy-subrc = 0.
+          <ls_branch>-branch-up_to_date = abap_false.
+          EXIT.
+        ENDIF.
+
+        READ TABLE lt_commits ASSIGNING <ls_commit> WITH TABLE KEY sha COMPONENTS sha1 = lv_current.
+        IF sy-subrc = 0.
+          ls_raw = zcl_abapgit_git_pack=>decode_commit( <ls_commit>-data ).
+          lo_visit->push( ls_raw-parent ).
+          IF ls_raw-parent2 IS NOT INITIAL.
+            lo_visit->push( ls_raw-parent2 ).
+          ENDIF.
+        ENDIF.
+      ENDWHILE.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD find_changed_files_all.
+
+    DATA ls_branch          LIKE LINE OF it_branches.
+    DATA lt_sha1            TYPE zif_abapgit_git_definitions=>ty_sha1_tt.
+    DATA lt_objects         TYPE zif_abapgit_definitions=>ty_objects_tt.
+    DATA lv_starting_folder TYPE string.
+    DATA ls_main            LIKE LINE OF it_branches.
+    DATA lt_expanded        TYPE zif_abapgit_git_definitions=>ty_expanded_tt.
+
+    FIELD-SYMBOLS <ls_branch> LIKE LINE OF ct_features.
+    LOOP AT it_branches INTO ls_branch WHERE is_head = abap_false.
+      APPEND ls_branch-sha1 TO lt_sha1.
+    ENDLOOP.
+
+    lt_objects = zcl_abapgit_git_factory=>get_v2_porcelain( )->list_no_blobs_multi(
       iv_url  = io_online->get_url( )
       it_sha1 = lt_sha1 ).
 
     lv_starting_folder = io_online->get_dot_abapgit( )->get_starting_folder( ) && '*'.
 
-    LOOP AT lt_branches INTO ls_branch WHERE is_head = abap_false.
+    READ TABLE it_branches INTO ls_main WITH KEY display_name = c_main.
+    ASSERT sy-subrc = 0.
+
+    et_main_expanded = zcl_abapgit_git_porcelain=>full_tree(
+      it_objects = lt_objects
+      iv_parent  = ls_main-sha1 ).
+    DELETE et_main_expanded WHERE path NP lv_starting_folder.
+
+    LOOP AT ct_features ASSIGNING <ls_branch> WHERE branch-display_name <> c_main.
       lt_expanded = zcl_abapgit_git_porcelain=>full_tree(
         it_objects = lt_objects
-        iv_parent  = ls_branch-sha1 ).
+        iv_parent  = <ls_branch>-branch-sha1 ).
       DELETE lt_expanded WHERE path NP lv_starting_folder.
+
+      <ls_branch>-changed_files = find_changed_files(
+        it_expanded1 = lt_expanded
+        it_expanded2 = et_main_expanded ).
+
+      <ls_branch>-changed_objects = map_files_to_objects(
+        io_online = io_online
+        it_files  = <ls_branch>-changed_files ).
     ENDLOOP.
 
   ENDMETHOD.
+
+  METHOD add_local_status.
+
+    DATA lt_local  TYPE zif_abapgit_definitions=>ty_files_item_tt.
+    DATA lo_filter TYPE REF TO kHGwlHbtMQYaNXTWgQdwmgPrpXDFKn.
+    DATA lt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt.
+
+    FIELD-SYMBOLS <ls_branch>       LIKE LINE OF ct_features.
+    FIELD-SYMBOLS <ls_local>        LIKE LINE OF lt_local.
+    FIELD-SYMBOLS <ls_changed_file> TYPE ty_path_name.
+    FIELD-SYMBOLS <ls_filter>       LIKE LINE OF lt_filter.
+    FIELD-SYMBOLS <ls_object>       LIKE LINE OF <ls_branch>-changed_objects.
+    LOOP AT ct_features ASSIGNING <ls_branch>.
+      LOOP AT <ls_branch>-changed_objects ASSIGNING <ls_object>.
+        APPEND INITIAL LINE TO lt_filter ASSIGNING <ls_filter>.
+        <ls_filter>-object = <ls_object>-obj_type.
+        <ls_filter>-obj_name = <ls_object>-obj_name.
+      ENDLOOP.
+    ENDLOOP.
+    SORT lt_filter BY object obj_name.
+    DELETE ADJACENT DUPLICATES FROM lt_filter COMPARING object obj_name.
+
+    IF lines( lt_filter ) = 0.
+      RETURN.
+    ENDIF.
+
+    CREATE OBJECT lo_filter EXPORTING it_filter = lt_filter.
+    lt_local = io_online->get_files_local_filtered( lo_filter ).
+
+    LOOP AT ct_features ASSIGNING <ls_branch>.
+      LOOP AT <ls_branch>-changed_files ASSIGNING <ls_changed_file>.
+        READ TABLE lt_local ASSIGNING <ls_local>
+          WITH KEY file-filename = <ls_changed_file>-name
+          file-path = <ls_changed_file>-path.
+        IF sy-subrc = 0.
+          <ls_changed_file>-local_sha1 = <ls_local>-file-sha1.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD map_files_to_objects.
+
+    DATA ls_item TYPE zif_abapgit_definitions=>ty_item.
+
+    FIELD-SYMBOLS <ls_file> LIKE LINE OF it_files.
+
+    LOOP AT it_files ASSIGNING <ls_file>.
+      zcl_abapgit_filename_logic=>file_to_object(
+        EXPORTING
+          iv_filename = <ls_file>-name
+          iv_path     = <ls_file>-path
+          iv_devclass = io_online->get_package( )
+          io_dot      = io_online->get_dot_abapgit( )
+        IMPORTING
+          es_item     = ls_item ).
+      INSERT ls_item INTO TABLE rt_changed_objects.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD find_changed_files.
+* dont care if its added or removed or changed, just remove identical
+* also list identical moved files
+
+    DATA ls_path_name LIKE LINE OF rt_files.
+
+    FIELD-SYMBOLS <ls_expanded1> LIKE LINE OF it_expanded1.
+    FIELD-SYMBOLS <ls_expanded2> LIKE LINE OF it_expanded1.
+
+    LOOP AT it_expanded1 ASSIGNING <ls_expanded1>.
+      READ TABLE it_expanded2 ASSIGNING <ls_expanded2>
+        WITH TABLE KEY path_name COMPONENTS
+        path = <ls_expanded1>-path
+        name = <ls_expanded1>-name.
+      IF sy-subrc = 0 AND <ls_expanded1>-sha1 = <ls_expanded2>-sha1.
+        CONTINUE.
+      ENDIF.
+
+      MOVE-CORRESPONDING <ls_expanded1> TO ls_path_name.
+      ls_path_name-remote_sha1 = <ls_expanded1>-sha1.
+      INSERT ls_path_name INTO TABLE rt_files.
+    ENDLOOP.
+
+    LOOP AT it_expanded2 ASSIGNING <ls_expanded2>.
+      READ TABLE it_expanded1 ASSIGNING <ls_expanded1>
+        WITH TABLE KEY path_name COMPONENTS
+        path = <ls_expanded2>-path
+        name = <ls_expanded2>-name.
+      IF sy-subrc = 0 AND <ls_expanded1>-sha1 = <ls_expanded2>-sha1.
+        CONTINUE.
+      ENDIF.
+
+      MOVE-CORRESPONDING <ls_expanded2> TO ls_path_name.
+      ls_path_name-remote_sha1 = <ls_expanded2>-sha1.
+      INSERT ls_path_name INTO TABLE rt_files.
+    ENDLOOP.
+
+  ENDMETHOD.
+
 ENDCLASS.
 
-CLASS zcl_abapgit_gui_page_flow IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_GUI_PAGE_FLOW IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
 
@@ -46209,11 +46867,19 @@ CLASS zcl_abapgit_gui_page_flow IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
-    RETURN. " todo, implement method
+
+    IF ii_event->mv_action = c_action-refresh.
+      rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+    ENDIF.
+
   ENDMETHOD.
   METHOD zif_abapgit_gui_menu_provider~get_menu.
 
     CREATE OBJECT ro_toolbar EXPORTING iv_id = 'toolbar-main'.
+
+    ro_toolbar->add(
+      iv_txt = 'Refresh'
+      iv_act = c_action-refresh ).
 
     ro_toolbar->add(
       iv_txt = zcl_abapgit_gui_buttons=>repo_list( )
@@ -46221,29 +46887,96 @@ CLASS zcl_abapgit_gui_page_flow IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
-    DATA lt_favorites TYPE zif_abapgit_repo_srv=>ty_repo_list.
-    DATA li_favorite  LIKE LINE OF lt_favorites.
-    DATA lo_online    TYPE REF TO zcl_abapgit_repo_online.
+    DATA lt_features   TYPE kHGwlHbtMQYaNXTWgQdwprsTTRQzio=>ty_features.
+    DATA ls_feature    LIKE LINE OF lt_features.
+    DATA ls_path_name  LIKE LINE OF ls_feature-changed_files.
+    DATA ls_item       LIKE LINE OF ls_feature-changed_objects.
+    DATA lv_status     TYPE string.
+    DATA lv_full_match TYPE abap_bool.
+    DATA li_table      TYPE REF TO zif_abapgit_html.
     register_handlers( ).
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     ri_html->add( '<div class="repo-overview">' ).
 
-* list branches on favorite transported repos
-    lt_favorites = zcl_abapgit_repo_srv=>get_instance( )->list_favorites( abap_false ).
-    LOOP AT lt_favorites INTO li_favorite.
-      " todo, IF zcl_abapgit_factory=>get_sap_package( li_favorite->get_package( )
-      " todo,     )->are_changes_recorded_in_tr_req( ) = abap_false.
-      " todo,   CONTINUE.
-      " todo, ENDIF.
+    lt_features = kHGwlHbtMQYaNXTWgQdwprsTTRQzio=>get_information( ).
+    LOOP AT lt_features INTO ls_feature.
+      IF lines( ls_feature-changed_files ) = 0.
+* no changes, eg. only files outside of starting folder changed
+        CONTINUE.
+      ENDIF.
 
-      lo_online ?= li_favorite.
-      ri_html->add( '<u>' && li_favorite->get_name( ) && '</u><br>' ).
+      ri_html->add( '<b><font size="+2">' && ls_feature-repo_name ).
+      IF ls_feature-branch IS NOT INITIAL.
+        ri_html->add( | - | ).
+        ri_html->add_icon( 'code-branch' ).
+        ri_html->add( ls_feature-branch-display_name ).
+      ENDIF.
+      IF ls_feature-transport-trkorr IS NOT INITIAL.
+        ri_html->add( | - | ).
+        ri_html->add_icon( 'truck-solid' ).
+        ri_html->add( |<tt>{ ls_feature-transport-trkorr }</tt>| ).
+      ENDIF.
+      ri_html->add( |</font></b><br>| ).
 
-      kHGwlHbtMQYaNXTWgQdwprsTTRQzio=>list_changes_per_branch( lo_online ).
+      IF ls_feature-branch IS INITIAL.
+        ri_html->add( |No branch found, comparing with <tt>main</tt>| ).
+      ELSEIF ls_feature-pr IS NOT INITIAL.
+        ri_html->add_a(
+          iv_txt   = ls_feature-pr-title
+          iv_act   = |{ zif_abapgit_definitions=>c_action-url }?url={ ls_feature-pr-url }|
+          iv_class = |url| ).
+
+        IF ls_feature-pr-draft = abap_true.
+          ri_html->add( 'DRAFT' ).
+        ENDIF.
+      ELSE.
+        ri_html->add( |No PR found| ).
+      ENDIF.
+      ri_html->add( |<br>| ).
+
+      IF ls_feature-transport IS NOT INITIAL.
+        ri_html->add( |<tt>{ ls_feature-transport-trkorr }</tt> - { ls_feature-transport-title }<br>| ).
+      ELSE.
+        ri_html->add( |No corresponding transport found<br>| ).
+      ENDIF.
+
+      ri_html->add( '<br>' ).
+      IF ls_feature-branch IS NOT INITIAL AND ls_feature-branch-up_to_date = abap_false.
+        ri_html->add( 'Branch not up to date<br><br>' ).
+        CONTINUE.
+      ENDIF.
+
+      CREATE OBJECT li_table TYPE zcl_abapgit_html.
+      lv_full_match = abap_true.
+
+      li_table->add( |<table>| ).
+      li_table->add( |<tr><td><u>Filename</u></td><td><u>Remote SHA1</u></td>| &&
+                    |<td><u>Local SHA1</u></td><td></td></tr>| ).
+      LOOP AT ls_feature-changed_files INTO ls_path_name.
+
+        IF ls_path_name-remote_sha1 = ls_path_name-local_sha1.
+          lv_status = 'Match'.
+        ELSE.
+          lv_full_match = abap_false.
+          lv_status = 'Diff'.
+        ENDIF.
+        li_table->add( |<tr><td><tt>{ ls_path_name-path }{ ls_path_name-name }</tt></td><td>{
+          ls_path_name-remote_sha1(7) }</td><td>{
+          ls_path_name-local_sha1(7) }</td><td>{ lv_status }</td></tr>| ).
+      ENDLOOP.
+      li_table->add( |</table>| ).
+      LOOP AT ls_feature-changed_objects INTO ls_item.
+        li_table->add( |<tt>{ ls_item-obj_type } { ls_item-obj_name }</tt><br>| ).
+      ENDLOOP.
+
+      IF lv_full_match = abap_true.
+        ri_html->add( |Full Match<br>| ).
+      ELSE.
+        ri_html->add( li_table ).
+      ENDIF.
+
+      ri_html->add( '<br>' ).
     ENDLOOP.
-
-* list open transports for current user
-* todo
 
     ri_html->add( '</div>' ).
 
@@ -121990,6 +122723,8 @@ CLASS ZCL_ABAPGIT_PR_ENUM_GITHUB IMPLEMENTATION.
       <ls_p>-head_url        = ii_json->get( |/{ lv_i }/head/repo/clone_url| ).
       <ls_p>-head_branch     = ii_json->get( |/{ lv_i }/head/ref| ).
       <ls_p>-created_at      = ii_json->get( |/{ lv_i }/created_at| ).
+      <ls_p>-draft           = ii_json->get_boolean( |/{ lv_i }/draft| ).
+      <ls_p>-html_url        = ii_json->get( |/{ lv_i }/html_url| ).
     ENDLOOP.
 
   ENDMETHOD.
@@ -123125,6 +123860,20 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_git_time IMPLEMENTATION.
+  METHOD get_one_year_ago.
+* https://www.epochconverter.com
+    CONSTANTS lc_epoch TYPE timestamp VALUE '19700101000000'.
+    DATA lv_time TYPE timestamp.
+
+    GET TIME STAMP FIELD lv_time.
+
+    rv_time = cl_abap_tstmp=>subtract(
+      tstmp1 = lv_time
+      tstmp2 = lc_epoch ).
+
+    rv_time = rv_time - 31536000.
+  ENDMETHOD.
+
   METHOD get_unix.
 * returns seconds since unix epoch, including timezone indicator
 
@@ -124553,6 +125302,12 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_GIT_FACTORY IMPLEMENTATION.
+  METHOD get_v2_porcelain.
+    CREATE OBJECT ri_v2 TYPE zcl_abapgit_gitv2_porcelain.
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_git_commit IMPLEMENTATION.
 
   METHOD extract_author_data.
@@ -125071,59 +125826,7 @@ CLASS ZCL_ABAPGIT_GIT_ADD_PATCH IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_gitv2_porcelain IMPLEMENTATION.
-  METHOD list_branches.
-    DATA lv_xstring   TYPE xstring.
-    DATA lt_arguments TYPE string_table.
-    DATA lv_argument  TYPE string.
-    DATA lv_data      TYPE string.
-
-    IF iv_prefix IS NOT INITIAL.
-      lv_argument = |ref-prefix { iv_prefix }|.
-      APPEND lv_argument TO lt_arguments.
-    ENDIF.
-
-    lv_xstring = send_command(
-      iv_url       = iv_url
-      iv_service   = c_service-upload
-      iv_command   = |ls-refs|
-      it_arguments = lt_arguments ).
-
-    " add dummy packet so the v1 branch parsing can be reused
-    lv_data = |0004\n{ zcl_abapgit_convert=>xstring_to_string_utf8( lv_xstring ) }|.
-
-    CREATE OBJECT ro_list
-      EXPORTING
-        iv_data = lv_data.
-
-  ENDMETHOD.
-  METHOD list_no_blobs_multi.
-
-    DATA lv_xstring   TYPE xstring.
-    DATA lt_arguments TYPE string_table.
-    DATA lv_argument  TYPE string.
-    DATA lv_sha1      LIKE LINE OF it_sha1.
-    ASSERT lines( it_sha1 ) > 0.
-
-    APPEND 'deepen 1' TO lt_arguments.
-    LOOP AT it_sha1 INTO lv_sha1.
-      lv_argument = |want { lv_sha1 }|.
-      APPEND lv_argument TO lt_arguments.
-    ENDLOOP.
-    APPEND 'filter blob:none' TO lt_arguments.
-    APPEND 'no-progress' TO lt_arguments.
-    APPEND 'done' TO lt_arguments.
-
-    lv_xstring = send_command(
-      iv_url       = iv_url
-      iv_service   = c_service-upload
-      iv_command   = |fetch|
-      it_arguments = lt_arguments ).
-
-    rt_objects = decode_pack( lv_xstring ).
-
-  ENDMETHOD.
-
+CLASS ZCL_ABAPGIT_GITV2_PORCELAIN IMPLEMENTATION.
   METHOD decode_pack.
 
     DATA lv_xstring TYPE xstring.
@@ -125154,24 +125857,6 @@ CLASS zcl_abapgit_gitv2_porcelain IMPLEMENTATION.
     ENDWHILE.
 
     rt_objects = zcl_abapgit_git_pack=>decode( lv_pack ).
-
-  ENDMETHOD.
-
-  METHOD list_no_blobs.
-
-    DATA lt_sha1    TYPE zif_abapgit_git_definitions=>ty_sha1_tt.
-    DATA lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt.
-
-    ASSERT iv_sha1 IS NOT INITIAL.
-    APPEND iv_sha1 TO lt_sha1.
-
-    lt_objects = list_no_blobs_multi(
-      iv_url  = iv_url
-      it_sha1 = lt_sha1 ).
-
-    rt_expanded = zcl_abapgit_git_porcelain=>full_tree(
-      it_objects = lt_objects
-      iv_parent  = iv_sha1 ).
 
   ENDMETHOD.
   METHOD send_command.
@@ -125223,6 +125908,103 @@ CLASS zcl_abapgit_gitv2_porcelain IMPLEMENTATION.
       iv_value = |application/x-git-{ iv_service }-pack-result| ).
 
     rv_response = lo_client->send_receive_close( zcl_abapgit_convert=>string_to_xstring_utf8( lv_cmd_pkt ) ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gitv2_porcelain~commits_last_year.
+
+    DATA lv_xstring   TYPE xstring.
+    DATA lt_arguments TYPE string_table.
+    DATA lv_argument  TYPE string.
+    DATA lv_sha1      LIKE LINE OF it_sha1.
+    ASSERT lines( it_sha1 ) > 0.
+
+    lv_argument = |deepen-since { zcl_abapgit_git_time=>get_one_year_ago( ) }|.
+    APPEND lv_argument TO lt_arguments.
+    LOOP AT it_sha1 INTO lv_sha1.
+      lv_argument = |want { lv_sha1 }|.
+      APPEND lv_argument TO lt_arguments.
+    ENDLOOP.
+* 'filter object:type=commit' doesnt work on github
+    APPEND 'filter blob:none' TO lt_arguments.
+    APPEND 'no-progress' TO lt_arguments.
+    APPEND 'done' TO lt_arguments.
+
+    lv_xstring = send_command(
+      iv_url       = iv_url
+      iv_service   = c_service-upload
+      iv_command   = |fetch|
+      it_arguments = lt_arguments ).
+
+    rt_objects = decode_pack( lv_xstring ).
+    DELETE rt_objects WHERE type <> zif_abapgit_git_definitions=>c_type-commit.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gitv2_porcelain~list_branches.
+    DATA lv_xstring   TYPE xstring.
+    DATA lt_arguments TYPE string_table.
+    DATA lv_argument  TYPE string.
+    DATA lv_data      TYPE string.
+
+    IF iv_prefix IS NOT INITIAL.
+      lv_argument = |ref-prefix { iv_prefix }|.
+      APPEND lv_argument TO lt_arguments.
+    ENDIF.
+
+    lv_xstring = send_command(
+      iv_url       = iv_url
+      iv_service   = c_service-upload
+      iv_command   = |ls-refs|
+      it_arguments = lt_arguments ).
+
+    " add dummy packet so the v1 branch parsing can be reused
+    lv_data = |0004\n{ zcl_abapgit_convert=>xstring_to_string_utf8( lv_xstring ) }|.
+
+    CREATE OBJECT ro_list
+      EXPORTING
+        iv_data = lv_data.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gitv2_porcelain~list_no_blobs.
+
+    DATA lt_sha1    TYPE zif_abapgit_git_definitions=>ty_sha1_tt.
+    DATA lt_objects TYPE zif_abapgit_definitions=>ty_objects_tt.
+
+    ASSERT iv_sha1 IS NOT INITIAL.
+    APPEND iv_sha1 TO lt_sha1.
+
+    lt_objects = zif_abapgit_gitv2_porcelain~list_no_blobs_multi(
+      iv_url  = iv_url
+      it_sha1 = lt_sha1 ).
+
+    rt_expanded = zcl_abapgit_git_porcelain=>full_tree(
+      it_objects = lt_objects
+      iv_parent  = iv_sha1 ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gitv2_porcelain~list_no_blobs_multi.
+
+    DATA lv_xstring   TYPE xstring.
+    DATA lt_arguments TYPE string_table.
+    DATA lv_argument  TYPE string.
+    DATA lv_sha1      LIKE LINE OF it_sha1.
+    ASSERT lines( it_sha1 ) > 0.
+
+    APPEND 'deepen 1' TO lt_arguments.
+    LOOP AT it_sha1 INTO lv_sha1.
+      lv_argument = |want { lv_sha1 }|.
+      APPEND lv_argument TO lt_arguments.
+    ENDLOOP.
+    APPEND 'filter blob:none' TO lt_arguments.
+    APPEND 'no-progress' TO lt_arguments.
+    APPEND 'done' TO lt_arguments.
+
+    lv_xstring = send_command(
+      iv_url       = iv_url
+      iv_service   = c_service-upload
+      iv_command   = |fetch|
+      it_arguments = lt_arguments ).
+
+    rt_objects = decode_pack( lv_xstring ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -127492,7 +128274,7 @@ CLASS ZCL_ABAPGIT_CTS_API IMPLEMENTATION.
         LOOP AT lt_tlock ASSIGNING <ls_tlock>
             WHERE object = ls_lock_key-obj
             AND hikey >= ls_lock_key-low
-            AND lokey <= ls_lock_key-hi.               "#EC PORTABLE
+            AND lokey <= ls_lock_key-hi.                  "#EC PORTABLE
           lv_request = <ls_tlock>-trkorr.
           EXIT.
         ENDLOOP.
@@ -127586,6 +128368,61 @@ CLASS ZCL_ABAPGIT_CTS_API IMPLEMENTATION.
         WHERE trkorr = lt_e070-strkorr
         AND trfunction = zif_abapgit_cts_api=>c_transport_type-wb_request.
     ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_cts_api~list_r3tr_by_request.
+
+    TYPES: BEGIN OF ty_contents,
+             trkorr   TYPE e071-trkorr,
+             as4pos   TYPE e071-as4pos,
+             pgmid    TYPE e071-pgmid,
+             object   TYPE e071-object,
+             obj_name TYPE e071-obj_name,
+           END OF ty_contents.
+
+    DATA lt_tasks    TYPE STANDARD TABLE OF trkorr WITH DEFAULT KEY.
+    DATA lt_contents TYPE STANDARD TABLE OF ty_contents WITH DEFAULT KEY.
+    DATA ls_contents LIKE LINE OF lt_contents.
+    DATA ls_list     LIKE LINE OF rt_list.
+    SELECT trkorr FROM e070 INTO TABLE lt_tasks
+      WHERE strkorr = iv_request
+      ORDER BY PRIMARY KEY.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    SELECT trkorr as4pos pgmid object obj_name FROM e071
+      INTO TABLE lt_contents
+      FOR ALL ENTRIES IN lt_tasks
+      WHERE trkorr = lt_tasks-table_line
+      ORDER BY PRIMARY KEY.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    LOOP AT lt_contents INTO ls_contents.
+      CASE ls_contents-pgmid.
+        WHEN 'R3TR'.
+          ls_list-object = ls_contents-object.
+          ls_list-obj_name = ls_contents-obj_name.
+          INSERT ls_list INTO TABLE rt_list.
+        WHEN 'LIMU'.
+          TRY.
+              zif_abapgit_cts_api~get_r3tr_obj_for_limu_obj(
+                EXPORTING
+                  iv_object   = ls_contents-object
+                  iv_obj_name = ls_contents-obj_name
+                IMPORTING
+                  ev_object   = ls_list-object
+                  ev_obj_name = ls_list-obj_name ).
+              INSERT ls_list INTO TABLE rt_list.
+            CATCH zcx_abapgit_exception.
+          ENDTRY.
+      ENDCASE.
+    ENDLOOP.
+
+    SORT rt_list BY object obj_name.
+    DELETE ADJACENT DUPLICATES FROM rt_list COMPARING object obj_name.
 
   ENDMETHOD.
   METHOD zif_abapgit_cts_api~read.
@@ -129195,8 +130032,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-01T05:26:01.295Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-01T05:26:01.295Z`.
+* abapmerge 0.16.0 - 2023-11-01T11:02:21.360Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-01T11:02:21.360Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
