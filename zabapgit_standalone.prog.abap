@@ -2878,6 +2878,7 @@ INTERFACE zif_abapgit_services_repo .
       labels             TYPE string,
       ignore_subpackages TYPE abap_bool,
       main_lang_only     TYPE abap_bool,
+      abap_lang_vers     TYPE string,
     END OF ty_repo_params .
 
 ENDINTERFACE.
@@ -5155,6 +5156,7 @@ INTERFACE zif_abapgit_repo_srv .
       !iv_labels         TYPE string OPTIONAL
       !iv_ign_subpkg     TYPE abap_bool DEFAULT abap_false
       !iv_main_lang_only TYPE abap_bool DEFAULT abap_false
+      !iv_abap_lang_vers TYPE string OPTIONAL
     RETURNING
       VALUE(ri_repo)     TYPE REF TO zif_abapgit_repo
     RAISING
@@ -5169,6 +5171,7 @@ INTERFACE zif_abapgit_repo_srv .
       !iv_labels         TYPE string OPTIONAL
       !iv_ign_subpkg     TYPE abap_bool DEFAULT abap_false
       !iv_main_lang_only TYPE abap_bool DEFAULT abap_false
+      !iv_abap_lang_vers TYPE string OPTIONAL
     RETURNING
       VALUE(ri_repo)     TYPE REF TO zif_abapgit_repo
     RAISING
@@ -20267,6 +20270,7 @@ CLASS zcl_abapgit_gui_page_addofflin DEFINITION
         labels             TYPE string VALUE 'labels',
         ignore_subpackages TYPE string VALUE 'ignore_subpackages',
         main_lang_only     TYPE string VALUE 'main_lang_only',
+        abap_lang_vers     TYPE string VALUE 'abap_lang_vers',
       END OF c_id .
 
     CONSTANTS:
@@ -20333,6 +20337,7 @@ CLASS zcl_abapgit_gui_page_addonline DEFINITION
         folder_logic       TYPE string VALUE 'folder_logic',
         ignore_subpackages TYPE string VALUE 'ignore_subpackages',
         main_lang_only     TYPE string VALUE 'main_lang_only',
+        abap_lang_vers     TYPE string VALUE 'abap_lang_vers',
       END OF c_id.
 
     CONSTANTS:
@@ -36661,7 +36666,8 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       iv_folder_logic   = is_repo_params-folder_logic
       iv_labels         = is_repo_params-labels
       iv_ign_subpkg     = is_repo_params-ignore_subpackages
-      iv_main_lang_only = is_repo_params-main_lang_only ).
+      iv_main_lang_only = is_repo_params-main_lang_only
+      iv_abap_lang_vers = is_repo_params-abap_lang_vers ).
 
     check_and_create_package(
       iv_package = is_repo_params-package
@@ -36689,7 +36695,8 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       iv_folder_logic   = is_repo_params-folder_logic
       iv_labels         = is_repo_params-labels
       iv_ign_subpkg     = is_repo_params-ignore_subpackages
-      iv_main_lang_only = is_repo_params-main_lang_only ).
+      iv_main_lang_only = is_repo_params-main_lang_only
+      iv_abap_lang_vers = is_repo_params-abap_lang_vers ).
 
     check_and_create_package(
       iv_package = is_repo_params-package
@@ -49933,8 +49940,29 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
     )->checkbox(
       iv_name        = c_id-main_lang_only
       iv_label       = 'Serialize Main Language Only'
-      iv_hint        = 'Ignore translations, serialize just main language'
-    )->command(
+      iv_hint        = 'Ignore translations, serialize just main language' ).
+
+    IF zcl_abapgit_feature=>is_enabled( zcl_abapgit_abap_language_vers=>c_feature_flag ) = abap_true.
+      ro_form->radio(
+        iv_name        = c_id-abap_lang_vers
+        iv_default_value = ''
+        iv_label       = 'ABAP Language Version'
+        iv_hint        = 'Define the ABAP language version for objects in the repository'
+      )->option(
+        iv_label       = 'Any'
+        iv_value       = ''
+      )->option(
+        iv_label       = 'Standard'
+        iv_value       = zif_abapgit_dot_abapgit=>c_abap_language_version-standard
+      )->option(
+        iv_label       = 'For Key Users'
+        iv_value       = zif_abapgit_dot_abapgit=>c_abap_language_version-key_user
+      )->option(
+        iv_label       = 'For Cloud Development'
+        iv_value       = zif_abapgit_dot_abapgit=>c_abap_language_version-cloud_development ).
+    ENDIF.
+
+    ro_form->command(
       iv_label       = 'Create Online Repo'
       iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
       iv_action      = c_event-add_online_repo
@@ -50175,8 +50203,29 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
     )->checkbox(
       iv_name        = c_id-main_lang_only
       iv_label       = 'Serialize Main Language Only'
-      iv_hint        = 'Ignore translations, serialize just main language'
-    )->command(
+      iv_hint        = 'Ignore translations, serialize just main language' ).
+
+    IF zcl_abapgit_feature=>is_enabled( zcl_abapgit_abap_language_vers=>c_feature_flag ) = abap_true.
+      ro_form->radio(
+        iv_name        = c_id-abap_lang_vers
+        iv_default_value = ''
+        iv_label       = 'ABAP Language Version'
+        iv_hint        = 'Define the ABAP language version for objects in the repository'
+      )->option(
+        iv_label       = 'Any'
+        iv_value       = ''
+      )->option(
+        iv_label       = 'Standard'
+        iv_value       = zif_abapgit_dot_abapgit=>c_abap_language_version-standard
+      )->option(
+        iv_label       = 'For Key Users'
+        iv_value       = zif_abapgit_dot_abapgit=>c_abap_language_version-key_user
+      )->option(
+        iv_label       = 'For Cloud Development'
+        iv_value       = zif_abapgit_dot_abapgit=>c_abap_language_version-cloud_development ).
+    ENDIF.
+
+    ro_form->command(
       iv_label       = 'Create Offline Repo'
       iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
       iv_action      = c_event-add_offline_repo
@@ -58935,8 +58984,10 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Missing display name for repo' ).
     ENDIF.
 
+    " Repo Settings
     lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
     lo_dot_abapgit->set_folder_logic( iv_folder_logic ).
+    lo_dot_abapgit->set_abap_language_version( iv_abap_lang_vers ).
 
     lv_key = zcl_abapgit_persist_factory=>get_repo( )->add(
       iv_url          = iv_url
@@ -58953,6 +59004,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
     lo_repo ?= instantiate_and_add( ls_repo ).
 
+    " Local Settings
     IF ls_repo-local_settings-ignore_subpackages <> iv_ign_subpkg.
       ls_repo-local_settings-ignore_subpackages = iv_ign_subpkg.
     ENDIF.
@@ -58970,7 +59022,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
           lo_repo        TYPE REF TO zcl_abapgit_repo_online,
           lv_branch_name LIKE iv_branch_name,
           lv_key         TYPE zif_abapgit_persistence=>ty_repo-key,
-          ls_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit,
+          lo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit,
           lv_url         TYPE string.
     ASSERT NOT iv_url IS INITIAL
       AND NOT iv_package IS INITIAL.
@@ -58991,8 +59043,10 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       iv_name = iv_branch_name
       iv_url  = lv_url ).
 
-    ls_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( )->get_data( ).
-    ls_dot_abapgit-folder_logic = iv_folder_logic.
+    " Repo Settings
+    lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
+    lo_dot_abapgit->set_folder_logic( iv_folder_logic ).
+    lo_dot_abapgit->set_abap_language_version( iv_abap_lang_vers ).
 
     lv_key = zcl_abapgit_persist_factory=>get_repo( )->add(
       iv_url          = lv_url
@@ -59000,7 +59054,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       iv_display_name = iv_display_name
       iv_package      = iv_package
       iv_offline      = abap_false
-      is_dot_abapgit  = ls_dot_abapgit ).
+      is_dot_abapgit  = lo_dot_abapgit->get_data( ) ).
 
     TRY.
         ls_repo = zcl_abapgit_persist_factory=>get_repo( )->read( lv_key ).
@@ -59010,6 +59064,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
     lo_repo ?= instantiate_and_add( ls_repo ).
 
+    " Local Settings
     IF ls_repo-local_settings-ignore_subpackages <> iv_ign_subpkg.
       ls_repo-local_settings-ignore_subpackages = iv_ign_subpkg.
     ENDIF.
@@ -129140,8 +129195,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-01T05:09:59.460Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-01T05:09:59.460Z`.
+* abapmerge 0.16.0 - 2023-11-01T05:26:01.295Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-01T05:26:01.295Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
