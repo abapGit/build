@@ -20312,7 +20312,6 @@ CLASS zcl_abapgit_gui_page_addofflin DEFINITION
 
     CONSTANTS:
       BEGIN OF c_event,
-        go_back          TYPE string VALUE 'go-back',
         choose_package   TYPE string VALUE 'choose-package',
         choose_labels    TYPE string VALUE 'choose-labels',
         create_package   TYPE string VALUE 'create-package',
@@ -20379,7 +20378,6 @@ CLASS zcl_abapgit_gui_page_addonline DEFINITION
 
     CONSTANTS:
       BEGIN OF c_event,
-        go_back         TYPE string VALUE 'go-back',
         choose_package  TYPE string VALUE 'choose-package',
         create_package  TYPE string VALUE 'create-package',
         choose_branch   TYPE string VALUE 'choose-branch',
@@ -20757,6 +20755,7 @@ CLASS zcl_abapgit_gui_page_db DEFINITION
       RAISING
         zcx_abapgit_exception.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     CONSTANTS:
@@ -20934,9 +20933,7 @@ CLASS zcl_abapgit_gui_page_debuginfo DEFINITION
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
         zcx_abapgit_exception .
-    METHODS constructor
-      RAISING
-        zcx_abapgit_exception .
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -20946,7 +20943,6 @@ CLASS zcl_abapgit_gui_page_debuginfo DEFINITION
     CONSTANTS:
       BEGIN OF c_action,
         save TYPE string VALUE 'save',
-        back TYPE string VALUE 'back',
       END OF c_action.
     DATA mv_html TYPE string .
 
@@ -21303,7 +21299,6 @@ CLASS zcl_abapgit_gui_page_ex_object DEFINITION
 
     CONSTANTS:
       BEGIN OF c_event,
-        go_back            TYPE string VALUE 'go-back',
         export             TYPE string VALUE 'export',
         choose_object_type TYPE string VALUE 'choose-object-type',
       END OF c_event.
@@ -21349,7 +21344,6 @@ CLASS zcl_abapgit_gui_page_ex_pckage DEFINITION
 
     CONSTANTS:
       BEGIN OF c_event,
-        go_back        TYPE string VALUE 'go-back',
         export_package TYPE string VALUE 'export-package',
         choose_package TYPE string VALUE 'choose-object-type',
       END OF c_event.
@@ -37606,7 +37600,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
     lv_key = ii_event->query( )->get( 'KEY' ).
 
     CASE ii_event->mv_action.
-      WHEN zif_abapgit_definitions=>c_action-go_home.
+      WHEN zif_abapgit_definitions=>c_action-go_home.                        " Go Home
         lv_last_repo_key = zcl_abapgit_persistence_user=>get_instance( )->get_repo_show( ).
 
         IF lv_last_repo_key IS NOT INITIAL.
@@ -37616,6 +37610,8 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
           rs_handled-page = main_page( ).
           rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
         ENDIF.
+      WHEN zif_abapgit_definitions=>c_action-go_back.                        " Go Back
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
       WHEN zif_abapgit_definitions=>c_action-go_db.                          " Go DB util page
         rs_handled-page  = zcl_abapgit_gui_page_db=>create( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
@@ -38685,8 +38681,6 @@ CLASS zcl_abapgit_gui_page_tags IMPLEMENTATION.
     mo_form_data->merge( zcl_abapgit_html_form_utils=>create( mo_form )->normalize( ii_event->form_data( ) ) ).
 
     CASE ii_event->mv_action.
-      WHEN zif_abapgit_definitions=>c_action-go_back.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
 
       WHEN c_event-choose_commit.
         lv_commit = choose_commit( ).
@@ -42781,10 +42775,10 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     CASE ii_event->mv_action.
-      WHEN zif_abapgit_definitions=>c_action-go_back.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
       WHEN c_actions-rerun.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN OTHERS.
+        ASSERT 1 = 1.
     ENDCASE.
 
   ENDMETHOD.
@@ -45532,8 +45526,6 @@ CLASS zcl_abapgit_gui_page_merge_sel IMPLEMENTATION.
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
-      WHEN zif_abapgit_definitions=>c_action-go_back.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
 
       WHEN c_event-merge.
         IF mo_form_data->get( c_id-source ) = mo_form_data->get( c_id-target ).
@@ -45547,6 +45539,8 @@ CLASS zcl_abapgit_gui_page_merge_sel IMPLEMENTATION.
 
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
 
+      WHEN OTHERS.
+        ASSERT 1 = 1.
     ENDCASE.
 
   ENDMETHOD.
@@ -46983,7 +46977,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_FLOW IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_EX_PCKAGE IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_ex_pckage IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -47046,16 +47040,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EX_PCKAGE IMPLEMENTATION.
       iv_cmd_type      = zif_abapgit_html_form=>c_cmd_type-input_main
     )->command(
       iv_label         = 'Back'
-      iv_action        = c_event-go_back ).
+      iv_action        = zif_abapgit_definitions=>c_action-go_back ).
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
-      WHEN c_event-go_back.
-
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
-
       WHEN c_event-export_package.
 
         mo_validation_log = mo_form_util->validate( mo_form_data ).
@@ -47091,7 +47081,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EX_PCKAGE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_EX_OBJECT IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_ex_object IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     CREATE OBJECT mo_validation_log.
@@ -47163,16 +47153,12 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_EX_OBJECT IMPLEMENTATION.
       iv_action      = c_event-export
     )->command(
       iv_label       = 'Back'
-      iv_action      = c_event-go_back ).
+      iv_action      = zif_abapgit_definitions=>c_action-go_back ).
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
-      WHEN c_event-go_back.
-
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
-
       WHEN c_event-export.
 
         export_object( ).
@@ -48301,11 +48287,8 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
       iv_act = c_action-save ).
     ro_menu->add(
       iv_txt = 'Back'
-      iv_act = c_action-back ).
+      iv_act = zif_abapgit_definitions=>c_action-go_back ).
 
-  ENDMETHOD.
-  METHOD constructor.
-    super->constructor( ).
   ENDMETHOD.
   METHOD create.
 
@@ -48620,8 +48603,9 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
         MESSAGE 'abapGit Debug Info successfully saved' TYPE 'S'.
 
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN c_action-back.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+
+      WHEN OTHERS.
+        ASSERT 1 = 1.
     ENDCASE.
 
   ENDMETHOD.
@@ -48651,7 +48635,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_DB_ENTRY IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_db_entry IMPLEMENTATION.
   METHOD build_toolbar.
 
     CREATE OBJECT ro_toolbar.
@@ -48849,8 +48833,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_DB_ENTRY IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN c_action-update.
         do_update( dbcontent_decode( ii_event->form_data( ) ) ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
-      WHEN c_action-back.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
     ENDCASE.
 
@@ -49335,8 +49317,6 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
       WHEN c_action-restore.
         do_restore_db( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN c_action-back.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
     ENDCASE.
 
   ENDMETHOD.
@@ -49657,8 +49637,6 @@ CLASS zcl_abapgit_gui_page_data IMPLEMENTATION.
         add_via_transport( ).
         mo_repo->refresh( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN zif_abapgit_definitions=>c_action-go_back.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
     ENDCASE.
 
   ENDMETHOD.
@@ -49685,7 +49663,7 @@ CLASS zcl_abapgit_gui_page_data IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
   METHOD branch_name_to_internal.
     rv_new_branch_name = zcl_abapgit_git_branch_list=>complete_heads_branch_name(
       zcl_abapgit_git_branch_list=>normalize_branch_name( iv_branch_name ) ).
@@ -50009,9 +49987,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
-      WHEN zif_abapgit_definitions=>c_action-go_back.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
-
       WHEN c_event-commit.
         " Validate form entries before committing
         mo_validation_log = validate_form( mo_form_data ).
@@ -50046,6 +50021,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_COMMIT IMPLEMENTATION.
         ELSE.
           rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
         ENDIF.
+      WHEN OTHERS.
+        ASSERT 1 = 1.
     ENDCASE.
 
   ENDMETHOD.
@@ -50230,8 +50207,6 @@ CLASS zcl_abapgit_gui_page_codi_base IMPLEMENTATION.
       WHEN c_actions-sort_3.
         SORT mt_result BY test code objtype objname sobjtype sobjname line col.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN zif_abapgit_definitions=>c_action-go_back.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
 
     ENDCASE.
 
@@ -50704,7 +50679,7 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
       iv_action      = c_event-create_package
     )->command(
       iv_label       = 'Back'
-      iv_action      = c_event-go_back ).
+      iv_action      = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
   METHOD validate_form.
@@ -50768,9 +50743,6 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
-      WHEN c_event-go_back.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
-
       WHEN c_event-create_package.
 
         mo_form_data->set(
@@ -50967,7 +50939,7 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
       iv_action      = c_event-create_package
     )->command(
       iv_label       = 'Back'
-      iv_action      = c_event-go_back ).
+      iv_action      = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
   METHOD validate_form.
@@ -51013,9 +50985,6 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
-      WHEN c_event-go_back.
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
-
       WHEN c_event-create_package.
 
         mo_form_data->set(
@@ -130032,8 +130001,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-01T11:02:21.360Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-01T11:02:21.360Z`.
+* abapmerge 0.16.0 - 2023-11-01T12:43:27.280Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-01T12:43:27.280Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
