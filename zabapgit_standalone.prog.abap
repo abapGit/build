@@ -64229,6 +64229,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         EXPORTING
           header                 = ls_dynpro-header
           suppress_exist_checks  = abap_true
+          suppress_generate      = ls_dynpro-header-no_execute
         TABLES
           containers             = ls_dynpro-containers
           fields_to_containers   = ls_dynpro-fields
@@ -130001,8 +130002,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-01T12:43:27.280Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-01T12:43:27.280Z`.
+* abapmerge 0.16.0 - 2023-11-01T13:14:52.132Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-01T13:14:52.132Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
