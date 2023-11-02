@@ -115435,6 +115435,8 @@ CLASS zcl_abapgit_objects_activation IMPLEMENTATION.
         ls_item-obj_name = <ls_message>-object_text+5(*).
       ELSE.
         ls_item-obj_name = <ls_message>-show_req->object_name.
+        SELECT SINGLE tadir FROM euobjedit INTO ls_item-obj_type
+          WHERE type = <ls_message>-show_req->object_type.
       ENDIF.
       LOOP AT <ls_message>-mtext ASSIGNING <lv_msg>.
         ii_log->add_error(
@@ -130002,8 +130004,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-01T13:14:52.132Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-01T13:14:52.132Z`.
+* abapmerge 0.16.0 - 2023-11-02T05:41:04.955Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-02T05:41:04.955Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
