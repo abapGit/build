@@ -19775,6 +19775,7 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
       IMPORTING
         !iv_key          TYPE zif_abapgit_persistence=>ty_repo-key
         !ig_file         TYPE any
+        !iv_extra        TYPE clike OPTIONAL
       RETURNING
         VALUE(rv_string) TYPE string .
     CLASS-METHODS obj_encode
@@ -21370,6 +21371,46 @@ CLASS zcl_abapgit_gui_page_ex_pckage DEFINITION
       RAISING
         zcx_abapgit_exception.
 ENDCLASS.
+*"* use this source file for any type of declarations (class
+*"* definitions, interfaces or type declarations) you need for
+*"* components in the private section
+
+TYPES:
+  BEGIN OF ty_path_name,
+    path        TYPE string,
+    filename    TYPE string,
+    remote_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1,
+    local_sha1  TYPE zif_abapgit_git_definitions=>ty_sha1,
+  END OF ty_path_name.
+TYPES:
+  ty_path_name_tt TYPE HASHED TABLE OF ty_path_name WITH UNIQUE KEY path filename.
+
+TYPES: BEGIN OF ty_feature,
+         BEGIN OF repo,
+           name    TYPE string,
+           key     TYPE zif_abapgit_persistence=>ty_repo-key,
+           package TYPE devclass,
+         END OF repo,
+         BEGIN OF branch,
+           display_name TYPE string,
+           sha1         TYPE zif_abapgit_git_definitions=>ty_sha1,
+           up_to_date   TYPE abap_bool,
+         END OF branch,
+         BEGIN OF pr,
+           title TYPE string,
+           url   TYPE string,
+           draft TYPE abap_bool,
+         END OF pr,
+         BEGIN OF transport,
+           trkorr TYPE trkorr,
+           title  TYPE string,
+         END OF transport,
+         full_match      TYPE abap_bool,
+         changed_files   TYPE ty_path_name_tt,
+         changed_objects TYPE zif_abapgit_definitions=>ty_items_ts,
+       END OF ty_feature.
+TYPES ty_features TYPE STANDARD TABLE OF ty_feature WITH DEFAULT KEY.
+
 CLASS zcl_abapgit_gui_page_flow DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
   FINAL
@@ -21394,10 +21435,20 @@ CLASS zcl_abapgit_gui_page_flow DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    CONSTANTS: BEGIN OF c_action,
-                 refresh TYPE string VALUE 'refresh',
-               END OF c_action.
+    CONSTANTS:
+      BEGIN OF c_action,
+        refresh TYPE string VALUE 'refresh',
+        pull    TYPE string VALUE 'pull',
+        stage   TYPE string VALUE 'stage',
+      END OF c_action .
+    DATA mt_features TYPE ty_features .
 
+    METHODS render_table
+      IMPORTING
+        !iv_index      TYPE i
+        !is_feature    TYPE ty_feature
+      RETURNING
+        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_merge DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -21809,6 +21860,7 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
         deserialized_at     TYPE string,
         deserialized_at_raw TYPE timestampl,
         write_protected     TYPE abap_bool,
+        flow                TYPE abap_bool,
       END OF ty_overview,
       ty_overviews TYPE STANDARD TABLE OF ty_overview
                    WITH NON-UNIQUE DEFAULT KEY.
@@ -44328,6 +44380,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       ls_overview-branch          = <ls_repo>->ms_data-branch_name.
       ls_overview-created_by      = <ls_repo>->ms_data-created_by.
       ls_overview-write_protected = <ls_repo>->ms_data-local_settings-write_protected.
+      ls_overview-flow            = <ls_repo>->ms_data-local_settings-flow.
       ls_overview-created_at_raw  = <ls_repo>->ms_data-created_at.
 
       IF <ls_repo>->ms_data-created_at IS NOT INITIAL.
@@ -44611,7 +44664,8 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       lv_repo_type_icon TYPE string,
       lv_favorite_icon  TYPE string,
       lv_fav_tr_class   TYPE string,
-      lv_lock           TYPE string.
+      lv_lock           TYPE string,
+      lv_flow           TYPE string.
 
     lv_is_online_repo = boolc( is_repo-type = abap_false ).
 
@@ -44654,11 +44708,17 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
         iv_class = 'm-em5-sides'
         iv_hint  = 'Locked from pulls' ).
     ENDIF.
+    IF is_repo-flow = abap_true.
+      lv_flow = ii_html->icon(
+        iv_name  = 'flow/grey70'
+        iv_class = 'm-em5-sides'
+        iv_hint  = 'Flow' ).
+    ENDIF.
 
     ii_html->td(
       ii_html->a(
         iv_txt = is_repo-name
-        iv_act = |{ c_action-select }?key={ is_repo-key }| ) && lv_lock ).
+        iv_act = |{ c_action-select }?key={ is_repo-key }| ) && lv_lock && lv_flow ).
 
     " Labels
     IF mt_all_labels IS NOT INITIAL.
@@ -46279,44 +46339,12 @@ ENDCLASS.
 * renamed: zcl_abapgit_gui_page_flow :: lcl_helper
 CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio DEFINITION FINAL.
   PUBLIC SECTION.
-
-    TYPES:
-      BEGIN OF ty_path_name,
-        path        TYPE string,
-        name        TYPE string,
-        remote_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1,
-        local_sha1  TYPE zif_abapgit_git_definitions=>ty_sha1,
-      END OF ty_path_name.
-    TYPES:
-      ty_path_name_tt TYPE HASHED TABLE OF ty_path_name WITH UNIQUE KEY path name.
-
-    TYPES: BEGIN OF ty_feature,
-             repo_name       TYPE string,
-             package         TYPE devclass,
-             BEGIN OF branch,
-               display_name TYPE string,
-               sha1         TYPE zif_abapgit_git_definitions=>ty_sha1,
-               up_to_date   TYPE abap_bool,
-             END OF branch,
-             BEGIN OF pr,
-               title TYPE string,
-               url   TYPE string,
-               draft TYPE abap_bool,
-             END OF pr,
-             BEGIN OF transport,
-               trkorr TYPE trkorr,
-               title  TYPE string,
-             END OF transport,
-             changed_files   TYPE ty_path_name_tt,
-             changed_objects TYPE zif_abapgit_definitions=>ty_items_ts,
-           END OF ty_feature.
-    TYPES ty_features TYPE STANDARD TABLE OF ty_feature WITH DEFAULT KEY.
-
     CLASS-METHODS get_information
       RETURNING
         VALUE(rt_features) TYPE ty_features
       RAISING
         zcx_abapgit_exception.
+
   PRIVATE SECTION.
     CONSTANTS c_main TYPE string VALUE 'main'.
 
@@ -46329,6 +46357,12 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio DEFINITION FINAL.
            END OF ty_transport.
 
     TYPES ty_transports_tt TYPE STANDARD TABLE OF ty_transport WITH DEFAULT KEY.
+
+    CLASS-METHODS build_repo_data
+      IMPORTING
+        io_online      TYPE REF TO zif_abapgit_repo
+      RETURNING
+        VALUE(rs_data) TYPE ty_feature-repo.
 
     CLASS-METHODS map_files_to_objects
       IMPORTING
@@ -46357,6 +46391,17 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio DEFINITION FINAL.
       CHANGING
         ct_features      TYPE ty_features
         ct_transports    TYPE ty_transports_tt
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS add_objects_and_files_from_tr
+      IMPORTING
+        iv_trkorr        TYPE trkorr
+        ii_repo          TYPE REF TO zif_abapgit_repo
+        it_transports    TYPE ty_transports_tt
+        it_main_expanded TYPE zif_abapgit_git_definitions=>ty_expanded_tt
+      CHANGING
+        cs_feature       TYPE ty_feature
       RAISING
         zcx_abapgit_exception.
 
@@ -46425,6 +46470,12 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD build_repo_data.
+    rs_data-name = io_online->get_name( ).
+    rs_data-key = io_online->get_key( ).
+    rs_data-package = io_online->get_package( ).
+  ENDMETHOD.
+
   METHOD get_information.
 
     DATA lt_branches   TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt.
@@ -46436,6 +46487,10 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
     DATA lt_features   LIKE rt_features.
     DATA lt_transports TYPE ty_transports_tt.
     DATA lt_main_expanded TYPE zif_abapgit_git_definitions=>ty_expanded_tt.
+
+    FIELD-SYMBOLS <ls_feature> LIKE LINE OF lt_features.
+    FIELD-SYMBOLS <ls_path_name> LIKE LINE OF <ls_feature>-changed_files.
+
     lt_transports = find_open_transports( ).
 
 * list branches on favorite + flow enabled + transported repos
@@ -46456,8 +46511,7 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
 
       CLEAR lt_features.
       LOOP AT lt_branches INTO ls_branch WHERE display_name <> c_main.
-        ls_result-repo_name = li_favorite->get_name( ).
-        ls_result-package = li_favorite->get_package( ).
+        ls_result-repo = build_repo_data( lo_online ).
         ls_result-branch-display_name = ls_branch-display_name.
         ls_result-branch-sha1 = ls_branch-sha1.
         INSERT ls_result INTO TABLE lt_features.
@@ -46465,20 +46519,20 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
 
       find_changed_files_all(
         EXPORTING
-          io_online   = lo_online
-          it_branches = lt_branches
+          io_online        = lo_online
+          it_branches      = lt_branches
         IMPORTING
           et_main_expanded = lt_main_expanded
         CHANGING
-          ct_features = lt_features ).
+          ct_features      = lt_features ).
 
       try_matching_transports(
         EXPORTING
-          ii_repo       = li_favorite
+          ii_repo          = li_favorite
           it_main_expanded = lt_main_expanded
         CHANGING
-          ct_transports = lt_transports
-          ct_features   = lt_features ).
+          ct_transports    = lt_transports
+          ct_features      = lt_features ).
 
       find_up_to_date(
         EXPORTING
@@ -46499,31 +46553,34 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
         CHANGING
           ct_features = lt_features ).
 
+      LOOP AT lt_features ASSIGNING <ls_feature>.
+        <ls_feature>-full_match = abap_true.
+        LOOP AT <ls_feature>-changed_files ASSIGNING <ls_path_name>.
+          IF <ls_path_name>-remote_sha1 <> <ls_path_name>-local_sha1.
+            <ls_feature>-full_match = abap_false.
+          ENDIF.
+        ENDLOOP.
+      ENDLOOP.
+
       INSERT LINES OF lt_features INTO TABLE rt_features.
     ENDLOOP.
+
+    SORT rt_features BY full_match transport-trkorr DESCENDING.
 
   ENDMETHOD.
 
   METHOD try_matching_transports.
 
-    DATA lt_trkorr   LIKE ct_transports.
-    DATA ls_trkorr   LIKE LINE OF lt_trkorr.
-    DATA ls_result   LIKE LINE OF ct_features.
-    DATA lt_packages TYPE zif_abapgit_sap_package=>ty_devclass_tt.
-    DATA lv_package  LIKE LINE OF lt_packages.
-    DATA lv_found    TYPE abap_bool.
-    DATA ls_changed  LIKE LINE OF ls_result-changed_objects.
-    DATA lo_filter   TYPE REF TO kHGwlHbtMQYaNXTWgQdwmgPrpXDFKn.
-    DATA lt_filter   TYPE zif_abapgit_definitions=>ty_tadir_tt.
-    DATA lt_local  TYPE zif_abapgit_definitions=>ty_files_item_tt.
-    DATA ls_changed_file LIKE LINE OF ls_result-changed_files.
+    DATA lt_trkorr       LIKE ct_transports.
+    DATA ls_trkorr       LIKE LINE OF lt_trkorr.
+    DATA ls_result       LIKE LINE OF ct_features.
+    DATA lt_packages     TYPE zif_abapgit_sap_package=>ty_devclass_tt.
+    DATA lv_package      LIKE LINE OF lt_packages.
+    DATA lv_found        TYPE abap_bool.
 
     FIELD-SYMBOLS <ls_feature>   LIKE LINE OF ct_features.
     FIELD-SYMBOLS <ls_transport> LIKE LINE OF ct_transports.
-    FIELD-SYMBOLS <ls_local>     LIKE LINE OF lt_local.
-    FIELD-SYMBOLS <ls_filter>    LIKE LINE OF lt_filter.
     FIELD-SYMBOLS <ls_changed>   LIKE LINE OF <ls_feature>-changed_objects.
-    FIELD-SYMBOLS <ls_main_expanded> LIKE LINE OF it_main_expanded.
     SORT ct_transports BY object obj_name.
 
     LOOP AT ct_features ASSIGNING <ls_feature>.
@@ -46534,8 +46591,16 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
           <ls_feature>-transport-trkorr = <ls_transport>-trkorr.
           <ls_feature>-transport-title = <ls_transport>-title.
 
+          add_objects_and_files_from_tr(
+            EXPORTING
+              iv_trkorr        = <ls_transport>-trkorr
+              ii_repo          = ii_repo
+              it_main_expanded = it_main_expanded
+              it_transports    = ct_transports
+            CHANGING
+              cs_feature       = <ls_feature> ).
+
           DELETE ct_transports WHERE trkorr = <ls_transport>-trkorr.
-* todo, fill changed objects/files?
           EXIT.
         ENDIF.
       ENDLOOP.
@@ -46547,6 +46612,7 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
     DELETE ADJACENT DUPLICATES FROM lt_trkorr COMPARING trkorr.
 
     lt_packages = zcl_abapgit_factory=>get_sap_package( ii_repo->get_package( ) )->list_subpackages( ).
+    INSERT ii_repo->get_package( ) INTO TABLE lt_packages.
 
     LOOP AT lt_trkorr INTO ls_trkorr.
       lv_found = abap_false.
@@ -46561,40 +46627,62 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
       ENDIF.
 
       CLEAR ls_result.
-      CLEAR lt_filter.
-      ls_result-repo_name = ii_repo->get_name( ).
-      ls_result-package = ii_repo->get_package( ).
+      ls_result-repo = build_repo_data( ii_repo ).
       ls_result-transport-trkorr = <ls_transport>-trkorr.
       ls_result-transport-title = <ls_transport>-title.
-      LOOP AT ct_transports ASSIGNING <ls_transport> WHERE trkorr = ls_trkorr-trkorr.
-        ls_changed-obj_type = <ls_transport>-object.
-        ls_changed-obj_name = <ls_transport>-obj_name.
-        INSERT ls_changed INTO TABLE ls_result-changed_objects.
 
-        APPEND INITIAL LINE TO lt_filter ASSIGNING <ls_filter>.
-        <ls_filter>-object = <ls_transport>-object.
-        <ls_filter>-obj_name = <ls_transport>-obj_name.
-      ENDLOOP.
-
-      CREATE OBJECT lo_filter EXPORTING it_filter = lt_filter.
-      lt_local = ii_repo->get_files_local_filtered( lo_filter ).
-      LOOP AT lt_local ASSIGNING <ls_local> WHERE file-filename <> zif_abapgit_definitions=>c_dot_abapgit.
-        ls_changed_file-path       = <ls_local>-file-path.
-        ls_changed_file-name       = <ls_local>-file-filename.
-        ls_changed_file-local_sha1 = <ls_local>-file-sha1.
-
-        READ TABLE it_main_expanded ASSIGNING <ls_main_expanded>
-          WITH TABLE KEY path_name COMPONENTS
-          path = ls_changed_file-path
-          name = ls_changed_file-name.
-        IF sy-subrc = 0.
-          ls_changed_file-remote_sha1 = <ls_main_expanded>-sha1.
-        ENDIF.
-
-        INSERT ls_changed_file INTO TABLE ls_result-changed_files.
-      ENDLOOP.
+      add_objects_and_files_from_tr(
+        EXPORTING
+          iv_trkorr        = ls_trkorr-trkorr
+          ii_repo          = ii_repo
+          it_main_expanded = it_main_expanded
+          it_transports    = ct_transports
+        CHANGING
+          cs_feature       = ls_result ).
 
       INSERT ls_result INTO TABLE ct_features.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD add_objects_and_files_from_tr.
+
+    DATA ls_changed      LIKE LINE OF cs_feature-changed_objects.
+    DATA lo_filter       TYPE REF TO kHGwlHbtMQYaNXTWgQdwmgPrpXDFKn.
+    DATA lt_filter       TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    DATA lt_local        TYPE zif_abapgit_definitions=>ty_files_item_tt.
+    DATA ls_changed_file LIKE LINE OF cs_feature-changed_files.
+
+    FIELD-SYMBOLS <ls_transport> LIKE LINE OF it_transports.
+    FIELD-SYMBOLS <ls_local>     LIKE LINE OF lt_local.
+    FIELD-SYMBOLS <ls_filter>    LIKE LINE OF lt_filter.
+    FIELD-SYMBOLS <ls_main_expanded> LIKE LINE OF it_main_expanded.
+    LOOP AT it_transports ASSIGNING <ls_transport> WHERE trkorr = iv_trkorr.
+      ls_changed-obj_type = <ls_transport>-object.
+      ls_changed-obj_name = <ls_transport>-obj_name.
+      INSERT ls_changed INTO TABLE cs_feature-changed_objects.
+
+      APPEND INITIAL LINE TO lt_filter ASSIGNING <ls_filter>.
+      <ls_filter>-object = <ls_transport>-object.
+      <ls_filter>-obj_name = <ls_transport>-obj_name.
+    ENDLOOP.
+
+    CREATE OBJECT lo_filter EXPORTING it_filter = lt_filter.
+    lt_local = ii_repo->get_files_local_filtered( lo_filter ).
+    LOOP AT lt_local ASSIGNING <ls_local> WHERE file-filename <> zif_abapgit_definitions=>c_dot_abapgit.
+      ls_changed_file-path       = <ls_local>-file-path.
+      ls_changed_file-filename   = <ls_local>-file-filename.
+      ls_changed_file-local_sha1 = <ls_local>-file-sha1.
+
+      READ TABLE it_main_expanded ASSIGNING <ls_main_expanded>
+        WITH TABLE KEY path_name COMPONENTS
+        path = ls_changed_file-path
+        name = ls_changed_file-filename.
+      IF sy-subrc = 0.
+        ls_changed_file-remote_sha1 = <ls_main_expanded>-sha1.
+      ENDIF.
+
+      INSERT ls_changed_file INTO TABLE cs_feature-changed_files.
     ENDLOOP.
 
   ENDMETHOD.
@@ -46782,7 +46870,7 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
     LOOP AT ct_features ASSIGNING <ls_branch>.
       LOOP AT <ls_branch>-changed_files ASSIGNING <ls_changed_file>.
         READ TABLE lt_local ASSIGNING <ls_local>
-          WITH KEY file-filename = <ls_changed_file>-name
+          WITH KEY file-filename = <ls_changed_file>-filename
           file-path = <ls_changed_file>-path.
         IF sy-subrc = 0.
           <ls_changed_file>-local_sha1 = <ls_local>-file-sha1.
@@ -46801,7 +46889,7 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
     LOOP AT it_files ASSIGNING <ls_file>.
       zcl_abapgit_filename_logic=>file_to_object(
         EXPORTING
-          iv_filename = <ls_file>-name
+          iv_filename = <ls_file>-filename
           iv_path     = <ls_file>-path
           iv_devclass = io_online->get_package( )
           io_dot      = io_online->get_dot_abapgit( )
@@ -46831,6 +46919,7 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
       ENDIF.
 
       MOVE-CORRESPONDING <ls_expanded1> TO ls_path_name.
+      ls_path_name-filename = <ls_expanded1>-name.
       ls_path_name-remote_sha1 = <ls_expanded1>-sha1.
       INSERT ls_path_name INTO TABLE rt_files.
     ENDLOOP.
@@ -46845,6 +46934,7 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
       ENDIF.
 
       MOVE-CORRESPONDING <ls_expanded2> TO ls_path_name.
+      ls_path_name-filename = <ls_expanded2>-name.
       ls_path_name-remote_sha1 = <ls_expanded2>-sha1.
       INSERT ls_path_name INTO TABLE rt_files.
     ENDLOOP.
@@ -46870,11 +46960,110 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_FLOW IMPLEMENTATION.
       ii_child_component    = lo_component ).
 
   ENDMETHOD.
+  METHOD render_table.
+
+    DATA ls_path_name LIKE LINE OF is_feature-changed_files.
+    DATA lv_status    TYPE string.
+    DATA lv_branch    TYPE string.
+    DATA lv_param     TYPE string.
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    ri_html->add( |<table>| ).
+    ri_html->add( |<tr><td><u>Filename</u></td><td><u>Remote SHA1</u></td>| &&
+                  |<td><u>Local SHA1</u></td><td></td></tr>| ).
+
+    lv_branch = is_feature-branch-display_name.
+    IF lv_branch IS INITIAL.
+      lv_branch = 'main'.
+    ENDIF.
+
+    LOOP AT is_feature-changed_files INTO ls_path_name.
+      IF ls_path_name-remote_sha1 = ls_path_name-local_sha1.
+        lv_status = 'Match'.
+      ELSE.
+        ASSERT is_feature-repo-key IS NOT INITIAL.
+        lv_param = zcl_abapgit_html_action_utils=>file_encode(
+          iv_key   = is_feature-repo-key
+          ig_file  = ls_path_name
+          iv_extra = lv_branch ).
+        lv_status = ri_html->a(
+          iv_txt = 'Diff'
+          iv_act = |{ zif_abapgit_definitions=>c_action-go_file_diff }?{ lv_param }| ).
+      ENDIF.
+
+      ri_html->add( |<tr><td><tt>{ ls_path_name-path }{ ls_path_name-filename }</tt></td><td>{
+        ls_path_name-remote_sha1(7) }</td><td>{
+        ls_path_name-local_sha1(7) }</td><td>{ lv_status }</td></tr>| ).
+    ENDLOOP.
+    ri_html->add( |</table>| ).
+
+* todo: crossout if write protected
+    ri_html->add( ri_html->a(
+      iv_txt = 'Pull'
+      iv_act = |{ c_action-pull }?index={ iv_index }&key={ is_feature-repo-key }| ) ).
+    ri_html->add( ri_html->a(
+      iv_txt = 'Stage'
+      iv_act = |{ c_action-stage }?index={ iv_index }&key={ is_feature-repo-key }| ) ).
+    ri_html->add( |<br>| ).
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
-    IF ii_event->mv_action = c_action-refresh.
-      rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-    ENDIF.
+    DATA lv_key     TYPE zif_abapgit_persistence=>ty_value.
+    DATA lv_branch  TYPE string.
+    DATA lo_online  TYPE REF TO zcl_abapgit_repo_online.
+    DATA lo_filter  TYPE REF TO kHGwlHbtMQYaNXTWgQdwmgPrpXDFKn.
+    DATA lt_filter  TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    DATA lv_index   TYPE i.
+    DATA ls_feature LIKE LINE OF mt_features.
+
+    FIELD-SYMBOLS <ls_object> LIKE LINE OF ls_feature-changed_objects.
+    FIELD-SYMBOLS <ls_filter> LIKE LINE OF lt_filter.
+    CASE ii_event->mv_action.
+      WHEN c_action-refresh.
+        CLEAR mt_features.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-go_file_diff.
+        lv_key = ii_event->query( )->get( 'KEY' ).
+        lv_branch = ii_event->query( )->get( 'EXTRA' ).
+        IF lv_branch IS NOT INITIAL.
+          lv_branch = 'refs/heads/' && lv_branch.
+          lo_online ?= zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
+          IF lo_online->get_selected_branch( ) <> lv_branch.
+            lo_online->select_branch( lv_branch ).
+          ENDIF.
+        ENDIF.
+      WHEN c_action-stage.
+        lv_key = ii_event->query( )->get( 'KEY' ).
+        lv_index = ii_event->query( )->get( 'INDEX' ).
+        lo_online ?= zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
+
+        READ TABLE mt_features INTO ls_feature INDEX lv_index.
+        ASSERT sy-subrc = 0.
+
+        LOOP AT ls_feature-changed_objects ASSIGNING <ls_object>.
+          APPEND INITIAL LINE TO lt_filter ASSIGNING <ls_filter>.
+          <ls_filter>-object = <ls_object>-obj_type.
+          <ls_filter>-obj_name = <ls_object>-obj_name.
+        ENDLOOP.
+        CREATE OBJECT lo_filter EXPORTING it_filter = lt_filter.
+
+        rs_handled-page = zcl_abapgit_gui_page_stage=>create(
+          io_repo       = lo_online
+          ii_obj_filter = lo_filter ).
+
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
+      WHEN c_action-pull.
+        lv_key = ii_event->query( )->get( 'KEY' ).
+        lv_index = ii_event->query( )->get( 'INDEX' ).
+        lo_online ?= zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
+
+        READ TABLE mt_features INTO ls_feature INDEX lv_index.
+        ASSERT sy-subrc = 0.
+
+* todo: set filter,
+        zcl_abapgit_services_repo=>gui_deserialize( lo_online ).
+    ENDCASE.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_menu_provider~get_menu.
@@ -46891,26 +47080,27 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_FLOW IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
-    DATA lt_features   TYPE kHGwlHbtMQYaNXTWgQdwprsTTRQzio=>ty_features.
-    DATA ls_feature    LIKE LINE OF lt_features.
-    DATA ls_path_name  LIKE LINE OF ls_feature-changed_files.
-    DATA ls_item       LIKE LINE OF ls_feature-changed_objects.
-    DATA lv_status     TYPE string.
-    DATA lv_full_match TYPE abap_bool.
-    DATA li_table      TYPE REF TO zif_abapgit_html.
+
+    DATA ls_feature LIKE LINE OF mt_features.
+    DATA lv_index   TYPE i.
     register_handlers( ).
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     ri_html->add( '<div class="repo-overview">' ).
 
-    lt_features = kHGwlHbtMQYaNXTWgQdwprsTTRQzio=>get_information( ).
-    LOOP AT lt_features INTO ls_feature.
+    IF mt_features IS INITIAL.
+      mt_features = kHGwlHbtMQYaNXTWgQdwprsTTRQzio=>get_information( ).
+    ENDIF.
+
+    LOOP AT mt_features INTO ls_feature.
+      lv_index = sy-tabix.
+
       IF lines( ls_feature-changed_files ) = 0.
 * no changes, eg. only files outside of starting folder changed
         CONTINUE.
       ENDIF.
 
-      ri_html->add( '<b><font size="+2">' && ls_feature-repo_name ).
-      IF ls_feature-branch IS NOT INITIAL.
+      ri_html->add( '<b><font size="+2">' && ls_feature-repo-name ).
+      IF ls_feature-branch-display_name IS NOT INITIAL.
         ri_html->add( | - | ).
         ri_html->add_icon( 'code-branch' ).
         ri_html->add( ls_feature-branch-display_name ).
@@ -46922,7 +47112,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_FLOW IMPLEMENTATION.
       ENDIF.
       ri_html->add( |</font></b><br>| ).
 
-      IF ls_feature-branch IS INITIAL.
+      IF ls_feature-branch-display_name IS INITIAL.
         ri_html->add( |No branch found, comparing with <tt>main</tt>| ).
       ELSEIF ls_feature-pr IS NOT INITIAL.
         ri_html->add_a(
@@ -46950,34 +47140,17 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_FLOW IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      CREATE OBJECT li_table TYPE zcl_abapgit_html.
-      lv_full_match = abap_true.
-
-      li_table->add( |<table>| ).
-      li_table->add( |<tr><td><u>Filename</u></td><td><u>Remote SHA1</u></td>| &&
-                    |<td><u>Local SHA1</u></td><td></td></tr>| ).
-      LOOP AT ls_feature-changed_files INTO ls_path_name.
-
-        IF ls_path_name-remote_sha1 = ls_path_name-local_sha1.
-          lv_status = 'Match'.
-        ELSE.
-          lv_full_match = abap_false.
-          lv_status = 'Diff'.
-        ENDIF.
-        li_table->add( |<tr><td><tt>{ ls_path_name-path }{ ls_path_name-name }</tt></td><td>{
-          ls_path_name-remote_sha1(7) }</td><td>{
-          ls_path_name-local_sha1(7) }</td><td>{ lv_status }</td></tr>| ).
-      ENDLOOP.
-      li_table->add( |</table>| ).
-      LOOP AT ls_feature-changed_objects INTO ls_item.
-        li_table->add( |<tt>{ ls_item-obj_type } { ls_item-obj_name }</tt><br>| ).
-      ENDLOOP.
-
-      IF lv_full_match = abap_true.
+      IF ls_feature-full_match = abap_true.
         ri_html->add( |Full Match<br>| ).
       ELSE.
-        ri_html->add( li_table ).
+        ri_html->add( render_table(
+          is_feature = ls_feature
+          iv_index   = lv_index ) ).
       ENDIF.
+
+* todo      LOOP AT ls_feature-changed_objects INTO ls_item.
+* todo       ri_html->add( |<tt><small>{ ls_item-obj_type } { ls_item-obj_name }</small></tt><br>| ).
+* todo     ENDLOOP.
 
       ri_html->add( '<br>' ).
     ENDLOOP.
@@ -52726,7 +52899,7 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   METHOD add_field.
 
     DATA ls_field LIKE LINE OF ct_field.
@@ -52791,12 +52964,35 @@ CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
   METHOD file_encode.
 
     DATA lt_fields TYPE tihttpnvp.
-    add_field( EXPORTING iv_name = 'KEY'
-                         ig_field = iv_key CHANGING ct_field = lt_fields ).
-    add_field( EXPORTING iv_name = 'PATH'
-                         ig_field = ig_file CHANGING ct_field = lt_fields ).
-    add_field( EXPORTING iv_name = 'FILENAME'
-                         ig_field = ig_file CHANGING ct_field = lt_fields ).
+    add_field(
+      EXPORTING
+        iv_name  = 'KEY'
+        ig_field = iv_key
+      CHANGING
+        ct_field = lt_fields ).
+
+    add_field(
+      EXPORTING
+        iv_name  = 'PATH'
+        ig_field = ig_file
+      CHANGING
+        ct_field = lt_fields ).
+
+    add_field(
+      EXPORTING
+        iv_name  = 'FILENAME'
+        ig_field = ig_file
+      CHANGING
+        ct_field = lt_fields ).
+
+    IF iv_extra IS SUPPLIED.
+      add_field(
+        EXPORTING
+          iv_name  = 'EXTRA'
+          ig_field = iv_extra
+        CHANGING
+          ct_field = lt_fields ).
+    ENDIF.
 
     rv_string = fields_to_string( lt_fields ).
 
@@ -54376,6 +54572,10 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     IF io_repo->get_local_settings( )-write_protected = abap_true.
       ri_html->add_icon( iv_name = 'lock/grey70'
                          iv_hint = 'Locked from Pulls' ).
+    ENDIF.
+    IF io_repo->get_local_settings( )-flow = abap_true.
+      ri_html->add_icon( iv_name = 'flow/grey70'
+                         iv_hint = 'Flow' ).
     ENDIF.
 
     " Branch
@@ -128331,6 +128531,13 @@ CLASS ZCL_ABAPGIT_CTS_API IMPLEMENTATION.
     CLEAR ev_object.
     CLEAR ev_obj_name.
 
+    IF iv_object = 'MESS'.
+      ev_object = 'MSAG'.
+      ev_obj_name = substring( val = iv_obj_name
+                               len = strlen( iv_obj_name ) - 3 ).
+      RETURN.
+    ENDIF.
+
     CALL FUNCTION 'GET_R3TR_OBJECT_FROM_LIMU_OBJ'
       EXPORTING
         p_limu_objtype = iv_object
@@ -130156,8 +130363,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-03T15:35:03.652Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-03T15:35:03.652Z`.
+* abapmerge 0.16.0 - 2023-11-03T17:17:01.078Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-03T17:17:01.078Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
