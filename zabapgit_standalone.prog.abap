@@ -49235,7 +49235,12 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
       lv_filename = <ls_zipfile>-name.
       REPLACE '.xml' IN lv_filename WITH ''.
       REPLACE '.txt' IN lv_filename WITH ''.
-      SPLIT lv_filename AT '_' INTO ls_data-type ls_data-value.
+      IF lv_filename CP 'REPO_CS*'.
+        ls_data-type  = lv_filename(7).
+        ls_data-value = lv_filename+8(*).
+      ELSE.
+        SPLIT lv_filename AT '_' INTO ls_data-type ls_data-value.
+      ENDIF.
 
       " Validate DB key
       TRY.
@@ -130363,8 +130368,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-03T17:21:17.140Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-03T17:21:17.140Z`.
+* abapmerge 0.16.0 - 2023-11-03T19:20:55.320Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-03T19:20:55.320Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
