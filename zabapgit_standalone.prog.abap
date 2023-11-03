@@ -70476,7 +70476,7 @@ CLASS zcl_abapgit_object_w3ht IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
+CLASS zcl_abapgit_object_view IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA:
@@ -70581,7 +70581,8 @@ CLASS ZCL_ABAPGIT_OBJECT_VIEW IMPLEMENTATION.
       FROM dd25v
       WHERE viewname = ms_item-obj_name
       AND ddlanguage IN lt_language_filter
-      AND ddlanguage <> mv_language.                      "#EC CI_SUBRC
+      AND ddlanguage <> mv_language
+      ORDER BY langu.                                     "#EC CI_SUBRC
 
     LOOP AT lt_i18n_langs ASSIGNING <lv_lang>.
       lv_index = sy-tabix.
@@ -71140,7 +71141,8 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     SELECT *
       FROM dm02l
       INTO TABLE lt_dm02l
-      WHERE entid = mv_entity_id.
+      WHERE entid = mv_entity_id
+      ORDER BY PRIMARY KEY.
 
     LOOP AT lt_dm02l INTO ls_dm02l.
 
@@ -71185,7 +71187,8 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     SELECT *
       FROM dm42s
       INTO TABLE lt_dm42s
-      WHERE entidto = mv_entity_id.
+      WHERE entidto = mv_entity_id
+      ORDER BY PRIMARY KEY.
 
     LOOP AT lt_dm42s INTO ls_dm42s.
 
@@ -71232,7 +71235,8 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
     SELECT *
       FROM dm45l
       INTO TABLE lt_dm45l
-      WHERE entid = ms_item-obj_name.
+      WHERE entid = ms_item-obj_name
+      ORDER BY PRIMARY KEY.
 
     LOOP AT lt_dm45l INTO ls_dm45l.
 
@@ -71481,7 +71485,8 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
       FROM dokvl
       INTO CORRESPONDING FIELDS OF TABLE lt_dokvl
       WHERE id = c_text_object_type
-      AND   object LIKE ls_dokvl-object ##TOO_MANY_ITAB_FIELDS.
+      AND   object LIKE ls_dokvl-object
+      ORDER BY PRIMARY KEY ##TOO_MANY_ITAB_FIELDS.
 
     LOOP AT lt_dokvl INTO ls_dokvl.
 
@@ -73076,7 +73081,8 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
       INTO CORRESPONDING FIELDS OF TABLE lt_tpool_i18n
       FROM tstct
       WHERE sprsl <> mv_language
-      AND   tcode = ms_item-obj_name ##TOO_MANY_ITAB_FIELDS. "#EC CI_GENBUFF
+      AND   tcode = ms_item-obj_name
+      ORDER BY sprsl ##TOO_MANY_ITAB_FIELDS.            "#EC CI_GENBUFF
 
     mo_i18n_params->trim_saplang_keyed_table(
       EXPORTING
@@ -73518,7 +73524,8 @@ CLASS zcl_abapgit_object_tran IMPLEMENTATION.
       WHERE tcode = lv_transaction.       "#EC CI_SUBRC "#EC CI_GENBUFF
 
     SELECT * FROM tstca INTO TABLE lt_tstca
-      WHERE tcode = lv_transaction.
+      WHERE tcode = lv_transaction
+      ORDER BY PRIMARY KEY.
     IF sy-subrc <> 0.
       CLEAR: lt_tstca.
     ENDIF.
@@ -74505,7 +74512,8 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
       FROM dd02v
       WHERE tabname = lv_name
       AND ddlanguage IN lt_language_filter
-      AND ddlanguage <> mv_language.                      "#EC CI_SUBRC
+      AND ddlanguage <> mv_language
+      ORDER BY langu.                                     "#EC CI_SUBRC
 
     LOOP AT lt_i18n_langs ASSIGNING <lv_lang>.
       lv_index = sy-tabix.
@@ -74563,21 +74571,24 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
       FROM dd02l INTO TABLE lt_data
       WHERE tabname = ms_item-obj_name
       AND as4local = 'A'
-      AND as4vers = '0000'.
+      AND as4vers = '0000'
+      ORDER BY PRIMARY KEY.
 
     SELECT as4user as4date as4time
       APPENDING TABLE lt_data
       FROM dd09l
       WHERE tabname = ms_item-obj_name
       AND as4local = 'A'
-      AND as4vers = '0000'.
+      AND as4vers = '0000'
+      ORDER BY PRIMARY KEY.
 
     SELECT as4user as4date as4time
       APPENDING TABLE lt_data
       FROM dd12l
       WHERE sqltab = ms_item-obj_name
       AND as4local = 'A'
-      AND as4vers = '0000'.
+      AND as4vers = '0000'
+      ORDER BY PRIMARY KEY.
 
     SORT lt_data BY as4date DESCENDING as4time DESCENDING.
 
@@ -81266,7 +81277,8 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
 * Do not add handlers if they already exist, it will make the below
 * call to SAP standard code raise an exception
     SELECT * FROM icfhandler INTO TABLE lt_existing
-      WHERE icf_name = is_icfservice-icf_name.
+      WHERE icf_name = is_icfservice-icf_name
+      ORDER BY PRIMARY KEY.
     LOOP AT lt_existing ASSIGNING <ls_existing>.
       DELETE TABLE lt_icfhndlist FROM <ls_existing>-icfhandler.
     ENDLOOP.
@@ -87969,7 +87981,7 @@ CLASS zcl_abapgit_object_oa2p IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_NSPC IMPLEMENTATION.
+CLASS zcl_abapgit_object_nspc IMPLEMENTATION.
   METHOD add_to_transport.
 
     DATA: li_sap_package TYPE REF TO zif_abapgit_sap_package.
@@ -88036,7 +88048,8 @@ CLASS ZCL_ABAPGIT_OBJECT_NSPC IMPLEMENTATION.
 
     " Collect additional languages, skip main lang - it was serialized already
     SELECT DISTINCT spras AS langu FROM trnspacett INTO TABLE lt_i18n_langs
-      WHERE namespace = ms_item-obj_name AND spras <> mv_language. "#EC CI_SUBRC
+      WHERE namespace = ms_item-obj_name AND spras <> mv_language
+      ORDER BY langu.                                     "#EC CI_SUBRC
 
     LOOP AT lt_i18n_langs ASSIGNING <lv_lang>.
       SELECT SINGLE * FROM trnspacett INTO ls_trnspacett
@@ -88582,7 +88595,7 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
+CLASS zcl_abapgit_object_msag IMPLEMENTATION.
   METHOD delete_documentation.
     DATA: lv_key_s TYPE dokhl-object.
 
@@ -88761,7 +88774,8 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
       FROM t100t
       WHERE arbgb = lv_msg_id
       AND sprsl IN lt_language_filter
-      AND sprsl <> mv_language.          "#EC CI_BYPASS "#EC CI_GENBUFF
+      AND sprsl <> mv_language
+      ORDER BY langu.                    "#EC CI_BYPASS "#EC CI_GENBUFF
 
     SORT lt_i18n_langs ASCENDING.
 
@@ -88770,7 +88784,8 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
       SELECT * FROM t100t INTO CORRESPONDING FIELDS OF TABLE lt_t100t
         WHERE sprsl IN lt_language_filter
         AND sprsl <> mv_language
-        AND arbgb = lv_msg_id.                          "#EC CI_GENBUFF
+        AND arbgb = lv_msg_id
+        ORDER BY PRIMARY KEY.                           "#EC CI_GENBUFF
 
       SELECT * FROM t100 INTO CORRESPONDING FIELDS OF TABLE lt_t100_texts
         WHERE sprsl IN lt_language_filter
@@ -88803,9 +88818,9 @@ CLASS ZCL_ABAPGIT_OBJECT_MSAG IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~delete.
-    DATA: ls_t100a          TYPE t100a,
-          lv_frozen         TYPE abap_bool,
-          lv_message_id     TYPE arbgb.
+    DATA: ls_t100a      TYPE t100a,
+          lv_frozen     TYPE abap_bool,
+          lv_message_id TYPE arbgb.
 
 * parameter SUPPRESS_DIALOG doesnt exist in all versions of FM RS_DELETE_MESSAGE_ID
 * replaced with a copy
@@ -89251,7 +89266,8 @@ CLASS zcl_abapgit_object_iwvb IMPLEMENTATION.
 
     " Get entry with highest version
     SELECT created_by changed_by INTO (lv_created, lv_changed) FROM ('/IWBEP/I_MGW_VAH')
-      WHERE technical_name = ms_item-obj_name.
+      WHERE technical_name = ms_item-obj_name
+      ORDER BY PRIMARY KEY.
       rv_user = lv_changed.
       IF lv_changed IS INITIAL.
         rv_user = lv_created.
@@ -89355,7 +89371,8 @@ CLASS zcl_abapgit_object_iwsv IMPLEMENTATION.
 
     " Get entry with highest version
     SELECT created_by changed_by INTO (lv_created, lv_changed) FROM ('/IWBEP/I_MGW_SRH')
-      WHERE technical_name = ms_item-obj_name.
+      WHERE technical_name = ms_item-obj_name
+      ORDER BY PRIMARY KEY.
       rv_user = lv_changed.
       IF lv_changed IS INITIAL.
         rv_user = lv_created.
@@ -89757,7 +89774,8 @@ CLASS zcl_abapgit_object_iwmo IMPLEMENTATION.
 
     " Get entry with highest version
     SELECT created_by changed_by INTO (lv_created, lv_changed) FROM ('/IWBEP/I_MGW_OHD')
-      WHERE technical_name = ms_item-obj_name.
+      WHERE technical_name = ms_item-obj_name
+      ORDER BY PRIMARY KEY.
       rv_user = lv_changed.
       IF lv_changed IS INITIAL.
         rv_user = lv_created.
@@ -90297,8 +90315,8 @@ CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd DEFINITION.
         descript TYPE seodescr,
         scotype  TYPE seoscotype,
       END OF ty_sub_component,
-      ty_compontents     TYPE STANDARD TABLE OF ty_component,
-      ty_sub_compontents TYPE STANDARD TABLE OF ty_sub_component.
+      ty_compontents     TYPE SORTED TABLE OF ty_component WITH UNIQUE DEFAULT KEY,
+      ty_sub_compontents TYPE SORTED TABLE OF ty_sub_component WITH UNIQUE DEFAULT KEY.
 
     CLASS-METHODS:
       get_attributes
@@ -90388,10 +90406,11 @@ CLASS kHGwlUKtFBXjILcBRBJOnvUCODLJDd IMPLEMENTATION.
     SELECT component~cmpname component_text~descript component~cmptype
       INTO TABLE lt_components
       FROM seocompo AS component
-     LEFT OUTER JOIN seocompotx AS component_text
+      LEFT OUTER JOIN seocompotx AS component_text
       ON component~cmpname = component_text~cmpname AND component~clsname    = component_text~clsname
                                                     AND component_text~langu = iv_language
-      WHERE component~clsname = iv_clif_name.          "#EC CI_BUFFJOIN
+      WHERE component~clsname = iv_clif_name
+      ORDER BY component~cmpname.          "#EC CI_BUFFJOIN
 
     SELECT sub_component~cmpname sub_component~sconame sub_component_text~descript sub_component~scotype
       INTO TABLE lt_sub_components
@@ -95613,7 +95632,8 @@ CLASS zcl_abapgit_object_fdt0 IMPLEMENTATION.
 
     SELECT application_id FROM fdt_admn_0000s INTO TABLE lt_application_id
       WHERE object_type = 'AP'
-      AND name = ms_item-obj_name.
+      AND name = ms_item-obj_name
+      ORDER BY application_id.
 
     ls_object_category_sel-system_objects = 'X'.
 
@@ -97488,7 +97508,7 @@ CLASS zcl_abapgit_object_ecat IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
+CLASS zcl_abapgit_object_dtel IMPLEMENTATION.
   METHOD deserialize_texts.
 
     DATA: lv_name       TYPE ddobjname,
@@ -97562,7 +97582,8 @@ CLASS ZCL_ABAPGIT_OBJECT_DTEL IMPLEMENTATION.
       FROM dd04v
       WHERE rollname = lv_name
       AND ddlanguage IN lt_language_filter
-      AND ddlanguage <> mv_language.                      "#EC CI_SUBRC
+      AND ddlanguage <> mv_language
+      ORDER BY langu.                                     "#EC CI_SUBRC
 
     LOOP AT lt_i18n_langs ASSIGNING <lv_lang>.
       lv_index = sy-tabix.
@@ -98732,7 +98753,7 @@ CLASS zcl_abapgit_object_drul IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
+CLASS zcl_abapgit_object_doma IMPLEMENTATION.
   METHOD adjust_exit.
 
     DATA lv_function TYPE funcname.
@@ -98889,13 +98910,15 @@ CLASS ZCL_ABAPGIT_OBJECT_DOMA IMPLEMENTATION.
       FROM dd01v
       WHERE domname = lv_name
       AND ddlanguage IN lt_language_filter
-      AND ddlanguage <> mv_language.                      "#EC CI_SUBRC
+      AND ddlanguage <> mv_language
+      ORDER BY langu.                                     "#EC CI_SUBRC
 
     SELECT DISTINCT ddlanguage AS langu APPENDING TABLE lt_i18n_langs
       FROM dd07v
       WHERE domname = lv_name
       AND ddlanguage IN lt_language_filter
-      AND ddlanguage <> mv_language.                      "#EC CI_SUBRC
+      AND ddlanguage <> mv_language
+      ORDER BY langu.                                     "#EC CI_SUBRC
 
     SORT lt_i18n_langs.
     DELETE ADJACENT DUPLICATES FROM lt_i18n_langs.
@@ -130018,8 +130041,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-02T14:56:05.096Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-02T14:56:05.096Z`.
+* abapmerge 0.16.0 - 2023-11-03T12:52:36.481Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-03T12:52:36.481Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
