@@ -63609,7 +63609,7 @@ CLASS zcl_abapgit_persist_migrate IMPLEMENTATION.
     DATA: lv_tabname TYPE dd02l-tabname.
 
     SELECT SINGLE tabname FROM dd02l INTO lv_tabname
-      WHERE tabname = zcl_abapgit_persistence_db=>c_tabname.
+      WHERE tabname = zcl_abapgit_persistence_db=>c_tabname. "#EC CI_NOORDER
     rv_exists = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
@@ -72570,7 +72570,7 @@ CLASS zcl_abapgit_object_type IMPLEMENTATION.
     SELECT SINGLE state
       FROM progdir
       INTO lv_state
-      WHERE name = lv_progname.
+      WHERE name = lv_progname.                         "#EC CI_NOORDER
     IF lv_state IS NOT INITIAL.
       rv_bool = abap_true.
     ENDIF.
@@ -74802,7 +74802,7 @@ CLASS zcl_abapgit_object_tabl IMPLEMENTATION.
     IF sy-subrc <> 0.
       " Check for new, inactive, or modified versions that might not be in nametab
       SELECT SINGLE tabname FROM dd02l INTO lv_tabname
-        WHERE tabname = lv_tabname.
+        WHERE tabname = lv_tabname.                     "#EC CI_NOORDER
     ENDIF.
     rv_bool = boolc( sy-subrc = 0 ).
 
@@ -75273,7 +75273,7 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
     SELECT SINGLE langu
            FROM dokil INTO lv_dummy
            WHERE id   = 'UO'                            "#EC CI_GENBUFF
-           AND object = lv_docu_obj.
+           AND object = lv_docu_obj.                    "#EC CI_NOORDER
 
     IF sy-subrc = 0.
 
@@ -75481,6 +75481,7 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
     DATA: lv_objct TYPE tobj-objct.
     SELECT SINGLE objct FROM tobj INTO lv_objct
       WHERE objct = ms_item-obj_name.
+
     rv_bool = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
@@ -79051,7 +79052,7 @@ CLASS zcl_abapgit_object_sots IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~changed_by.
     SELECT SINGLE chan_name FROM sotr_headu INTO rv_user
-      WHERE paket = ms_item-obj_name.
+      WHERE paket = ms_item-obj_name.                   "#EC CI_NOORDER
     IF sy-subrc <> 0.
       rv_user = c_user_unknown.
     ENDIF.
@@ -98253,7 +98254,7 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
     SELECT SINGLE langu FROM dokil INTO rv_language
       WHERE id = c_id
       AND object = mv_doc_object
-      AND masterlang = abap_true.
+      AND masterlang = abap_true.                       "#EC CI_NOORDER
 
     IF sy-subrc <> 0.
       rv_language = mv_language.
@@ -98310,7 +98311,7 @@ CLASS zcl_abapgit_object_dsys IMPLEMENTATION.
 
     SELECT SINGLE COUNT( * ) FROM dokil INTO lv_count
            WHERE id   = c_id
-           AND object = mv_doc_object.                  "#EC CI_GENBUFF
+           AND object = mv_doc_object.  "#EC CI_GENBUFF "#EC CI_NOORDER
 
     rv_bool = boolc( lv_count > 0 ).
 
@@ -99280,8 +99281,8 @@ CLASS zcl_abapgit_object_docv IMPLEMENTATION.
   METHOD zif_abapgit_object~exists.
 
     SELECT SINGLE id FROM dokil INTO mv_id
-      WHERE id     = mv_id
-        AND object = mv_doc_object.                     "#EC CI_GENBUFF
+       WHERE id     = mv_id
+         AND object = mv_doc_object.    "#EC CI_GENBUFF "#EC CI_NOORDER
 
     rv_bool = boolc( sy-subrc = 0 ).
 
@@ -99384,7 +99385,7 @@ CLASS zcl_abapgit_object_doct IMPLEMENTATION.
 
     SELECT SINGLE id FROM dokil INTO lv_id
       WHERE id         = c_id
-        AND object     = lv_object.                     "#EC CI_GENBUFF
+        AND object     = lv_object.     "#EC CI_GENBUFF "#EC CI_NOORDER
 
     rv_bool = boolc( sy-subrc = 0 ).
 
@@ -130054,8 +130055,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-03T14:22:33.782Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-03T14:22:33.782Z`.
+* abapmerge 0.16.0 - 2023-11-03T14:24:44.591Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-03T14:24:44.591Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
