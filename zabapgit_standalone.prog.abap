@@ -30265,7 +30265,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  background-color: hsl(49, 100%, 64%);' ).
     lo_buf->add( '  border-color: hsl(49, 100%, 49%);' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '.rl-orrange {' ).
+    lo_buf->add( '.rl-orange {' ).
     lo_buf->add( '  color: hsl(0, 0%, 100%);' ).
     lo_buf->add( '  background-color: hsl(19, 100%, 61%);' ).
     lo_buf->add( '  border-color: hsl(19, 100%, 50%);' ).
@@ -41140,7 +41140,7 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
     APPEND `darkred` TO lt_labels.
     APPEND `yellow` TO lt_labels.
     APPEND `darkyellow` TO lt_labels.
-    APPEND `orrange` TO lt_labels.
+    APPEND `orange` TO lt_labels.
     APPEND `brown` TO lt_labels.
     APPEND `pink` TO lt_labels.
     APPEND `teal` TO lt_labels.
@@ -130368,8 +130368,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-03T19:20:55.320Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-03T19:20:55.320Z`.
+* abapmerge 0.16.0 - 2023-11-04T08:51:14.286Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-04T08:51:14.286Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
