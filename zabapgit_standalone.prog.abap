@@ -23326,6 +23326,7 @@ CLASS zcl_abapgit_popup_pull_request DEFINITION
       IMPORTING
         iv_url TYPE string.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA mv_repo_url TYPE string.
@@ -38303,6 +38304,9 @@ CLASS zcl_abapgit_popup_tag_list IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_popup_pull_request IMPLEMENTATION.
+  METHOD constructor.
+    mv_repo_url = iv_url.
+  ENDMETHOD.
   METHOD create.
 
     CREATE OBJECT ri_popup TYPE zcl_abapgit_popup_pull_request
@@ -38310,21 +38314,11 @@ CLASS zcl_abapgit_popup_pull_request IMPLEMENTATION.
         iv_url = iv_url.
 
   ENDMETHOD.
-  METHOD constructor.
-    mv_repo_url = iv_url.
-  ENDMETHOD.
-  METHOD zif_abapgit_html_popup~create_picklist.
-
-    CREATE OBJECT ro_picklist
-      EXPORTING
-        iv_title         = 'Choose Pull Request'
-        it_list          = fetch_pull_request_list( )
-        ii_item_renderer = me.
-
-  ENDMETHOD.
   METHOD fetch_pull_request_list.
 
     rt_pulls = zcl_abapgit_pr_enumerator=>new( mv_repo_url )->get_pulls( ).
+
+    SORT rt_pulls DESCENDING BY number.
 
     IF lines( rt_pulls ) = 0.
       zcx_abapgit_exception=>raise( 'No pull requests found' ).
@@ -38339,6 +38333,15 @@ CLASS zcl_abapgit_popup_pull_request IMPLEMENTATION.
     ASSERT sy-subrc = 0.
 
     ri_html = zcl_abapgit_html=>create( |<b>{ <ls_pr>-number }</b> - { <ls_pr>-title } @{ <ls_pr>-user }| ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_html_popup~create_picklist.
+
+    CREATE OBJECT ro_picklist
+      EXPORTING
+        iv_title         = 'Choose Pull Request'
+        it_list          = fetch_pull_request_list( )
+        ii_item_renderer = me.
 
   ENDMETHOD.
 ENDCLASS.
@@ -130368,8 +130371,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-04T08:51:14.286Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-04T08:51:14.286Z`.
+* abapmerge 0.16.0 - 2023-11-04T08:59:23.745Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-04T08:59:23.745Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
