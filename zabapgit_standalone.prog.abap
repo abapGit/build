@@ -19943,6 +19943,7 @@ CLASS zcl_abapgit_html_form DEFINITION
         autofocus   TYPE string,
       END OF ty_attr .
 
+    DATA mv_webgui TYPE abap_bool.
     DATA mt_fields TYPE zif_abapgit_html_form=>ty_fields .
     DATA:
       mt_commands TYPE STANDARD TABLE OF zif_abapgit_html_form=>ty_command .
@@ -19983,6 +19984,10 @@ CLASS zcl_abapgit_html_form DEFINITION
         !is_attr   TYPE ty_attr
         !io_values TYPE REF TO zcl_abapgit_string_map .
     METHODS render_command
+      IMPORTING
+        !ii_html TYPE REF TO zif_abapgit_html
+        !is_cmd  TYPE zif_abapgit_html_form=>ty_command .
+    METHODS render_command_link
       IMPORTING
         !ii_html TYPE REF TO zif_abapgit_html
         !is_cmd  TYPE zif_abapgit_html_form=>ty_command .
@@ -30466,7 +30471,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  text-decoration: none;' ).
     lo_buf->add( '  padding: 6px 12px;' ).
     lo_buf->add( '  border-radius: 3px;' ).
-    lo_buf->add( '  font-size: smaller;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog li.dialog-commands input[type="button"],' ).
     lo_buf->add( '.dialog li.dialog-commands input[type="submit"] {' ).
@@ -30475,6 +30479,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border-radius: 3px;' ).
     lo_buf->add( '  cursor: pointer;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.dialog-commands a.main,' ).
     lo_buf->add( '.dialog li.dialog-commands input[type="submit"].main {' ).
     lo_buf->add( '  border: 1px solid transparent;' ).
     lo_buf->add( '}' ).
@@ -31164,14 +31169,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border-color: #ccc;' ).
     lo_buf->add( '  background-color: #f0f0f0;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '.dialog li.dialog-commands a {' ).
-    lo_buf->add( '  border-color: #ccc;' ).
-    lo_buf->add( '  background-color: #ddd;' ).
-    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.dialog-commands a,' ).
     lo_buf->add( '.dialog li.dialog-commands input[type="submit"] {' ).
     lo_buf->add( '  border-color: #ccc;' ).
     lo_buf->add( '  background-color: #ddd;' ).
+    lo_buf->add( '  color: #000;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.dialog-commands a.main,' ).
     lo_buf->add( '.dialog li.dialog-commands input[type="submit"].main {' ).
     lo_buf->add( '  background-color: #64a8ff;' ).
     lo_buf->add( '  color: #fff;' ).
@@ -31441,15 +31445,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  color: var(--theme-primary-font-color-reduced);' ).
     lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
     lo_buf->add( '}' ).
-    lo_buf->add( '.dialog li.dialog-commands a {' ).
-    lo_buf->add( '  border-color: #ccc;' ).
-    lo_buf->add( '  background-color: var(--theme-greyscale-dark);' ).
-    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.dialog-commands a,' ).
     lo_buf->add( '.dialog li.dialog-commands input[type="submit"] {' ).
     lo_buf->add( '  border-color: #ccc;' ).
     lo_buf->add( '  background-color: var(--theme-greyscale-dark);' ).
     lo_buf->add( '  color: #fff;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '.dialog li.dialog-commands a.main,' ).
     lo_buf->add( '.dialog li.dialog-commands input[type="submit"].main {' ).
     lo_buf->add( '  background-color: #64a8ff;' ).
     lo_buf->add( '  color: #fff;' ).
@@ -52192,7 +52194,7 @@ CLASS zcl_abapgit_html_form_utils IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
+CLASS zcl_abapgit_html_form IMPLEMENTATION.
   METHOD checkbox.
 
     DATA ls_field LIKE LINE OF mt_fields.
@@ -52256,6 +52258,8 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
       GET TIME STAMP FIELD lv_ts.
       ro_form->mv_form_id = |form_{ lv_ts }|.
     ENDIF.
+
+    ro_form->mv_webgui = zcl_abapgit_ui_factory=>get_frontend_services( )->is_webgui( ).
 
   ENDMETHOD.
   METHOD get_fields.
@@ -52432,13 +52436,20 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_command.
 
+    " HTML GUI supports only links for submitting forms
+    IF mv_webgui = abap_true.
+      render_command_link(
+        is_cmd  = is_cmd
+        ii_html = ii_html ).
+      RETURN.
+    ENDIF.
+
     CASE is_cmd-cmd_type.
       WHEN zif_abapgit_html_form=>c_cmd_type-link.
 
-        ii_html->add_a(
-          iv_txt   = is_cmd-label
-          iv_act   = is_cmd-action
-          iv_class = 'dialog-commands' ).
+        render_command_link(
+          is_cmd  = is_cmd
+          ii_html = ii_html ).
 
       WHEN zif_abapgit_html_form=>c_cmd_type-button.
 
@@ -52457,6 +52468,20 @@ CLASS ZCL_ABAPGIT_HTML_FORM IMPLEMENTATION.
         ASSERT 0 = 1.
 
     ENDCASE.
+
+  ENDMETHOD.
+  METHOD render_command_link.
+
+    DATA lv_class TYPE string VALUE 'dialog-commands'.
+
+    IF is_cmd-cmd_type = zif_abapgit_html_form=>c_cmd_type-input_main.
+      lv_class = lv_class && ' main'.
+    ENDIF.
+
+    ii_html->add_a(
+      iv_txt   = is_cmd-label
+      iv_act   = is_cmd-action
+      iv_class = lv_class ).
 
   ENDMETHOD.
   METHOD render_field.
@@ -130371,8 +130396,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-04T08:59:23.745Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-04T08:59:23.745Z`.
+* abapmerge 0.16.0 - 2023-11-05T09:31:36.406Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-05T09:31:36.406Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
