@@ -3030,8 +3030,8 @@ INTERFACE zif_abapgit_definitions .
     END OF ty_item_signature .
   TYPES:
     BEGIN OF ty_obj_namespace,
-      namespace TYPE trnspace-namespace,
-      obj_without_namespace  TYPE tadir-obj_name,
+      namespace             TYPE trnspace-namespace,
+      obj_without_namespace TYPE tadir-obj_name,
     END OF ty_obj_namespace.
   TYPES:
     BEGIN OF ty_item.
@@ -3079,7 +3079,8 @@ INTERFACE zif_abapgit_definitions .
     END OF ty_requirements .
   TYPES:
     BEGIN OF ty_dependencies,
-      met TYPE ty_yes_no,
+      met      TYPE ty_yes_no,
+      decision TYPE ty_yes_no,
     END OF ty_dependencies .
   TYPES:
     BEGIN OF ty_transport_type,
@@ -36859,6 +36860,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     IF cs_checks-dependencies-met = zif_abapgit_definitions=>c_no.
       lt_dependencies = io_repo->get_dot_apack( )->get_manifest_descriptor( )-dependencies.
       zcl_abapgit_apack_helper=>dependencies_popup( lt_dependencies ).
+      cs_checks-dependencies-decision = zif_abapgit_definitions=>c_yes.
     ENDIF.
 
     popup_objects_overwrite( CHANGING ct_overwrite = lt_decision ).
@@ -61764,8 +61766,8 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Requirements not met and undecided' ).
     ENDIF.
 
-    IF is_checks-dependencies-met = zif_abapgit_definitions=>c_no.
-      zcx_abapgit_exception=>raise( 'APACK dependencies not met' ).
+    IF is_checks-dependencies-met = zif_abapgit_definitions=>c_no AND is_checks-dependencies-decision IS INITIAL.
+      zcx_abapgit_exception=>raise( 'APACK dependencies not met and undecided' ).
     ENDIF.
 
     IF is_checks-transport-required = abap_true AND is_checks-transport-transport IS INITIAL.
@@ -129733,7 +129735,7 @@ CLASS zcl_abapgit_apack_migration IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_APACK_HELPER IMPLEMENTATION.
+CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
   METHOD are_dependencies_met.
 
     DATA: lt_dependencies_status TYPE ty_dependency_statuses.
@@ -129758,11 +129760,20 @@ CLASS ZCL_ABAPGIT_APACK_HELPER IMPLEMENTATION.
   ENDMETHOD.
   METHOD dependencies_popup.
 
-    DATA: lt_met_status TYPE ty_dependency_statuses.
+    DATA: lt_met_status TYPE ty_dependency_statuses,
+          lv_answer     TYPE c LENGTH 1.
 
     lt_met_status = get_dependencies_met_status( it_dependencies ).
 
     show_dependencies_popup( lt_met_status ).
+
+    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
+      iv_titlebar      = 'Warning'
+      iv_text_question = 'The project has unmet dependencies. Do you want to continue?' ).
+
+    IF lv_answer <> '1'.
+      zcx_abapgit_exception=>raise( 'Cancelling because of unmet dependencies.' ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD get_color_table.
@@ -130411,8 +130422,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-06T16:34:09.013Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-06T16:34:09.013Z`.
+* abapmerge 0.16.0 - 2023-11-06T19:06:12.799Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-06T19:06:12.799Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
