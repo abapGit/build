@@ -5445,9 +5445,9 @@ INTERFACE zif_abapgit_popups .
       VALUE(rs_transport_branch) TYPE zif_abapgit_definitions=>ty_transport_to_branch
     RAISING
       zcx_abapgit_exception .
-  METHODS popup_to_select_transports
+  METHODS popup_to_select_transport
     RETURNING
-      VALUE(rt_trkorr) TYPE trwbo_request_headers .
+      VALUE(rv_trkorr) TYPE trkorr .
   METHODS popup_to_select_from_list
     IMPORTING
       !it_list               TYPE STANDARD TABLE
@@ -6152,10 +6152,10 @@ CLASS zcl_abapgit_transport DEFINITION
 
     CLASS-METHODS to_tadir
       IMPORTING
-        !it_transport_headers TYPE trwbo_request_headers
-        !iv_deleted_objects   TYPE abap_bool DEFAULT abap_false
+        !iv_trkorr          TYPE trkorr
+        !iv_deleted_objects TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(rt_tadir)       TYPE zif_abapgit_definitions=>ty_tadir_tt
+        VALUE(rt_tadir)     TYPE zif_abapgit_definitions=>ty_tadir_tt
       RAISING
         zcx_abapgit_exception .
 
@@ -6167,9 +6167,11 @@ CLASS zcl_abapgit_transport DEFINITION
 
   PROTECTED SECTION.
 
+    TYPES ty_trkorr_tt TYPE STANDARD TABLE OF trkorr.
+
     CLASS-METHODS read_requests
       IMPORTING
-        !it_trkorr         TYPE trwbo_request_headers
+        !it_trkorr         TYPE ty_trkorr_tt
       RETURNING
         VALUE(rt_requests) TYPE trwbo_requests
       RAISING
@@ -35882,20 +35884,11 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD zif_abapgit_popups~popup_to_select_transports.
+  METHOD zif_abapgit_popups~popup_to_select_transport.
 
-* todo, method to be renamed, it only returns one transport
-
-    DATA: lv_trkorr TYPE e070-trkorr,
-          ls_trkorr LIKE LINE OF rt_trkorr.
     CALL FUNCTION 'TR_F4_REQUESTS'
       IMPORTING
-        ev_selected_request = lv_trkorr.
-
-    IF NOT lv_trkorr IS INITIAL.
-      ls_trkorr-trkorr = lv_trkorr.
-      APPEND ls_trkorr TO rt_trkorr.
-    ENDIF.
+        ev_selected_request = rv_trkorr.
 
   ENDMETHOD.
   METHOD zif_abapgit_popups~popup_transport_request.
@@ -36527,7 +36520,7 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_services_repo IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
   METHOD activate_objects.
 
     DATA:
@@ -37179,6 +37172,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
       lo_transport_to_branch TYPE REF TO zcl_abapgit_transport_2_branch,
       lt_transport_headers   TYPE trwbo_request_headers,
       lt_transport_objects   TYPE zif_abapgit_definitions=>ty_tadir_tt,
+      lv_trkorr              TYPE trkorr,
       ls_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch.
     IF zcl_abapgit_auth=>is_allowed( zif_abapgit_auth=>c_authorization-transport_to_branch ) = abap_false.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
@@ -37186,11 +37180,11 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
 
     lo_repository ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_repository_key ).
 
-    lt_transport_headers = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_transports( ).
+    lv_trkorr = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_transport( ).
     " Also include deleted objects that are included in transport
     lt_transport_objects = zcl_abapgit_transport=>to_tadir(
-      it_transport_headers = lt_transport_headers
-      iv_deleted_objects   = abap_true ).
+      iv_trkorr          = lv_trkorr
+      iv_deleted_objects = abap_true ).
     IF lt_transport_objects IS INITIAL.
       zcx_abapgit_exception=>raise( 'Canceled or List of objects is empty ' ).
     ENDIF.
@@ -49620,21 +49614,17 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_page_data IMPLEMENTATION.
   METHOD add_via_transport.
 
-    DATA lt_trkorr  TYPE trwbo_request_headers.
-    DATA ls_trkorr  LIKE LINE OF lt_trkorr.
+    DATA lv_trkorr  TYPE trkorr.
     DATA ls_request TYPE zif_abapgit_cts_api=>ty_transport_data.
     DATA ls_key     LIKE LINE OF ls_request-keys.
     DATA lv_where   TYPE string.
     DATA ls_config  TYPE zif_abapgit_data_config=>ty_config.
-    lt_trkorr = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_transports( ).
-    IF lines( lt_trkorr ) <> 1.
+    lv_trkorr = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_transport( ).
+    IF lv_trkorr IS INITIAL.
       RETURN.
     ENDIF.
 
-    READ TABLE lt_trkorr INDEX 1 INTO ls_trkorr.
-    ASSERT sy-subrc = 0.
-
-    ls_request = zcl_abapgit_factory=>get_cts_api( )->read( ls_trkorr-trkorr ).
+    ls_request = zcl_abapgit_factory=>get_cts_api( )->read( lv_trkorr ).
 
     IF lines( ls_request-keys ) = 0.
       zcx_abapgit_exception=>raise( |No keys found, select task| ).
@@ -127913,7 +127903,7 @@ CLASS zcl_abapgit_transport_2_branch IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_transport IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
   METHOD add_all_objects_to_trans_req.
 
     DATA:
@@ -128064,12 +128054,12 @@ CLASS zcl_abapgit_transport IMPLEMENTATION.
   ENDMETHOD.
   METHOD read_requests.
     DATA lt_requests LIKE rt_requests.
-    FIELD-SYMBOLS <ls_trkorr> LIKE LINE OF it_trkorr.
+    FIELD-SYMBOLS <lv_trkorr> LIKE LINE OF it_trkorr.
 
-    LOOP AT it_trkorr ASSIGNING <ls_trkorr>.
+    LOOP AT it_trkorr ASSIGNING <lv_trkorr>.
       CALL FUNCTION 'TR_READ_REQUEST_WITH_TASKS'
         EXPORTING
-          iv_trkorr     = <ls_trkorr>-trkorr
+          iv_trkorr     = <lv_trkorr>
         IMPORTING
           et_requests   = lt_requests
         EXCEPTIONS
@@ -128151,12 +128141,15 @@ CLASS zcl_abapgit_transport IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD to_tadir.
-    DATA: lt_requests TYPE trwbo_requests.
-    IF lines( it_transport_headers ) = 0.
+    DATA lt_requests TYPE trwbo_requests.
+    DATA lt_trkorr   TYPE ty_trkorr_tt.
+    IF iv_trkorr IS INITIAL.
       RETURN.
     ENDIF.
 
-    lt_requests = read_requests( it_transport_headers ).
+    INSERT iv_trkorr INTO TABLE lt_trkorr.
+
+    lt_requests = read_requests( lt_trkorr ).
     rt_tadir = resolve(
       it_requests        = lt_requests
       iv_deleted_objects = iv_deleted_objects ).
@@ -128169,11 +128162,15 @@ CLASS zcl_abapgit_transport IMPLEMENTATION.
           lv_package        TYPE devclass,
           lo_dot_abapgit    TYPE REF TO zcl_abapgit_dot_abapgit,
           ls_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings,
-          lt_trkorr         TYPE trwbo_request_headers.
+          lt_trkorr         TYPE ty_trkorr_tt,
+          lv_trkorr         TYPE trkorr.
     IF is_trkorr IS SUPPLIED.
-      APPEND is_trkorr TO lt_trkorr.
+      APPEND is_trkorr-trkorr TO lt_trkorr.
     ELSE.
-      lt_trkorr = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_transports( ).
+      lv_trkorr = zcl_abapgit_ui_factory=>get_popups( )->popup_to_select_transport( ).
+      IF lv_trkorr IS NOT INITIAL.
+        APPEND lv_trkorr TO lt_trkorr.
+      ENDIF.
     ENDIF.
 
     IF lines( lt_trkorr ) = 0.
@@ -130414,8 +130411,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-06T15:52:09.540Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-06T15:52:09.540Z`.
+* abapmerge 0.16.0 - 2023-11-06T16:34:09.013Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-06T16:34:09.013Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
