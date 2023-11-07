@@ -5346,9 +5346,7 @@ INTERFACE zif_abapgit_services_git.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_popups .
-  TYPES:
-    ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY,
-    ty_rows    TYPE SORTED TABLE OF i WITH UNIQUE KEY table_line.
+  TYPES ty_rows TYPE SORTED TABLE OF i WITH UNIQUE KEY table_line.
 
   TYPES:
     BEGIN OF ty_alv_column,
@@ -5441,7 +5439,7 @@ INTERFACE zif_abapgit_popups .
       zcx_abapgit_exception .
   METHODS popup_to_create_transp_branch
     IMPORTING
-      !it_transport_headers      TYPE trwbo_request_headers
+      !iv_trkorr                 TYPE trkorr
     RETURNING
       VALUE(rs_transport_branch) TYPE zif_abapgit_definitions=>ty_transport_to_branch
     RAISING
@@ -23795,6 +23793,7 @@ CLASS zcl_abapgit_popups DEFINITION
     CONSTANTS c_answer_cancel      TYPE c LENGTH 1 VALUE 'A' ##NO_TEXT.
 
     DATA ms_position TYPE zif_abapgit_popups=>ty_popup_position.
+    TYPES ty_sval_tt TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
 
     METHODS add_field
       IMPORTING
@@ -23805,7 +23804,7 @@ CLASS zcl_abapgit_popups DEFINITION
         !iv_field_attr TYPE sval-field_attr DEFAULT ''
         !iv_obligatory TYPE spo_obl OPTIONAL
       CHANGING
-        !ct_fields     TYPE zif_abapgit_popups=>ty_sval_tt .
+        !ct_fields     TYPE ty_sval_tt .
     METHODS _popup_3_get_values
       IMPORTING
         !iv_popup_title    TYPE string
@@ -35737,27 +35736,15 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
   METHOD zif_abapgit_popups~popup_to_create_transp_branch.
     DATA: lt_fields             TYPE TABLE OF sval,
           lv_transports_as_text TYPE string,
-          lv_desc_as_text       TYPE string,
-          ls_transport_header   LIKE LINE OF it_transport_headers.
+          lv_desc_as_text       TYPE string.
     DATA: lv_branch_name        TYPE spo_value.
     DATA: lv_commit_text        TYPE spo_value.
 
     CLEAR: rs_transport_branch-branch_name, rs_transport_branch-commit_text.
 
-    " If we only have one transport selected set branch name to Transport
-    " name and commit description to transport description.
-    IF lines( it_transport_headers ) = 1.
-      READ TABLE it_transport_headers INDEX 1 INTO ls_transport_header.
-      lv_transports_as_text = ls_transport_header-trkorr.
-      lv_desc_as_text = zcl_abapgit_factory=>get_cts_api( )->read_description( ls_transport_header-trkorr ).
-    ELSE.   " Else set branch name and commit message to 'Transport(s)_TRXXXXXX_TRXXXXX'
-      lv_transports_as_text = 'Transport(s)'.
-      LOOP AT it_transport_headers INTO ls_transport_header.
-        CONCATENATE lv_transports_as_text '_' ls_transport_header-trkorr INTO lv_transports_as_text.
-      ENDLOOP.
-      lv_desc_as_text = lv_transports_as_text.
+    lv_transports_as_text = iv_trkorr.
+    lv_desc_as_text = zcl_abapgit_factory=>get_cts_api( )->read_description( iv_trkorr ).
 
-    ENDIF.
     add_field( EXPORTING iv_tabname   = 'TEXTL'
                          iv_fieldname = 'LINE'
                          iv_fieldtext = 'Branch name'
@@ -37172,7 +37159,6 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     DATA:
       lo_repository          TYPE REF TO zcl_abapgit_repo_online,
       lo_transport_to_branch TYPE REF TO zcl_abapgit_transport_2_branch,
-      lt_transport_headers   TYPE trwbo_request_headers,
       lt_transport_objects   TYPE zif_abapgit_definitions=>ty_tadir_tt,
       lv_trkorr              TYPE trkorr,
       ls_transport_to_branch TYPE zif_abapgit_definitions=>ty_transport_to_branch.
@@ -37191,8 +37177,7 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Canceled or List of objects is empty ' ).
     ENDIF.
 
-    ls_transport_to_branch = zcl_abapgit_ui_factory=>get_popups( )->popup_to_create_transp_branch(
-      lt_transport_headers ).
+    ls_transport_to_branch = zcl_abapgit_ui_factory=>get_popups( )->popup_to_create_transp_branch( lv_trkorr ).
 
     CREATE OBJECT lo_transport_to_branch.
     lo_transport_to_branch->create(
@@ -130422,8 +130407,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-06T19:06:12.799Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-06T19:06:12.799Z`.
+* abapmerge 0.16.0 - 2023-11-07T21:30:57.630Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-07T21:30:57.630Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
