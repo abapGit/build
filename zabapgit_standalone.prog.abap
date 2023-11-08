@@ -4350,6 +4350,7 @@ INTERFACE zif_abapgit_dot_abapgit.
 
   TYPES:
     BEGIN OF ty_dot_abapgit,
+      name                  TYPE string,
       master_language       TYPE spras,
       i18n_languages        TYPE zif_abapgit_definitions=>ty_languages,
       use_lxe               TYPE abap_bool,
@@ -17306,6 +17307,12 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
     METHODS set_requirements
       IMPORTING
         !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt .
+    METHODS get_name
+      RETURNING
+        VALUE(rv_name) TYPE string.
+    METHODS set_name
+      IMPORTING
+        !iv_name TYPE csequence.
     METHODS get_version_constant
       RETURNING
         VALUE(rv_version_constant) TYPE string .
@@ -62061,7 +62068,7 @@ CLASS zcl_abapgit_object_filter_tran IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
+CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   METHOD add_ignore.
 
     DATA: lv_name TYPE string.
@@ -62123,6 +62130,9 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD get_abap_language_version.
+    rv_abap_language_version = ms_data-abap_language_version.
+  ENDMETHOD.
   METHOD get_data.
     rs_data = ms_data.
   ENDMETHOD.
@@ -62134,6 +62144,9 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_main_language.
     rv_language = ms_data-master_language.
+  ENDMETHOD.
+  METHOD get_name.
+    rv_name = ms_data-name.
   ENDMETHOD.
   METHOD get_requirements.
     rt_requirements = ms_data-requirements.
@@ -62206,11 +62219,17 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
     rv_xstr = zcl_abapgit_convert=>string_to_xstring_utf8_bom( lv_xml ).
 
   ENDMETHOD.
+  METHOD set_abap_language_version.
+    ms_data-abap_language_version = iv_abap_language_version.
+  ENDMETHOD.
   METHOD set_folder_logic.
     ms_data-folder_logic = iv_logic.
   ENDMETHOD.
   METHOD set_i18n_languages.
     ms_data-i18n_languages = it_languages.
+  ENDMETHOD.
+  METHOD set_name.
+    ms_data-name = iv_name.
   ENDMETHOD.
   METHOD set_requirements.
     ms_data-requirements = it_requirements.
@@ -62251,12 +62270,6 @@ CLASS ZCL_ABAPGIT_DOT_ABAPGIT IMPLEMENTATION.
 
     rv_yes = ms_data-use_lxe.
 
-  ENDMETHOD.
-  METHOD get_abap_language_version.
-    rv_abap_language_version = ms_data-abap_language_version.
-  ENDMETHOD.
-  METHOD set_abap_language_version.
-    ms_data-abap_language_version = iv_abap_language_version.
   ENDMETHOD.
 ENDCLASS.
 
@@ -130436,8 +130449,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-08T14:50:33.593Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-08T14:50:33.593Z`.
+* abapmerge 0.16.0 - 2023-11-08T16:01:48.962Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-08T16:01:48.962Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
