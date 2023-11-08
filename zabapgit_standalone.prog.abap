@@ -8506,6 +8506,8 @@ CLASS zcl_abapgit_aff_registry DEFINITION
 
     CONSTANTS c_aff_feature TYPE string VALUE 'AFF'.
 
+    METHODS constructor.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -8518,7 +8520,9 @@ CLASS zcl_abapgit_aff_registry DEFINITION
     CLASS-DATA:
       gt_registry TYPE HASHED TABLE OF ty_registry_entry WITH UNIQUE KEY obj_type.
 
-    METHODS initialize_registry_table.
+    DATA mv_aff_enabled TYPE abap_bool.
+
+    CLASS-METHODS initialize_registry_table.
 
     CLASS-METHODS:
       register
@@ -91221,12 +91225,18 @@ ENDCLASS.
 
 CLASS zcl_abapgit_object_intf IMPLEMENTATION.
   METHOD constructor.
+
+    DATA li_aff_registry TYPE REF TO zif_abapgit_aff_registry.
+
     super->constructor(
       is_item     = is_item
       iv_language = iv_language ).
     mi_object_oriented_object_fct = zcl_abapgit_oo_factory=>make( ms_item-obj_type ).
 
-    mv_aff_enabled = zcl_abapgit_feature=>is_enabled( zcl_abapgit_abap_language_vers=>c_feature_flag ).
+    CREATE OBJECT li_aff_registry TYPE zcl_abapgit_aff_registry.
+
+    mv_aff_enabled = li_aff_registry->is_supported_object_type( 'INTF' ).
+
   ENDMETHOD.
   METHOD deserialize_descriptions.
     DATA:  ls_clskey TYPE seoclskey.
@@ -118135,6 +118145,9 @@ CLASS zcl_abapgit_json_handler IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_aff_registry IMPLEMENTATION.
+  METHOD constructor.
+    mv_aff_enabled = zcl_abapgit_feature=>is_enabled( c_aff_feature ).
+  ENDMETHOD.
   METHOD initialize_registry_table.
     register( 'CHKC' ).
     register( 'CHKO' ).
@@ -118166,7 +118179,7 @@ CLASS zcl_abapgit_aff_registry IMPLEMENTATION.
     READ TABLE gt_registry WITH TABLE KEY obj_type = iv_obj_type INTO ls_registry_entry.
     IF sy-subrc = 0 AND ls_registry_entry-experimental = abap_false.
       rv_result = abap_true.
-    ELSEIF sy-subrc = 0 AND zcl_abapgit_feature=>is_enabled( c_aff_feature ) = abap_true.
+    ELSEIF sy-subrc = 0 AND mv_aff_enabled = abap_true.
       rv_result = abap_true.
     ELSE.
       rv_result = abap_false.
@@ -130416,8 +130429,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-08T06:13:25.471Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-08T06:13:25.471Z`.
+* abapmerge 0.16.0 - 2023-11-08T13:12:59.099Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-08T13:12:59.099Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
