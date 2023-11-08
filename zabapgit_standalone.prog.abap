@@ -24991,9 +24991,9 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-METHODS get_sap_report
       RETURNING
         VALUE(ri_report) TYPE REF TO zif_abapgit_sap_report.
-    CLASS-METHODS: get_function_module
-        RETURNING
-          VALUE(ri_function_module) TYPE REF TO zif_abapgit_function_module.
+    CLASS-METHODS get_function_module
+      RETURNING
+        VALUE(ri_function_module) TYPE REF TO zif_abapgit_function_module.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -25656,13 +25656,22 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
     ENDIF.
     ri_environment = gi_environment.
   ENDMETHOD.
+  METHOD get_function_module.
+
+    IF gi_function_module IS INITIAL.
+      CREATE OBJECT gi_function_module TYPE zcl_abapgit_function_module.
+    ENDIF.
+
+    ri_function_module = gi_function_module.
+
+  ENDMETHOD.
   METHOD get_http_agent.
 
-    IF gi_http_agent IS BOUND.
-      ri_http_agent = gi_http_agent.
-    ELSE.
-      ri_http_agent = zcl_abapgit_http_agent=>create( ).
+    IF gi_http_agent IS INITIAL.
+      gi_http_agent = zcl_abapgit_http_agent=>create( ).
     ENDIF.
+
+    ri_http_agent = gi_http_agent.
 
   ENDMETHOD.
   METHOD get_longtexts.
@@ -25725,8 +25734,7 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
   METHOD get_stage_logic.
 
     IF gi_stage_logic IS INITIAL.
-      CREATE OBJECT gi_stage_logic
-        TYPE zcl_abapgit_stage_logic.
+      CREATE OBJECT gi_stage_logic TYPE zcl_abapgit_stage_logic.
     ENDIF.
 
     ri_logic = gi_stage_logic.
@@ -25741,16 +25749,6 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
     ri_tadir = gi_tadir.
 
   ENDMETHOD.
-  METHOD get_function_module.
-
-    IF gi_function_module IS INITIAL.
-      CREATE OBJECT gi_function_module TYPE zcl_abapgit_function_module.
-    ENDIF.
-
-    ri_function_module = gi_function_module.
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_XML_PRETTY IMPLEMENTATION.
@@ -130429,8 +130427,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-08T13:12:59.099Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-08T13:12:59.099Z`.
+* abapmerge 0.16.0 - 2023-11-08T13:22:19.659Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-08T13:22:19.659Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
