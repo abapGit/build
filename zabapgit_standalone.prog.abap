@@ -4682,15 +4682,15 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_persist_repo .
   METHODS add
     IMPORTING
-      !iv_url         TYPE string
-      !iv_branch_name TYPE string
-      !iv_branch      TYPE zif_abapgit_git_definitions=>ty_sha1 OPTIONAL
-      iv_display_name TYPE string OPTIONAL
-      !iv_package     TYPE devclass
-      !iv_offline     TYPE abap_bool DEFAULT abap_false
-      !is_dot_abapgit TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit
+      !iv_url          TYPE string
+      !iv_branch_name  TYPE string
+      !iv_branch       TYPE zif_abapgit_git_definitions=>ty_sha1 OPTIONAL
+      !iv_display_name TYPE string OPTIONAL
+      !iv_package      TYPE devclass
+      !iv_offline      TYPE abap_bool DEFAULT abap_false
+      !is_dot_abapgit  TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit
     RETURNING
-      VALUE(rv_key)   TYPE zif_abapgit_persistence=>ty_repo-key
+      VALUE(rv_key)    TYPE zif_abapgit_persistence=>ty_repo-key
     RAISING
       zcx_abapgit_exception .
   METHODS delete
@@ -4700,7 +4700,7 @@ INTERFACE zif_abapgit_persist_repo .
       zcx_abapgit_exception .
   METHODS exists
     IMPORTING
-      !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+      !iv_key       TYPE zif_abapgit_persistence=>ty_repo-key
     RETURNING
       VALUE(rv_yes) TYPE abap_bool.
   METHODS list
@@ -36524,7 +36524,7 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   METHOD activate_objects.
 
     DATA:
@@ -36578,22 +36578,6 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
     lo_repo->refresh( iv_drop_log = abap_false ).
 
   ENDMETHOD.
-  METHOD check_package_exists.
-
-    IF zcl_abapgit_factory=>get_sap_package( iv_package )->exists( ) = abap_false.
-      " Check if any package is included in remote
-      READ TABLE it_remote TRANSPORTING NO FIELDS
-        WITH KEY file
-        COMPONENTS filename = zcl_abapgit_filename_logic=>c_package_file.
-      IF sy-subrc <> 0.
-        " If not, give error
-        zcx_abapgit_exception=>raise(
-          iv_text     = |Package { iv_package } does not exist and there's no package included in the repository|
-          iv_longtext = 'Either select an existing package, create a new one, or add a package to the repository' ).
-      ENDIF.
-    ENDIF.
-
-  ENDMETHOD.
   METHOD check_for_restart.
 
     CONSTANTS:
@@ -36643,6 +36627,22 @@ CLASS ZCL_ABAPGIT_SERVICES_REPO IMPLEMENTATION.
 
     IF li_repo IS BOUND.
       zcx_abapgit_exception=>raise( lv_reason ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD check_package_exists.
+
+    IF zcl_abapgit_factory=>get_sap_package( iv_package )->exists( ) = abap_false.
+      " Check if any package is included in remote
+      READ TABLE it_remote TRANSPORTING NO FIELDS
+        WITH KEY file
+        COMPONENTS filename = zcl_abapgit_filename_logic=>c_package_file.
+      IF sy-subrc <> 0.
+        " If not, give error
+        zcx_abapgit_exception=>raise(
+          iv_text     = |Package { iv_package } does not exist and there's no package included in the repository|
+          iv_longtext = 'Either select an existing package, create a new one, or add a package to the repository' ).
+      ENDIF.
     ENDIF.
 
   ENDMETHOD.
@@ -61834,25 +61834,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       EXPORTING
         is_data = ms_data-dot_abapgit.
   ENDMETHOD.
-  METHOD zif_abapgit_repo~get_files_local_filtered.
-
-    DATA lo_serialize TYPE REF TO zcl_abapgit_serialize.
-    DATA lt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt.
-    CREATE OBJECT lo_serialize
-      EXPORTING
-        io_dot_abapgit    = get_dot_abapgit( )
-        is_local_settings = get_local_settings( ).
-
-    lt_filter = ii_obj_filter->get_filter( ).
-
-    rt_files = lo_serialize->files_local(
-      iv_package     = get_package( )
-      ii_data_config = get_data_config( )
-      ii_log         = ii_log
-      it_filter      = lt_filter ).
-
-  ENDMETHOD.
-
   METHOD zif_abapgit_repo~get_files_local.
 
     DATA lo_serialize TYPE REF TO zcl_abapgit_serialize.
@@ -61875,6 +61856,24 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
     mt_local                 = rt_files.
     mv_request_local_refresh = abap_false. " Fulfill refresh
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo~get_files_local_filtered.
+
+    DATA lo_serialize TYPE REF TO zcl_abapgit_serialize.
+    DATA lt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    CREATE OBJECT lo_serialize
+      EXPORTING
+        io_dot_abapgit    = get_dot_abapgit( )
+        is_local_settings = get_local_settings( ).
+
+    lt_filter = ii_obj_filter->get_filter( ).
+
+    rt_files = lo_serialize->files_local(
+      iv_package     = get_package( )
+      ii_data_config = get_data_config( )
+      ii_log         = ii_log
+      it_filter      = lt_filter ).
 
   ENDMETHOD.
   METHOD zif_abapgit_repo~get_files_remote.
@@ -130437,8 +130436,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-08T14:33:39.644Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-08T14:33:39.644Z`.
+* abapmerge 0.16.0 - 2023-11-08T14:50:33.593Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-08T14:50:33.593Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
