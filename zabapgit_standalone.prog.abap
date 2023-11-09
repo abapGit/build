@@ -37439,7 +37439,8 @@ CLASS zcl_abapgit_services_abapgit IMPLEMENTATION.
       FROM tstc
       INTO TABLE lt_tcodes
       WHERE pgmna = sy-cprog
-        AND cinfo = lc_report_tcode_hex.
+        AND cinfo = lc_report_tcode_hex
+      ORDER BY tcode.
 
     IF lines( lt_tcodes ) > 0.
       READ TABLE lt_tcodes INDEX 1 INTO rv_tcode.
@@ -61946,45 +61947,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_object_filter_tran IMPLEMENTATION.
-  METHOD generate_local_filter.
-    DATA lt_e071_filter TYPE ty_e071_filter_tt.
-
-    SELECT DISTINCT pgmid
-                object
-                obj_name
-           INTO CORRESPONDING FIELDS OF TABLE lt_e071_filter
-           FROM e071
-      WHERE trkorr IN it_r_trkorr.
-    IF sy-subrc <> 0.
-      CLEAR lt_e071_filter.
-    ENDIF.
-    rt_filter = adjust_local_filter(
-      iv_package     = iv_package
-      it_e071_filter = lt_e071_filter ).
-  ENDMETHOD.
-  METHOD get_filter_values.
-    et_r_trkorr = mt_r_trkorr.
-    ev_package = mv_package.
-  ENDMETHOD.
-  METHOD zif_abapgit_object_filter~get_filter.
-    rt_filter = mt_filter.
-  ENDMETHOD.
-  METHOD init.
-    CLEAR mt_filter.
-    CLEAR mt_r_trkorr.
-    CLEAR mv_package.
-  ENDMETHOD.
-  METHOD set_filter_values.
-    init( ).
-    mt_r_trkorr = it_r_trkorr.
-    mv_package = iv_package.
-    IF it_r_trkorr IS NOT INITIAL.
-      mt_filter = generate_local_filter(
-        iv_package  = mv_package
-        it_r_trkorr = mt_r_trkorr ).
-
-    ENDIF.
-  ENDMETHOD.
   METHOD adjust_local_filter.
 
     DATA lt_e071_filter TYPE ty_e071_filter_tt.
@@ -62049,6 +62011,21 @@ CLASS zcl_abapgit_object_filter_tran IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD generate_local_filter.
+    DATA lt_e071_filter TYPE ty_e071_filter_tt.
+
+    SELECT DISTINCT pgmid object obj_name
+      INTO CORRESPONDING FIELDS OF TABLE lt_e071_filter
+      FROM e071
+      WHERE trkorr IN it_r_trkorr
+      ORDER BY pgmid object obj_name.
+    IF sy-subrc <> 0.
+      CLEAR lt_e071_filter.
+    ENDIF.
+    rt_filter = adjust_local_filter(
+      iv_package     = iv_package
+      it_e071_filter = lt_e071_filter ).
+  ENDMETHOD.
   METHOD get_all_sub_packages.
 
     DATA li_package TYPE REF TO zif_abapgit_sap_package.
@@ -62065,6 +62042,29 @@ CLASS zcl_abapgit_object_filter_tran IMPLEMENTATION.
       INSERT ls_filter INTO TABLE rt_filter.
     ENDLOOP.
 
+  ENDMETHOD.
+  METHOD get_filter_values.
+    et_r_trkorr = mt_r_trkorr.
+    ev_package = mv_package.
+  ENDMETHOD.
+  METHOD init.
+    CLEAR mt_filter.
+    CLEAR mt_r_trkorr.
+    CLEAR mv_package.
+  ENDMETHOD.
+  METHOD set_filter_values.
+    init( ).
+    mt_r_trkorr = it_r_trkorr.
+    mv_package = iv_package.
+    IF it_r_trkorr IS NOT INITIAL.
+      mt_filter = generate_local_filter(
+        iv_package  = mv_package
+        it_r_trkorr = mt_r_trkorr ).
+
+    ENDIF.
+  ENDMETHOD.
+  METHOD zif_abapgit_object_filter~get_filter.
+    rt_filter = mt_filter.
   ENDMETHOD.
 ENDCLASS.
 
@@ -107015,7 +107015,7 @@ CLASS ZCL_ABAPGIT_SOTS_HANDLER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_SOTR_HANDLER IMPLEMENTATION.
+CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
   METHOD create_sotr.
 
     DATA:
@@ -107146,7 +107146,7 @@ CLASS ZCL_ABAPGIT_SOTR_HANDLER IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_sotr_head> LIKE LINE OF lt_sotr_head.
 
-    SELECT * FROM sotr_head INTO TABLE lt_sotr_head WHERE paket = iv_package.
+    SELECT * FROM sotr_head INTO TABLE lt_sotr_head WHERE paket = iv_package ORDER BY PRIMARY KEY.
 
     LOOP AT lt_sotr_head ASSIGNING <ls_sotr_head> WHERE concept IS NOT INITIAL.
 
@@ -107169,7 +107169,7 @@ CLASS ZCL_ABAPGIT_SOTR_HANDLER IMPLEMENTATION.
     ENDLOOP.
 
     " Nothing left, then delete SOTR from TADIR
-    SELECT * FROM sotr_head INTO TABLE lt_sotr_head WHERE paket = iv_package.
+    SELECT * FROM sotr_head INTO TABLE lt_sotr_head WHERE paket = iv_package ORDER BY PRIMARY KEY.
     IF sy-subrc <> 0.
       SELECT SINGLE obj_name FROM tadir INTO lv_obj_name
         WHERE pgmid = 'R3TR' AND object = 'SOTR' AND obj_name = iv_package.
@@ -108134,7 +108134,7 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
+CLASS zcl_abapgit_longtexts IMPLEMENTATION.
   METHOD escape_name.
     " Prepare name for SQL LIKE condition
     rv_object = iv_object_name.
@@ -108260,7 +108260,8 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
 
     SELECT * FROM dokil
       INTO TABLE lt_dokil
-      WHERE id = iv_longtext_id AND object LIKE lv_object ESCAPE '#'.
+      WHERE id = iv_longtext_id AND object LIKE lv_object ESCAPE '#'
+      ORDER BY PRIMARY KEY.
 
     LOOP AT lt_dokil ASSIGNING <ls_dokil>.
 
@@ -108321,7 +108322,8 @@ CLASS ZCL_ABAPGIT_LONGTEXTS IMPLEMENTATION.
     " If not, delete the texts
     SELECT * FROM dokil
       INTO TABLE lt_dokil
-      WHERE id = iv_longtext_id AND object LIKE lv_object ESCAPE '#'.
+      WHERE id = iv_longtext_id AND object LIKE lv_object ESCAPE '#'
+      ORDER BY PRIMARY KEY.
 
     LOOP AT lt_dokil ASSIGNING <ls_dokil>.
 
@@ -121803,7 +121805,7 @@ CLASS zcl_abapgit_ajson IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_CODE_INSPECTOR IMPLEMENTATION.
+CLASS zcl_abapgit_code_inspector IMPLEMENTATION.
   METHOD cleanup.
 
     IF mo_inspection IS BOUND.
@@ -122032,7 +122034,8 @@ CLASS ZCL_ABAPGIT_CODE_INSPECTOR IMPLEMENTATION.
       ON scichkv_hd~checkvid = scichkv_tx~checkvid
       AND scichkv_hd~ciuser  = scichkv_tx~ciuser
       AND scichkv_tx~language = sy-langu
-      WHERE scichkv_hd~ciuser = space.
+      WHERE scichkv_hd~ciuser = space
+      ORDER BY name.
 
   ENDMETHOD.
   METHOD zif_abapgit_code_inspector~run.
@@ -126991,7 +126994,8 @@ CLASS zcl_abapgit_data_supporter IMPLEMENTATION.
         AND dd09l~tabart = 'APPL2'
         AND dd09l~as4user <> 'SAP'
         AND dd09l~as4local = 'A' "Only active tables
-        AND dd02l~contflag = 'C'. "Only customizing tables
+        AND dd02l~contflag = 'C' "Only customizing tables
+      ORDER BY dd02l~tabname.
 
     LOOP AT lt_tables INTO lv_tabname.
       ls_object-type = zif_abapgit_data_config=>c_data_type-tabu.
@@ -127075,10 +127079,10 @@ CLASS zcl_abapgit_data_serializer IMPLEMENTATION.
 
     TRY.
         LOOP AT it_where INTO lv_where.
-          SELECT * FROM (iv_name) APPENDING TABLE <lg_tab> WHERE (lv_where).
+          SELECT * FROM (iv_name) APPENDING TABLE <lg_tab> WHERE (lv_where) ORDER BY PRIMARY KEY.
         ENDLOOP.
         IF lines( it_where ) = 0.
-          SELECT * FROM (iv_name) INTO TABLE <lg_tab>.
+          SELECT * FROM (iv_name) INTO TABLE <lg_tab> ORDER BY PRIMARY KEY.
         ENDIF.
       CATCH cx_sy_sql_error INTO lx_sql.
         zcx_abapgit_exception=>raise(
@@ -127267,10 +127271,10 @@ CLASS zcl_abapgit_data_deserializer IMPLEMENTATION.
     ASSIGN rr_data->* TO <lg_tab>.
 
     LOOP AT it_where INTO lv_where.
-      SELECT * FROM (iv_name) APPENDING TABLE <lg_tab> WHERE (lv_where).
+      SELECT * FROM (iv_name) APPENDING TABLE <lg_tab> WHERE (lv_where) ORDER BY PRIMARY KEY.
     ENDLOOP.
     IF lines( it_where ) = 0.
-      SELECT * FROM (iv_name) INTO TABLE <lg_tab>.
+      SELECT * FROM (iv_name) INTO TABLE <lg_tab> ORDER BY PRIMARY KEY.
     ENDIF.
 
   ENDMETHOD.
@@ -129486,7 +129490,8 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
          WHERE tadir~pgmid = 'R3TR' AND
                tadir~object = 'CLAS' AND
                seometarel~version = '1' AND
-               seometarel~refclsname = zif_abapgit_apack_definitions=>c_apack_interface_cust.
+               seometarel~refclsname = zif_abapgit_apack_definitions=>c_apack_interface_cust
+         ORDER BY clsname devclass.
 
       SELECT seometarel~clsname tadir~devclass FROM seometarel "#EC CI_NOORDER
          INNER JOIN tadir ON seometarel~clsname = tadir~obj_name "#EC CI_BUFFJOIN
@@ -129494,7 +129499,8 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
          WHERE tadir~pgmid = 'R3TR' AND
                tadir~object = 'CLAS' AND
                seometarel~version = '1' AND
-               seometarel~refclsname = zif_abapgit_apack_definitions=>c_apack_interface_sap.
+               seometarel~refclsname = zif_abapgit_apack_definitions=>c_apack_interface_sap
+         ORDER BY clsname devclass.
 
       LOOP AT lt_packages INTO lv_package.
         READ TABLE lt_manifest_implementation INTO ls_manifest_implementation WITH KEY devclass = lv_package.
@@ -129919,7 +129925,8 @@ CLASS zcl_abapgit_apack_helper IMPLEMENTATION.
          AND tadir~object = 'CLAS'
          AND seometarel~version = '1'
          AND ( seometarel~refclsname = zif_abapgit_apack_definitions=>c_apack_interface_cust
-            OR seometarel~refclsname = zif_abapgit_apack_definitions=>c_apack_interface_sap ).
+            OR seometarel~refclsname = zif_abapgit_apack_definitions=>c_apack_interface_sap )
+      ORDER BY clsname devclass.
 
     LOOP AT lt_manifest_implementation INTO ls_manifest_implementation.
       CLEAR: lo_manifest_provider, lo_apack_reader.
@@ -130449,8 +130456,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-08T16:01:48.962Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-08T16:01:48.962Z`.
+* abapmerge 0.16.0 - 2023-11-09T13:38:31.502Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-09T13:38:31.502Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
