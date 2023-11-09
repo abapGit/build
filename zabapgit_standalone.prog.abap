@@ -2874,6 +2874,7 @@ INTERFACE zif_abapgit_services_repo .
 
   TYPES:
     BEGIN OF ty_repo_params,
+      name               TYPE string,
       url                TYPE string,
       package            TYPE devclass,
       branch_name        TYPE string,
@@ -4683,8 +4684,8 @@ ENDINTERFACE.
 INTERFACE zif_abapgit_persist_repo .
   METHODS add
     IMPORTING
-      !iv_url          TYPE string
-      !iv_branch_name  TYPE string
+      !iv_url          TYPE string OPTIONAL
+      !iv_branch_name  TYPE string OPTIONAL
       !iv_branch       TYPE zif_abapgit_git_definitions=>ty_sha1 OPTIONAL
       !iv_display_name TYPE string OPTIONAL
       !iv_package      TYPE devclass
@@ -5193,7 +5194,7 @@ INTERFACE zif_abapgit_repo_srv .
       zcx_abapgit_exception .
   METHODS new_offline
     IMPORTING
-      !iv_url            TYPE string
+      !iv_name           TYPE string
       !iv_package        TYPE devclass
       !iv_folder_logic   TYPE string DEFAULT zif_abapgit_dot_abapgit=>c_folder_logic-full
       !iv_labels         TYPE string OPTIONAL
@@ -5209,6 +5210,7 @@ INTERFACE zif_abapgit_repo_srv .
       !iv_url            TYPE string
       !iv_branch_name    TYPE string OPTIONAL
       !iv_display_name   TYPE string OPTIONAL
+      !iv_name           TYPE string OPTIONAL
       !iv_package        TYPE devclass
       !iv_folder_logic   TYPE string DEFAULT zif_abapgit_dot_abapgit=>c_folder_logic-prefix
       !iv_labels         TYPE string OPTIONAL
@@ -17760,14 +17762,6 @@ CLASS zcl_abapgit_repo_offline DEFINITION
 
   PUBLIC SECTION.
 
-    METHODS set_name
-      IMPORTING
-        !iv_url TYPE string
-      RAISING
-        zcx_abapgit_exception .
-
-    METHODS zif_abapgit_repo~get_name
-        REDEFINITION .
     METHODS has_remote_source
         REDEFINITION .
   PROTECTED SECTION.
@@ -20328,7 +20322,7 @@ CLASS zcl_abapgit_gui_page_addofflin DEFINITION
 
     CONSTANTS:
       BEGIN OF c_id,
-        url                TYPE string VALUE 'url',
+        name               TYPE string VALUE 'name',
         package            TYPE string VALUE 'package',
         folder_logic       TYPE string VALUE 'folder_logic',
         labels             TYPE string VALUE 'labels',
@@ -22934,6 +22928,7 @@ CLASS zcl_abapgit_gui_page_sett_repo DEFINITION
     CONSTANTS:
       BEGIN OF c_id,
         dot              TYPE string VALUE 'dot',
+        name             TYPE string VALUE 'name',
         main_language    TYPE string VALUE 'main_language',
         i18n_langs       TYPE string VALUE 'i18n_langs',
         use_lxe          TYPE string VALUE 'use_lxe',
@@ -25115,6 +25110,8 @@ CLASS zcl_abapgit_migrations DEFINITION FINAL
 
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    CLASS-METHODS migrate_offline_repos.
 ENDCLASS.
 CLASS zcl_abapgit_settings DEFINITION
   CREATE PUBLIC .
@@ -25511,7 +25508,30 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
+CLASS zcl_abapgit_migrations IMPLEMENTATION.
+  METHOD migrate_offline_repos.
+
+    DATA:
+      lt_repos TYPE zif_abapgit_repo_srv=>ty_repo_list,
+      li_repo  LIKE LINE OF lt_repos,
+      lo_dot   TYPE REF TO zcl_abapgit_dot_abapgit.
+
+    TRY.
+        " Get offline repos only
+        lt_repos = zcl_abapgit_repo_srv=>get_instance( )->list( abap_true ).
+
+        LOOP AT lt_repos INTO li_repo.
+          lo_dot = li_repo->get_dot_abapgit( ).
+          " Move repo name from URL fields to .abapGit.xml
+          IF li_repo->ms_data-url IS NOT INITIAL AND lo_dot->get_name( ) IS INITIAL.
+            lo_dot->set_name( li_repo->ms_data-url ).
+            li_repo->set_dot_abapgit( lo_dot ).
+          ENDIF.
+        ENDLOOP.
+      CATCH zcx_abapgit_exception ##NO_HANDLER.
+    ENDTRY.
+
+  ENDMETHOD.
   METHOD run.
 
     " Migrate STDTEXT to TABLE
@@ -25522,6 +25542,9 @@ CLASS ZCL_ABAPGIT_MIGRATIONS IMPLEMENTATION.
 
     " Migrate checksums from repo metadata to separate DB object
     zcl_abapgit_repo_cs_migration=>run( ).
+
+    " Migrate offline repo metadata
+    migrate_offline_repos( ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -36770,7 +36793,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
 
     " create new repo and add to favorites
     ro_repo ?= zcl_abapgit_repo_srv=>get_instance( )->new_offline(
-      iv_url            = is_repo_params-url
+      iv_name           = is_repo_params-name
       iv_package        = is_repo_params-package
       iv_folder_logic   = is_repo_params-folder_logic
       iv_labels         = is_repo_params-labels
@@ -36807,6 +36830,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     ro_repo ?= zcl_abapgit_repo_srv=>get_instance( )->new_online(
       iv_url            = is_repo_params-url
       iv_branch_name    = is_repo_params-branch_name
+      iv_name           = is_repo_params-name
       iv_package        = is_repo_params-package
       iv_display_name   = is_repo_params-display_name
       iv_folder_logic   = is_repo_params-folder_logic
@@ -39795,6 +39819,10 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
     ENDIF.
 
     ro_form->text(
+      iv_name        = c_id-name
+      iv_label       = 'Name'
+      iv_hint        = 'Official name (can be overwritten by local display name)'
+    )->text(
       iv_name        = c_id-version_constant
       iv_label       = 'Version Constant'
       iv_placeholder = 'ZVERSION_CLASS=>VERSION_CONSTANT'
@@ -39837,6 +39865,9 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
       lv_language = 'Unknown language; Check your .abapgit.xml file'.
     ENDIF.
 
+    ro_form_data->set(
+      iv_key = c_id-name
+      iv_val = ls_dot-name ).
     ro_form_data->set(
       iv_key = c_id-main_language
       iv_val = |{ lv_main_lang } ({ lv_language })| ).
@@ -39923,6 +39954,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
 
     lo_dot = mo_repo->get_dot_abapgit( ).
 
+    lo_dot->set_name( mo_form_data->get( c_id-name ) ).
     lo_dot->set_folder_logic( mo_form_data->get( c_id-folder_logic ) ).
     lo_dot->set_starting_folder( mo_form_data->get( c_id-starting_folder ) ).
     lo_dot->set_version_constant( mo_form_data->get( c_id-version_constant ) ).
@@ -40265,13 +40297,10 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
   METHOD get_form_schema.
 
     DATA:
-      lv_button      TYPE string,
-      lv_label       TYPE string,
-      lv_icon        TYPE string,
-      lv_hint        TYPE string,
-      lv_placeholder TYPE string,
-      lv_offline     TYPE abap_bool,
-      lv_head_type   TYPE ty_head_type.
+      lv_button    TYPE string,
+      lv_icon      TYPE string,
+      lv_offline   TYPE abap_bool,
+      lv_head_type TYPE ty_head_type.
 
     IF io_existing_form_data IS BOUND AND io_existing_form_data->is_empty( ) = abap_false.
       lv_offline = io_existing_form_data->get( c_id-offline ).
@@ -40288,15 +40317,11 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
       iv_help_page = 'https://docs.abapgit.org/settings-remote.html' ).
 
     IF lv_offline = abap_true.
-      lv_button      = 'Switch to Online'.
-      lv_icon        = 'plug/darkgrey'.
-      lv_label       = 'Repository Name'.
+      lv_button = 'Switch to Online'.
+      lv_icon   = 'plug/darkgrey'.
     ELSE.
-      lv_button      = 'Switch to Offline'.
-      lv_icon        = 'cloud-upload-alt/darkgrey'.
-      lv_label       = 'Git Repository URL'.
-      lv_hint        = 'URL of original repository'.
-      lv_placeholder = 'https://github.com/...git'.
+      lv_button = 'Switch to Offline'.
+      lv_icon   = 'cloud-upload-alt/darkgrey'.
     ENDIF.
 
     ro_form->start_group(
@@ -40307,15 +40332,16 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
       iv_name        = c_id-repo_type
       iv_label       = |Type of Repository: { zcl_abapgit_html=>icon( lv_icon ) }|
       iv_readonly    = abap_true
-    )->hidden( c_id-offline
-    )->text(
-      iv_name        = c_id-url
-      iv_condense    = abap_true
-      iv_label       = lv_label
-      iv_hint        = lv_hint
-      iv_placeholder = lv_placeholder ).
+    )->hidden( c_id-offline ).
 
     IF lv_offline = abap_false.
+
+      ro_form->text(
+        iv_name        = c_id-url
+        iv_condense    = abap_true
+        iv_label       = 'Git Repository URL'
+        iv_hint        = 'URL of original repository'
+        iv_placeholder = 'https://github.com/...git' ).
 
       ro_form->start_group(
         iv_name  = c_id-head_group
@@ -40388,10 +40414,10 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_remote_settings_from_form.
 
-    rs_settings-url = io_form_data->get( c_id-url ).
     rs_settings-offline = io_form_data->get( c_id-offline ).
 
     IF rs_settings-offline = abap_false.
+      rs_settings-url       = io_form_data->get( c_id-url ).
       rs_settings-head_type = io_form_data->get( c_id-head_type ).
 
       CASE rs_settings-head_type.
@@ -40413,9 +40439,8 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
   ENDMETHOD.
   METHOD get_remote_settings_from_repo.
 
-    DATA: lo_repo_online  TYPE REF TO zcl_abapgit_repo_online,
-          lo_repo_offline TYPE REF TO zcl_abapgit_repo_offline,
-          lv_branch       TYPE ty_remote_settings-branch.
+    DATA: lo_repo_online TYPE REF TO zcl_abapgit_repo_online,
+          lv_branch      TYPE ty_remote_settings-branch.
 
     IF io_repo->is_offline( ) = abap_false.
       lo_repo_online ?= io_repo.
@@ -40457,9 +40482,6 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
       ENDIF.
 
     ELSE.
-      lo_repo_offline ?= io_repo.
-
-      rs_settings-url = lo_repo_offline->get_name( ).
       rs_settings-offline = abap_true.
     ENDIF.
 
@@ -40505,11 +40527,12 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     ro_form_data->set(
       iv_key = c_id-repo_type
       iv_val = lv_type ).
-    ro_form_data->set(
-      iv_key = c_id-url
-      iv_val = ms_settings_snapshot-url ).
 
     IF ms_settings_snapshot-offline = abap_false.
+      ro_form_data->set(
+        iv_key = c_id-url
+        iv_val = ms_settings_snapshot-url ).
+
       ro_form_data->set(
         iv_key = c_id-head_type
         iv_val = ms_settings_snapshot-head_type ).
@@ -40553,7 +40576,6 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
 
     DATA:
       lo_repo_online  TYPE REF TO zcl_abapgit_repo_online,
-      lo_repo_offline TYPE REF TO zcl_abapgit_repo_offline,
       ls_settings_new TYPE ty_remote_settings.
 
     ls_settings_new = get_remote_settings_from_form( mo_form_data ).
@@ -40565,11 +40587,7 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
       mo_repo ?= zcl_abapgit_repo_srv=>get_instance( )->get( mo_repo->get_key( ) ).
     ENDIF.
 
-    IF mo_repo->is_offline( ) = abap_true.
-      " Offline: Save repo name
-      lo_repo_offline ?= mo_repo.
-      lo_repo_offline->set_name( ls_settings_new-url ).
-    ELSE.
+    IF mo_repo->is_offline( ) = abap_false.
       " Online: Save url
       lo_repo_online ?= mo_repo.
       lo_repo_online->set_url( ls_settings_new-url ).
@@ -40620,12 +40638,9 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     IF lv_offline_new = abap_true.
       lv_url = mo_form_data->get( c_id-url ).
       mv_offline_switch_saved_url = lv_url.
-      IF lv_url CP 'http*'.
-        lv_url = zcl_abapgit_url=>name( lv_url ).
-        mo_form_data->set(
-          iv_key = c_id-url
-          iv_val = lv_url ).
-      ENDIF.
+      mo_form_data->set(
+        iv_key = c_id-url
+        iv_val = '' ).
       mo_form_data->set(
         iv_key = c_id-repo_type
         iv_val = c_repo_type-offline ).
@@ -51111,9 +51126,9 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
                 iv_help_page = 'https://docs.abapgit.org/guide-offline-install.html' ).
 
     ro_form->text(
-      iv_name        = c_id-url
+      iv_name        = c_id-name
       iv_required    = abap_true
-      iv_label       = 'Repository Name'
+      iv_label       = 'Name'
       iv_hint        = 'Unique name for repository'
     )->text(
       iv_name        = c_id-package
@@ -59973,18 +59988,17 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       iv_package    = iv_package
       iv_ign_subpkg = iv_ign_subpkg ).
 
-    IF iv_url IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Missing display name for repo' ).
+    IF iv_name IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Missing name for repository' ).
     ENDIF.
 
     " Repo Settings
     lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
     lo_dot_abapgit->set_folder_logic( iv_folder_logic ).
+    lo_dot_abapgit->set_name( iv_name ).
     lo_dot_abapgit->set_abap_language_version( iv_abap_lang_vers ).
 
     lv_key = zcl_abapgit_persist_factory=>get_repo( )->add(
-      iv_url          = iv_url
-      iv_branch_name  = ''
       iv_package      = iv_package
       iv_offline      = abap_true
       is_dot_abapgit  = lo_dot_abapgit->get_data( ) ).
@@ -60039,6 +60053,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
     " Repo Settings
     lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
     lo_dot_abapgit->set_folder_logic( iv_folder_logic ).
+    lo_dot_abapgit->set_name( iv_name ).
     lo_dot_abapgit->set_abap_language_version( iv_abap_lang_vers ).
 
     lv_key = zcl_abapgit_persist_factory=>get_repo( )->add(
@@ -60468,16 +60483,6 @@ CLASS zcl_abapgit_repo_offline IMPLEMENTATION.
     super->reset_remote( ).
     set_files_remote( lt_backup ).
 
-  ENDMETHOD.
-  METHOD set_name.
-    set( iv_url = iv_url ).
-  ENDMETHOD.
-  METHOD zif_abapgit_repo~get_name.
-    rv_name = super->get_name( ).
-
-    IF rv_name IS INITIAL.
-      rv_name = ms_data-url.
-    ENDIF.
   ENDMETHOD.
 ENDCLASS.
 
@@ -61918,7 +61923,11 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo~get_name.
 
+    " Local display name has priority over official name
     rv_name = ms_data-local_settings-display_name.
+    IF rv_name IS INITIAL.
+      rv_name = ms_data-dot_abapgit-name.
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_repo~get_package.
@@ -130456,8 +130465,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-09T13:38:31.502Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-09T13:38:31.502Z`.
+* abapmerge 0.16.0 - 2023-11-09T19:26:22.102Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-09T19:26:22.102Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
