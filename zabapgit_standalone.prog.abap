@@ -21455,6 +21455,15 @@ CLASS zcl_abapgit_gui_page_flow DEFINITION
       END OF c_action .
     DATA mt_features TYPE ty_features .
 
+    METHODS refresh
+      RAISING
+        zcx_abapgit_exception .
+    METHODS set_branch
+      IMPORTING
+        !iv_branch TYPE string
+        !iv_key    TYPE zif_abapgit_persistence=>ty_value
+      RAISING
+        zcx_abapgit_exception .
     METHODS render_table
       IMPORTING
         !iv_index      TYPE i
@@ -47020,6 +47029,18 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_FLOW IMPLEMENTATION.
       ii_child_component    = lo_component ).
 
   ENDMETHOD.
+  METHOD refresh.
+
+    DATA ls_feature LIKE LINE OF mt_features.
+    DATA lo_online  TYPE REF TO zcl_abapgit_repo_online.
+    LOOP AT mt_features INTO ls_feature.
+      lo_online ?= zcl_abapgit_repo_srv=>get_instance( )->get( ls_feature-repo-key ).
+      lo_online->refresh( ).
+    ENDLOOP.
+
+    CLEAR mt_features.
+
+  ENDMETHOD.
   METHOD render_table.
 
     DATA ls_path_name LIKE LINE OF is_feature-changed_files.
@@ -47063,39 +47084,51 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_FLOW IMPLEMENTATION.
       iv_act = |{ c_action-pull }?index={ iv_index }&key={ is_feature-repo-key }| ) ).
     ri_html->add( ri_html->a(
       iv_txt = 'Stage'
-      iv_act = |{ c_action-stage }?index={ iv_index }&key={ is_feature-repo-key }| ) ).
+      iv_act = |{ c_action-stage }?index={ iv_index }&key={ is_feature-repo-key }&branch={ lv_branch }| ) ).
     ri_html->add( |<br>| ).
+
+  ENDMETHOD.
+  METHOD set_branch.
+
+    DATA lv_branch TYPE string.
+    DATA lo_online TYPE REF TO zcl_abapgit_repo_online.
+
+    IF iv_branch IS NOT INITIAL.
+      lv_branch = 'refs/heads/' && iv_branch.
+      lo_online ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
+      IF lo_online->get_selected_branch( ) <> lv_branch.
+        lo_online->select_branch( lv_branch ).
+      ENDIF.
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA lv_key     TYPE zif_abapgit_persistence=>ty_value.
     DATA lv_branch  TYPE string.
-    DATA lo_online  TYPE REF TO zcl_abapgit_repo_online.
     DATA lo_filter  TYPE REF TO kHGwlHbtMQYaNXTWgQdwmgPrpXDFKn.
     DATA lt_filter  TYPE zif_abapgit_definitions=>ty_tadir_tt.
     DATA lv_index   TYPE i.
+    DATA lo_online  TYPE REF TO zcl_abapgit_repo_online.
     DATA ls_feature LIKE LINE OF mt_features.
 
     FIELD-SYMBOLS <ls_object> LIKE LINE OF ls_feature-changed_objects.
     FIELD-SYMBOLS <ls_filter> LIKE LINE OF lt_filter.
     CASE ii_event->mv_action.
       WHEN c_action-refresh.
-        CLEAR mt_features.
+        refresh( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-go_file_diff.
         lv_key = ii_event->query( )->get( 'KEY' ).
         lv_branch = ii_event->query( )->get( 'EXTRA' ).
-        IF lv_branch IS NOT INITIAL.
-          lv_branch = 'refs/heads/' && lv_branch.
-          lo_online ?= zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
-          IF lo_online->get_selected_branch( ) <> lv_branch.
-            lo_online->select_branch( lv_branch ).
-          ENDIF.
-        ENDIF.
+        set_branch(
+          iv_branch = lv_branch
+          iv_key    = lv_key ).
+* calling the page is done by the global router
       WHEN c_action-stage.
         lv_key = ii_event->query( )->get( 'KEY' ).
         lv_index = ii_event->query( )->get( 'INDEX' ).
+        lv_branch = ii_event->query( )->get( 'BRANCH' ).
         lo_online ?= zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
 
         READ TABLE mt_features INTO ls_feature INDEX lv_index.
@@ -47107,6 +47140,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_FLOW IMPLEMENTATION.
           <ls_filter>-obj_name = <ls_object>-obj_name.
         ENDLOOP.
         CREATE OBJECT lo_filter EXPORTING it_filter = lt_filter.
+
+        set_branch(
+          iv_branch = lv_branch
+          iv_key    = lv_key ).
 
         rs_handled-page = zcl_abapgit_gui_page_stage=>create(
           io_repo       = lo_online
@@ -130477,8 +130514,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-10T15:22:19.109Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-10T15:22:19.109Z`.
+* abapmerge 0.16.0 - 2023-11-12T07:37:12.925Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-12T07:37:12.925Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
