@@ -5054,6 +5054,10 @@ INTERFACE zif_abapgit_repo .
     RAISING
       zcx_abapgit_exception .
 
+  METHODS has_remote_source
+    RETURNING
+      VALUE(rv_yes) TYPE abap_bool .
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_repo_checksums.
@@ -17438,6 +17442,8 @@ CLASS zcl_abapgit_repo DEFINITION
       FOR zif_abapgit_repo~refresh .
     ALIASES set_dot_abapgit
       FOR zif_abapgit_repo~set_dot_abapgit .
+    ALIASES has_remote_source
+      FOR zif_abapgit_repo~has_remote_source .
 
     METHODS bind_listener
       IMPORTING
@@ -17476,10 +17482,6 @@ CLASS zcl_abapgit_repo DEFINITION
         VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_items_tt
       RAISING
         zcx_abapgit_exception .
-    METHODS has_remote_source
-      ABSTRACT
-      RETURNING
-        VALUE(rv_yes) TYPE abap_bool .
     METHODS refresh_local_object
       IMPORTING
         !iv_obj_type TYPE tadir-object
@@ -17674,11 +17676,7 @@ CLASS zcl_abapgit_repo_content_list DEFINITION
     DATA: mo_repo TYPE REF TO zcl_abapgit_repo,
           mi_log  TYPE REF TO zif_abapgit_log.
 
-    METHODS build_repo_items_local_only
-      RETURNING VALUE(rt_repo_items) TYPE zif_abapgit_definitions=>ty_repo_item_tt
-      RAISING   zcx_abapgit_exception.
-
-    METHODS build_repo_items_with_remote
+    METHODS build_repo_items
       RETURNING VALUE(rt_repo_items) TYPE zif_abapgit_definitions=>ty_repo_item_tt
       RAISING   zcx_abapgit_exception.
 
@@ -17762,9 +17760,6 @@ CLASS zcl_abapgit_repo_offline DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
-
-    METHODS has_remote_source
-        REDEFINITION .
   PROTECTED SECTION.
 
     METHODS reset_remote
@@ -17806,8 +17801,6 @@ CLASS zcl_abapgit_repo_online DEFINITION
     METHODS zif_abapgit_repo~get_files_remote
         REDEFINITION .
     METHODS zif_abapgit_repo~get_name
-        REDEFINITION .
-    METHODS has_remote_source
         REDEFINITION .
 
   PROTECTED SECTION.
@@ -60302,9 +60295,6 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD has_remote_source.
-    rv_yes = abap_true.
-  ENDMETHOD.
   METHOD raise_error_if_branch_exists.
 
     DATA:
@@ -60521,9 +60511,6 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_repo_offline IMPLEMENTATION.
-  METHOD has_remote_source.
-    rv_yes = boolc( lines( mt_remote ) > 0 ).
-  ENDMETHOD.
   METHOD reset_remote.
 
     DATA lt_backup LIKE mt_remote.
@@ -60795,44 +60782,7 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD build_repo_items_local_only.
-
-    DATA: lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          ls_item  TYPE zif_abapgit_definitions=>ty_item.
-
-    FIELD-SYMBOLS: <ls_repo_item> LIKE LINE OF rt_repo_items,
-                   <ls_tadir>     LIKE LINE OF lt_tadir.
-    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
-      iv_package            = mo_repo->get_package( )
-      iv_ignore_subpackages = mo_repo->get_local_settings( )-ignore_subpackages
-      iv_only_local_objects = mo_repo->get_local_settings( )-only_local_objects
-      io_dot                = mo_repo->get_dot_abapgit( ) ).
-
-    LOOP AT lt_tadir ASSIGNING <ls_tadir>.
-      APPEND INITIAL LINE TO rt_repo_items ASSIGNING <ls_repo_item>.
-      <ls_repo_item>-obj_type  = <ls_tadir>-object.
-      <ls_repo_item>-obj_name  = <ls_tadir>-obj_name.
-      <ls_repo_item>-path      = <ls_tadir>-path.
-      <ls_repo_item>-srcsystem = <ls_tadir>-srcsystem.
-      MOVE-CORRESPONDING <ls_repo_item> TO ls_item.
-      <ls_repo_item>-inactive = boolc( zcl_abapgit_objects=>is_active( ls_item ) = abap_false ).
-      IF <ls_repo_item>-inactive = abap_true.
-        <ls_repo_item>-sortkey = c_sortkey-inactive.
-      ELSE.
-        <ls_repo_item>-sortkey = c_sortkey-default.      " Default sort key
-      ENDIF.
-
-      IF <ls_repo_item>-obj_type IS NOT INITIAL.
-        MOVE-CORRESPONDING <ls_repo_item> TO ls_item.
-        IF zcl_abapgit_objects=>exists( ls_item ) = abap_true.
-          <ls_repo_item>-changed_by = zcl_abapgit_objects=>changed_by( ls_item ).
-        ENDIF.
-        CLEAR ls_item.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD build_repo_items_with_remote.
+  METHOD build_repo_items.
 
     DATA:
       lo_state      TYPE REF TO zcl_abapgit_item_state,
@@ -60975,13 +60925,18 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
   ENDMETHOD.
   METHOD list.
 
+    FIELD-SYMBOLS <ls_repo_item> LIKE LINE OF rt_repo_items.
+
     mi_log->clear( ).
 
-    IF mo_repo->has_remote_source( ) = abap_true.
-      rt_repo_items = build_repo_items_with_remote( ).
-      check_repo_size( ).
-    ELSE.
-      rt_repo_items = build_repo_items_local_only( ).
+    rt_repo_items = build_repo_items( ).
+    check_repo_size( ).
+
+    IF mo_repo->has_remote_source( ) = abap_false.
+      " If there's no remote source, ignore the item state
+      LOOP AT rt_repo_items ASSIGNING <ls_repo_item>.
+        CLEAR: <ls_repo_item>-changes, <ls_repo_item>-lstate, <ls_repo_item>-rstate.
+      ENDLOOP.
     ENDIF.
 
     IF iv_by_folders = abap_true.
@@ -61626,6 +61581,9 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
+  ENDMETHOD.
+  METHOD has_remote_source.
+    rv_yes = boolc( lines( mt_remote ) > 0 ).
   ENDMETHOD.
   METHOD normalize_local_settings.
 
@@ -130514,8 +130472,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-12T07:37:12.925Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-12T07:37:12.925Z`.
+* abapmerge 0.16.0 - 2023-11-12T14:25:39.574Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-12T14:25:39.574Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
