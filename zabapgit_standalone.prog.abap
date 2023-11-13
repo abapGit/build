@@ -24402,9 +24402,10 @@ CLASS zcl_abapgit_repo_labels DEFINITION
 
     TYPES:
       BEGIN OF ty_color,
-        cls TYPE string,
-        fg TYPE string,
-        bg TYPE string,
+        cls    TYPE string,
+        fg     TYPE string,
+        bg     TYPE string,
+        border TYPE string,
       END OF ty_color.
 
     CONSTANTS c_allowed_chars TYPE string VALUE `-_. a-zA-Z0-9` ##NO_TEXT.
@@ -24418,12 +24419,12 @@ CLASS zcl_abapgit_repo_labels DEFINITION
         zcx_abapgit_exception.
     CLASS-METHODS split
       IMPORTING
-        !iv_labels TYPE string
+        !iv_labels       TYPE string
       RETURNING
         VALUE(rt_labels) TYPE string_table.
     CLASS-METHODS normalize
       IMPORTING
-        !iv_labels TYPE string
+        !iv_labels       TYPE string
       RETURNING
         VALUE(rv_labels) TYPE string.
 
@@ -24434,23 +24435,23 @@ CLASS zcl_abapgit_repo_labels DEFINITION
         zcx_abapgit_exception.
     CLASS-METHODS split_colors
       IMPORTING
-        !iv_config TYPE string
+        !iv_config             TYPE string
       RETURNING
         VALUE(rt_label_colors) TYPE ty_label_colors.
     CLASS-METHODS split_colors_into_map
       IMPORTING
-        !iv_config TYPE string
+        !iv_config    TYPE string
       RETURNING
         VALUE(ro_map) TYPE REF TO zcl_abapgit_string_map.
     CLASS-METHODS normalize_colors
       IMPORTING
-        !iv_config TYPE string
+        !iv_config       TYPE string
       RETURNING
         VALUE(rv_config) TYPE string.
 
     CLASS-METHODS parse_color
       IMPORTING
-        iv_color TYPE string
+        iv_color         TYPE string
       RETURNING
         VALUE(rs_parsed) TYPE ty_color.
 
@@ -24460,7 +24461,7 @@ CLASS zcl_abapgit_repo_labels DEFINITION
 
     CLASS-METHODS validate_one_label_color
       IMPORTING
-        !is_lc TYPE ty_label_color
+        !is_lc    TYPE ty_label_color
         !iv_index TYPE i DEFAULT 0
       RAISING
         zcx_abapgit_exception.
@@ -27184,7 +27185,7 @@ CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REPO_LABELS IMPLEMENTATION.
+CLASS zcl_abapgit_repo_labels IMPLEMENTATION.
   METHOD class_constructor.
     gv_regex = |^[{ c_allowed_chars }]*$|. " Must start with -
   ENDMETHOD.
@@ -27252,7 +27253,7 @@ CLASS ZCL_ABAPGIT_REPO_LABELS IMPLEMENTATION.
 
     IF iv_color+0(1) = '#'.
       lv_tmp  = iv_color+1.
-      SPLIT lv_tmp AT '/' INTO rs_parsed-fg rs_parsed-bg.
+      SPLIT lv_tmp AT '/' INTO rs_parsed-fg rs_parsed-bg rs_parsed-border.
     ELSE.
       rs_parsed-cls = iv_color.
     ENDIF.
@@ -27371,6 +27372,9 @@ CLASS ZCL_ABAPGIT_REPO_LABELS IMPLEMENTATION.
     IF ls_parsed_color-bg IS NOT INITIAL.
       validate_rgb_color( ls_parsed_color-bg ).
     ENDIF.
+    IF ls_parsed_color-border IS NOT INITIAL.
+      validate_rgb_color( ls_parsed_color-border ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD validate_rgb_color.
@@ -27384,7 +27388,7 @@ CLASS ZCL_ABAPGIT_REPO_LABELS IMPLEMENTATION.
       ENDIF.
       lv_len = strlen( iv_color ).
       IF NOT ( lv_len = 3 OR lv_len = 6 ).
-        zcx_abapgit_exception=>raise( |Icorrect color in pair #{ iv_index }| ).
+        zcx_abapgit_exception=>raise( |Incorrect color in pair #{ iv_index }| ).
       ENDIF.
     ENDIF.
 
@@ -41185,13 +41189,13 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
 
     APPEND `<p style="margin-bottom: 0.3em">` TO lt_fragments.
     APPEND `Comma-separated list of <code>label:color</code> pairs.` TO lt_fragments.
-    APPEND ` <code>color</code> part can be either a css style (see below) or <code>#fg/bg</code> pair,`
-      TO lt_fragments.
-    APPEND ` where <code>fg</code> and <code>bg</code> are RGB color codes (3 or 6 long).` TO lt_fragments.
-    APPEND ` You can also specify just <code>fg</code> or <code>bg</code>` TO lt_fragments.
-    APPEND ` (defaults will be used for missing parts).` TO lt_fragments.
+    APPEND ` <code>color</code> part can be either a pre-defined style (see below), or` TO lt_fragments.
+    APPEND ` <code>#fg/bg/border</code> styles, where <code>fg</code>, ` TO lt_fragments.
+    APPEND ` <code>bg</code>, and <code>border</code> are RGB color codes (3 or 6 long).` TO lt_fragments.
+    APPEND ` You can also specify just <code>fg</code>, <code>bg</code>, or` TO lt_fragments.
+    APPEND ` <code>border</code> (defaults will be used for missing parts).` TO lt_fragments.
     APPEND ` E.g. <code>utils:brown, work:#ff0000/880000, client X:#ddd, client Y:#/333</code>` TO lt_fragments.
-    APPEND `<br>Available CSS styles:` TO lt_fragments.
+    APPEND `<br>Available styles:` TO lt_fragments.
     APPEND `</p>` TO lt_fragments.
 
     APPEND `white` TO lt_labels.
@@ -41231,7 +41235,7 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
       io_label_colors = lo_colors ) TO lt_fragments.
 
     APPEND
-      `<p style="margin-top: 0.3em">see also <code>rl-*</code> styles in common.css (styles, forgotten here)</p>`
+      `<p style="margin-top: 0.3em">see also <code>rl-*</code> styles in common.css</p>`
       TO lt_fragments.
 
     rv_html = zcl_abapgit_gui_chunk_lib=>render_help_hint( concat_lines_of( table = lt_fragments ) ).
@@ -54396,7 +54400,11 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
         ENDIF.
         IF ls_parsed_color-bg IS NOT INITIAL.
           lv_style = lv_style && |background-color:#{ ls_parsed_color-bg };|.
-          lv_style = lv_style && |border-color:#{ ls_parsed_color-bg };|.
+          IF ls_parsed_color-border IS INITIAL.
+            lv_style = lv_style && |border-color:#{ ls_parsed_color-bg };|.
+          ELSE.
+            lv_style = lv_style && |border-color:#{ ls_parsed_color-border };|.
+          ENDIF.
         ENDIF.
         lv_style = lv_style && `"`.
       ENDIF.
@@ -130481,8 +130489,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-13T05:52:46.824Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-13T05:52:46.824Z`.
+* abapmerge 0.16.0 - 2023-11-13T05:56:01.378Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-13T05:56:01.378Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
