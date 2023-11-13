@@ -4995,6 +4995,12 @@ INTERFACE zif_abapgit_repo .
     RETURNING
       VALUE(rs_settings) TYPE zif_abapgit_persistence=>ty_repo-local_settings .
 
+  METHODS get_tadir_objects
+    RETURNING
+      VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
+    RAISING
+      zcx_abapgit_exception .
+
   METHODS get_files_local_filtered
     IMPORTING
       !ii_obj_filter  TYPE REF TO zif_abapgit_object_filter
@@ -17422,6 +17428,8 @@ CLASS zcl_abapgit_repo DEFINITION
       FOR zif_abapgit_repo~deserialize_checks .
     ALIASES get_dot_abapgit
       FOR zif_abapgit_repo~get_dot_abapgit .
+    ALIASES get_tadir_objects
+      FOR zif_abapgit_repo~get_tadir_objects .
     ALIASES get_files_local
       FOR zif_abapgit_repo~get_files_local .
     ALIASES get_files_local_filtered
@@ -37055,7 +37063,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     lv_repo_name = lo_repo->get_name( ).
 
     lv_package = lo_repo->get_package( ).
-    lt_tadir   = zcl_abapgit_factory=>get_tadir( )->read( lv_package ).
+    lt_tadir   = lo_repo->get_tadir_objects( ).
 
     IF lines( lt_tadir ) > 0.
 
@@ -42747,9 +42755,7 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
     DATA ls_tadir LIKE LINE OF lt_tadir.
     DATA ls_row   LIKE LINE OF rt_tadir.
 
-    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
-      iv_package            = mo_repo->get_package( )
-      iv_only_local_objects = abap_true ).
+    lt_tadir = mo_repo->get_tadir_objects( ).
 
     LOOP AT lt_tadir INTO ls_tadir.
       CLEAR ls_row.
@@ -60155,7 +60161,7 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
       zcx_abapgit_exception=>raise( 'Not authorized' ).
     ENDIF.
 
-    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read( ii_repo->get_package( ) ).
+    lt_tadir = lo_repo->get_tadir_objects( ).
 
     TRY.
         zcl_abapgit_objects=>delete( it_tadir  = lt_tadir
@@ -61565,11 +61571,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     FIELD-SYMBOLS: <ls_tadir>  LIKE LINE OF lt_tadir,
                    <ls_object> LIKE LINE OF rt_objects.
 
-    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
-                      iv_package            = ms_data-package
-                      iv_ignore_subpackages = ms_data-local_settings-ignore_subpackages
-                      iv_only_local_objects = ms_data-local_settings-only_local_objects
-                      io_dot                = get_dot_abapgit( ) ).
+    lt_tadir = get_tadir_objects( ).
 
     lt_supported_types = zcl_abapgit_objects=>supported_list( ).
     LOOP AT lt_tadir ASSIGNING <ls_tadir>.
@@ -61613,9 +61615,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
       lt_new_local_files TYPE zif_abapgit_definitions=>ty_files_item_tt,
       lo_serialize       TYPE REF TO zcl_abapgit_serialize.
 
-    lt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
-                   iv_package = ms_data-package
-                   io_dot     = get_dot_abapgit( ) ).
+    lt_tadir = get_tadir_objects( ).
 
     DELETE mt_local WHERE item-obj_type = iv_obj_type
                       AND item-obj_name = iv_obj_name.
@@ -61946,6 +61946,15 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_repo~get_package.
     rv_package = ms_data-package.
+  ENDMETHOD.
+  METHOD zif_abapgit_repo~get_tadir_objects.
+
+    rt_tadir = zcl_abapgit_factory=>get_tadir( )->read(
+      iv_package            = get_package( )
+      iv_ignore_subpackages = get_local_settings( )-ignore_subpackages
+      iv_only_local_objects = get_local_settings( )-only_local_objects
+      io_dot                = get_dot_abapgit( ) ).
+
   ENDMETHOD.
   METHOD zif_abapgit_repo~is_offline.
     rv_offline = ms_data-offline.
@@ -130472,8 +130481,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-12T14:25:39.574Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-12T14:25:39.574Z`.
+* abapmerge 0.16.0 - 2023-11-13T05:52:46.824Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-13T05:52:46.824Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
