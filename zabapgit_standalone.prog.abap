@@ -5697,6 +5697,12 @@ INTERFACE zif_abapgit_environment.
   METHODS is_variant_maintenance
     RETURNING
       VALUE(rv_is_variant_maintenance) TYPE abap_bool.
+  METHODS init_parallel_processing
+    IMPORTING
+      iv_group                      TYPE clike
+    RETURNING
+      VALUE(rv_free_work_processes) TYPE i.
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_version .
@@ -6508,7 +6514,8 @@ CLASS zcl_abapgit_auth DEFINITION
   PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_exit DEFINITION
-  CREATE PUBLIC.
+  CREATE PUBLIC
+  FRIENDS ZCL_ABAPGIT_injector.
 
   PUBLIC SECTION.
 
@@ -9351,6 +9358,9 @@ CLASS zcl_abapgit_serialize DEFINITION
         VALUE(rs_i18n_params)  TYPE zif_abapgit_definitions=>ty_i18n_params
       RAISING
         zcx_abapgit_exception.
+    METHODS is_parallelization_possible
+      RETURNING
+        VALUE(rv_result) TYPE abap_bool.
 
 ENDCLASS.
 CLASS zcl_abapgit_tadir DEFINITION
@@ -25110,6 +25120,9 @@ CLASS zcl_abapgit_injector DEFINITION
     CLASS-METHODS set_function_module
       IMPORTING
         ii_function_module TYPE REF TO zif_abapgit_function_module.
+    CLASS-METHODS set_exit
+      IMPORTING
+        ii_exit TYPE REF TO zif_abapgit_exit.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -25637,9 +25650,10 @@ CLASS zcl_abapgit_injector IMPLEMENTATION.
     zcl_abapgit_factory=>gi_tadir = ii_tadir.
   ENDMETHOD.
   METHOD set_function_module.
-
     zcl_abapgit_factory=>gi_function_module = ii_function_module.
-
+  ENDMETHOD.
+  METHOD set_exit.
+    zcl_abapgit_exit=>gi_global_exit = ii_exit.
   ENDMETHOD.
 
 ENDCLASS.
@@ -28162,6 +28176,31 @@ CLASS zcl_abapgit_environment IMPLEMENTATION.
     IMPORT variscreens = lt_variscreens FROM MEMORY ID '%_SCRNR_%'.
 
     rv_is_variant_maintenance = boolc( lines( lt_variscreens ) > 0 ).
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_environment~init_parallel_processing.
+
+    DATA: lv_group TYPE rzlli_apcl.
+
+    lv_group = iv_group.
+
+    " SPBT_INITIALIZE gives error PBT_ENV_ALREADY_INITIALIZED if called
+    " multiple times in same session
+    CALL FUNCTION 'SPBT_INITIALIZE'
+      EXPORTING
+        group_name                     = lv_group
+      IMPORTING
+        free_pbt_wps                   = rv_free_work_processes
+      EXCEPTIONS
+        invalid_group_name             = 1
+        internal_error                 = 2
+        pbt_env_already_initialized    = 3
+        currently_no_resources_avail   = 4
+        no_pbt_resources_found         = 5
+        cant_init_different_pbt_groups = 6
+        OTHERS                         = 7.
+    " If SPBT_INITIALIZE fails, check transactions RZ12, SM50, SM21, SARFC
 
   ENDMETHOD.
 
@@ -114628,68 +114667,36 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD determine_max_processes.
-    DATA: lo_settings TYPE REF TO zcl_abapgit_settings,
-          li_exit     TYPE REF TO zif_abapgit_exit.
+    DATA: li_exit TYPE REF TO zif_abapgit_exit.
 
     IF iv_force_sequential = abap_true.
       rv_processes = 1.
       RETURN.
     ENDIF.
 
-    IF gv_max_processes IS INITIAL.
-      lo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
+    IF gv_max_processes IS INITIAL AND is_parallelization_possible( ) = abap_true.
 
-      IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true
-          OR lo_settings->get_parallel_proc_disabled( ) = abap_true.
-        gv_max_processes = 1.
-      ENDIF.
-    ENDIF.
-
-    IF gv_max_processes >= 1.
-      " SPBT_INITIALIZE gives error PBT_ENV_ALREADY_INITIALIZED if called
-      " multiple times in same session
-      rv_processes = gv_max_processes.
-    ELSEIF mv_group IS NOT INITIAL.
-      " The function module below should always exist here as is_merged evaluated to false above. It does however
-      " not exist in the transpiled version which then causes unit tests to fail. Therefore the check needs to stay.
-      IF zcl_abapgit_factory=>get_function_module( )->function_exists( 'Z_ABAPGIT_SERIALIZE_PARALLEL' ) = abap_false.
-        gv_max_processes = 1.
-      ELSE.
-        CALL FUNCTION 'SPBT_INITIALIZE'
-          EXPORTING
-            group_name                     = mv_group
-          IMPORTING
-            free_pbt_wps                   = gv_max_processes
-          EXCEPTIONS
-            invalid_group_name             = 1
-            internal_error                 = 2
-            pbt_env_already_initialized    = 3
-            currently_no_resources_avail   = 4
-            no_pbt_resources_found         = 5
-            cant_init_different_pbt_groups = 6
-            OTHERS                         = 7.
-        IF sy-subrc <> 0.
-          " fallback to running sequentially. If SPBT_INITIALIZE fails, check transactions
-          " RZ12, SM50, SM21, SARFC
-          gv_max_processes = 1.
-        ENDIF.
-      ENDIF.
+      gv_max_processes = zcl_abapgit_factory=>get_environment( )->init_parallel_processing( mv_group ).
 
       IF gv_max_processes > 1.
         gv_max_processes = gv_max_processes - 1.
       ENDIF.
-    ELSE.
+
+      IF gv_max_processes > 32.
+        " https://en.wikipedia.org/wiki/Amdahl%27s_law
+        gv_max_processes = 32.
+      ENDIF.
+
+    ENDIF.
+
+    IF gv_max_processes IS INITIAL.
+      " fallback to running sequentially.
       gv_max_processes = 1.
     ENDIF.
 
-    ASSERT gv_max_processes >= 1.
-
-    IF gv_max_processes > 32.
-      " https://en.wikipedia.org/wiki/Amdahl%27s_law
-      gv_max_processes = 32.
-    ENDIF.
-
     rv_processes = gv_max_processes.
+
+    ASSERT rv_processes >= 1.
 
     li_exit = zcl_abapgit_exit=>get_instance( ).
     li_exit->change_max_parallel_processes(
@@ -114697,6 +114704,9 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
         iv_package       = iv_package
       CHANGING
         cv_max_processes = rv_processes ).
+
+    ASSERT rv_processes >= 1. " check exit above
+
   ENDMETHOD.
   METHOD files_local.
 
@@ -115028,6 +115038,19 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
     lo_timer->end( abap_true ).
 
   ENDMETHOD.
+  METHOD is_parallelization_possible.
+
+    rv_result = boolc( zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false
+                   AND zcl_abapgit_persist_factory=>get_settings( )->read( )->get_parallel_proc_disabled( ) = abap_false
+                   AND mv_group IS NOT INITIAL
+                   " The function module below should always exist here as is_merged evaluated to false above.
+                   " It does however not exist in the transpiled version which then causes unit tests to fail.
+                   " Therefore the check needs to stay.
+                   AND zcl_abapgit_factory=>get_function_module(
+                                         )->function_exists( 'Z_ABAPGIT_SERIALIZE_PARALLEL' ) = abap_true ).
+
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS zcl_abapgit_objects_files IMPLEMENTATION.
@@ -130489,8 +130512,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-13T05:56:01.378Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-13T05:56:01.378Z`.
+* abapmerge 0.16.0 - 2023-11-15T13:49:05.430Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-15T13:49:05.430Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
