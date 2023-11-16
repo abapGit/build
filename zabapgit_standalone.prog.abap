@@ -168,6 +168,7 @@ CLASS zcl_abapgit_gui_page_runit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_run_bckg DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_repo_view DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_repo_over DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_pull DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_patch DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge_sel DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge_res DEFINITION DEFERRED.
@@ -21844,6 +21845,65 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
+CLASS zcl_abapgit_gui_page_pull DEFINITION
+  INHERITING FROM zcl_abapgit_gui_component
+  FINAL
+  CREATE PRIVATE.
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_menu_provider.
+    INTERFACES zif_abapgit_gui_renderable.
+
+    CONSTANTS:
+      BEGIN OF c_id,
+        transport_request TYPE string VALUE 'transport_request',
+      END OF c_id .
+
+    CONSTANTS: BEGIN OF c_action,
+                 pull      TYPE string VALUE 'pull',
+                 refresh   TYPE string VALUE 'refresh',
+                 choose_tr TYPE string VALUE 'choose_tr',
+               END OF c_action.
+
+    CLASS-METHODS create
+      IMPORTING
+        io_repo        TYPE REF TO zcl_abapgit_repo
+        iv_trkorr      TYPE trkorr OPTIONAL
+        ii_obj_filter  TYPE REF TO zif_abapgit_object_filter OPTIONAL
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS constructor
+      IMPORTING
+        io_repo       TYPE REF TO zcl_abapgit_repo
+        iv_trkorr     TYPE trkorr
+        ii_obj_filter TYPE REF TO zif_abapgit_object_filter OPTIONAL
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+
+  PRIVATE SECTION.
+
+    DATA mo_repo       TYPE REF TO zcl_abapgit_repo.
+    DATA mi_obj_filter TYPE REF TO zif_abapgit_object_filter.
+    DATA mo_form_data  TYPE REF TO zcl_abapgit_string_map.
+    DATA ms_checks     TYPE zif_abapgit_definitions=>ty_deserialize_checks.
+    METHODS form
+      RETURNING
+        VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS choose_transport_request
+      RAISING
+        zcx_abapgit_exception .
+
+ENDCLASS.
 CLASS zcl_abapgit_gui_page_repo_over DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
   FINAL
@@ -41524,7 +41584,8 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
       iv_label       = 'Only Serialize Main Language'
       iv_hint        = 'Ignore translations; serialize only main language of repository' ).
 
-    IF zcl_abapgit_feature=>is_enabled( 'FLOW' ) = abap_true.
+    IF zcl_abapgit_feature=>is_enabled( 'FLOW' ) = abap_true
+        AND li_package->are_changes_recorded_in_tr_req( ) = abap_true.
       ro_form->checkbox(
         iv_name  = c_id-flow
         iv_label = 'Enable Flow Page' ).
@@ -45115,6 +45176,165 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS ZCL_ABAPGIT_GUI_PAGE_PULL IMPLEMENTATION.
+  METHOD choose_transport_request.
+
+    DATA lv_transport_request TYPE trkorr.
+
+    lv_transport_request = zcl_abapgit_ui_factory=>get_popups( )->popup_transport_request( ).
+
+    IF lv_transport_request IS NOT INITIAL.
+      mo_form_data->set(
+        iv_key = c_id-transport_request
+        iv_val = lv_transport_request ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    super->constructor( ).
+
+    mo_repo       = io_repo.
+    mi_obj_filter = ii_obj_filter.
+
+    CREATE OBJECT mo_form_data.
+    mo_form_data->set(
+      iv_key = c_id-transport_request
+      iv_val = iv_trkorr ).
+
+  ENDMETHOD.
+  METHOD create.
+
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_pull.
+
+    CREATE OBJECT lo_component
+      EXPORTING
+        io_repo       = io_repo
+        iv_trkorr     = iv_trkorr
+        ii_obj_filter = ii_obj_filter.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      iv_page_title         = 'Pull'
+      ii_page_menu_provider = lo_component
+      ii_child_component    = lo_component ).
+
+  ENDMETHOD.
+  METHOD form.
+
+    DATA lt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt.
+
+    FIELD-SYMBOLS <ls_overwrite> LIKE LINE OF ms_checks-overwrite.
+    IF mi_obj_filter IS NOT INITIAL.
+      lt_filter = mi_obj_filter->get_filter( ).
+    ENDIF.
+
+    ro_form = zcl_abapgit_html_form=>create( iv_form_id = 'pull-form' ).
+
+    ro_form->start_group(
+      iv_name  = 'id-objects'
+      iv_label = 'Objects' ).
+
+    LOOP AT ms_checks-overwrite ASSIGNING <ls_overwrite>.
+      IF lines( lt_filter ) > 0.
+        READ TABLE lt_filter WITH KEY object = <ls_overwrite>-obj_type
+          obj_name = <ls_overwrite>-obj_name TRANSPORTING NO FIELDS.
+        IF sy-subrc <> 0.
+          CONTINUE.
+        ENDIF.
+      ENDIF.
+      ro_form->checkbox(
+        iv_label = |{ <ls_overwrite>-obj_type } { <ls_overwrite>-obj_name }|
+        iv_name  = |{ <ls_overwrite>-obj_type }-{ <ls_overwrite>-obj_name }| ).
+    ENDLOOP.
+
+    ro_form->text(
+      iv_name        = c_id-transport_request
+      iv_required    = abap_true
+      iv_upper_case  = abap_true
+      iv_side_action = c_action-choose_tr
+      iv_max         = 10
+      iv_label       = |Transport Request| ).
+
+    ro_form->command(
+      iv_label    = 'Pull'
+      iv_cmd_type = zif_abapgit_html_form=>c_cmd_type-input_main
+      iv_action   = c_action-pull
+    )->command(
+      iv_label    = 'Back'
+      iv_action   = zif_abapgit_definitions=>c_action-go_back ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+
+    DATA lo_log TYPE REF TO zcl_abapgit_log.
+    DATA lv_value TYPE string.
+
+    FIELD-SYMBOLS <ls_overwrite> LIKE LINE OF ms_checks-overwrite.
+    mo_form_data = ii_event->form_data( ).
+
+    CASE ii_event->mv_action.
+      WHEN c_action-refresh.
+        mo_repo->refresh( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN c_action-choose_tr.
+        choose_transport_request( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN c_action-pull.
+        ms_checks-transport-transport = mo_form_data->get( c_id-transport_request ).
+
+        LOOP AT ms_checks-overwrite ASSIGNING <ls_overwrite>.
+          lv_value = mo_form_data->get( |{ <ls_overwrite>-obj_type }-{ <ls_overwrite>-obj_name }| ).
+          IF lv_value = 'on'.
+            <ls_overwrite>-decision = zif_abapgit_definitions=>c_yes.
+          ELSE.
+            <ls_overwrite>-decision = zif_abapgit_definitions=>c_no.
+          ENDIF.
+        ENDLOOP.
+
+* todo, show log?
+        CREATE OBJECT lo_log.
+        mo_repo->deserialize(
+          is_checks = ms_checks
+          ii_log    = lo_log ).
+
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_menu_provider~get_menu.
+
+    CREATE OBJECT ro_toolbar EXPORTING iv_id = 'toolbar-main'.
+
+    ro_toolbar->add(
+      iv_txt = 'Refresh'
+      iv_act = c_action-refresh ).
+
+    ro_toolbar->add(
+      iv_txt = 'Back'
+      iv_act = zif_abapgit_definitions=>c_action-go_back ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    register_handlers( ).
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+    ri_html->add( '<div class="repo-overview">' ).
+
+    ms_checks = mo_repo->deserialize_checks( ).
+
+    IF lines( ms_checks-overwrite ) = 0.
+      zcx_abapgit_exception=>raise(
+        'There is nothing to pull. The local state completely matches the remote repository.' ).
+    ENDIF.
+
+    ri_html->add( form( )->render( mo_form_data ) ).
+
+    ri_html->add( '</div>' ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
   METHOD add_menu_begin.
 
@@ -47086,14 +47306,14 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_FLOW IMPLEMENTATION.
   METHOD render_table.
 
     DATA ls_path_name LIKE LINE OF is_feature-changed_files.
+    DATA lo_toolbar   TYPE REF TO zcl_abapgit_html_toolbar.
     DATA lv_status    TYPE string.
     DATA lv_branch    TYPE string.
     DATA lv_param     TYPE string.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->add( |<table>| ).
-    ri_html->add( |<tr><td><u>Filename</u></td><td><u>Remote SHA1</u></td>| &&
-                  |<td><u>Local SHA1</u></td><td></td></tr>| ).
+    ri_html->add( |<tr><td><u>Filename</u></td><td><u>Remote</u></td><td><u>Local</u></td><td></td></tr>| ).
 
     lv_branch = is_feature-branch-display_name.
     IF lv_branch IS INITIAL.
@@ -47121,13 +47341,15 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_FLOW IMPLEMENTATION.
     ri_html->add( |</table>| ).
 
 * todo: crossout if write protected
-    ri_html->add( ri_html->a(
-      iv_txt = 'Pull'
-      iv_act = |{ c_action-pull }?index={ iv_index }&key={ is_feature-repo-key }| ) ).
-    ri_html->add( ri_html->a(
-      iv_txt = 'Stage'
-      iv_act = |{ c_action-stage }?index={ iv_index }&key={ is_feature-repo-key }&branch={ lv_branch }| ) ).
-    ri_html->add( |<br>| ).
+
+    CREATE OBJECT lo_toolbar EXPORTING iv_id = 'toolbar-flow'.
+    lo_toolbar->add( iv_txt = 'Pull'
+                     iv_act = |{ c_action-pull }?index={ iv_index }&key={ is_feature-repo-key }&branch={ lv_branch }|
+                     iv_opt = zif_abapgit_html=>c_html_opt-strong ).
+    lo_toolbar->add( iv_txt = 'Stage'
+                     iv_act = |{ c_action-stage }?index={ iv_index }&key={ is_feature-repo-key }&branch={ lv_branch }|
+                     iv_opt = zif_abapgit_html=>c_html_opt-strong ).
+    ri_html->add( lo_toolbar->render( ) ).
 
   ENDMETHOD.
   METHOD set_branch.
@@ -47191,17 +47413,37 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_FLOW IMPLEMENTATION.
           io_repo       = lo_online
           ii_obj_filter = lo_filter ).
 
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_w_bookmark.
+
+        refresh( ).
       WHEN c_action-pull.
         lv_key = ii_event->query( )->get( 'KEY' ).
         lv_index = ii_event->query( )->get( 'INDEX' ).
+        lv_branch = ii_event->query( )->get( 'BRANCH' ).
         lo_online ?= zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
 
         READ TABLE mt_features INTO ls_feature INDEX lv_index.
         ASSERT sy-subrc = 0.
 
-* todo: set filter,
-        zcl_abapgit_services_repo=>gui_deserialize( lo_online ).
+        LOOP AT ls_feature-changed_objects ASSIGNING <ls_object>.
+          APPEND INITIAL LINE TO lt_filter ASSIGNING <ls_filter>.
+          <ls_filter>-object = <ls_object>-obj_type.
+          <ls_filter>-obj_name = <ls_object>-obj_name.
+        ENDLOOP.
+        CREATE OBJECT lo_filter EXPORTING it_filter = lt_filter.
+
+        set_branch(
+          iv_branch = lv_branch
+          iv_key    = lv_key ).
+
+        rs_handled-page = zcl_abapgit_gui_page_pull=>create(
+          io_repo       = lo_online
+          iv_trkorr     = ls_feature-transport-trkorr
+          ii_obj_filter = lo_filter ).
+
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
+
+        refresh( ).
     ENDCASE.
 
   ENDMETHOD.
@@ -130528,8 +130770,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-16T15:40:39.006Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-16T15:40:39.006Z`.
+* abapmerge 0.16.0 - 2023-11-16T16:04:31.383Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-16T16:04:31.383Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
