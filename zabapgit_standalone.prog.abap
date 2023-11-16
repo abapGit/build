@@ -3483,7 +3483,7 @@ INTERFACE zif_abapgit_apack_definitions .
   CONSTANTS c_repository_type_abapgit TYPE ty_repository_type VALUE 'abapGit' ##NO_TEXT.
   CONSTANTS c_apack_interface_sap TYPE seoclsname VALUE 'IF_APACK_MANIFEST' ##NO_TEXT.
   CONSTANTS c_apack_interface_cust TYPE seoclsname VALUE 'ZIF_APACK_MANIFEST' ##NO_TEXT.
-  CONSTANTS c_apack_interface_nspc TYPE seoclsname VALUE '/%/IF_APACK_MANIFEST' ##NO_TEXT.
+  CONSTANTS c_apack_interface_nspc TYPE seoclsname VALUE '/*/IF_APACK_MANIFEST' ##NO_TEXT.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_cts_api .
@@ -129450,7 +129450,7 @@ CLASS zcl_abapgit_apack_writer IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_APACK_READER IMPLEMENTATION.
   METHOD constructor.
     mv_package_name = iv_package_name.
   ENDMETHOD.
@@ -129539,23 +129539,39 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
           lt_packages                TYPE zif_abapgit_sap_package=>ty_devclass_tt,
           ls_manifest_implementation TYPE ty_s_manifest_declaration,
           lt_manifest_implementation TYPE STANDARD TABLE OF ty_s_manifest_declaration WITH DEFAULT KEY.
-
+    DATA lt_refclsname TYPE RANGE OF abap_classname.
+    DATA ls_refclsname LIKE LINE OF lt_refclsname.
     IF mv_package_name IS NOT INITIAL.
       lt_packages = zcl_abapgit_factory=>get_sap_package( mv_package_name )->list_subpackages( ).
       INSERT mv_package_name INTO TABLE lt_packages.
     ENDIF.
 
     IF mv_is_cached IS INITIAL AND lt_packages IS NOT INITIAL.
+      ls_refclsname-sign = 'I'.
+      ls_refclsname-option = 'EQ'.
+      ls_refclsname-low = zif_abapgit_apack_definitions=>c_apack_interface_cust.
+      INSERT ls_refclsname INTO TABLE lt_refclsname.
+
+      ls_refclsname-sign = 'I'.
+      ls_refclsname-option = 'EQ'.
+      ls_refclsname-low = zif_abapgit_apack_definitions=>c_apack_interface_sap.
+      INSERT ls_refclsname INTO TABLE lt_refclsname.
+
+      IF mv_package_name CA '/'.
+        ls_refclsname-sign = 'I'.
+        ls_refclsname-option = 'CP'.
+        ls_refclsname-low = zif_abapgit_apack_definitions=>c_apack_interface_nspc.
+        INSERT ls_refclsname INTO TABLE lt_refclsname.
+      ENDIF.
+
       " Find all classes that implement customer or SAP version of APACK interface
       SELECT seometarel~clsname tadir~devclass FROM seometarel "#EC CI_NOORDER
          INNER JOIN tadir ON seometarel~clsname = tadir~obj_name "#EC CI_BUFFJOIN
          INTO TABLE lt_manifest_implementation
          WHERE tadir~pgmid = 'R3TR' AND
                tadir~object = 'CLAS' AND
-               seometarel~version = '1' AND (
-               seometarel~refclsname = zif_abapgit_apack_definitions=>c_apack_interface_cust OR
-               seometarel~refclsname = zif_abapgit_apack_definitions=>c_apack_interface_sap OR
-               seometarel~refclsname LIKE zif_abapgit_apack_definitions=>c_apack_interface_nspc )
+               seometarel~version = '1' AND
+               seometarel~refclsname IN lt_refclsname
          ORDER BY clsname devclass.
 
       LOOP AT lt_packages INTO lv_package.
@@ -130512,8 +130528,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-15T17:48:33.477Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-15T17:48:33.477Z`.
+* abapmerge 0.16.0 - 2023-11-16T14:30:51.003Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-16T14:30:51.003Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
