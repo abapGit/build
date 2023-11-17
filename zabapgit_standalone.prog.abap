@@ -44896,8 +44896,9 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     IF mt_all_labels IS NOT INITIAL.
       ii_html->td(
         iv_content = zcl_abapgit_gui_chunk_lib=>render_label_list(
-          it_labels = is_repo-labels
-          io_label_colors = mo_label_colors )
+          it_labels           = is_repo-labels
+          io_label_colors     = mo_label_colors
+          iv_clickable_action = c_action-label_filter )
         iv_class   = 'labels' ).
     ENDIF.
 
@@ -130770,8 +130771,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-17T06:47:45.425Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-17T06:47:45.425Z`.
+* abapmerge 0.16.0 - 2023-11-17T15:47:18.185Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-17T15:47:18.185Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
