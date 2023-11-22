@@ -6532,6 +6532,10 @@ CLASS zcl_abapgit_exit DEFINITION
     CLASS-DATA gi_global_exit TYPE REF TO zif_abapgit_exit.
     CLASS-DATA gi_exit TYPE REF TO zif_abapgit_exit.
 
+    CLASS-METHODS is_running_in_test_context
+      RETURNING
+        VALUE(rv_running_in_test_context) TYPE abap_bool.
+
 ENDCLASS.
 CLASS zcl_abapgit_gitv2_porcelain DEFINITION
   CREATE PUBLIC .
@@ -126716,14 +126720,38 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
       lv_class_name = |\\PROGRAM={ sy-repid }\\CLASS={ lv_class_name }|.
     ENDIF.
 
-    TRY.
-        CREATE OBJECT gi_exit TYPE (lv_class_name).
-      CATCH cx_sy_create_object_error ##NO_HANDLER.
-    ENDTRY.
+    " Prevent non-mocked exit calls in unit tests
+    IF is_running_in_test_context( ) = abap_false.
+      TRY.
+          CREATE OBJECT gi_exit TYPE (lv_class_name).
+        CATCH cx_sy_create_object_error ##NO_HANDLER.
+      ENDTRY.
+    ENDIF.
 
     CREATE OBJECT gi_global_exit TYPE zcl_abapgit_exit. " this class
 
     ri_exit = gi_global_exit.
+
+  ENDMETHOD.
+
+  METHOD is_running_in_test_context.
+
+    IF sy-sysid = 'ABC'.
+      " always run on open-abap
+      rv_running_in_test_context = abap_true.
+      RETURN.
+    ENDIF.
+
+    " Check if the local test class can be accessed by RTTI. If so the current process is running in a unit test.
+    " Note this approach only works for the developer version. The standalone version will always report not running in
+    " test context which should be fine as there are no unit tests delivered in it.
+    cl_abap_typedescr=>describe_by_name(
+      EXPORTING
+        p_name         = |\\PROGRAM={ sy-repid }\\CLASS=LTCL_TEST|
+      EXCEPTIONS
+        type_not_found = 1
+        OTHERS         = 2 ).
+    rv_running_in_test_context = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
   METHOD zif_abapgit_exit~adjust_display_commit_url.
@@ -130771,8 +130799,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-17T15:47:18.185Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-17T15:47:18.185Z`.
+* abapmerge 0.16.0 - 2023-11-22T06:34:41.045Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-22T06:34:41.045Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
