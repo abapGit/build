@@ -3981,7 +3981,7 @@ INTERFACE zif_abapgit_sap_package .
       zcx_abapgit_exception .
   METHODS read_parent
     RETURNING
-      VALUE(rv_parentcl) TYPE tdevc-parentcl
+      VALUE(rv_parentcl) TYPE devclass
     RAISING
       zcx_abapgit_exception .
   METHODS read_description
@@ -4010,11 +4010,6 @@ INTERFACE zif_abapgit_sap_package .
   METHODS get_transport_type
     RETURNING
       VALUE(rs_transport_type) TYPE zif_abapgit_definitions=>ty_transport_type
-    RAISING
-      zcx_abapgit_exception .
-  METHODS get_transport_layer
-    RETURNING
-      VALUE(rv_transport_layer) TYPE devlayer
     RAISING
       zcx_abapgit_exception .
 ENDINTERFACE.
@@ -10416,6 +10411,12 @@ CLASS zcl_abapgit_sap_package DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: mv_package TYPE devclass.
+
+    METHODS get_transport_layer
+      RETURNING
+        VALUE(rv_transport_layer) TYPE devlayer
+      RAISING
+        zcx_abapgit_exception .
 
 ENDCLASS.
 CLASS zcl_abapgit_sap_report DEFINITION
@@ -109136,7 +109137,7 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
 
     " For transportable packages, get default transport and layer
     IF ls_package-devclass(1) <> '$' AND ls_package-pdevclass IS INITIAL.
-      ls_package-pdevclass = zif_abapgit_sap_package~get_transport_layer( ).
+      ls_package-pdevclass = get_transport_layer( ).
     ENDIF.
 
     cl_package_factory=>create_new_package(
@@ -109264,7 +109265,7 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
     rv_bool = boolc( sy-subrc <> 1 ).
 
   ENDMETHOD.
-  METHOD zif_abapgit_sap_package~get_transport_layer.
+  METHOD get_transport_layer.
 
     " Get default transport layer
     CALL FUNCTION 'TR_GET_TRANSPORT_TARGET'
@@ -130799,8 +130800,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-22T06:34:41.045Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-22T06:34:41.045Z`.
+* abapmerge 0.16.0 - 2023-11-23T05:19:48.872Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-23T05:19:48.872Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
