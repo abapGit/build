@@ -26198,7 +26198,7 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
+CLASS zcl_abapgit_zip IMPLEMENTATION.
   METHOD encode_files.
 
     DATA: lo_zip      TYPE REF TO cl_abap_zip,
@@ -37823,7 +37823,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
     lv_package = iv_package.
     TRANSLATE lv_package USING '/#'.
-    CONCATENATE lv_package '_' sy-datlo '_' sy-timlo INTO lv_default.
+    CONCATENATE lv_package '_' sy-datlo '_' sy-timlo '.zip' INTO lv_default.
 
     li_fe_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
 
@@ -49530,7 +49530,7 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
 
     lv_zip = lo_zip->save( ).
 
-    CONCATENATE 'abapGit_Backup_' sy-datlo '_' sy-timlo INTO lv_filename.
+    CONCATENATE 'abapGit_Backup_' sy-datlo '_' sy-timlo '.zip' INTO lv_filename.
 
     li_fe_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
 
@@ -130809,8 +130809,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-24T20:05:48.541Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-24T20:05:48.541Z`.
+* abapmerge 0.16.0 - 2023-11-24T20:13:49.155Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-24T20:13:49.155Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
