@@ -40881,12 +40881,6 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
     lv_offline = io_form_data->get( c_id-offline ).
     lv_url = io_form_data->get( c_id-url ).
 
-    IF lv_offline = abap_true AND lv_url IS INITIAL.
-      ro_validation_log->set(
-        iv_key = c_id-url
-        iv_val = 'Enter a name for the repository and save' ).
-    ENDIF.
-
     IF lv_offline = abap_false AND lv_url NP 'http*'.
       ro_validation_log->set(
         iv_key = c_id-url
@@ -130815,8 +130809,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-24T13:49:09.086Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-24T13:49:09.086Z`.
+* abapmerge 0.16.0 - 2023-11-24T16:42:11.410Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-24T16:42:11.410Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
