@@ -26320,7 +26320,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 
     lv_package_escaped = iv_package.
     REPLACE ALL OCCURRENCES OF '/' IN lv_package_escaped WITH '#'.
-    lv_default = |{ lv_package_escaped }_{ sy-datlo }_{ sy-timlo }|.
+    lv_default = |{ lv_package_escaped }_{ sy-datlo }_{ sy-timlo }.zip|.
 
     lv_zip_xstring = export(
      is_local_settings = ls_local_settings
@@ -130809,8 +130809,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-24T16:42:11.410Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-24T16:42:11.410Z`.
+* abapmerge 0.16.0 - 2023-11-24T20:05:48.541Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-24T20:05:48.541Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
