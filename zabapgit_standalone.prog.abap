@@ -3960,12 +3960,22 @@ INTERFACE zif_abapgit_sap_package .
   TYPES:
     ty_devclass_tt TYPE STANDARD TABLE OF devclass WITH DEFAULT KEY .
 
+  TYPES: BEGIN OF ty_create,
+           devclass  TYPE devclass,
+           dlvunit   TYPE tdevc-dlvunit,
+           component TYPE c LENGTH 20,
+           ctext     TYPE c LENGTH 60,
+           parentcl  TYPE devclass,
+           pdevclass TYPE c LENGTH 4,
+           as4user   TYPE usnam,
+         END OF ty_create.
+
   METHODS validate_name
     RAISING
       zcx_abapgit_exception .
   METHODS create
     IMPORTING
-      !is_package TYPE scompkdtln
+      !is_package TYPE ty_create
     RAISING
       zcx_abapgit_exception .
   METHODS create_local
@@ -5443,7 +5453,7 @@ INTERFACE zif_abapgit_popups .
       zcx_abapgit_exception .
   METHODS popup_to_create_package
     EXPORTING
-      !es_package_data TYPE scompkdtln
+      !es_package_data TYPE zif_abapgit_sap_package=>ty_create
       !ev_create       TYPE abap_bool
     RAISING
       zcx_abapgit_exception .
@@ -23825,7 +23835,7 @@ CLASS zcl_abapgit_services_repo DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS raise_error_if_package_exists
       IMPORTING
-        iv_devclass TYPE scompkdtln-devclass
+        iv_devclass TYPE devclass
       RAISING
         zcx_abapgit_exception.
     CLASS-METHODS check_for_restart
@@ -35887,6 +35897,9 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD zif_abapgit_popups~popup_to_create_package.
+
+    DATA ls_data TYPE scompkdtln.
+
     IF zcl_abapgit_factory=>get_function_module( )->function_exists( 'PB_POPUP_PACKAGE_CREATE' ) = abap_false.
 * looks like the function module used does not exist on all
 * versions since 702, so show an error
@@ -35896,10 +35909,11 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
 
     CALL FUNCTION 'PB_POPUP_PACKAGE_CREATE'
       CHANGING
-        p_object_data    = es_package_data
+        p_object_data    = ls_data
       EXCEPTIONS
         action_cancelled = 1.
     ev_create = boolc( sy-subrc = 0 ).
+    MOVE-CORRESPONDING ls_data TO es_package_data.
   ENDMETHOD.
   METHOD zif_abapgit_popups~popup_to_create_transp_branch.
     DATA: lt_fields             TYPE TABLE OF sval,
@@ -36800,7 +36814,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD create_package.
 
-    DATA ls_package_data TYPE scompkdtln.
+    DATA ls_package_data TYPE zif_abapgit_sap_package=>ty_create.
     DATA lv_create       TYPE abap_bool.
     DATA li_popup        TYPE REF TO zif_abapgit_popups.
 
@@ -109109,7 +109123,7 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
 
     DATA: lv_err     TYPE string,
           li_package TYPE REF TO if_package,
-          ls_package LIKE is_package.
+          ls_package TYPE scompkdtln.
     ASSERT NOT is_package-devclass IS INITIAL.
 
     cl_package_factory=>load_package(
@@ -109127,7 +109141,7 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    ls_package = is_package.
+    MOVE-CORRESPONDING is_package TO ls_package.
 
     " Set software component to 'HOME' if none is set at this point.
     " Otherwise SOFTWARE_COMPONENT_INVALID will be raised.
@@ -109212,7 +109226,7 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
   METHOD zif_abapgit_sap_package~create_child.
 
     DATA: li_parent TYPE REF TO if_package,
-          ls_child  TYPE scompkdtln.
+          ls_child  TYPE zif_abapgit_sap_package=>ty_create.
     cl_package_factory=>load_package(
       EXPORTING
         i_package_name             = mv_package
@@ -109241,7 +109255,7 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_sap_package~create_local.
 
-    DATA: ls_package TYPE scompkdtln.
+    DATA: ls_package TYPE zif_abapgit_sap_package=>ty_create.
     ls_package-devclass  = mv_package.
     ls_package-ctext     = mv_package.
     ls_package-parentcl  = '$TMP'.
@@ -116561,18 +116575,19 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
 
     DATA: lv_length               TYPE i,
           lv_parent               TYPE devclass,
-          ls_package              TYPE scompkdtln,
+          ls_package              TYPE zif_abapgit_sap_package=>ty_create,
           lv_new                  TYPE string,
           lv_path                 TYPE string,
           lv_absolute_name        TYPE string,
           lv_folder_logic         TYPE string,
           lt_unique_package_names TYPE HASHED TABLE OF devclass WITH UNIQUE KEY table_line.
 
-    lv_length  = strlen( io_dot->get_starting_folder( ) ).
+    lv_length = strlen( io_dot->get_starting_folder( ) ).
     IF lv_length > strlen( iv_path ).
 * treat as not existing locally
       RETURN.
     ENDIF.
+
     lv_path    = iv_path+lv_length.
     lv_parent  = iv_top.
     rv_package = iv_top.
@@ -130800,8 +130815,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-23T05:19:48.872Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-23T05:19:48.872Z`.
+* abapmerge 0.16.0 - 2023-11-24T06:03:36.026Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-24T06:03:36.026Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
