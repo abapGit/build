@@ -4381,7 +4381,8 @@ INTERFACE zif_abapgit_dot_abapgit.
       standard          TYPE string VALUE 'standard',
       key_user          TYPE string VALUE 'keyUser',
       cloud_development TYPE string VALUE 'cloudDevelopment',
-      undefined         TYPE string VALUE 'undefined',
+      ignore            TYPE string VALUE 'ignore',
+      undefined         TYPE string VALUE 'undefined', " any
     END OF c_abap_language_version.
 
 ENDINTERFACE.
@@ -24009,8 +24010,10 @@ CLASS zcl_abapgit_abap_language_vers DEFINITION
 
   PUBLIC SECTION.
 
-    CONSTANTS c_any_abap_language_version TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version VALUE '*'.
-    CONSTANTS c_feature_flag TYPE string VALUE 'ALAV'.
+    CONSTANTS:
+      c_any_abap_language_version TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version VALUE '*',
+      c_no_abap_language_version  TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version VALUE '-',
+      c_feature_flag              TYPE string VALUE 'ALAV'.
 
     METHODS constructor
       IMPORTING
@@ -29217,6 +29220,8 @@ CLASS zcl_abapgit_abap_language_vers IMPLEMENTATION.
         rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version_src-key_user.
       WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-cloud_development.
         rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version_src-cloud_development.
+      WHEN c_no_abap_language_version.
+        rv_abap_language_version = c_no_abap_language_version.
       WHEN OTHERS. " undefined or feature off
         rv_abap_language_version = c_any_abap_language_version.
     ENDCASE.
@@ -39965,6 +39970,9 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
       )->option(
         iv_label       = 'Any (Object-specific ABAP Language Version)'
         iv_value       = ''
+      )->option(
+        iv_label       = 'Ignore (ABAP Language Version not serialized)'
+        iv_value       = zif_abapgit_dot_abapgit=>c_abap_language_version-ignore
       )->option(
         iv_label       = 'Standard ABAP'
         iv_value       = zif_abapgit_dot_abapgit=>c_abap_language_version-standard
@@ -51271,6 +51279,9 @@ CLASS zcl_abapgit_gui_page_addonline IMPLEMENTATION.
         iv_label       = 'Any'
         iv_value       = ''
       )->option(
+        iv_label       = 'Ignore'
+        iv_value       = zif_abapgit_dot_abapgit=>c_abap_language_version-ignore
+      )->option(
         iv_label       = 'Standard'
         iv_value       = zif_abapgit_dot_abapgit=>c_abap_language_version-standard
       )->option(
@@ -51530,6 +51541,9 @@ CLASS zcl_abapgit_gui_page_addofflin IMPLEMENTATION.
       )->option(
         iv_label       = 'Any'
         iv_value       = ''
+      )->option(
+        iv_label       = 'Ignore'
+        iv_value       = zif_abapgit_dot_abapgit=>c_abap_language_version-ignore
       )->option(
         iv_label       = 'Standard'
         iv_value       = zif_abapgit_dot_abapgit=>c_abap_language_version-standard
@@ -64366,7 +64380,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
 
     " Used during serializing of objects
     IF ms_item-abap_language_version <> zcl_abapgit_abap_language_vers=>c_any_abap_language_version.
-      " ABAP language is defined in repo setting so there's no need to serialize it
+      " ABAP language version is defined in repo setting so there's no need to serialize it
       CLEAR cv_abap_language_version.
     ENDIF.
 
@@ -64548,7 +64562,7 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
 
     " Used during deserializing of objects
     IF ms_item-abap_language_version <> zcl_abapgit_abap_language_vers=>c_any_abap_language_version.
-      " ABAP language is defined in repo setting so set it accordingly
+      " ABAP language version is defined in repo setting so set it accordingly
       cv_abap_language_version = ms_item-abap_language_version.
     ENDIF.
 
@@ -118096,7 +118110,10 @@ CLASS zcl_abapgit_object_common_aff IMPLEMENTATION.
           RECEIVING
             result = lv_json_as_xstring.
 
-        lv_json_as_xstring_wo_alv = remove_abap_language_version( lv_json_as_xstring ).
+        " Only remove ABAP language version if repository is set to ignore it
+        IF ms_item-abap_language_version = zcl_abapgit_abap_language_vers=>c_no_abap_language_version.
+          lv_json_as_xstring_wo_alv = remove_abap_language_version( lv_json_as_xstring ).
+        ENDIF.
 
         zif_abapgit_object~mo_files->add_raw(
           iv_ext  = 'json'
@@ -130812,8 +130829,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-27T01:48:53.020Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-27T01:48:53.020Z`.
+* abapmerge 0.16.0 - 2023-11-27T01:54:22.519Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-27T01:54:22.519Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
