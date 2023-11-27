@@ -101298,10 +101298,12 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
           lr_data       TYPE REF TO data,
           lx_error      TYPE REF TO cx_root.
 
-    FIELD-SYMBOLS: <lg_data>    TYPE any,
-                   <lg_source>  TYPE data,
-                   <lg_version> TYPE data,
-                   <lg_package> TYPE data.
+    FIELD-SYMBOLS: <lg_data>       TYPE any,
+                   <lg_source>     TYPE data,
+                   <lg_version>    TYPE data,
+                   <lg_package>    TYPE data,
+                   <lg_changed_by> TYPE syuname,
+                   <lg_changed_at> TYPE xsddatetime_z.
 
     TRY.
         CREATE DATA lr_data
@@ -101338,6 +101340,15 @@ CLASS zcl_abapgit_object_ddlx IMPLEMENTATION.
         ASSIGN COMPONENT 'METADATA-PACKAGE_REF-NAME' OF STRUCTURE <lg_data> TO <lg_package>.
         IF <lg_package> IS ASSIGNED.
           <lg_package> = iv_package.
+        ENDIF.
+
+        ASSIGN COMPONENT 'METADATA-CHANGED_BY' OF STRUCTURE <lg_data> TO <lg_changed_by>.
+        IF <lg_changed_by> IS ASSIGNED.
+          <lg_changed_by> = sy-uname.
+        ENDIF.
+        ASSIGN COMPONENT 'METADATA-CHANGED_AT' OF STRUCTURE <lg_data> TO <lg_changed_at>.
+        IF <lg_changed_at> IS ASSIGNED.
+          GET TIME STAMP FIELD <lg_changed_at>.
         ENDIF.
 
         li_data_model->set_data( <lg_data> ).
@@ -130830,8 +130841,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-27T06:44:13.849Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-27T06:44:13.849Z`.
+* abapmerge 0.16.0 - 2023-11-27T14:09:50.495Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-27T14:09:50.495Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
