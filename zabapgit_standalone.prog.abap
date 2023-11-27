@@ -10371,11 +10371,12 @@ CLASS zcl_abapgit_oo_serializer DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_field_rules DEFINITION
   FINAL
-  CREATE PRIVATE .
+  CREATE PRIVATE.
 
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_field_rules.
+
     CLASS-METHODS create
       RETURNING
         VALUE(ro_result) TYPE REF TO zif_abapgit_field_rules.
@@ -109504,18 +109505,20 @@ CLASS ZCL_ABAPGIT_SAP_NAMESPACE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_FIELD_RULES IMPLEMENTATION.
+CLASS zcl_abapgit_field_rules IMPLEMENTATION.
   METHOD create.
     CREATE OBJECT ro_result TYPE zcl_abapgit_field_rules.
   ENDMETHOD.
   METHOD fill_value.
+    DATA lv_timestamp TYPE timestampl.
     CASE iv_rule.
       WHEN zif_abapgit_field_rules=>c_fill_rule-date.
         cv_value = sy-datum.
       WHEN zif_abapgit_field_rules=>c_fill_rule-time.
         cv_value = sy-uzeit.
       WHEN zif_abapgit_field_rules=>c_fill_rule-timestamp.
-        GET TIME STAMP FIELD cv_value.
+        GET TIME STAMP FIELD lv_timestamp.
+        cv_value = lv_timestamp.
       WHEN zif_abapgit_field_rules=>c_fill_rule-user.
         cv_value = sy-uname.
       WHEN zif_abapgit_field_rules=>c_fill_rule-client.
@@ -130809,8 +130812,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-24T20:13:49.155Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-24T20:13:49.155Z`.
+* abapmerge 0.16.0 - 2023-11-27T01:48:53.020Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-27T01:48:53.020Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
