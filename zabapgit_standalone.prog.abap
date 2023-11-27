@@ -45293,7 +45293,8 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PULL IMPLEMENTATION.
     DATA lv_value TYPE string.
 
     FIELD-SYMBOLS <ls_overwrite> LIKE LINE OF ms_checks-overwrite.
-    mo_form_data = ii_event->form_data( ).
+
+    mo_form_data->merge( ii_event->form_data( ) ).
 
     CASE ii_event->mv_action.
       WHEN c_action-refresh.
@@ -130829,8 +130830,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-27T01:54:22.519Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-27T01:54:22.519Z`.
+* abapmerge 0.16.0 - 2023-11-27T06:44:13.849Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-27T06:44:13.849Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
