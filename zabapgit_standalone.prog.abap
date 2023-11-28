@@ -37790,7 +37790,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
     IF ii_event->mv_action = zif_abapgit_definitions=>c_action-abapgit_home.
       rs_handled-page  = zcl_abapgit_gui_page_repo_over=>create( ).
-      rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
+      rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
     ENDIF.
 
   ENDMETHOD.
@@ -130844,8 +130844,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-28T07:55:08.512Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-28T07:55:08.512Z`.
+* abapmerge 0.16.0 - 2023-11-28T18:02:15.976Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-28T18:02:15.976Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
