@@ -19918,6 +19918,7 @@ CLASS zcl_abapgit_html_form DEFINITION
         !iv_label      TYPE csequence
         !iv_name       TYPE csequence
         !iv_hint       TYPE csequence OPTIONAL
+        !iv_readonly   TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(ro_self) TYPE REF TO zcl_abapgit_html_form .
     METHODS radio
@@ -41606,12 +41607,10 @@ CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
       iv_label       = 'Only Serialize Main Language'
       iv_hint        = 'Ignore translations; serialize only main language of repository' ).
 
-    IF zcl_abapgit_feature=>is_enabled( 'FLOW' ) = abap_true
-        AND li_package->are_changes_recorded_in_tr_req( ) = abap_true.
-      ro_form->checkbox(
-        iv_name  = c_id-flow
-        iv_label = 'Enable Flow Page' ).
-    ENDIF.
+    ro_form->checkbox(
+      iv_name     = c_id-flow
+      iv_readonly = boolc( li_package->are_changes_recorded_in_tr_req( ) = abap_false )
+      iv_label    = 'BETA: Enable abapGit flow for this repository (requires transported packages)' ).
 
     ro_form->start_group(
       iv_name        = c_id-checks
@@ -45145,11 +45144,9 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     CREATE OBJECT ro_toolbar EXPORTING iv_id = 'toolbar-main'.
 
-    IF zcl_abapgit_feature=>is_enabled( 'FLOW' ) = abap_true.
-      ro_toolbar->add(
-        iv_txt = zcl_abapgit_gui_buttons=>flow( )
-        iv_act = zif_abapgit_definitions=>c_action-flow ).
-    ENDIF.
+    ro_toolbar->add(
+      iv_txt = zcl_abapgit_gui_buttons=>flow( )
+      iv_act = zif_abapgit_definitions=>c_action-flow ).
 
     ro_toolbar->add(
       iv_txt = zcl_abapgit_gui_buttons=>new_online( )
@@ -47298,7 +47295,7 @@ CLASS kHGwlHbtMQYaNXTWgQdwprsTTRQzio IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_FLOW IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_flow IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
 
@@ -47559,6 +47556,16 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_FLOW IMPLEMENTATION.
 
       ri_html->add( '<br>' ).
     ENDLOOP.
+
+    IF lines( mt_features ) = 0.
+      ri_html->add( 'Empty, repositories must be favorite + flow enabled<br><br>' ).
+
+      ri_html->add_a(
+        iv_txt   = 'abapGit flow documentation'
+        iv_act   = |{ zif_abapgit_definitions=>c_action-url
+          }?url=https://docs.abapgit.org/user-guide/reference/flow.html|
+        iv_class = |url| ).
+    ENDIF.
 
     ri_html->add( '</div>' ).
 
@@ -52609,10 +52616,11 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
 
     DATA ls_field LIKE LINE OF mt_fields.
 
-    ls_field-type  = zif_abapgit_html_form=>c_field_type-checkbox.
-    ls_field-name  = iv_name.
-    ls_field-label = iv_label.
-    ls_field-hint  = iv_hint.
+    ls_field-type     = zif_abapgit_html_form=>c_field_type-checkbox.
+    ls_field-name     = iv_name.
+    ls_field-label    = iv_label.
+    ls_field-hint     = iv_hint.
+    ls_field-readonly = iv_readonly.
 
     APPEND ls_field TO mt_fields.
 
@@ -53014,7 +53022,8 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_field_checkbox.
 
-    DATA lv_checked TYPE string.
+    DATA lv_checked  TYPE string.
+    DATA lv_disabled TYPE string.
 
     IF is_attr-error IS NOT INITIAL.
       ii_html->add( is_attr-error ).
@@ -53025,8 +53034,12 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
       lv_checked = ' checked'.
     ENDIF.
 
+    IF is_attr-readonly IS NOT INITIAL.
+      lv_disabled = ' disabled'.
+    ENDIF.
+
     ii_html->add( |<input type="checkbox" name="{ is_field-name }" id="{ is_field-name }"| &&
-                  |{ lv_checked }{ is_attr-readonly }{ is_attr-autofocus }>| ).
+                  |{ lv_checked }{ lv_disabled }{ is_attr-autofocus }>| ).
     ii_html->add( |<label for="{ is_field-name }"{ is_attr-hint }>{ is_field-label }</label>| ).
 
   ENDMETHOD.
@@ -130845,8 +130858,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-28T18:20:09.094Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-28T18:20:09.094Z`.
+* abapmerge 0.16.0 - 2023-11-28T18:24:48.853Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-28T18:24:48.853Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
