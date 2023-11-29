@@ -7783,6 +7783,7 @@ CLASS zcl_abapgit_http_client DEFINITION CREATE PUBLIC.
       RAISING
         zcx_abapgit_exception.
 
+  PROTECTED SECTION.
   PRIVATE SECTION.
     DATA: mi_client TYPE REF TO if_http_client,
           mo_digest TYPE REF TO zcl_abapgit_http_digest.
@@ -8889,6 +8890,8 @@ CLASS zcl_abapgit_function_module DEFINITION
     INTERFACES:
       zif_abapgit_function_module.
 
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_item_graph DEFINITION
   CREATE PUBLIC .
@@ -116486,7 +116489,6 @@ CLASS ZCL_ABAPGIT_ITEM_GRAPH IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_function_module IMPLEMENTATION.
-
   METHOD zif_abapgit_function_module~function_exists.
 
     DATA: lv_function_module_name TYPE c LENGTH 30.
@@ -116502,7 +116504,6 @@ CLASS zcl_abapgit_function_module IMPLEMENTATION.
     rv_exists = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
@@ -122950,7 +122951,6 @@ CLASS zcl_abapgit_http_client IMPLEMENTATION.
       name  = iv_key
       value = iv_value ).
   ENDMETHOD.
-
   METHOD set_headers.
 
     DATA: lv_value TYPE string.
@@ -124626,7 +124626,6 @@ CLASS zcl_abapgit_git_time IMPLEMENTATION.
 
     rv_time = rv_time - 31536000.
   ENDMETHOD.
-
   METHOD get_unix.
 * returns seconds since unix epoch, including timezone indicator
 
@@ -126792,7 +126791,6 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     ri_exit = gi_global_exit.
 
   ENDMETHOD.
-
   METHOD is_running_in_test_context.
 
     IF sy-sysid = 'ABC'.
@@ -130858,8 +130856,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-28T18:24:48.853Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-28T18:24:48.853Z`.
+* abapmerge 0.16.0 - 2023-11-29T06:14:20.282Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-29T06:14:20.282Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
