@@ -39893,15 +39893,11 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
   METHOD constructor.
 
-    DATA lo_settings TYPE REF TO zcl_abapgit_settings.
-
     super->constructor( ).
-
-    " Feature for ABAP Language Version
-    lo_settings = zcl_abapgit_persist_factory=>get_settings( )->read( ).
 
     CREATE OBJECT mo_validation_log.
     CREATE OBJECT mo_form_data.
+
     mo_repo = io_repo.
     mo_form = get_form_schema( ).
     mo_form_data = read_settings( ).
@@ -130917,8 +130913,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-30T07:39:41.995Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-30T07:39:41.995Z`.
+* abapmerge 0.16.0 - 2023-11-30T07:51:13.690Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-30T07:51:13.690Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
