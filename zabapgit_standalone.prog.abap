@@ -18809,9 +18809,15 @@ CLASS zcl_abapgit_gui_event DEFINITION
 
     CLASS-DATA gv_non_breaking_space TYPE string .
 
+    TYPES: BEGIN OF ty_name_value,
+             name  TYPE string,
+             value TYPE string,
+           END OF ty_name_value.
+    TYPES ty_name_value_tt TYPE STANDARD TABLE OF ty_name_value WITH DEFAULT KEY.
+
     METHODS fields_to_map
       IMPORTING
-        it_fields            TYPE tihttpnvp
+        it_fields            TYPE ty_name_value_tt
       RETURNING
         VALUE(ro_string_map) TYPE REF TO zcl_abapgit_string_map
       RAISING
@@ -18822,19 +18828,19 @@ CLASS zcl_abapgit_gui_event DEFINITION
         !it_post_data    TYPE zif_abapgit_html_viewer=>ty_post_data
         !iv_upper_cased  TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(rt_fields) TYPE tihttpnvp .
+        VALUE(rt_fields) TYPE ty_name_value_tt .
     CLASS-METHODS parse_fields
       IMPORTING
         !iv_string       TYPE clike
         !iv_upper_cased  TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(rt_fields) TYPE tihttpnvp .
+        VALUE(rt_fields) TYPE ty_name_value_tt .
 
     CLASS-METHODS parse_fields_upper_case_name
       IMPORTING
         !iv_string       TYPE clike
       RETURNING
-        VALUE(rt_fields) TYPE tihttpnvp .
+        VALUE(rt_fields) TYPE ty_name_value_tt .
 
     CLASS-METHODS translate_postdata
       IMPORTING
@@ -18844,7 +18850,7 @@ CLASS zcl_abapgit_gui_event DEFINITION
 
     CLASS-METHODS field_keys_to_upper
       CHANGING
-        !ct_fields TYPE tihttpnvp .
+        !ct_fields TYPE ty_name_value_tt .
     CLASS-METHODS unescape
       IMPORTING
         !iv_string       TYPE string
@@ -19836,16 +19842,22 @@ CLASS zcl_abapgit_html_action_utils DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
+    TYPES: BEGIN OF ty_name_value,
+             name  TYPE string,
+             value TYPE string,
+           END OF ty_name_value.
+    TYPES ty_name_value_tt TYPE STANDARD TABLE OF ty_name_value WITH DEFAULT KEY.
+
     CLASS-METHODS add_field
       IMPORTING
         !iv_name  TYPE string
         !ig_field TYPE any
       CHANGING
-        !ct_field TYPE tihttpnvp .
+        !ct_field TYPE ty_name_value_tt .
 
     CLASS-METHODS fields_to_string
       IMPORTING
-        !it_fields       TYPE tihttpnvp
+        !it_fields       TYPE ty_name_value_tt
       RETURNING
         VALUE(rv_string) TYPE string.
 ENDCLASS.
@@ -53419,7 +53431,7 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
+CLASS zcl_abapgit_html_action_utils IMPLEMENTATION.
   METHOD add_field.
 
     DATA ls_field LIKE LINE OF ct_field.
@@ -53444,7 +53456,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   ENDMETHOD.
   METHOD dbkey_encode.
 
-    DATA lt_fields TYPE tihttpnvp.
+    DATA lt_fields TYPE ty_name_value_tt.
 
     add_field( EXPORTING iv_name = 'TYPE'
                          ig_field = is_key-type CHANGING ct_field = lt_fields ).
@@ -53456,7 +53468,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   ENDMETHOD.
   METHOD dir_encode.
 
-    DATA lt_fields TYPE tihttpnvp.
+    DATA lt_fields TYPE ty_name_value_tt.
     add_field( EXPORTING iv_name = 'PATH'
                          ig_field = iv_path CHANGING ct_field = lt_fields ).
     rv_string = fields_to_string( lt_fields ).
@@ -53483,7 +53495,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   ENDMETHOD.
   METHOD file_encode.
 
-    DATA lt_fields TYPE tihttpnvp.
+    DATA lt_fields TYPE ty_name_value_tt.
     add_field(
       EXPORTING
         iv_name  = 'KEY'
@@ -53519,7 +53531,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   ENDMETHOD.
   METHOD jump_encode.
 
-    DATA lt_fields TYPE tihttpnvp.
+    DATA lt_fields TYPE ty_name_value_tt.
     add_field( EXPORTING iv_name = 'TYPE'
                          ig_field = iv_obj_type CHANGING ct_field = lt_fields ).
     add_field( EXPORTING iv_name = 'NAME'
@@ -53535,7 +53547,7 @@ CLASS ZCL_ABAPGIT_HTML_ACTION_UTILS IMPLEMENTATION.
   ENDMETHOD.
   METHOD obj_encode.
 
-    DATA lt_fields TYPE tihttpnvp.
+    DATA lt_fields TYPE ty_name_value_tt.
     add_field( EXPORTING iv_name = 'KEY'
                          ig_field = iv_key CHANGING ct_field = lt_fields ).
     add_field( EXPORTING iv_name = 'OBJ_TYPE'
@@ -130905,8 +130917,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-30T06:49:36.614Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-30T06:49:36.614Z`.
+* abapmerge 0.16.0 - 2023-11-30T07:39:41.995Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-30T07:39:41.995Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
