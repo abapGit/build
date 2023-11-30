@@ -23875,12 +23875,20 @@ ENDCLASS.
 CLASS zcl_abapgit_frontend_services DEFINITION
   CREATE PRIVATE
   FRIENDS ZCL_ABAPGIT_ui_factory.
-
   PUBLIC SECTION.
 
     INTERFACES zif_abapgit_frontend_services.
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    CLASS-DATA gv_initial_folder TYPE string.
+
+    METHODS get_path_from_fullname
+      IMPORTING
+        iv_fullname    TYPE string
+      RETURNING
+        VALUE(rv_path) TYPE string.
+
 ENDCLASS.
 CLASS zcl_abapgit_password_dialog DEFINITION
   FINAL
@@ -24961,8 +24969,6 @@ CLASS zcl_abapgit_zip DEFINITION
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
-
-    CLASS-DATA gv_prev TYPE string .
   PRIVATE SECTION.
 
     CLASS-METHODS filename
@@ -26328,16 +26334,11 @@ CLASS zcl_abapgit_zip IMPLEMENTATION.
     ENDIF.
 
     lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
-    lo_frontend_serv->directory_browse(
-      EXPORTING
-        iv_initial_folder  = gv_prev
-      CHANGING
-        cv_selected_folder = lv_folder ).
+    lo_frontend_serv->directory_browse( CHANGING cv_selected_folder = lv_folder ).
     IF lv_folder IS INITIAL.
       RAISE EXCEPTION TYPE zcx_abapgit_cancel.
     ENDIF.
 
-    gv_prev = lv_folder.
     lo_frontend_serv->get_file_separator( CHANGING cv_file_separator = lv_sep ).
 
     LOOP AT ls_files_item-files ASSIGNING <ls_file>.
@@ -36332,6 +36333,21 @@ CLASS zcl_abapgit_password_dialog IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
+  METHOD get_path_from_fullname.
+
+    DATA lv_len TYPE i.
+
+    FIND FIRST OCCURRENCE OF REGEX '^/(.*/)?' IN iv_fullname MATCH LENGTH lv_len.
+    IF sy-subrc = 0.
+      rv_path = iv_fullname(lv_len).
+    ELSE.
+      FIND FIRST OCCURRENCE OF REGEX '^(.*\\)?' IN iv_fullname MATCH LENGTH lv_len.
+      IF sy-subrc = 0.
+        rv_path = iv_fullname(lv_len).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_frontend_services~clipboard_export.
 
     DATA lv_rc TYPE i.
@@ -36378,10 +36394,14 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_frontend_services~directory_browse.
 
+    IF iv_initial_folder IS NOT INITIAL.
+      gv_initial_folder = iv_initial_folder.
+    ENDIF.
+
     cl_gui_frontend_services=>directory_browse(
       EXPORTING
         window_title         = iv_window_title
-        initial_folder       = iv_initial_folder
+        initial_folder       = gv_initial_folder
       CHANGING
         selected_folder      = cv_selected_folder
       EXCEPTIONS
@@ -36392,6 +36412,8 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
+
+    gv_initial_folder = cv_selected_folder.
 
   ENDMETHOD.
   METHOD zif_abapgit_frontend_services~directory_create.
@@ -36679,6 +36701,7 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
         window_title            = iv_title
         default_filename        = iv_default_filename
         file_filter             = lv_filter
+        initial_directory       = gv_initial_folder
       CHANGING
         file_table              = lt_file_table
         rc                      = lv_rc
@@ -36700,6 +36723,8 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
     ASSERT sy-subrc = 0.
     rv_path = ls_file_table-filename.
 
+    gv_initial_folder = get_path_from_fullname( rv_path ).
+
   ENDMETHOD.
   METHOD zif_abapgit_frontend_services~show_file_save_dialog.
 
@@ -36719,6 +36744,7 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
         default_extension    = iv_extension
         default_file_name    = iv_default_filename
         file_filter          = lv_filter
+        initial_directory    = gv_initial_folder
       CHANGING
         filename             = lv_filename
         path                 = lv_path
@@ -36735,6 +36761,8 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
     IF lv_action = cl_gui_frontend_services=>action_cancel.
       zcx_abapgit_exception=>raise( 'Cancelled' ).
     ENDIF.
+
+    gv_initial_folder = lv_path.
 
   ENDMETHOD.
 ENDCLASS.
@@ -128082,10 +128110,6 @@ CLASS kHGwlFZZSwYWAxVpEdIbTqkphOFmih DEFINITION FINAL.
     CLASS-METHODS select_tr_requests
       RETURNING
         VALUE(rt_trkorr) TYPE trwbo_request_headers.
-
-  PRIVATE SECTION.
-    CLASS-DATA gv_last_folder TYPE string.
-
 ENDCLASS.
 
 CLASS kHGwlFZZSwYWAxVpEdIbTqkphOFmih IMPLEMENTATION.
@@ -128101,12 +128125,8 @@ CLASS kHGwlFZZSwYWAxVpEdIbTqkphOFmih IMPLEMENTATION.
     lo_fe_serv->directory_browse(
       EXPORTING
          iv_window_title   = lv_title
-         iv_initial_folder = gv_last_folder
       CHANGING
         cv_selected_folder = rv_folder ).
-
-    "Store the last directory for user friendly UI
-    gv_last_folder = rv_folder.
 
   ENDMETHOD.
 
@@ -130913,8 +130933,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-30T07:51:13.690Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-30T07:51:13.690Z`.
+* abapmerge 0.16.0 - 2023-11-30T08:07:56.652Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-30T08:07:56.652Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
