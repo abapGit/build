@@ -17149,7 +17149,7 @@ CLASS zcl_abapgit_persistence_repo DEFINITION
         zcx_abapgit_exception .
     METHODS get_repo_from_content
       IMPORTING
-        is_content    TYPE zif_abapgit_persistence=>ty_content
+        is_content       TYPE zif_abapgit_persistence=>ty_content
       RETURNING
         VALUE(rs_result) TYPE zif_abapgit_persistence=>ty_repo
       RAISING
@@ -63154,7 +63154,7 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
+CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
   METHOD constructor.
 
     DATA ls_dummy_meta_mask TYPE zif_abapgit_persistence=>ty_repo_meta_mask.
@@ -63250,10 +63250,14 @@ CLASS ZCL_ABAPGIT_PERSISTENCE_REPO IMPLEMENTATION.
     MOVE-CORRESPONDING from_xml( lv_old_blob ) TO ls_repo_meta.
     lv_new_blob = to_xml( ls_repo_meta ).
 
-    mo_db->update(
-      iv_type  = zcl_abapgit_persistence_db=>c_type_repo
-      iv_value = iv_repo_key
-      iv_data  = lv_new_blob ).
+    IF lv_new_blob <> lv_old_blob.
+      mo_db->update(
+        iv_type  = zcl_abapgit_persistence_db=>c_type_repo
+        iv_value = iv_repo_key
+        iv_data  = lv_new_blob ).
+
+      COMMIT WORK.
+    ENDIF.
 
   ENDMETHOD.
   METHOD to_xml.
@@ -130933,8 +130937,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-30T08:07:56.652Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-30T08:07:56.652Z`.
+* abapmerge 0.16.0 - 2023-11-30T08:25:59.397Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-30T08:25:59.397Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
