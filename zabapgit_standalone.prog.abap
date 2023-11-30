@@ -110,6 +110,7 @@ INTERFACE zif_abapgit_data_supporter DEFERRED.
 INTERFACE zif_abapgit_data_serializer DEFERRED.
 INTERFACE zif_abapgit_data_deserializer DEFERRED.
 INTERFACE zif_abapgit_data_config DEFERRED.
+INTERFACE zif_abapgit_default_transport DEFERRED.
 INTERFACE zif_abapgit_cts_api DEFERRED.
 INTERFACE zif_abapgit_background DEFERRED.
 INTERFACE zif_abapgit_apack_definitions DEFERRED.
@@ -1153,6 +1154,31 @@ INTERFACE zif_abapgit_background .
       !it_settings TYPE ty_settings_tt OPTIONAL
     RAISING
       zcx_abapgit_exception .
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_default_transport.
+
+  TYPES: BEGIN OF ty_get,
+           trfunction TYPE c LENGTH 1,
+           ordernum   TYPE trkorr,
+         END OF ty_get.
+
+  METHODS set
+    IMPORTING
+      iv_transport TYPE trkorr
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS reset
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS get
+    RETURNING
+      VALUE(rs_default_task) TYPE ty_get
+    RAISING
+      zcx_abapgit_exception .
+
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_auth.
@@ -6108,39 +6134,18 @@ CLASS zcl_abapgit_cts_api DEFINITION
         VALUE(rv_transportable) TYPE abap_bool .
 ENDCLASS.
 CLASS zcl_abapgit_default_transport DEFINITION
-  CREATE PRIVATE .
+  CREATE PUBLIC .
 
   PUBLIC SECTION.
-    CLASS-METHODS:
-      get_instance
-        RETURNING
-          VALUE(ro_instance) TYPE REF TO zcl_abapgit_default_transport
+    INTERFACES zif_abapgit_default_transport.
+
+    METHODS
+      constructor
         RAISING
           zcx_abapgit_exception.
 
-    METHODS:
-      constructor
-        RAISING
-          zcx_abapgit_exception,
-
-      set
-        IMPORTING
-          iv_transport TYPE trkorr
-        RAISING
-          zcx_abapgit_exception,
-
-      reset
-        RAISING
-          zcx_abapgit_exception,
-      get
-        RETURNING
-          VALUE(rs_default_task) TYPE e070use
-        RAISING
-          zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
-
-    CLASS-DATA go_instance TYPE REF TO zcl_abapgit_default_transport .
     DATA mv_is_set_by_abapgit TYPE abap_bool .
     DATA ms_save TYPE e070use .
 
@@ -25095,6 +25100,11 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-METHODS get_cts_api
       RETURNING
         VALUE(ri_cts_api) TYPE REF TO zif_abapgit_cts_api .
+    CLASS-METHODS get_default_transport
+      RETURNING
+        VALUE(ri_default_transport) TYPE REF TO zif_abapgit_default_transport
+      RAISING
+        zcx_abapgit_exception.
     CLASS-METHODS get_environment
       RETURNING
         VALUE(ri_environment) TYPE REF TO zif_abapgit_environment .
@@ -25148,6 +25158,7 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-DATA gi_sap_namespace TYPE REF TO zif_abapgit_sap_namespace .
     CLASS-DATA gi_sap_report TYPE REF TO zif_abapgit_sap_report.
     CLASS-DATA gi_function_module TYPE REF TO zif_abapgit_function_module.
+    CLASS-DATA gi_default_transport TYPE REF TO zif_abapgit_default_transport .
 ENDCLASS.
 CLASS zcl_abapgit_feature DEFINITION
   FINAL
@@ -25773,7 +25784,7 @@ CLASS zcl_abapgit_feature IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_factory IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
   METHOD get_code_inspector.
 
     DATA: ls_code_inspector LIKE LINE OF gt_code_inspector.
@@ -25803,6 +25814,15 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
     ENDIF.
 
     ri_cts_api = gi_cts_api.
+  ENDMETHOD.
+  METHOD get_default_transport.
+
+    IF gi_default_transport IS NOT BOUND.
+      CREATE OBJECT gi_default_transport TYPE zcl_abapgit_default_transport.
+    ENDIF.
+
+    ri_default_transport = gi_default_transport.
+
   ENDMETHOD.
   METHOD get_environment.
     IF gi_environment IS NOT BOUND.
@@ -36083,15 +36103,15 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     DATA: lt_e071    TYPE STANDARD TABLE OF e071,
           lt_e071k   TYPE STANDARD TABLE OF e071k,
           lv_order   TYPE trkorr,
-          ls_e070use TYPE e070use.
+          ls_default TYPE zif_abapgit_default_transport=>ty_get.
     DATA lv_category TYPE e070-korrdev.
 
     " If default transport is set and its type matches, then use it as default for the popup
-    ls_e070use = zcl_abapgit_default_transport=>get_instance( )->get( ).
+    ls_default = zcl_abapgit_factory=>get_default_transport( )->get( ).
 
-    IF ( ls_e070use-trfunction = is_transport_type-request OR ls_e070use-trfunction IS INITIAL )
+    IF ( ls_default-trfunction = is_transport_type-request OR ls_default-trfunction IS INITIAL )
       AND iv_use_default_transport = abap_true.
-      lv_order = ls_e070use-ordernum.
+      lv_order = ls_default-ordernum.
     ENDIF.
 
     " Differentiate between customizing and WB requests
@@ -61866,7 +61886,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
           ii_log    = ii_log ).
       CATCH zcx_abapgit_exception INTO lx_error.
         " Ensure to reset default transport request task
-        zcl_abapgit_default_transport=>get_instance( )->reset( ).
+        zcl_abapgit_factory=>get_default_transport( )->reset( ).
         refresh( iv_drop_log = abap_false ).
         RAISE EXCEPTION lx_error.
     ENDTRY.
@@ -66622,7 +66642,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     ENDIF.
 
     IF is_checks-transport-required = abap_true.
-      zcl_abapgit_default_transport=>get_instance( )->set( is_checks-transport-transport ).
+      zcl_abapgit_factory=>get_default_transport( )->set( is_checks-transport-transport ).
     ENDIF.
 
     TRY.
@@ -66635,7 +66655,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
         check_objects_locked( lt_items ).
 
       CATCH zcx_abapgit_exception INTO lx_error.
-        zcl_abapgit_default_transport=>get_instance( )->reset( ).
+        zcl_abapgit_factory=>get_default_transport( )->reset( ).
         RAISE EXCEPTION lx_error.
     ENDTRY.
 
@@ -66685,7 +66705,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
       ENDIF.
     ENDDO.
 
-    zcl_abapgit_default_transport=>get_instance( )->reset( ).
+    zcl_abapgit_factory=>get_default_transport( )->reset( ).
 
     IF lx_error IS BOUND AND lines( lt_tadir ) > 0.
       zcx_abapgit_exception=>raise( 'Error during uninstall. Check the log.' ).
@@ -66739,7 +66759,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     lv_package = io_repo->get_package( ).
 
     IF is_checks-transport-required = abap_true.
-      zcl_abapgit_default_transport=>get_instance( )->set( is_checks-transport-transport ).
+      zcl_abapgit_factory=>get_default_transport( )->set( is_checks-transport-transport ).
     ENDIF.
 
     zcl_abapgit_objects_activation=>clear( ).
@@ -66914,7 +66934,7 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
     update_package_tree( io_repo->get_package( ) ).
 
-    zcl_abapgit_default_transport=>get_instance( )->reset( ).
+    zcl_abapgit_factory=>get_default_transport( )->reset( ).
 
     lo_timer->end( abap_true ).
 
@@ -80230,7 +80250,6 @@ CLASS zcl_abapgit_object_sod2 IMPLEMENTATION.
           ls_data                  TYPE REF TO data,
           ls_object_type           TYPE wbobjtype,
           lv_object_key            TYPE seu_objkey,
-          lv_transport_request     TYPE trkorr,
           lo_logger                TYPE REF TO cl_wb_checklist,
           lx_create_error          TYPE REF TO cx_root,
           lx_error                 TYPE REF TO cx_root,
@@ -80273,15 +80292,13 @@ CLASS zcl_abapgit_object_sod2 IMPLEMENTATION.
         lo_factory = get_wb_object_operator( is_object_type = ls_object_type
                                              iv_object_key  = lv_object_key ).
 
-        lv_transport_request = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
-
         IF zif_abapgit_object~exists( ) = abap_true.
 
           CALL METHOD lo_factory->('IF_WB_OBJECT_OPERATOR~UPDATE')
             EXPORTING
               io_object_data    = lo_data_model
               version           = 'A'
-              transport_request = lv_transport_request.
+              transport_request = iv_transport.
 
         ELSE.
 
@@ -80297,7 +80314,7 @@ CLASS zcl_abapgit_object_sod2 IMPLEMENTATION.
                   version               = 'A'
                   package               = iv_package
                   abap_language_version = lv_abap_language_version
-                  transport_request     = lv_transport_request
+                  transport_request     = iv_transport
                 IMPORTING
                   logger                = lo_logger.
 
@@ -80676,7 +80693,6 @@ CLASS zcl_abapgit_object_sod1 IMPLEMENTATION.
           ls_data                  TYPE REF TO data,
           ls_object_type           TYPE wbobjtype,
           lv_object_key            TYPE seu_objkey,
-          lv_transport_request     TYPE trkorr,
           lo_logger                TYPE REF TO cl_wb_checklist,
           lx_create_error          TYPE REF TO cx_root,
           lx_error                 TYPE REF TO cx_root,
@@ -80718,15 +80734,13 @@ CLASS zcl_abapgit_object_sod1 IMPLEMENTATION.
         lo_factory = get_wb_object_operator( is_object_type = ls_object_type
                                              iv_object_key  = lv_object_key ).
 
-        lv_transport_request = zcl_abapgit_default_transport=>get_instance( )->get( )-ordernum.
-
         IF zif_abapgit_object~exists( ) = abap_true.
 
           CALL METHOD lo_factory->('IF_WB_OBJECT_OPERATOR~UPDATE')
             EXPORTING
               io_object_data    = lo_data_model
               version           = 'A'
-              transport_request = lv_transport_request.
+              transport_request = iv_transport.
 
         ELSE.
 
@@ -80742,7 +80756,7 @@ CLASS zcl_abapgit_object_sod1 IMPLEMENTATION.
                   version               = 'A'
                   package               = iv_package
                   abap_language_version = lv_abap_language_version
-                  transport_request     = lv_transport_request
+                  transport_request     = iv_transport
                 IMPORTING
                   logger                = lo_logger.
 
@@ -128670,7 +128684,7 @@ CLASS ZCL_ABAPGIT_TRANSPORT IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_default_transport IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_DEFAULT_TRANSPORT IMPLEMENTATION.
   METHOD clear.
 
     CALL FUNCTION 'TR_TASK_RESET'
@@ -128692,58 +128706,6 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
   METHOD constructor.
 
     store( ).
-
-  ENDMETHOD.
-  METHOD get.
-
-    DATA: lt_e070use TYPE STANDARD TABLE OF e070use.
-
-    CALL FUNCTION 'TR_TASK_GET'
-      TABLES
-        tt_e070use       = lt_e070use
-      EXCEPTIONS
-        invalid_username = 1
-        invalid_category = 2
-        invalid_client   = 3
-        OTHERS           = 4.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-    READ TABLE lt_e070use INTO rs_default_task
-                          INDEX 1.
-
-  ENDMETHOD.
-  METHOD get_instance.
-
-    IF go_instance IS NOT BOUND.
-      CREATE OBJECT go_instance.
-    ENDIF.
-
-    ro_instance = go_instance.
-
-  ENDMETHOD.
-  METHOD reset.
-
-    DATA: ls_default_task TYPE e070use.
-
-    IF mv_is_set_by_abapgit = abap_false.
-      " if the default transport request task isn't set
-      " by us there is nothing to do.
-      RETURN.
-    ENDIF.
-
-    CLEAR mv_is_set_by_abapgit.
-
-    ls_default_task = get( ).
-
-    IF ls_default_task IS NOT INITIAL.
-
-      clear( ls_default_task ).
-
-    ENDIF.
-
-    restore( ).
 
   ENDMETHOD.
   METHOD restore.
@@ -128771,27 +128733,6 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD set.
-
-    " checks whether object changes of the package are rerorded in transport
-    " requests. If true then we set the default task, so that no annoying
-    " transport request popups are shown while deserializing.
-
-    IF mv_is_set_by_abapgit = abap_true.
-      " the default transport request task is already set by us
-      " -> no reason to do it again.
-      RETURN.
-    ENDIF.
-
-    IF iv_transport IS INITIAL.
-      zcx_abapgit_exception=>raise( |No transport request was supplied| ).
-    ENDIF.
-
-    set_internal( iv_transport ).
-
-    mv_is_set_by_abapgit = abap_true.
-
-  ENDMETHOD.
   METHOD set_internal.
 
     CALL FUNCTION 'TR_TASK_SET'
@@ -128814,7 +128755,74 @@ CLASS zcl_abapgit_default_transport IMPLEMENTATION.
   ENDMETHOD.
   METHOD store.
 
-    ms_save = get( ).
+    ms_save = zif_abapgit_default_transport~get( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_default_transport~get.
+
+    DATA lt_e070use TYPE STANDARD TABLE OF e070use WITH DEFAULT KEY.
+    DATA ls_line    LIKE LINE OF lt_e070use.
+
+    CALL FUNCTION 'TR_TASK_GET'
+      TABLES
+        tt_e070use       = lt_e070use
+      EXCEPTIONS
+        invalid_username = 1
+        invalid_category = 2
+        invalid_client   = 3
+        OTHERS           = 4.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise_t100( ).
+    ENDIF.
+
+    READ TABLE lt_e070use INTO ls_line INDEX 1.
+    IF sy-subrc = 0.
+      MOVE-CORRESPONDING ls_line TO rs_default_task.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_default_transport~reset.
+
+    DATA: ls_default_task TYPE e070use.
+
+    IF mv_is_set_by_abapgit = abap_false.
+      " if the default transport request task isn't set
+      " by us there is nothing to do.
+      RETURN.
+    ENDIF.
+
+    CLEAR mv_is_set_by_abapgit.
+
+    ls_default_task = zif_abapgit_default_transport~get( ).
+
+    IF ls_default_task IS NOT INITIAL.
+
+      clear( ls_default_task ).
+
+    ENDIF.
+
+    restore( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_default_transport~set.
+
+    " checks whether object changes of the package are rerorded in transport
+    " requests. If true then we set the default task, so that no annoying
+    " transport request popups are shown while deserializing.
+
+    IF mv_is_set_by_abapgit = abap_true.
+      " the default transport request task is already set by us
+      " -> no reason to do it again.
+      RETURN.
+    ENDIF.
+
+    IF iv_transport IS INITIAL.
+      zcx_abapgit_exception=>raise( |No transport request was supplied| ).
+    ENDIF.
+
+    set_internal( iv_transport ).
+
+    mv_is_set_by_abapgit = abap_true.
 
   ENDMETHOD.
 ENDCLASS.
@@ -130897,8 +130905,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-29T13:25:22.459Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-29T13:25:22.459Z`.
+* abapmerge 0.16.0 - 2023-11-30T06:49:36.614Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-30T06:49:36.614Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
