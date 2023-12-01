@@ -16424,6 +16424,9 @@ CLASS zcl_abapgit_object_clas DEFINITION
         IMPORTING ii_xml     TYPE REF TO zif_abapgit_xml_input
                   iv_package TYPE devclass
         RAISING   zcx_abapgit_exception,
+      deserialize_exceptions
+        IMPORTING ii_xml TYPE REF TO zif_abapgit_xml_input
+        RAISING   zcx_abapgit_exception,
       serialize_xml
         IMPORTING ii_xml TYPE REF TO zif_abapgit_xml_output
         RAISING   zcx_abapgit_exception,
@@ -103256,6 +103259,19 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
       iv_longtext_id   = c_longtext_id-types ).
 
   ENDMETHOD.
+  METHOD deserialize_exceptions.
+
+    DATA: ls_vseoclass TYPE vseoclass.
+
+    ii_xml->read( EXPORTING iv_name = 'VSEOCLASS'
+                  CHANGING  cg_data = ls_vseoclass ).
+
+    " For exceptions that are sub-class of another exception, we need to set the category explicitly (#6490)
+    IF ls_vseoclass-category = '40'.
+      UPDATE seoclassdf SET category = '40' WHERE clsname = ls_vseoclass-clsname.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD deserialize_pre_ddic.
 
     DATA: ls_vseoclass TYPE vseoclass.
@@ -103782,6 +103798,10 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
         corr_insert( iv_package ).
       ENDIF.
 
+    ELSEIF iv_step = zif_abapgit_object=>gc_step_id-late.
+
+      deserialize_exceptions( io_xml ).
+
     ENDIF.
 
   ENDMETHOD.
@@ -103809,6 +103829,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   METHOD zif_abapgit_object~get_deserialize_steps.
     APPEND zif_abapgit_object=>gc_step_id-early TO rt_steps.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
+    APPEND zif_abapgit_object=>gc_step_id-late TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
     rs_metadata = get_metadata( ).
@@ -130939,8 +130960,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-11-30T14:09:29.605Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-11-30T14:09:29.605Z`.
+* abapmerge 0.16.0 - 2023-12-01T09:24:45.964Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-01T09:24:45.964Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
