@@ -90759,15 +90759,23 @@ CLASS zcl_abapgit_object_iobj IMPLEMENTATION.
 
     CALL FUNCTION 'RSDG_IOBJ_MULTI_DELETE'
       EXPORTING
-        i_t_iobjnm = lt_iobjname
+        i_t_iobjnm        = lt_iobjname
+        i_check_dependent = abap_false
+        i_manual          = abap_false
       IMPORTING
-        e_subrc    = lv_subrc.
+        e_subrc           = lv_subrc.
 
     IF lv_subrc <> 0.
       zcx_abapgit_exception=>raise( |Error when deleting InfoObject { ms_item-obj_name }| ).
     ENDIF.
 
     corr_insert( iv_package ).
+
+    TRY.
+        " In case of IOBJ dependencies, tadir entry might be leftover so we remove it
+        tadir_delete( ).
+      CATCH zcx_abapgit_exception ##NO_HANDLER.
+    ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~deserialize.
@@ -130960,8 +130968,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-12-01T09:24:45.964Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-01T09:24:45.964Z`.
+* abapmerge 0.16.0 - 2023-12-01T10:29:02.383Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-01T10:29:02.383Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
