@@ -3210,16 +3210,7 @@ INTERFACE zif_abapgit_definitions .
   TYPES: END OF ty_tpool .
   TYPES:
     ty_tpool_tt TYPE STANDARD TABLE OF ty_tpool WITH DEFAULT KEY .
-  TYPES:
-    BEGIN OF ty_obj_attribute,
-      cmpname   TYPE seocmpname,
-      attkeyfld TYPE seokeyfld,
-      attbusobj TYPE seobusobj,
-      exposure  TYPE seoexpose,
-    END OF ty_obj_attribute .
-  TYPES:
-    ty_obj_attribute_tt TYPE STANDARD TABLE OF ty_obj_attribute WITH DEFAULT KEY
-                             WITH NON-UNIQUE SORTED KEY cmpname COMPONENTS cmpname .
+
   TYPES:
     BEGIN OF ty_transport_to_branch,
       branch_name TYPE string,
@@ -3796,12 +3787,23 @@ INTERFACE zif_abapgit_oo_object_fnc.
   TYPES:
     ty_seosubcotx_tt TYPE STANDARD TABLE OF seosubcotx WITH DEFAULT KEY .
 
+  TYPES:
+    BEGIN OF ty_obj_attribute,
+      cmpname   TYPE seocmpname,
+      attkeyfld TYPE seokeyfld,
+      attbusobj TYPE seobusobj,
+      exposure  TYPE seoexpose,
+    END OF ty_obj_attribute .
+  TYPES:
+    ty_obj_attribute_tt TYPE STANDARD TABLE OF ty_obj_attribute WITH DEFAULT KEY
+                             WITH NON-UNIQUE SORTED KEY cmpname COMPONENTS cmpname .
+
   METHODS:
     create
       IMPORTING
         iv_check      TYPE abap_bool
         iv_package    TYPE devclass
-        it_attributes TYPE zif_abapgit_definitions=>ty_obj_attribute_tt OPTIONAL
+        it_attributes TYPE ty_obj_attribute_tt OPTIONAL
       CHANGING
         cg_properties TYPE any
       RAISING
@@ -3954,7 +3956,7 @@ INTERFACE zif_abapgit_oo_object_fnc.
       IMPORTING
         iv_object_name       TYPE seoclsname
       RETURNING
-        VALUE(rt_attributes) TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
+        VALUE(rt_attributes) TYPE ty_obj_attribute_tt.
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_sap_namespace .
@@ -10103,7 +10105,7 @@ CLASS zcl_abapgit_oo_base DEFINITION
     CLASS-METHODS:
       convert_attrib_to_vseoattrib
         IMPORTING iv_clsname           TYPE seoclsname
-                  it_attributes        TYPE zif_abapgit_definitions=>ty_obj_attribute_tt
+                  it_attributes        TYPE zif_abapgit_oo_object_fnc=>ty_obj_attribute_tt
         RETURNING VALUE(rt_vseoattrib) TYPE seoo_attributes_r.
 
   PRIVATE SECTION.
@@ -103193,7 +103195,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
           lt_descriptions          TYPE zif_abapgit_oo_object_fnc=>ty_seocompotx_tt,
           lt_descriptions_sub      TYPE zif_abapgit_oo_object_fnc=>ty_seosubcotx_tt,
           ls_class_key             TYPE seoclskey,
-          lt_attributes            TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
+          lt_attributes            TYPE zif_abapgit_oo_object_fnc=>ty_obj_attribute_tt.
     lt_source = zif_abapgit_object~mo_files->read_abap( ).
 
     lt_local_definitions = zif_abapgit_object~mo_files->read_abap(
@@ -103473,7 +103475,7 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
   ENDMETHOD.
   METHOD serialize_attr.
 
-    DATA: lt_attributes TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
+    DATA: lt_attributes TYPE zif_abapgit_oo_object_fnc=>ty_obj_attribute_tt.
 
     lt_attributes = mi_object_oriented_object_fct->read_attributes( iv_clsname ).
     IF lines( lt_attributes ) = 0.
@@ -110734,7 +110736,7 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
       lt_vseoattrib TYPE seoo_attributes_r,
       ls_class_key  TYPE seoclskey,
       ls_properties TYPE vseoclass,
-      lt_attributes TYPE zif_abapgit_definitions=>ty_obj_attribute_tt.
+      lt_attributes TYPE zif_abapgit_oo_object_fnc=>ty_obj_attribute_tt.
 
     FIELD-SYMBOLS: <lv_clsname> TYPE seoclsname.
 
@@ -131033,8 +131035,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-12-05T20:11:12.637Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-05T20:11:12.637Z`.
+* abapmerge 0.16.0 - 2023-12-07T09:01:47.549Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-07T09:01:47.549Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
