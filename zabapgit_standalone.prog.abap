@@ -2265,8 +2265,17 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_lxe_texts .
 
-  TYPES:
-    ty_text_pairs TYPE STANDARD TABLE OF lxe_pcx_s1 WITH DEFAULT KEY.
+* type LXE_PCX_S1 inlined to be compatible with open-abap and ABAP Cloud
+  TYPES: BEGIN OF ty_text_pair,
+           textkey  TYPE c LENGTH 32,
+           s_text   TYPE c LENGTH 255,
+           t_text   TYPE c LENGTH 255,
+           unitmlt  TYPE i,
+           uppcase  TYPE c LENGTH 4,
+           texttype TYPE c LENGTH 1,
+         END OF ty_text_pair.
+
+  TYPES ty_text_pairs TYPE STANDARD TABLE OF ty_text_pair WITH DEFAULT KEY.
 
   METHODS serialize
     IMPORTING
@@ -131035,8 +131044,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-12-07T09:01:47.549Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-07T09:01:47.549Z`.
+* abapmerge 0.16.0 - 2023-12-08T14:31:33.431Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-08T14:31:33.431Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
