@@ -26334,6 +26334,7 @@ CLASS zcl_abapgit_zip IMPLEMENTATION.
 
     ls_files_item-item-obj_type = ls_tadir-object.
     ls_files_item-item-obj_name = ls_tadir-obj_name.
+    ls_files_item-item-abap_language_version = '*'. "any
 
     ls_files_item = zcl_abapgit_objects=>serialize(
       is_item        = ls_files_item-item
@@ -29158,7 +29159,7 @@ CLASS zcl_abapgit_abap_language_vers IMPLEMENTATION.
   METHOD check_abap_language_version.
 
     " Check if ABAP language version matches repository setting
-    IF iv_abap_language_version <> is_item-abap_language_version.
+    IF is_item-abap_language_version IS NOT INITIAL AND iv_abap_language_version <> is_item-abap_language_version.
       zcx_abapgit_exception=>raise(
         |Object { is_item-obj_type } { is_item-obj_name } has { get_description( iv_abap_language_version ) }| &&
         | but repository is set to { get_description( is_item-abap_language_version ) }| ).
@@ -131055,8 +131056,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-12-12T05:28:02.013Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-12T05:28:02.013Z`.
+* abapmerge 0.16.0 - 2023-12-12T13:49:44.520Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-12T13:49:44.520Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
