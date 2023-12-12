@@ -47410,8 +47410,9 @@ CLASS zcl_abapgit_gui_page_flow IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    DATA ls_feature LIKE LINE OF mt_features.
-    DATA lv_index   TYPE i.
+    DATA ls_feature  LIKE LINE OF mt_features.
+    DATA lv_index    TYPE i.
+    DATA lv_rendered TYPE abap_bool.
     register_handlers( ).
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     ri_html->add( '<div class="repo-overview">' ).
@@ -47427,6 +47428,7 @@ CLASS zcl_abapgit_gui_page_flow IMPLEMENTATION.
 * no changes, eg. only files outside of starting folder changed
         CONTINUE.
       ENDIF.
+      lv_rendered = abap_true.
 
       ri_html->add( '<b><font size="+2">' && ls_feature-repo-name ).
       IF ls_feature-branch-display_name IS NOT INITIAL.
@@ -47484,8 +47486,10 @@ CLASS zcl_abapgit_gui_page_flow IMPLEMENTATION.
       ri_html->add( '<br>' ).
     ENDLOOP.
 
-    IF lines( mt_features ) = 0.
+    IF lines( mt_features ) = 0 OR lv_rendered = abap_false.
       ri_html->add( 'Empty, repositories must be favorite + flow enabled<br><br>' ).
+
+      ri_html->add( 'Or nothing in progress<br><br>' ).
 
       ri_html->add_a(
         iv_txt   = 'abapGit flow documentation'
@@ -131046,8 +131050,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-12-11T16:38:26.343Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-11T16:38:26.343Z`.
+* abapmerge 0.16.0 - 2023-12-12T04:19:19.051Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-12T04:19:19.051Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
