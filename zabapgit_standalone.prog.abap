@@ -127179,7 +127179,7 @@ CLASS zcl_abapgit_auth IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_data_utils IMPLEMENTATION.
+CLASS ZCL_ABAPGIT_DATA_UTILS IMPLEMENTATION.
   METHOD build_config_filename.
 
     rv_filename = to_lower( |{ is_config-name }.{ zif_abapgit_data_config=>c_config }|
@@ -127286,7 +127286,10 @@ CLASS zcl_abapgit_data_utils IMPLEMENTATION.
             ro_delivery_class = lo_delivery_class.
         ASSIGN lo_delivery_class->('VALUE') TO <ls_any>.
         lv_contflag = <ls_any>.
-      CATCH cx_sy_dyn_call_illegal_class.
+      CATCH cx_sy_dyn_call_illegal_class cx_no_check.
+        " Catching SAP standard exception CX_NO_CHECK,
+        " because of the expected exception CX_XCO_RUNTIME_EXCEPTION
+        " could not be used here directly to keep the indirect usage approach.
         SELECT SINGLE contflag FROM ('DD02L') INTO lv_contflag WHERE tabname = iv_name.
     ENDTRY.
 
@@ -131056,8 +131059,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-12-12T13:49:44.520Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-12T13:49:44.520Z`.
+* abapmerge 0.16.0 - 2023-12-13T11:30:51.987Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-13T11:30:51.987Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
