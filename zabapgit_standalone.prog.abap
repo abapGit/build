@@ -36,6 +36,7 @@ INTERFACE zif_abapgit_popups DEFERRED.
 INTERFACE zif_abapgit_frontend_services DEFERRED.
 INTERFACE zif_abapgit_services_repo DEFERRED.
 INTERFACE zif_abapgit_services_git DEFERRED.
+INTERFACE zif_abapgit_progress DEFERRED.
 INTERFACE zif_abapgit_html_table DEFERRED.
 INTERFACE zif_abapgit_html_popup DEFERRED.
 INTERFACE zif_abapgit_html_form DEFERRED.
@@ -63,7 +64,6 @@ INTERFACE zif_abapgit_repo_checksums DEFERRED.
 INTERFACE zif_abapgit_repo DEFERRED.
 INTERFACE zif_abapgit_object_filter DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
-INTERFACE zif_abapgit_progress DEFERRED.
 INTERFACE zif_abapgit_persistence DEFERRED.
 INTERFACE zif_abapgit_persist_user DEFERRED.
 INTERFACE zif_abapgit_persist_settings DEFERRED.
@@ -79,6 +79,7 @@ INTERFACE zif_abapgit_i18n_file DEFERRED.
 INTERFACE zif_abapgit_sap_report DEFERRED.
 INTERFACE zif_abapgit_sap_package DEFERRED.
 INTERFACE zif_abapgit_sap_namespace DEFERRED.
+INTERFACE zif_abapgit_function_module DEFERRED.
 INTERFACE zif_abapgit_field_rules DEFERRED.
 INTERFACE zif_abapgit_oo_object_fnc DEFERRED.
 INTERFACE zif_abapgit_gui_jumper DEFERRED.
@@ -88,7 +89,6 @@ INTERFACE zif_abapgit_ecatt_upload DEFERRED.
 INTERFACE zif_abapgit_ecatt_download DEFERRED.
 INTERFACE zif_abapgit_ecatt DEFERRED.
 INTERFACE zif_abapgit_tadir DEFERRED.
-INTERFACE zif_abapgit_function_module DEFERRED.
 INTERFACE zif_abapgit_aff_types_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_oo_types_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_intf_v1 DEFERRED.
@@ -115,7 +115,6 @@ INTERFACE zif_abapgit_cts_api DEFERRED.
 INTERFACE zif_abapgit_background DEFERRED.
 INTERFACE zif_abapgit_apack_definitions DEFERRED.
 CLASS zcl_abapgit_settings DEFINITION DEFERRED.
-CLASS zcl_abapgit_migrations DEFINITION DEFERRED.
 CLASS zcl_abapgit_injector DEFINITION DEFERRED.
 CLASS zcl_abapgit_feature DEFINITION DEFERRED.
 CLASS zcl_abapgit_factory DEFINITION DEFERRED.
@@ -150,6 +149,7 @@ CLASS zcl_abapgit_services_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_git DEFINITION DEFERRED.
 CLASS zcl_abapgit_services_abapgit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_router DEFINITION DEFERRED.
+CLASS zcl_abapgit_progress DEFINITION DEFERRED.
 CLASS zcl_abapgit_popup_tag_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_popup_pull_request DEFINITION DEFERRED.
 CLASS zcl_abapgit_popup_code_insp DEFINITION DEFERRED.
@@ -235,7 +235,6 @@ CLASS zcl_abapgit_repo_checksums DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_object_filter_tran DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
-CLASS zcl_abapgit_progress DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_user DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_db DEFINITION DEFERRED.
@@ -244,6 +243,7 @@ CLASS zcl_abapgit_persist_packages DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_migrate DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_persist_background DEFINITION DEFERRED.
+CLASS zcl_abapgit_migrations DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_super DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_program DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_injector DEFINITION DEFERRED.
@@ -401,6 +401,7 @@ CLASS zcl_abapgit_i18n_params DEFINITION DEFERRED.
 CLASS zcl_abapgit_sap_report DEFINITION DEFERRED.
 CLASS zcl_abapgit_sap_package DEFINITION DEFERRED.
 CLASS zcl_abapgit_sap_namespace DEFINITION DEFERRED.
+CLASS zcl_abapgit_function_module DEFINITION DEFERRED.
 CLASS zcl_abapgit_field_rules DEFINITION DEFERRED.
 CLASS zcl_abapgit_oo_serializer DEFINITION DEFERRED.
 CLASS zcl_abapgit_oo_interface DEFINITION DEFERRED.
@@ -438,7 +439,6 @@ CLASS zcl_abapgit_objects_files DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_check DEFINITION DEFERRED.
 CLASS zcl_abapgit_objects_activation DEFINITION DEFERRED.
 CLASS zcl_abapgit_item_graph DEFINITION DEFERRED.
-CLASS zcl_abapgit_function_module DEFINITION DEFERRED.
 CLASS zcl_abapgit_folder_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_filename_logic DEFINITION DEFERRED.
 CLASS zcl_abapgit_file_deserialize DEFINITION DEFERRED.
@@ -2139,17 +2139,6 @@ INTERFACE zif_abapgit_aff_intf_v1.
 
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_function_module.
-
-  METHODS:
-    function_exists
-      IMPORTING
-        iv_function_module_name TYPE clike
-      RETURNING
-        VALUE(rv_exists)        TYPE abap_bool.
-
-ENDINTERFACE.
-
 INTERFACE zif_abapgit_ecatt .
 
   " downport missing types
@@ -2263,6 +2252,17 @@ INTERFACE zif_abapgit_field_rules .
       ct_data    TYPE STANDARD TABLE.
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_function_module.
+
+  METHODS:
+    function_exists
+      IMPORTING
+        iv_function_module_name TYPE clike
+      RETURNING
+        VALUE(rv_exists)        TYPE abap_bool.
+
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_lxe_texts .
 
 * type LXE_PCX_S1 inlined to be compatible with open-abap and ABAP Cloud
@@ -2349,17 +2349,6 @@ INTERFACE zif_abapgit_persist_settings.
     RETURNING
       VALUE(ro_settings) TYPE REF TO zcl_abapgit_settings .
 
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_progress .
-  METHODS show
-    IMPORTING
-      !iv_current TYPE i
-      !iv_text    TYPE csequence .
-  METHODS set_total
-    IMPORTING
-      !iv_total TYPE i .
-  METHODS off .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_asset_manager .
@@ -2904,6 +2893,17 @@ INTERFACE zif_abapgit_html_table .
     RAISING
       zcx_abapgit_exception.
 
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_progress .
+  METHODS show
+    IMPORTING
+      !iv_current TYPE i
+      !iv_text    TYPE csequence .
+  METHODS set_total
+    IMPORTING
+      !iv_total TYPE i .
+  METHODS off .
 ENDINTERFACE.
 
 INTERFACE zif_abapgit_services_repo .
@@ -8898,17 +8898,6 @@ CLASS zcl_abapgit_folder_logic DEFINITION
     DATA mt_top_subpackages TYPE ty_devclass_info_tt .
     DATA mt_parent TYPE ty_devclass_info_tt .
 ENDCLASS.
-CLASS zcl_abapgit_function_module DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-    INTERFACES:
-      zif_abapgit_function_module.
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-ENDCLASS.
 CLASS zcl_abapgit_item_graph DEFINITION
   CREATE PUBLIC .
 
@@ -10418,6 +10407,17 @@ CLASS zcl_abapgit_field_rules DEFINITION
         iv_package TYPE devclass
       CHANGING
         cv_value   TYPE any.
+ENDCLASS.
+CLASS zcl_abapgit_function_module DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    INTERFACES:
+      zif_abapgit_function_module.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_sap_namespace DEFINITION
   FINAL
@@ -16846,6 +16846,20 @@ CLASS zcl_abapgit_object_prog DEFINITION INHERITING FROM zcl_abapgit_objects_pro
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
+CLASS zcl_abapgit_migrations DEFINITION FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    CLASS-METHODS run
+      RAISING
+        zcx_abapgit_exception
+        zcx_abapgit_not_found.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CLASS-METHODS migrate_offline_repos.
+ENDCLASS.
 CLASS zcl_abapgit_persist_background DEFINITION
   CREATE PUBLIC .
 
@@ -17256,37 +17270,6 @@ CLASS zcl_abapgit_persistence_user DEFINITION
         !is_repo_config TYPE ty_repo_config
       RAISING
         zcx_abapgit_exception .
-ENDCLASS.
-CLASS zcl_abapgit_progress DEFINITION
-  FINAL
-  CREATE PROTECTED .
-
-  PUBLIC SECTION.
-
-    INTERFACES zif_abapgit_progress .
-
-    CLASS-METHODS set_instance
-      IMPORTING
-        !ii_progress TYPE REF TO zif_abapgit_progress .
-    CLASS-METHODS get_instance
-      IMPORTING
-        !iv_total          TYPE i
-      RETURNING
-        VALUE(ri_progress) TYPE REF TO zif_abapgit_progress .
-  PROTECTED SECTION.
-
-    DATA mv_total TYPE i .
-    CLASS-DATA gi_progress TYPE REF TO zif_abapgit_progress .
-
-    METHODS calc_pct
-      IMPORTING
-        !iv_current   TYPE i
-      RETURNING
-        VALUE(rv_pct) TYPE i .
-  PRIVATE SECTION.
-
-    DATA mv_cv_time_next TYPE sy-uzeit .
-    DATA mv_cv_datum_next TYPE sy-datum .
 ENDCLASS.
 CLASS zcl_abapgit_dot_abapgit DEFINITION
   CREATE PUBLIC .
@@ -23530,6 +23513,37 @@ CLASS zcl_abapgit_popup_tag_list DEFINITION
       RAISING
         zcx_abapgit_exception.
 ENDCLASS.
+CLASS zcl_abapgit_progress DEFINITION
+  FINAL
+  CREATE PROTECTED .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_progress .
+
+    CLASS-METHODS set_instance
+      IMPORTING
+        !ii_progress TYPE REF TO zif_abapgit_progress .
+    CLASS-METHODS get_instance
+      IMPORTING
+        !iv_total          TYPE i
+      RETURNING
+        VALUE(ri_progress) TYPE REF TO zif_abapgit_progress .
+  PROTECTED SECTION.
+
+    DATA mv_total TYPE i .
+    CLASS-DATA gi_progress TYPE REF TO zif_abapgit_progress .
+
+    METHODS calc_pct
+      IMPORTING
+        !iv_current   TYPE i
+      RETURNING
+        VALUE(rv_pct) TYPE i .
+  PRIVATE SECTION.
+
+    DATA mv_cv_time_next TYPE sy-uzeit .
+    DATA mv_cv_datum_next TYPE sy-datum .
+ENDCLASS.
 CLASS zcl_abapgit_gui_router DEFINITION
   FINAL
   CREATE PUBLIC.
@@ -25258,20 +25272,6 @@ CLASS zcl_abapgit_injector DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
-CLASS zcl_abapgit_migrations DEFINITION FINAL
-  CREATE PUBLIC.
-
-  PUBLIC SECTION.
-    CLASS-METHODS run
-      RAISING
-        zcx_abapgit_exception
-        zcx_abapgit_not_found.
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    CLASS-METHODS migrate_offline_repos.
-ENDCLASS.
 CLASS zcl_abapgit_settings DEFINITION
   CREATE PUBLIC .
 
@@ -25663,47 +25663,6 @@ CLASS zcl_abapgit_settings IMPLEMENTATION.
         iv_name = zcl_abapgit_persistence_db=>c_type_settings
       CHANGING
         cg_data = ms_settings ).
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_migrations IMPLEMENTATION.
-  METHOD migrate_offline_repos.
-
-    DATA:
-      lt_repos TYPE zif_abapgit_repo_srv=>ty_repo_list,
-      li_repo  LIKE LINE OF lt_repos,
-      lo_dot   TYPE REF TO zcl_abapgit_dot_abapgit.
-
-    TRY.
-        " Get offline repos only
-        lt_repos = zcl_abapgit_repo_srv=>get_instance( )->list( abap_true ).
-
-        LOOP AT lt_repos INTO li_repo.
-          lo_dot = li_repo->get_dot_abapgit( ).
-          " Move repo name from URL fields to .abapGit.xml
-          IF li_repo->ms_data-url IS NOT INITIAL AND lo_dot->get_name( ) IS INITIAL.
-            lo_dot->set_name( li_repo->ms_data-url ).
-            li_repo->set_dot_abapgit( lo_dot ).
-          ENDIF.
-        ENDLOOP.
-      CATCH zcx_abapgit_exception ##NO_HANDLER.
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD run.
-
-    " Migrate STDTEXT to TABLE
-    zcl_abapgit_persist_migrate=>run( ).
-
-    " Create ZIF_APACK_MANIFEST interface
-    zcl_abapgit_apack_migration=>run( ).
-
-    " Migrate checksums from repo metadata to separate DB object
-    zcl_abapgit_repo_cs_migration=>run( ).
-
-    " Migrate offline repo metadata
-    migrate_offline_repos( ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -38382,6 +38341,91 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         rs_handled-page  = zcl_abapgit_gui_page_ex_object=>create( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
     ENDCASE.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_progress IMPLEMENTATION.
+  METHOD calc_pct.
+
+    DATA: lv_f TYPE f.
+
+    lv_f = ( iv_current / mv_total ) * 100.
+    rv_pct = lv_f.
+
+    IF rv_pct = 100.
+      rv_pct = 99.
+    ELSEIF rv_pct = 0.
+      rv_pct = 1.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_instance.
+
+* max one progress indicator at a time is supported
+
+    IF gi_progress IS INITIAL.
+      CREATE OBJECT gi_progress TYPE zcl_abapgit_progress.
+    ENDIF.
+
+    gi_progress->set_total( iv_total ).
+
+    ri_progress = gi_progress.
+
+  ENDMETHOD.
+  METHOD set_instance.
+
+    gi_progress = ii_progress.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_progress~off.
+
+    " Clear the status bar
+    CALL FUNCTION 'SAPGUI_PROGRESS_INDICATOR'.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_progress~set_total.
+
+    mv_total = iv_total.
+
+    CLEAR mv_cv_time_next.
+    CLEAR mv_cv_datum_next.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_progress~show.
+
+    DATA: lv_pct  TYPE i,
+          lv_time TYPE t.
+
+    CONSTANTS: lc_wait_secs TYPE i VALUE 2.
+
+    GET TIME.
+    lv_time = sy-uzeit.
+    IF mv_cv_time_next IS INITIAL AND mv_cv_datum_next IS INITIAL.
+      mv_cv_time_next  = lv_time.
+      mv_cv_datum_next = sy-datum.
+    ENDIF.
+
+    "We only do a progress indication if enough time has passed
+    IF lv_time >= mv_cv_time_next
+        AND sy-datum = mv_cv_datum_next
+        OR sy-datum > mv_cv_datum_next.
+
+      lv_pct = calc_pct( iv_current ).
+
+      CALL FUNCTION 'SAPGUI_PROGRESS_INDICATOR'
+        EXPORTING
+          percentage = lv_pct
+          text       = iv_text.
+      mv_cv_time_next = lv_time + lc_wait_secs.
+
+    ENDIF.
+    IF sy-datum > mv_cv_datum_next.
+      mv_cv_datum_next = sy-datum.
+    ENDIF.
+    IF mv_cv_time_next < lv_time.
+      mv_cv_datum_next = sy-datum + 1.
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -62613,91 +62657,6 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_progress IMPLEMENTATION.
-  METHOD calc_pct.
-
-    DATA: lv_f TYPE f.
-
-    lv_f = ( iv_current / mv_total ) * 100.
-    rv_pct = lv_f.
-
-    IF rv_pct = 100.
-      rv_pct = 99.
-    ELSEIF rv_pct = 0.
-      rv_pct = 1.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_instance.
-
-* max one progress indicator at a time is supported
-
-    IF gi_progress IS INITIAL.
-      CREATE OBJECT gi_progress TYPE zcl_abapgit_progress.
-    ENDIF.
-
-    gi_progress->set_total( iv_total ).
-
-    ri_progress = gi_progress.
-
-  ENDMETHOD.
-  METHOD set_instance.
-
-    gi_progress = ii_progress.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_progress~off.
-
-    " Clear the status bar
-    CALL FUNCTION 'SAPGUI_PROGRESS_INDICATOR'.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_progress~set_total.
-
-    mv_total = iv_total.
-
-    CLEAR mv_cv_time_next.
-    CLEAR mv_cv_datum_next.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_progress~show.
-
-    DATA: lv_pct  TYPE i,
-          lv_time TYPE t.
-
-    CONSTANTS: lc_wait_secs TYPE i VALUE 2.
-
-    GET TIME.
-    lv_time = sy-uzeit.
-    IF mv_cv_time_next IS INITIAL AND mv_cv_datum_next IS INITIAL.
-      mv_cv_time_next  = lv_time.
-      mv_cv_datum_next = sy-datum.
-    ENDIF.
-
-    "We only do a progress indication if enough time has passed
-    IF lv_time >= mv_cv_time_next
-        AND sy-datum = mv_cv_datum_next
-        OR sy-datum > mv_cv_datum_next.
-
-      lv_pct = calc_pct( iv_current ).
-
-      CALL FUNCTION 'SAPGUI_PROGRESS_INDICATOR'
-        EXPORTING
-          percentage = lv_pct
-          text       = iv_text.
-      mv_cv_time_next = lv_time + lc_wait_secs.
-
-    ENDIF.
-    IF sy-datum > mv_cv_datum_next.
-      mv_cv_datum_next = sy-datum.
-    ENDIF.
-    IF mv_cv_time_next < lv_time.
-      mv_cv_datum_next = sy-datum + 1.
-    ENDIF.
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
   METHOD constructor.
     mv_user = iv_user.
@@ -64366,6 +64325,47 @@ CLASS ZCL_ABAPGIT_PERSIST_BACKGROUND IMPLEMENTATION.
     CALL TRANSFORMATION id
       SOURCE data = ls_xml
       RESULT XML rv_string.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_migrations IMPLEMENTATION.
+  METHOD migrate_offline_repos.
+
+    DATA:
+      lt_repos TYPE zif_abapgit_repo_srv=>ty_repo_list,
+      li_repo  LIKE LINE OF lt_repos,
+      lo_dot   TYPE REF TO zcl_abapgit_dot_abapgit.
+
+    TRY.
+        " Get offline repos only
+        lt_repos = zcl_abapgit_repo_srv=>get_instance( )->list( abap_true ).
+
+        LOOP AT lt_repos INTO li_repo.
+          lo_dot = li_repo->get_dot_abapgit( ).
+          " Move repo name from URL fields to .abapGit.xml
+          IF li_repo->ms_data-url IS NOT INITIAL AND lo_dot->get_name( ) IS INITIAL.
+            lo_dot->set_name( li_repo->ms_data-url ).
+            li_repo->set_dot_abapgit( lo_dot ).
+          ENDIF.
+        ENDLOOP.
+      CATCH zcx_abapgit_exception ##NO_HANDLER.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD run.
+
+    " Migrate STDTEXT to TABLE
+    zcl_abapgit_persist_migrate=>run( ).
+
+    " Create ZIF_APACK_MANIFEST interface
+    zcl_abapgit_apack_migration=>run( ).
+
+    " Migrate checksums from repo metadata to separate DB object
+    zcl_abapgit_repo_cs_migration=>run( ).
+
+    " Migrate offline repo metadata
+    migrate_offline_repos( ).
+
   ENDMETHOD.
 ENDCLASS.
 
@@ -109557,6 +109557,24 @@ CLASS ZCL_ABAPGIT_SAP_NAMESPACE IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_function_module IMPLEMENTATION.
+  METHOD zif_abapgit_function_module~function_exists.
+
+    DATA: lv_function_module_name TYPE c LENGTH 30.
+
+    lv_function_module_name = iv_function_module_name.
+
+    CALL FUNCTION 'FUNCTION_EXISTS'
+      EXPORTING
+        funcname           = lv_function_module_name
+      EXCEPTIONS
+        function_not_exist = 1
+        OTHERS             = 2.
+    rv_exists = boolc( sy-subrc = 0 ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_field_rules IMPLEMENTATION.
   METHOD create.
     CREATE OBJECT ro_result TYPE zcl_abapgit_field_rules.
@@ -116491,24 +116509,6 @@ CLASS ZCL_ABAPGIT_ITEM_GRAPH IMPLEMENTATION.
     DELETE mt_edges WHERE
       from-obj_type = ls_vertex-obj_type AND
       from-obj_name = ls_vertex-obj_name.
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_function_module IMPLEMENTATION.
-  METHOD zif_abapgit_function_module~function_exists.
-
-    DATA: lv_function_module_name TYPE c LENGTH 30.
-
-    lv_function_module_name = iv_function_module_name.
-
-    CALL FUNCTION 'FUNCTION_EXISTS'
-      EXPORTING
-        funcname           = lv_function_module_name
-      EXCEPTIONS
-        function_not_exist = 1
-        OTHERS             = 2.
-    rv_exists = boolc( sy-subrc = 0 ).
-
   ENDMETHOD.
 ENDCLASS.
 
@@ -131059,8 +131059,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-12-13T11:30:51.987Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-13T11:30:51.987Z`.
+* abapmerge 0.16.0 - 2023-12-14T00:40:59.254Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-14T00:40:59.254Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
