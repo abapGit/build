@@ -27,7 +27,6 @@ REPORT zabapgit_standalone LINE-SIZE 100.
 ********************************************************************************
 
 INTERFACE zif_abapgit_version DEFERRED.
-INTERFACE zif_abapgit_environment DEFERRED.
 INTERFACE zif_abapgit_definitions DEFERRED.
 INTERFACE zif_abapgit_xml_output DEFERRED.
 INTERFACE zif_abapgit_xml_input DEFERRED.
@@ -107,6 +106,7 @@ INTERFACE zif_abapgit_git_definitions DEFERRED.
 INTERFACE zif_abapgit_gitv2_porcelain DEFERRED.
 INTERFACE zif_abapgit_exit DEFERRED.
 INTERFACE zif_abapgit_auth DEFERRED.
+INTERFACE zif_abapgit_environment DEFERRED.
 INTERFACE zif_abapgit_data_supporter DEFERRED.
 INTERFACE zif_abapgit_data_serializer DEFERRED.
 INTERFACE zif_abapgit_data_deserializer DEFERRED.
@@ -115,9 +115,7 @@ INTERFACE zif_abapgit_default_transport DEFERRED.
 INTERFACE zif_abapgit_cts_api DEFERRED.
 INTERFACE zif_abapgit_background DEFERRED.
 INTERFACE zif_abapgit_apack_definitions DEFERRED.
-CLASS zcl_abapgit_settings DEFINITION DEFERRED.
 CLASS zcl_abapgit_injector DEFINITION DEFERRED.
-CLASS zcl_abapgit_feature DEFINITION DEFERRED.
 CLASS zcl_abapgit_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml_pretty DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml_output DEFINITION DEFERRED.
@@ -126,7 +124,6 @@ CLASS zcl_abapgit_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_zip DEFINITION DEFERRED.
 CLASS zcl_abapgit_version DEFINITION DEFERRED.
 CLASS zcl_abapgit_utils DEFINITION DEFERRED.
-CLASS zcl_abapgit_user_record DEFINITION DEFERRED.
 CLASS zcl_abapgit_timer DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_map DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_buffer DEFINITION DEFERRED.
@@ -135,12 +132,9 @@ CLASS zcl_abapgit_repo_labels DEFINITION DEFERRED.
 CLASS zcl_abapgit_path DEFINITION DEFERRED.
 CLASS zcl_abapgit_news DEFINITION DEFERRED.
 CLASS zcl_abapgit_log DEFINITION DEFERRED.
-CLASS zcl_abapgit_language DEFINITION DEFERRED.
 CLASS zcl_abapgit_item_state DEFINITION DEFERRED.
-CLASS zcl_abapgit_environment DEFINITION DEFERRED.
 CLASS zcl_abapgit_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_convert DEFINITION DEFERRED.
-CLASS zcl_abapgit_abap_language_vers DEFINITION DEFERRED.
 CLASS zcl_abapgit_ui_injector DEFINITION DEFERRED.
 CLASS zcl_abapgit_ui_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_popups DEFINITION DEFERRED.
@@ -490,6 +484,12 @@ CLASS zcl_abapgit_git_add_patch DEFINITION DEFERRED.
 CLASS zcl_abapgit_gitv2_porcelain DEFINITION DEFERRED.
 CLASS zcl_abapgit_exit DEFINITION DEFERRED.
 CLASS zcl_abapgit_auth DEFINITION DEFERRED.
+CLASS zcl_abapgit_user_record DEFINITION DEFERRED.
+CLASS zcl_abapgit_settings DEFINITION DEFERRED.
+CLASS zcl_abapgit_language DEFINITION DEFERRED.
+CLASS zcl_abapgit_feature DEFINITION DEFERRED.
+CLASS zcl_abapgit_environment DEFINITION DEFERRED.
+CLASS zcl_abapgit_abap_language_vers DEFINITION DEFERRED.
 CLASS zcl_abapgit_data_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_data_supporter DEFINITION DEFERRED.
 CLASS zcl_abapgit_data_serializer DEFINITION DEFERRED.
@@ -1179,6 +1179,49 @@ INTERFACE zif_abapgit_default_transport.
       VALUE(rs_default_task) TYPE ty_get
     RAISING
       zcx_abapgit_exception .
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_environment.
+  TYPES:
+    BEGIN OF ty_release_sp,
+      release TYPE c LENGTH 10,
+      sp      TYPE c LENGTH 10,
+    END OF ty_release_sp,
+    ty_system_language_filter TYPE RANGE OF spras.
+
+  METHODS is_sap_cloud_platform
+    RETURNING
+      VALUE(rv_result) TYPE abap_bool.
+  METHODS is_merged
+    RETURNING
+      VALUE(rv_result) TYPE abap_bool.
+  METHODS is_repo_object_changes_allowed
+    RETURNING
+      VALUE(rv_result) TYPE abap_bool.
+  METHODS compare_with_inactive
+    RETURNING
+      VALUE(rv_result) TYPE abap_bool.
+  METHODS is_restart_required
+    RETURNING
+      VALUE(rv_result) TYPE abap_bool.
+  METHODS is_sap_object_allowed
+    RETURNING
+      VALUE(rv_allowed) TYPE abap_bool.
+  METHODS get_basis_release
+    RETURNING
+      VALUE(rs_result) TYPE ty_release_sp.
+  METHODS get_system_language_filter
+    RETURNING
+      VALUE(rt_system_language_filter) TYPE ty_system_language_filter.
+  METHODS is_variant_maintenance
+    RETURNING
+      VALUE(rv_is_variant_maintenance) TYPE abap_bool.
+  METHODS init_parallel_processing
+    IMPORTING
+      iv_group                      TYPE clike
+    RETURNING
+      VALUE(rv_free_work_processes) TYPE i.
 
 ENDINTERFACE.
 
@@ -5753,49 +5796,6 @@ INTERFACE zif_abapgit_xml_output .
 
 ENDINTERFACE.
 
-INTERFACE zif_abapgit_environment.
-  TYPES:
-    BEGIN OF ty_release_sp,
-      release TYPE c LENGTH 10,
-      sp      TYPE c LENGTH 10,
-    END OF ty_release_sp,
-    ty_system_language_filter TYPE RANGE OF spras.
-
-  METHODS is_sap_cloud_platform
-    RETURNING
-      VALUE(rv_result) TYPE abap_bool.
-  METHODS is_merged
-    RETURNING
-      VALUE(rv_result) TYPE abap_bool.
-  METHODS is_repo_object_changes_allowed
-    RETURNING
-      VALUE(rv_result) TYPE abap_bool.
-  METHODS compare_with_inactive
-    RETURNING
-      VALUE(rv_result) TYPE abap_bool.
-  METHODS is_restart_required
-    RETURNING
-      VALUE(rv_result) TYPE abap_bool.
-  METHODS is_sap_object_allowed
-    RETURNING
-      VALUE(rv_allowed) TYPE abap_bool.
-  METHODS get_basis_release
-    RETURNING
-      VALUE(rs_result) TYPE ty_release_sp.
-  METHODS get_system_language_filter
-    RETURNING
-      VALUE(rt_system_language_filter) TYPE ty_system_language_filter.
-  METHODS is_variant_maintenance
-    RETURNING
-      VALUE(rv_is_variant_maintenance) TYPE abap_bool.
-  METHODS init_parallel_processing
-    IMPORTING
-      iv_group                      TYPE clike
-    RETURNING
-      VALUE(rv_free_work_processes) TYPE i.
-
-ENDINTERFACE.
-
 INTERFACE zif_abapgit_version .
 
   CONSTANTS c_xml_version TYPE string VALUE 'v1.0.0' ##NO_TEXT.
@@ -6567,6 +6567,366 @@ CLASS zcl_abapgit_data_utils DEFINITION
         zcx_abapgit_exception.
   PROTECTED SECTION.
   PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_abap_language_vers DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    CONSTANTS:
+      c_any_abap_language_version TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version VALUE '*',
+      c_no_abap_language_version  TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version VALUE '-',
+      c_feature_flag              TYPE string VALUE 'ALAV'.
+
+    METHODS constructor
+      IMPORTING
+        !io_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit.
+
+    METHODS get_abap_language_vers_by_objt
+      IMPORTING
+        !iv_object_type                      TYPE trobjtype
+        !iv_package                          TYPE devclass
+      RETURNING
+        VALUE(rv_allowed_abap_langu_version) TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version.
+
+    METHODS get_repo_abap_language_version
+      RETURNING
+        VALUE(rv_abap_language_version) TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version.
+
+    METHODS is_import_allowed
+      IMPORTING
+        !iv_package       TYPE devclass
+      RETURNING
+        VALUE(rv_allowed) TYPE abap_bool.
+
+    CLASS-METHODS check_abap_language_version
+      IMPORTING
+        !iv_abap_language_version TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version
+        !is_item                  TYPE zif_abapgit_definitions=>ty_item
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA mo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit.
+
+    " Depends on experimental feature flag and repo setting
+    DATA mv_has_abap_language_vers TYPE abap_bool.
+
+    METHODS get_default_abap_language_vers
+      IMPORTING
+        !iv_object_type                 TYPE trobjtype
+      RETURNING
+        VALUE(rv_abap_language_version) TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version.
+
+    METHODS get_abap_language_vers_by_devc
+      IMPORTING
+        !iv_package                     TYPE devclass
+      RETURNING
+        VALUE(rv_abap_language_version) TYPE string.
+
+    METHODS get_abap_language_vers_by_repo
+      RETURNING
+        VALUE(rv_abap_language_version) TYPE string.
+
+    CLASS-METHODS get_description
+      IMPORTING
+        !iv_abap_language_version TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version
+      RETURNING
+        VALUE(rv_description)     TYPE string.
+
+ENDCLASS.
+CLASS zcl_abapgit_environment DEFINITION
+  FINAL
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_factory .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_environment .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA mv_cloud TYPE abap_bool VALUE abap_undefined ##NO_TEXT.
+    DATA mv_is_merged TYPE abap_bool VALUE abap_undefined ##NO_TEXT.
+    DATA mv_modifiable TYPE abap_bool VALUE abap_undefined ##NO_TEXT.
+
+    METHODS is_system_changes_allowed
+      RETURNING
+        VALUE(rv_result) TYPE abap_bool .
+ENDCLASS.
+CLASS zcl_abapgit_feature DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    " For dependency injection/testing, use the following
+    " zcl_abapgit_persist_factory=>get_settings( )->read( )->set_experimental_features( )
+
+    CLASS-METHODS is_enabled
+      IMPORTING
+        !iv_feature   TYPE string OPTIONAL
+      RETURNING
+        VALUE(rv_run) TYPE abap_bool.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+*----------------------------------------------------------------------*
+* This helper class is used to set and restore the current language.
+* As some of the SAP functions used rely on SY-LANGU containing the
+* main language, this class is used to temporarily change and then
+* restore the value of SY-LANGU.
+*----------------------------------------------------------------------*
+CLASS zcl_abapgit_language DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS class_constructor .
+    CLASS-METHODS restore_login_language .
+    CLASS-METHODS set_current_language
+      IMPORTING
+        !iv_language TYPE sy-langu .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CLASS-DATA gv_login_language TYPE sy-langu .
+ENDCLASS.
+CLASS zcl_abapgit_settings DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CONSTANTS c_commitmsg_comment_length_dft TYPE i VALUE 50 ##NO_TEXT.
+    CONSTANTS c_commitmsg_body_size_dft TYPE i VALUE 72 ##NO_TEXT.
+    CONSTANTS:
+      BEGIN OF c_icon_scaling,
+        large TYPE c VALUE 'L',
+        small TYPE c VALUE 'S',
+      END OF c_icon_scaling .
+    CONSTANTS:
+      BEGIN OF c_ui_theme,
+        default         TYPE string VALUE 'default',
+        dark            TYPE string VALUE 'dark',
+        belize          TYPE string VALUE 'belize',
+        synced_with_gui TYPE string VALUE 'synced_with_gui',
+      END OF c_ui_theme .
+
+    METHODS set_proxy_url
+      IMPORTING
+        !iv_url TYPE string .
+    METHODS set_proxy_port
+      IMPORTING
+        !iv_port TYPE string .
+    METHODS set_proxy_authentication
+      IMPORTING
+        !iv_auth TYPE abap_bool .
+    METHODS set_proxy_bypass
+      IMPORTING
+        !it_bypass TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url OPTIONAL .
+    METHODS get_proxy_url
+      RETURNING
+        VALUE(rv_proxy_url) TYPE string .
+    METHODS get_proxy_port
+      RETURNING
+        VALUE(rv_port) TYPE string .
+    METHODS get_proxy_authentication
+      RETURNING
+        VALUE(rv_auth) TYPE abap_bool .
+    METHODS get_proxy_bypass
+      RETURNING
+        VALUE(rt_bypass) TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url .
+    METHODS set_run_critical_tests
+      IMPORTING
+        !iv_run TYPE abap_bool .
+    METHODS get_run_critical_tests
+      RETURNING
+        VALUE(rv_run) TYPE abap_bool .
+    METHODS set_experimental_features
+      IMPORTING
+        !iv_features TYPE string.
+    METHODS get_experimental_features
+      RETURNING
+        VALUE(rv_features) TYPE string.
+    METHODS set_max_lines
+      IMPORTING
+        !iv_lines TYPE i .
+    METHODS get_max_lines
+      RETURNING
+        VALUE(rv_lines) TYPE i .
+    METHODS set_adt_jump_enanbled
+      IMPORTING
+        !iv_adt_jump_enabled TYPE abap_bool .
+    METHODS get_adt_jump_enabled
+      RETURNING
+        VALUE(rv_adt_jump_enabled) TYPE abap_bool .
+    METHODS set_commitmsg_comment_length
+      IMPORTING
+        !iv_length TYPE i .
+    METHODS get_commitmsg_comment_length
+      RETURNING
+        VALUE(rv_length) TYPE i .
+    METHODS set_commitmsg_comment_default
+      IMPORTING
+        !iv_default TYPE string .
+    METHODS get_commitmsg_comment_default
+      RETURNING
+        VALUE(rv_default) TYPE string .
+    METHODS set_commitmsg_body_size
+      IMPORTING
+        !iv_length TYPE i .
+    METHODS get_commitmsg_body_size
+      RETURNING
+        VALUE(rv_length) TYPE i .
+    METHODS set_commitmsg_hide_author
+      IMPORTING
+        !iv_hide_author TYPE abap_bool.
+    METHODS get_commitmsg_hide_author
+      RETURNING
+        VALUE(rv_hide_author) TYPE abap_bool.
+    METHODS get_settings_xml
+      RETURNING
+        VALUE(rv_settings_xml) TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_user_settings
+      RETURNING
+        VALUE(rs_settings) TYPE zif_abapgit_definitions=>ty_s_user_settings
+      RAISING
+        zcx_abapgit_exception .
+    METHODS set_xml_settings
+      IMPORTING
+        !iv_settings_xml TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS set_defaults .
+    METHODS set_user_settings
+      IMPORTING
+        !is_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings .
+    METHODS get_show_default_repo
+      RETURNING
+        VALUE(rv_show_default_repo) TYPE abap_bool .
+    METHODS set_show_default_repo
+      IMPORTING
+        !iv_show_default_repo TYPE abap_bool .
+    METHODS set_link_hints_enabled
+      IMPORTING
+        !iv_link_hints_enabled TYPE abap_bool .
+    METHODS get_link_hints_enabled
+      RETURNING
+        VALUE(rv_link_hints_enabled) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
+    METHODS set_link_hint_key
+      IMPORTING
+        !iv_link_hint_key TYPE string .
+    METHODS get_link_hint_key
+      RETURNING
+        VALUE(rv_link_hint_key) TYPE string .
+    METHODS set_parallel_proc_disabled
+      IMPORTING
+        !iv_disable_parallel_proc TYPE abap_bool .
+    METHODS get_parallel_proc_disabled
+      RETURNING
+        VALUE(rv_disable_parallel_proc) TYPE abap_bool .
+    METHODS get_icon_scaling
+      RETURNING
+        VALUE(rv_scaling) TYPE zif_abapgit_definitions=>ty_s_user_settings-icon_scaling .
+    METHODS set_icon_scaling
+      IMPORTING
+        !iv_scaling TYPE zif_abapgit_definitions=>ty_s_user_settings-icon_scaling .
+    METHODS get_ui_theme
+      IMPORTING
+        !iv_resolve_synced TYPE abap_bool DEFAULT abap_true
+      RETURNING
+        VALUE(rv_ui_theme) TYPE zif_abapgit_definitions=>ty_s_user_settings-ui_theme .
+    METHODS set_ui_theme
+      IMPORTING
+        !iv_ui_theme TYPE zif_abapgit_definitions=>ty_s_user_settings-ui_theme .
+    METHODS get_activate_wo_popup
+      RETURNING
+        VALUE(rv_act_wo_popup) TYPE zif_abapgit_definitions=>ty_s_user_settings-activate_wo_popup .
+    METHODS set_activate_wo_popup
+      IMPORTING
+        !iv_act_wo_popup TYPE zif_abapgit_definitions=>ty_s_user_settings-activate_wo_popup .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    TYPES: BEGIN OF ty_s_settings,
+             proxy_url                TYPE string,
+             proxy_port               TYPE string,
+             proxy_auth               TYPE string,
+             proxy_bypass             TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url,
+             run_critical_tests       TYPE abap_bool,
+             experimental_features    TYPE string,
+             commitmsg_comment_length TYPE i,
+             commitmsg_comment_deflt  TYPE string,
+             commitmsg_body_size      TYPE i,
+             commitmsg_hide_author    TYPE abap_bool,
+           END OF ty_s_settings.
+
+    DATA: ms_settings      TYPE ty_s_settings,
+          ms_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings.
+
+    METHODS:
+      set_default_link_hint_key.
+
+ENDCLASS.
+CLASS zcl_abapgit_user_record DEFINITION
+  FINAL
+  CREATE PRIVATE.
+
+  PUBLIC SECTION.
+    CLASS-METHODS reset.
+    CLASS-METHODS get_instance
+      IMPORTING
+        !iv_user       TYPE sy-uname
+      RETURNING
+        VALUE(ro_user) TYPE REF TO zcl_abapgit_user_record.
+    METHODS constructor
+      IMPORTING
+        !iv_user TYPE sy-uname.
+    METHODS get_name
+      RETURNING
+        VALUE(rv_name) TYPE string.
+    METHODS get_email
+      RETURNING
+        VALUE(rv_email) TYPE string.
+    CLASS-METHODS get_title
+      IMPORTING
+        iv_username     TYPE sy-uname
+      RETURNING
+        VALUE(rv_title) TYPE string.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    TYPES:
+      BEGIN OF ty_user,
+        user   TYPE sy-uname,
+        o_user TYPE REF TO zcl_abapgit_user_record,
+      END OF ty_user.
+
+    CLASS-DATA gt_user TYPE HASHED TABLE OF ty_user WITH UNIQUE KEY user.
+
+    DATA: BEGIN OF ms_user,
+            name  TYPE string,
+            email TYPE string,
+          END OF ms_user .
+
+    METHODS check_user_exists
+      IMPORTING
+        iv_user     TYPE sy-uname
+      EXPORTING
+        ev_fullname TYPE string
+        ev_email    TYPE string
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS get_user_dtls_from_other_clnt
+      IMPORTING
+        iv_user TYPE sy-uname.
 ENDCLASS.
 CLASS zcl_abapgit_auth DEFINITION
   FINAL
@@ -24073,76 +24433,6 @@ CLASS zcl_abapgit_ui_injector DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
-CLASS zcl_abapgit_abap_language_vers DEFINITION
-  FINAL
-  CREATE PUBLIC.
-
-  PUBLIC SECTION.
-
-    CONSTANTS:
-      c_any_abap_language_version TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version VALUE '*',
-      c_no_abap_language_version  TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version VALUE '-',
-      c_feature_flag              TYPE string VALUE 'ALAV'.
-
-    METHODS constructor
-      IMPORTING
-        !io_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit.
-
-    METHODS get_abap_language_vers_by_objt
-      IMPORTING
-        !iv_object_type                      TYPE trobjtype
-        !iv_package                          TYPE devclass
-      RETURNING
-        VALUE(rv_allowed_abap_langu_version) TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version.
-
-    METHODS get_repo_abap_language_version
-      RETURNING
-        VALUE(rv_abap_language_version) TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version.
-
-    METHODS is_import_allowed
-      IMPORTING
-        !iv_package       TYPE devclass
-      RETURNING
-        VALUE(rv_allowed) TYPE abap_bool.
-
-    CLASS-METHODS check_abap_language_version
-      IMPORTING
-        !iv_abap_language_version TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version
-        !is_item                  TYPE zif_abapgit_definitions=>ty_item
-      RAISING
-        zcx_abapgit_exception.
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    DATA mo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit.
-
-    " Depends on experimental feature flag and repo setting
-    DATA mv_has_abap_language_vers TYPE abap_bool.
-
-    METHODS get_default_abap_language_vers
-      IMPORTING
-        !iv_object_type                 TYPE trobjtype
-      RETURNING
-        VALUE(rv_abap_language_version) TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version.
-
-    METHODS get_abap_language_vers_by_devc
-      IMPORTING
-        !iv_package                     TYPE devclass
-      RETURNING
-        VALUE(rv_abap_language_version) TYPE string.
-
-    METHODS get_abap_language_vers_by_repo
-      RETURNING
-        VALUE(rv_abap_language_version) TYPE string.
-
-    CLASS-METHODS get_description
-      IMPORTING
-        !iv_abap_language_version TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version
-      RETURNING
-        VALUE(rv_description)     TYPE string.
-
-ENDCLASS.
 CLASS zcl_abapgit_convert DEFINITION
   CREATE PUBLIC .
 
@@ -24343,25 +24633,6 @@ CLASS zcl_abapgit_diff DEFINITION
     METHODS calculate_stats.
     METHODS adjust_diff.
 ENDCLASS.
-CLASS zcl_abapgit_environment DEFINITION
-  FINAL
-  CREATE PRIVATE
-  FRIENDS ZCL_ABAPGIT_factory .
-
-  PUBLIC SECTION.
-
-    INTERFACES zif_abapgit_environment .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    DATA mv_cloud TYPE abap_bool VALUE abap_undefined ##NO_TEXT.
-    DATA mv_is_merged TYPE abap_bool VALUE abap_undefined ##NO_TEXT.
-    DATA mv_modifiable TYPE abap_bool VALUE abap_undefined ##NO_TEXT.
-
-    METHODS is_system_changes_allowed
-      RETURNING
-        VALUE(rv_result) TYPE abap_bool .
-ENDCLASS.
 CLASS zcl_abapgit_item_state DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -24398,27 +24669,6 @@ CLASS zcl_abapgit_item_state DEFINITION
         iv_cur        TYPE zif_abapgit_git_definitions=>ty_item_state
       RETURNING
         VALUE(rv_new) TYPE zif_abapgit_git_definitions=>ty_item_state.
-ENDCLASS.
-*----------------------------------------------------------------------*
-* This helper class is used to set and restore the current language.
-* As some of the SAP functions used rely on SY-LANGU containing the
-* main language, this class is used to temporarily change and then
-* restore the value of SY-LANGU.
-*----------------------------------------------------------------------*
-CLASS zcl_abapgit_language DEFINITION
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS class_constructor .
-    CLASS-METHODS restore_login_language .
-    CLASS-METHODS set_current_language
-      IMPORTING
-        !iv_language TYPE sy-langu .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    CLASS-DATA gv_login_language TYPE sy-langu .
 ENDCLASS.
 CLASS zcl_abapgit_log DEFINITION
   CREATE PUBLIC .
@@ -24844,59 +25094,6 @@ CLASS zcl_abapgit_timer DEFINITION
     DATA mv_timer TYPE timestampl.
 
 ENDCLASS.
-CLASS zcl_abapgit_user_record DEFINITION
-  FINAL
-  CREATE PRIVATE.
-
-  PUBLIC SECTION.
-    CLASS-METHODS reset.
-    CLASS-METHODS get_instance
-      IMPORTING
-        !iv_user       TYPE sy-uname
-      RETURNING
-        VALUE(ro_user) TYPE REF TO zcl_abapgit_user_record.
-    METHODS constructor
-      IMPORTING
-        !iv_user TYPE sy-uname.
-    METHODS get_name
-      RETURNING
-        VALUE(rv_name) TYPE string.
-    METHODS get_email
-      RETURNING
-        VALUE(rv_email) TYPE string.
-    CLASS-METHODS get_title
-      IMPORTING
-        iv_username     TYPE sy-uname
-      RETURNING
-        VALUE(rv_title) TYPE string.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    TYPES:
-      BEGIN OF ty_user,
-        user   TYPE sy-uname,
-        o_user TYPE REF TO zcl_abapgit_user_record,
-      END OF ty_user.
-
-    CLASS-DATA gt_user TYPE HASHED TABLE OF ty_user WITH UNIQUE KEY user.
-
-    DATA: BEGIN OF ms_user,
-            name  TYPE string,
-            email TYPE string,
-          END OF ms_user .
-
-    METHODS check_user_exists
-      IMPORTING
-        iv_user     TYPE sy-uname
-      EXPORTING
-        ev_fullname TYPE string
-        ev_email    TYPE string
-      RAISING
-        zcx_abapgit_exception.
-
-    METHODS get_user_dtls_from_other_clnt
-      IMPORTING
-        iv_user TYPE sy-uname.
-ENDCLASS.
 CLASS zcl_abapgit_utils DEFINITION
   FINAL
   CREATE PUBLIC .
@@ -25224,24 +25421,6 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-DATA gi_function_module TYPE REF TO zif_abapgit_function_module.
     CLASS-DATA gi_default_transport TYPE REF TO zif_abapgit_default_transport .
 ENDCLASS.
-CLASS zcl_abapgit_feature DEFINITION
-  FINAL
-  CREATE PUBLIC.
-
-  PUBLIC SECTION.
-
-    " For dependency injection/testing, use the following
-    " zcl_abapgit_persist_factory=>get_settings( )->read( )->set_experimental_features( )
-
-    CLASS-METHODS is_enabled
-      IMPORTING
-        !iv_feature   TYPE string OPTIONAL
-      RETURNING
-        VALUE(rv_run) TYPE abap_bool.
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-ENDCLASS.
 CLASS zcl_abapgit_injector DEFINITION
   CREATE PRIVATE.
 
@@ -25292,401 +25471,6 @@ CLASS zcl_abapgit_injector DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
-CLASS zcl_abapgit_settings DEFINITION
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CONSTANTS c_commitmsg_comment_length_dft TYPE i VALUE 50 ##NO_TEXT.
-    CONSTANTS c_commitmsg_body_size_dft TYPE i VALUE 72 ##NO_TEXT.
-    CONSTANTS:
-      BEGIN OF c_icon_scaling,
-        large TYPE c VALUE 'L',
-        small TYPE c VALUE 'S',
-      END OF c_icon_scaling .
-    CONSTANTS:
-      BEGIN OF c_ui_theme,
-        default         TYPE string VALUE 'default',
-        dark            TYPE string VALUE 'dark',
-        belize          TYPE string VALUE 'belize',
-        synced_with_gui TYPE string VALUE 'synced_with_gui',
-      END OF c_ui_theme .
-
-    METHODS set_proxy_url
-      IMPORTING
-        !iv_url TYPE string .
-    METHODS set_proxy_port
-      IMPORTING
-        !iv_port TYPE string .
-    METHODS set_proxy_authentication
-      IMPORTING
-        !iv_auth TYPE abap_bool .
-    METHODS set_proxy_bypass
-      IMPORTING
-        !it_bypass TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url OPTIONAL .
-    METHODS get_proxy_url
-      RETURNING
-        VALUE(rv_proxy_url) TYPE string .
-    METHODS get_proxy_port
-      RETURNING
-        VALUE(rv_port) TYPE string .
-    METHODS get_proxy_authentication
-      RETURNING
-        VALUE(rv_auth) TYPE abap_bool .
-    METHODS get_proxy_bypass
-      RETURNING
-        VALUE(rt_bypass) TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url .
-    METHODS set_run_critical_tests
-      IMPORTING
-        !iv_run TYPE abap_bool .
-    METHODS get_run_critical_tests
-      RETURNING
-        VALUE(rv_run) TYPE abap_bool .
-    METHODS set_experimental_features
-      IMPORTING
-        !iv_features TYPE string.
-    METHODS get_experimental_features
-      RETURNING
-        VALUE(rv_features) TYPE string.
-    METHODS set_max_lines
-      IMPORTING
-        !iv_lines TYPE i .
-    METHODS get_max_lines
-      RETURNING
-        VALUE(rv_lines) TYPE i .
-    METHODS set_adt_jump_enanbled
-      IMPORTING
-        !iv_adt_jump_enabled TYPE abap_bool .
-    METHODS get_adt_jump_enabled
-      RETURNING
-        VALUE(rv_adt_jump_enabled) TYPE abap_bool .
-    METHODS set_commitmsg_comment_length
-      IMPORTING
-        !iv_length TYPE i .
-    METHODS get_commitmsg_comment_length
-      RETURNING
-        VALUE(rv_length) TYPE i .
-    METHODS set_commitmsg_comment_default
-      IMPORTING
-        !iv_default TYPE string .
-    METHODS get_commitmsg_comment_default
-      RETURNING
-        VALUE(rv_default) TYPE string .
-    METHODS set_commitmsg_body_size
-      IMPORTING
-        !iv_length TYPE i .
-    METHODS get_commitmsg_body_size
-      RETURNING
-        VALUE(rv_length) TYPE i .
-    METHODS set_commitmsg_hide_author
-      IMPORTING
-        !iv_hide_author TYPE abap_bool.
-    METHODS get_commitmsg_hide_author
-      RETURNING
-        VALUE(rv_hide_author) TYPE abap_bool.
-    METHODS get_settings_xml
-      RETURNING
-        VALUE(rv_settings_xml) TYPE string
-      RAISING
-        zcx_abapgit_exception .
-    METHODS get_user_settings
-      RETURNING
-        VALUE(rs_settings) TYPE zif_abapgit_definitions=>ty_s_user_settings
-      RAISING
-        zcx_abapgit_exception .
-    METHODS set_xml_settings
-      IMPORTING
-        !iv_settings_xml TYPE string
-      RAISING
-        zcx_abapgit_exception .
-    METHODS set_defaults .
-    METHODS set_user_settings
-      IMPORTING
-        !is_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings .
-    METHODS get_show_default_repo
-      RETURNING
-        VALUE(rv_show_default_repo) TYPE abap_bool .
-    METHODS set_show_default_repo
-      IMPORTING
-        !iv_show_default_repo TYPE abap_bool .
-    METHODS set_link_hints_enabled
-      IMPORTING
-        !iv_link_hints_enabled TYPE abap_bool .
-    METHODS get_link_hints_enabled
-      RETURNING
-        VALUE(rv_link_hints_enabled) TYPE abap_bool
-      RAISING
-        zcx_abapgit_exception .
-    METHODS set_link_hint_key
-      IMPORTING
-        !iv_link_hint_key TYPE string .
-    METHODS get_link_hint_key
-      RETURNING
-        VALUE(rv_link_hint_key) TYPE string .
-    METHODS set_parallel_proc_disabled
-      IMPORTING
-        !iv_disable_parallel_proc TYPE abap_bool .
-    METHODS get_parallel_proc_disabled
-      RETURNING
-        VALUE(rv_disable_parallel_proc) TYPE abap_bool .
-    METHODS get_icon_scaling
-      RETURNING
-        VALUE(rv_scaling) TYPE zif_abapgit_definitions=>ty_s_user_settings-icon_scaling .
-    METHODS set_icon_scaling
-      IMPORTING
-        !iv_scaling TYPE zif_abapgit_definitions=>ty_s_user_settings-icon_scaling .
-    METHODS get_ui_theme
-      IMPORTING
-        !iv_resolve_synced TYPE abap_bool DEFAULT abap_true
-      RETURNING
-        VALUE(rv_ui_theme) TYPE zif_abapgit_definitions=>ty_s_user_settings-ui_theme .
-    METHODS set_ui_theme
-      IMPORTING
-        !iv_ui_theme TYPE zif_abapgit_definitions=>ty_s_user_settings-ui_theme .
-    METHODS get_activate_wo_popup
-      RETURNING
-        VALUE(rv_act_wo_popup) TYPE zif_abapgit_definitions=>ty_s_user_settings-activate_wo_popup .
-    METHODS set_activate_wo_popup
-      IMPORTING
-        !iv_act_wo_popup TYPE zif_abapgit_definitions=>ty_s_user_settings-activate_wo_popup .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    TYPES: BEGIN OF ty_s_settings,
-             proxy_url                TYPE string,
-             proxy_port               TYPE string,
-             proxy_auth               TYPE string,
-             proxy_bypass             TYPE zif_abapgit_definitions=>ty_range_proxy_bypass_url,
-             run_critical_tests       TYPE abap_bool,
-             experimental_features    TYPE string,
-             commitmsg_comment_length TYPE i,
-             commitmsg_comment_deflt  TYPE string,
-             commitmsg_body_size      TYPE i,
-             commitmsg_hide_author    TYPE abap_bool,
-           END OF ty_s_settings.
-
-    DATA: ms_settings      TYPE ty_s_settings,
-          ms_user_settings TYPE zif_abapgit_definitions=>ty_s_user_settings.
-
-    METHODS:
-      set_default_link_hint_key.
-
-ENDCLASS.
-CLASS zcl_abapgit_settings IMPLEMENTATION.
-  METHOD get_activate_wo_popup.
-    rv_act_wo_popup = ms_user_settings-activate_wo_popup.
-  ENDMETHOD.
-  METHOD get_adt_jump_enabled.
-    rv_adt_jump_enabled = ms_user_settings-adt_jump_enabled.
-  ENDMETHOD.
-  METHOD get_commitmsg_body_size.
-    rv_length = ms_settings-commitmsg_body_size.
-  ENDMETHOD.
-  METHOD get_commitmsg_comment_default.
-    rv_default = ms_settings-commitmsg_comment_deflt.
-  ENDMETHOD.
-  METHOD get_commitmsg_comment_length.
-    rv_length = ms_settings-commitmsg_comment_length.
-  ENDMETHOD.
-  METHOD get_commitmsg_hide_author.
-    rv_hide_author = ms_settings-commitmsg_hide_author.
-  ENDMETHOD.
-  METHOD get_experimental_features.
-    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
-      rv_features = ms_settings-experimental_features.
-    ENDIF.
-  ENDMETHOD.
-  METHOD get_icon_scaling.
-    rv_scaling = ms_user_settings-icon_scaling.
-  ENDMETHOD.
-  METHOD get_link_hints_enabled.
-    rv_link_hints_enabled = ms_user_settings-link_hints_enabled.
-  ENDMETHOD.
-  METHOD get_link_hint_key.
-    rv_link_hint_key = ms_user_settings-link_hint_key.
-  ENDMETHOD.
-  METHOD get_max_lines.
-    rv_lines = ms_user_settings-max_lines.
-  ENDMETHOD.
-  METHOD get_parallel_proc_disabled.
-    rv_disable_parallel_proc = ms_user_settings-parallel_proc_disabled.
-  ENDMETHOD.
-  METHOD get_proxy_authentication.
-    rv_auth = ms_settings-proxy_auth.
-  ENDMETHOD.
-  METHOD get_proxy_bypass.
-    rt_bypass = ms_settings-proxy_bypass.
-  ENDMETHOD.
-  METHOD get_proxy_port.
-    rv_port = ms_settings-proxy_port.
-  ENDMETHOD.
-  METHOD get_proxy_url.
-    rv_proxy_url = ms_settings-proxy_url.
-  ENDMETHOD.
-  METHOD get_run_critical_tests.
-    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
-      rv_run = ms_settings-run_critical_tests.
-    ENDIF.
-  ENDMETHOD.
-  METHOD get_settings_xml.
-
-    DATA: li_output TYPE REF TO zif_abapgit_xml_output.
-    CREATE OBJECT li_output TYPE zcl_abapgit_xml_output.
-
-    li_output->add( iv_name = zcl_abapgit_persistence_db=>c_type_settings
-                    ig_data = ms_settings ).
-
-    rv_settings_xml = li_output->render( ).
-
-  ENDMETHOD.
-  METHOD get_show_default_repo.
-    rv_show_default_repo = ms_user_settings-show_default_repo.
-  ENDMETHOD.
-  METHOD get_ui_theme.
-    DATA lv_frontend_theme TYPE string.
-    DATA lv_cl_gui TYPE string.
-
-    lv_cl_gui = 'CL_GUI_RESOURCES'.
-
-    rv_ui_theme = ms_user_settings-ui_theme.
-
-    IF rv_ui_theme = c_ui_theme-synced_with_gui AND iv_resolve_synced = abap_true.
-      TRY.
-          CALL METHOD (lv_cl_gui)=>get_themename
-            IMPORTING
-              themename              = lv_frontend_theme
-            EXCEPTIONS
-              get_std_resource_error = 1
-              OTHERS                 = 2.
-          IF sy-subrc <> 0.
-            rv_ui_theme = c_ui_theme-default.
-            RETURN.
-          ENDIF.
-        CATCH cx_sy_dyn_call_error.
-          rv_ui_theme = c_ui_theme-default.
-          RETURN.
-      ENDTRY.
-
-      CASE lv_frontend_theme.
-        WHEN 'Belize'.
-          rv_ui_theme = c_ui_theme-belize.
-        WHEN OTHERS.
-          rv_ui_theme = c_ui_theme-default.
-      ENDCASE.
-    ENDIF.
-  ENDMETHOD.
-  METHOD get_user_settings.
-    rs_settings = ms_user_settings.
-  ENDMETHOD.
-  METHOD set_activate_wo_popup.
-    ms_user_settings-activate_wo_popup = iv_act_wo_popup.
-  ENDMETHOD.
-  METHOD set_adt_jump_enanbled.
-    ms_user_settings-adt_jump_enabled = iv_adt_jump_enabled.
-  ENDMETHOD.
-  METHOD set_commitmsg_body_size.
-    ms_settings-commitmsg_body_size = iv_length.
-  ENDMETHOD.
-  METHOD set_commitmsg_comment_default.
-    ms_settings-commitmsg_comment_deflt = iv_default.
-  ENDMETHOD.
-  METHOD set_commitmsg_comment_length.
-    ms_settings-commitmsg_comment_length = iv_length.
-  ENDMETHOD.
-  METHOD set_commitmsg_hide_author.
-    ms_settings-commitmsg_hide_author = iv_hide_author.
-  ENDMETHOD.
-  METHOD set_defaults.
-
-    CLEAR ms_settings.
-
-    set_proxy_authentication( abap_false ).
-    set_run_critical_tests( abap_false ).
-    set_experimental_features( '' ).
-    set_max_lines( 500 ).
-    set_adt_jump_enanbled( abap_true ).
-    set_show_default_repo( abap_false ).
-    set_commitmsg_comment_length( c_commitmsg_comment_length_dft ).
-    set_commitmsg_body_size( c_commitmsg_body_size_dft ).
-    set_default_link_hint_key( ).
-    set_icon_scaling( '' ).
-
-  ENDMETHOD.
-  METHOD set_default_link_hint_key.
-    " Since #5859 'f' is used for "focus filter", we use 't' as the new default
-    set_link_hint_key( |t| ).
-  ENDMETHOD.
-  METHOD set_experimental_features.
-    ms_settings-experimental_features = iv_features.
-  ENDMETHOD.
-  METHOD set_icon_scaling.
-    ms_user_settings-icon_scaling = iv_scaling.
-    IF ms_user_settings-icon_scaling NA c_icon_scaling.
-      ms_user_settings-icon_scaling = ''. " Reset to default
-    ENDIF.
-  ENDMETHOD.
-  METHOD set_link_hints_enabled.
-    ms_user_settings-link_hints_enabled = iv_link_hints_enabled.
-  ENDMETHOD.
-  METHOD set_link_hint_key.
-    ms_user_settings-link_hint_key = iv_link_hint_key.
-  ENDMETHOD.
-  METHOD set_max_lines.
-    ms_user_settings-max_lines = iv_lines.
-  ENDMETHOD.
-  METHOD set_parallel_proc_disabled.
-    ms_user_settings-parallel_proc_disabled = iv_disable_parallel_proc.
-  ENDMETHOD.
-  METHOD set_proxy_authentication.
-    ms_settings-proxy_auth = iv_auth.
-  ENDMETHOD.
-  METHOD set_proxy_bypass.
-    ms_settings-proxy_bypass = it_bypass.
-  ENDMETHOD.
-  METHOD set_proxy_port.
-    ms_settings-proxy_port = iv_port.
-  ENDMETHOD.
-  METHOD set_proxy_url.
-    ms_settings-proxy_url = iv_url.
-  ENDMETHOD.
-  METHOD set_run_critical_tests.
-    ms_settings-run_critical_tests = iv_run.
-  ENDMETHOD.
-  METHOD set_show_default_repo.
-    ms_user_settings-show_default_repo = iv_show_default_repo.
-  ENDMETHOD.
-  METHOD set_ui_theme.
-    ms_user_settings-ui_theme = iv_ui_theme.
-    IF ms_user_settings-ui_theme <> c_ui_theme-default
-        AND ms_user_settings-ui_theme <> c_ui_theme-dark
-        AND ms_user_settings-ui_theme <> c_ui_theme-belize
-        AND ms_user_settings-ui_theme <> c_ui_theme-synced_with_gui.
-      ms_user_settings-ui_theme = c_ui_theme-default. " Reset to default
-    ENDIF.
-  ENDMETHOD.
-  METHOD set_user_settings.
-    ms_user_settings = is_user_settings.
-
-    IF ms_user_settings-link_hint_key IS INITIAL.
-      set_default_link_hint_key( ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD set_xml_settings.
-
-    DATA: lo_input TYPE REF TO zif_abapgit_xml_input.
-    CREATE OBJECT lo_input TYPE zcl_abapgit_xml_input EXPORTING iv_xml = iv_settings_xml.
-
-    CLEAR ms_settings.
-
-    lo_input->read(
-      EXPORTING
-        iv_name = zcl_abapgit_persistence_db=>c_type_settings
-      CHANGING
-        cg_data = ms_settings ).
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS zcl_abapgit_injector IMPLEMENTATION.
   METHOD set_code_inspector.
 
@@ -25766,31 +25550,6 @@ CLASS zcl_abapgit_injector IMPLEMENTATION.
     zcl_abapgit_exit=>gi_global_exit = ii_exit.
   ENDMETHOD.
 
-ENDCLASS.
-
-CLASS zcl_abapgit_feature IMPLEMENTATION.
-  METHOD is_enabled.
-
-    DATA:
-      lv_features TYPE string,
-      lt_features TYPE string_table.
-
-    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true.
-      RETURN.
-    ENDIF.
-
-    lv_features = zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ).
-    CONDENSE lv_features NO-GAPS.
-
-    rv_run = boolc( lv_features = abap_true ).
-
-    IF iv_feature IS NOT INITIAL.
-      SPLIT lv_features AT ',' INTO TABLE lt_features.
-      READ TABLE lt_features TRANSPORTING NO FIELDS WITH TABLE KEY table_line = iv_feature.
-      rv_run = boolc( rv_run = abap_true OR sy-subrc = 0 ).
-    ENDIF.
-
-  ENDMETHOD.
 ENDCLASS.
 
 CLASS ZCL_ABAPGIT_FACTORY IMPLEMENTATION.
@@ -26777,142 +26536,6 @@ CLASS zcl_abapgit_utils IMPLEMENTATION.
       rv_valid = boolc( sy-subrc = 0 ).
     ENDIF.
 
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_user_record IMPLEMENTATION.
-  METHOD get_title.
-* the queried username might not exist, so this method is static
-
-    DATA ls_user_address TYPE addr3_val.
-
-    CALL FUNCTION 'SUSR_USER_ADDRESS_READ'
-      EXPORTING
-        user_name              = iv_username
-      IMPORTING
-        user_address           = ls_user_address
-      EXCEPTIONS
-        user_address_not_found = 1
-        OTHERS                 = 2.
-    IF sy-subrc = 0.
-      rv_title = ls_user_address-name_text.
-    ENDIF.
-
-  ENDMETHOD.
-
-  METHOD check_user_exists.
-
-    DATA lt_return  TYPE STANDARD TABLE OF bapiret2 WITH DEFAULT KEY.
-    DATA ls_address TYPE bapiaddr3.
-    DATA lt_smtp    TYPE TABLE OF bapiadsmtp.
-    DATA ls_smtp    LIKE LINE OF lt_smtp.
-
-    CALL FUNCTION 'BAPI_USER_GET_DETAIL'
-      EXPORTING
-        username = iv_user
-      IMPORTING
-        address  = ls_address
-      TABLES
-        return   = lt_return
-        addsmtp  = lt_smtp.
-    LOOP AT lt_return TRANSPORTING NO FIELDS WHERE type CA 'EA'.
-      zcx_abapgit_exception=>raise( |User: { iv_user } not found| ).
-    ENDLOOP.
-
-    ev_fullname = ls_address-fullname.
-
-    " Choose the first email from SU01
-    SORT lt_smtp BY consnumber ASCENDING.
-
-    LOOP AT lt_smtp INTO ls_smtp.
-      ev_email = ls_smtp-e_mail.
-      EXIT.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD constructor.
-
-    DATA ls_user TYPE ty_user.
-
-    " Get user details
-    TRY.
-        check_user_exists(
-          EXPORTING
-            iv_user     = iv_user
-          IMPORTING
-            ev_fullname = ms_user-name
-            ev_email    = ms_user-email ).
-      CATCH zcx_abapgit_exception.
-        " Could not find user, try to get from other clients
-        get_user_dtls_from_other_clnt( iv_user ).
-    ENDTRY.
-
-    " If the user has been found add it to the list
-    IF ms_user-name IS NOT INITIAL AND ms_user-email IS NOT INITIAL.
-      ls_user-user = iv_user.
-      ls_user-o_user = me.
-      INSERT ls_user INTO TABLE gt_user.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_email.
-
-    rv_email = ms_user-email.
-
-  ENDMETHOD.
-  METHOD get_instance.
-
-    FIELD-SYMBOLS <ls_user> TYPE ty_user.
-
-    READ TABLE gt_user ASSIGNING <ls_user> WITH TABLE KEY user = iv_user.
-    IF sy-subrc = 0.
-      ro_user = <ls_user>-o_user.
-    ELSE.
-      CREATE OBJECT ro_user
-        EXPORTING
-          iv_user = iv_user.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_name.
-
-    rv_name = ms_user-name.
-
-  ENDMETHOD.
-  METHOD get_user_dtls_from_other_clnt.
-
-    CONSTANTS lc_cc_category TYPE string VALUE 'C'.
-    TYPES ty_dev_clients TYPE SORTED TABLE OF sy-mandt WITH UNIQUE KEY table_line.
-    DATA lt_dev_clients TYPE ty_dev_clients.
-    FIELD-SYMBOLS <lv_dev_client> LIKE LINE OF lt_dev_clients.
-
-    " Could not find the user, try other development clients
-    SELECT mandt FROM t000 INTO TABLE lt_dev_clients
-        WHERE cccategory = lc_cc_category AND mandt <> sy-mandt
-        ORDER BY PRIMARY KEY.
-
-    LOOP AT lt_dev_clients ASSIGNING <lv_dev_client>.
-      SELECT SINGLE p~name_text a~smtp_addr INTO (ms_user-name, ms_user-email)
-          FROM usr21 AS u
-          INNER JOIN adrp AS p ON p~persnumber = u~persnumber
-                              AND p~client     = u~mandt
-          INNER JOIN adr6 AS a ON a~persnumber = u~persnumber
-                              AND a~addrnumber = u~addrnumber
-                              AND a~client     = u~mandt
-          CLIENT SPECIFIED
-          WHERE u~mandt      = <lv_dev_client>
-            AND u~bname      = iv_user
-            AND p~date_from <= sy-datum
-            AND p~date_to   >= sy-datum
-            AND a~date_from <= sy-datum.
-      IF sy-subrc = 0.
-        EXIT.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD reset.
-    CLEAR gt_user.
   ENDMETHOD.
 ENDCLASS.
 
@@ -28047,26 +27670,6 @@ CLASS zcl_abapgit_log IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_language IMPLEMENTATION.
-  METHOD class_constructor.
-
-    DATA lv_dummy TYPE string.
-
-    GET LOCALE LANGUAGE gv_login_language COUNTRY lv_dummy MODIFIER lv_dummy.
-
-  ENDMETHOD.
-  METHOD restore_login_language.
-
-    SET LOCALE LANGUAGE gv_login_language.
-
-  ENDMETHOD.
-  METHOD set_current_language.
-
-    SET LOCALE LANGUAGE iv_language.
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_ITEM_STATE IMPLEMENTATION.
   METHOD is_reassigned.
     rv_is_reassigned = mv_is_reassigned.
@@ -28116,209 +27719,6 @@ CLASS ZCL_ABAPGIT_ITEM_STATE IMPLEMENTATION.
     mv_is_reassigned = boolc( mv_is_reassigned = abap_true OR is_status_item-packmove = abap_true ).
 
   ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_environment IMPLEMENTATION.
-  METHOD is_system_changes_allowed.
-
-    DATA:
-      lv_systemedit         TYPE tadir-edtflag,
-      lv_sys_cliinddep_edit TYPE t000-ccnocliind,
-      lv_is_shadow          TYPE abap_bool,
-      ls_upginfo            TYPE uvers,
-      lv_is_upgrade         TYPE abap_bool.
-
-    CALL FUNCTION 'TR_SYS_PARAMS'
-      IMPORTING
-        systemedit         = lv_systemedit
-        sys_cliinddep_edit = lv_sys_cliinddep_edit
-      EXCEPTIONS
-        no_systemname      = 1
-        no_systemtype      = 2
-        OTHERS             = 3.
-    IF sy-subrc <> 0.
-      " Assume system can't be changed
-      RETURN.
-    ENDIF.
-
-    CALL FUNCTION 'UPG_IS_SHADOW_SYSTEM'
-      IMPORTING
-        ev_shadow = lv_is_shadow.
-
-    CALL FUNCTION 'UPG_GET_ACTIVE_COMP_UPGRADE'
-      EXPORTING
-        iv_component = 'SAP_BASIS'
-        iv_upgtype   = 'A'
-        iv_buffered  = abap_false
-      IMPORTING
-        ev_upginfo   = ls_upginfo
-      EXCEPTIONS
-        OTHERS       = 4.
-    IF sy-subrc = 0 AND ls_upginfo-putstatus NA 'ITU'.
-      lv_is_upgrade = abap_true.
-    ENDIF.
-
-    " SAP system has status 'not modifiable' (TK 102)
-    " Changes to repository objects are not permitted in this client (TK 729)
-    " Shadow system
-    " Running upgrade
-    rv_result = boolc(
-      lv_systemedit <> 'N' AND
-      lv_sys_cliinddep_edit NA '23' AND
-      lv_is_shadow <> abap_true AND
-      lv_is_upgrade <> abap_true ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_environment~compare_with_inactive.
-    rv_result = zif_abapgit_environment~is_sap_cloud_platform( ).
-  ENDMETHOD.
-  METHOD zif_abapgit_environment~get_basis_release.
-
-    SELECT SINGLE release extrelease FROM cvers INTO (rs_result-release, rs_result-sp)
-      WHERE component = 'SAP_BASIS' ##SUBRC_OK.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_environment~is_merged.
-    DATA lr_marker TYPE REF TO data ##NEEDED.
-
-    IF mv_is_merged = abap_undefined.
-      TRY.
-          CREATE DATA lr_marker TYPE REF TO ('LIF_ABAPMERGE_MARKER').
-          "No exception --> marker found
-          mv_is_merged = abap_true.
-
-        CATCH cx_sy_create_data_error.
-          mv_is_merged = abap_false.
-      ENDTRY.
-    ENDIF.
-    rv_result = mv_is_merged.
-  ENDMETHOD.
-  METHOD zif_abapgit_environment~is_repo_object_changes_allowed.
-    IF mv_modifiable = abap_undefined.
-      mv_modifiable = is_system_changes_allowed( ).
-    ENDIF.
-    rv_result = mv_modifiable.
-  ENDMETHOD.
-  METHOD zif_abapgit_environment~is_restart_required.
-    " This method will be used in the context of SAP Cloud Platform:
-    " Pull/Push operations are executed in background jobs.
-    " In case of the respective application server needs to be restarted,
-    " it is required to terminate the background job and reschedule again.
-    rv_result = abap_false.
-    TRY.
-        CALL METHOD ('CL_APJ_SCP_TOOLS')=>('IS_RESTART_REQUIRED')
-          RECEIVING
-            restart_required = rv_result.
-      CATCH cx_sy_dyn_call_illegal_method cx_sy_dyn_call_illegal_class.
-        rv_result = abap_false.
-    ENDTRY.
-  ENDMETHOD.
-  METHOD zif_abapgit_environment~is_sap_cloud_platform.
-    IF mv_cloud = abap_undefined.
-      TRY.
-          CALL METHOD ('CL_COS_UTILITIES')=>('IS_SAP_CLOUD_PLATFORM')
-            RECEIVING
-              rv_is_sap_cloud_platform = mv_cloud.
-        CATCH cx_sy_dyn_call_error.
-          mv_cloud = abap_false.
-      ENDTRY.
-    ENDIF.
-    rv_result = mv_cloud.
-  ENDMETHOD.
-  METHOD zif_abapgit_environment~is_sap_object_allowed.
-
-    rv_allowed = cl_enh_badi_def_utility=>is_sap_system( ).
-    IF rv_allowed = abap_true.
-      RETURN.
-    ENDIF.
-
-    rv_allowed = zcl_abapgit_exit=>get_instance( )->allow_sap_objects( ).
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_environment~get_system_language_filter.
-    DATA lv_translation_detective_lang TYPE spras.
-    DATA lv_pseudo_translation_language TYPE spras.
-    FIELD-SYMBOLS <ls_system_language_filter> LIKE LINE OF rt_system_language_filter.
-
-    " Translation Object Detective
-    " https://help.sap.com/docs/ABAP_PLATFORM_NEW/ceb25152cb0d4adba664cebea2bf4670/88a3d3cbccf64601975acabaccdfde45.html
-    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_INPUT'
-      EXPORTING
-        input            = '1Q'
-      IMPORTING
-        output           = lv_translation_detective_lang
-      EXCEPTIONS
-        unknown_language = 1
-        OTHERS           = 2.
-    IF sy-subrc = 1.
-      " The language for Translation Object Detective was not setup
-    ENDIF.
-    IF NOT lv_translation_detective_lang IS INITIAL.
-      APPEND INITIAL LINE TO rt_system_language_filter ASSIGNING <ls_system_language_filter>.
-      <ls_system_language_filter>-sign = 'E'.
-      <ls_system_language_filter>-option = 'EQ'.
-      <ls_system_language_filter>-low = lv_translation_detective_lang.
-    ENDIF.
-    " 1943470 - Using technical language key 2Q to create pseudo-translations of ABAP developments
-    " https://launchpad.support.sap.com/#/notes/1943470
-    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_INPUT'
-      EXPORTING
-        input            = '2Q'
-      IMPORTING
-        output           = lv_pseudo_translation_language
-      EXCEPTIONS
-        unknown_language = 1
-        OTHERS           = 2.
-    IF sy-subrc = 1.
-      " The language for Pseudo Translation was not setup
-    ENDIF.
-    IF NOT lv_pseudo_translation_language IS INITIAL.
-      APPEND INITIAL LINE TO rt_system_language_filter ASSIGNING <ls_system_language_filter>.
-      <ls_system_language_filter>-sign = 'E'.
-      <ls_system_language_filter>-option = 'EQ'.
-      <ls_system_language_filter>-low = lv_pseudo_translation_language.
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_abapgit_environment~is_variant_maintenance.
-
-    DATA:
-      lt_variscreens TYPE STANDARD TABLE OF rsdynnr
-                          WITH NON-UNIQUE DEFAULT KEY.
-
-    " Memory is set in LSVARF08 / EXPORT_SCREEN_TABLES.
-    IMPORT variscreens = lt_variscreens FROM MEMORY ID '%_SCRNR_%'.
-
-    rv_is_variant_maintenance = boolc( lines( lt_variscreens ) > 0 ).
-
-  ENDMETHOD.
-
-  METHOD zif_abapgit_environment~init_parallel_processing.
-
-    DATA: lv_group TYPE rzlli_apcl.
-
-    lv_group = iv_group.
-
-    " SPBT_INITIALIZE gives error PBT_ENV_ALREADY_INITIALIZED if called
-    " multiple times in same session
-    CALL FUNCTION 'SPBT_INITIALIZE'
-      EXPORTING
-        group_name                     = lv_group
-      IMPORTING
-        free_pbt_wps                   = rv_free_work_processes
-      EXCEPTIONS
-        invalid_group_name             = 1
-        internal_error                 = 2
-        pbt_env_already_initialized    = 3
-        currently_no_resources_avail   = 4
-        no_pbt_resources_found         = 5
-        cant_init_different_pbt_groups = 6
-        OTHERS                         = 7.
-    " If SPBT_INITIALIZE fails, check transactions RZ12, SM50, SM21, SARFC
-
-  ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_diff IMPLEMENTATION.
@@ -29130,193 +28530,6 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
     GET BIT 6 OF iv_x INTO rv_bitbyte+5(1).
     GET BIT 7 OF iv_x INTO rv_bitbyte+6(1).
     GET BIT 8 OF iv_x INTO rv_bitbyte+7(1).
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_abap_language_vers IMPLEMENTATION.
-  METHOD check_abap_language_version.
-
-    " Check if ABAP language version matches repository setting
-    IF is_item-abap_language_version IS NOT INITIAL AND iv_abap_language_version <> is_item-abap_language_version.
-      zcx_abapgit_exception=>raise(
-        |Object { is_item-obj_type } { is_item-obj_name } has { get_description( iv_abap_language_version ) }| &&
-        | but repository is set to { get_description( is_item-abap_language_version ) }| ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD constructor.
-
-    mo_dot_abapgit = io_dot_abapgit.
-
-    IF zcl_abapgit_feature=>is_enabled( c_feature_flag ) = abap_false.
-      mv_has_abap_language_vers = abap_undefined.
-    ELSEIF get_abap_language_vers_by_repo( ) = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
-      mv_has_abap_language_vers = abap_undefined.
-    ELSEIF get_abap_language_vers_by_repo( ) = zif_abapgit_dot_abapgit=>c_abap_language_version-ignore.
-      mv_has_abap_language_vers = abap_false.
-    ELSE.
-      mv_has_abap_language_vers = abap_true.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_abap_language_vers_by_devc.
-
-    DATA lv_class TYPE string.
-    DATA lv_abap_lang_version_devc TYPE string.
-    DATA lo_abap_language_version_cfg TYPE REF TO object.
-
-    lv_class = 'CL_ABAP_LANGUAGE_VERSION_CFG'.
-
-    TRY.
-        CALL METHOD (lv_class)=>('GET_INSTANCE')
-          RECEIVING
-            ro_instance = lo_abap_language_version_cfg.
-
-        " For non-existing packages, GET_PACKAGE_DEFAULT_VERSION returns "standard"
-        " but we want to return "undefined" in this case to allow any new packages
-        IF zcl_abapgit_factory=>get_sap_package( iv_package )->exists( ) = abap_true.
-          CALL METHOD lo_abap_language_version_cfg->('IF_ABAP_LANGUAGE_VERSION_CFG~GET_PACKAGE_DEFAULT_VERSION')
-            EXPORTING
-              iv_package_name             = iv_package
-            RECEIVING
-              rv_default_language_version = lv_abap_lang_version_devc.
-        ELSE.
-          lv_abap_lang_version_devc = '-'.
-        ENDIF.
-
-        CASE lv_abap_lang_version_devc.
-          WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-standard.
-            rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-standard.
-          WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-key_user.
-            rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-key_user.
-          WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-cloud_development.
-            rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-cloud_development.
-          WHEN OTHERS.
-            rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
-        ENDCASE.
-
-      CATCH cx_root.
-        rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
-    ENDTRY.
-
-  ENDMETHOD.
-  METHOD get_abap_language_vers_by_objt.
-
-    DATA lv_class TYPE string.
-    DATA lo_abap_language_version TYPE REF TO object.
-
-    IF mv_has_abap_language_vers = abap_undefined.
-      rv_allowed_abap_langu_version = c_any_abap_language_version.
-    ELSEIF mv_has_abap_language_vers = abap_false.
-      rv_allowed_abap_langu_version = c_no_abap_language_version.
-    ELSE. " abap_true
-
-      lv_class = 'CL_ABAP_LANGUAGE_VERSION'.
-
-      TRY.
-          CALL METHOD (lv_class)=>('GET_INSTANCE')
-            RECEIVING
-              ro_version_handler = lo_abap_language_version.
-
-          CALL METHOD lo_abap_language_version->('IF_ABAP_LANGUAGE_VERSION~GET_DEFAULT_VERSION')
-            EXPORTING
-              iv_object_type     = iv_object_type
-              iv_package         = iv_package
-            RECEIVING
-              rv_default_version = rv_allowed_abap_langu_version.
-
-        CATCH cx_root.
-          rv_allowed_abap_langu_version = get_default_abap_language_vers( iv_object_type ).
-      ENDTRY.
-
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_abap_language_vers_by_repo.
-    rv_abap_language_version = mo_dot_abapgit->get_abap_language_version( ).
-    IF rv_abap_language_version IS INITIAL.
-      rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
-    ENDIF.
-  ENDMETHOD.
-  METHOD get_default_abap_language_vers.
-
-    IF zcl_abapgit_factory=>get_environment( )->is_sap_cloud_platform( ) = abap_true.
-      " On BTP, default to ABAP for Cloud Development
-      rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version_cloud-cloud_development.
-    ELSE.
-      " Differentiate between source code object and non-source code objects
-      CASE iv_object_type.
-        WHEN 'BDEF' OR 'CLAS' OR 'FUGR' OR 'FUGS' OR 'INTF' OR 'PROG' OR 'TYPE'.
-          rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version_src-standard.
-        WHEN OTHERS.
-          rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version-standard.
-      ENDCASE.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_description.
-
-    CASE iv_abap_language_version.
-      WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-standard
-        OR zif_abapgit_aff_types_v1=>co_abap_language_version_src-standard.
-        rv_description = 'Standard ABAP'.
-      WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-key_user
-        OR zif_abapgit_aff_types_v1=>co_abap_language_version_src-key_user.
-        rv_description = 'ABAP for Key Users'.
-      WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-cloud_development
-        OR zif_abapgit_aff_types_v1=>co_abap_language_version_src-cloud_development.
-        rv_description = 'ABAP for Cloud Development'.
-      WHEN OTHERS.
-        rv_description = 'Undefined'.
-    ENDCASE.
-
-    rv_description = |ABAP language version "{ rv_description }"|.
-
-  ENDMETHOD.
-  METHOD get_repo_abap_language_version.
-
-    DATA lv_abap_language_version TYPE string.
-
-    IF mv_has_abap_language_vers <> abap_undefined. " abap_true or abap_false
-      lv_abap_language_version = mo_dot_abapgit->get_abap_language_version( ).
-    ENDIF.
-
-    CASE lv_abap_language_version.
-      WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-standard.
-        rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version_src-standard.
-      WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-key_user.
-        rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version_src-key_user.
-      WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-cloud_development.
-        rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version_src-cloud_development.
-      WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-ignore.
-        rv_abap_language_version = c_no_abap_language_version.
-      WHEN OTHERS. " undefined or feature off
-        rv_abap_language_version = c_any_abap_language_version.
-    ENDCASE.
-
-  ENDMETHOD.
-  METHOD is_import_allowed.
-
-    DATA lv_package_version TYPE string.
-
-    lv_package_version = get_abap_language_vers_by_devc( iv_package ).
-
-    CASE get_abap_language_vers_by_repo( ).
-      WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-undefined
-        OR zif_abapgit_dot_abapgit=>c_abap_language_version-ignore.
-        rv_allowed = abap_true.
-      WHEN OTHERS.
-        IF get_abap_language_vers_by_repo( ) = lv_package_version.
-          " allow packages that match repo setting
-          rv_allowed = abap_true.
-        ELSEIF lv_package_version = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
-          " always allow new packages
-          rv_allowed = abap_true.
-        ELSE.
-          rv_allowed = abap_false.
-        ENDIF.
-    ENDCASE.
 
   ENDMETHOD.
 ENDCLASS.
@@ -127215,6 +126428,793 @@ CLASS zcl_abapgit_auth IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_user_record IMPLEMENTATION.
+  METHOD get_title.
+* the queried username might not exist, so this method is static
+
+    DATA ls_user_address TYPE addr3_val.
+
+    CALL FUNCTION 'SUSR_USER_ADDRESS_READ'
+      EXPORTING
+        user_name              = iv_username
+      IMPORTING
+        user_address           = ls_user_address
+      EXCEPTIONS
+        user_address_not_found = 1
+        OTHERS                 = 2.
+    IF sy-subrc = 0.
+      rv_title = ls_user_address-name_text.
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD check_user_exists.
+
+    DATA lt_return  TYPE STANDARD TABLE OF bapiret2 WITH DEFAULT KEY.
+    DATA ls_address TYPE bapiaddr3.
+    DATA lt_smtp    TYPE TABLE OF bapiadsmtp.
+    DATA ls_smtp    LIKE LINE OF lt_smtp.
+
+    CALL FUNCTION 'BAPI_USER_GET_DETAIL'
+      EXPORTING
+        username = iv_user
+      IMPORTING
+        address  = ls_address
+      TABLES
+        return   = lt_return
+        addsmtp  = lt_smtp.
+    LOOP AT lt_return TRANSPORTING NO FIELDS WHERE type CA 'EA'.
+      zcx_abapgit_exception=>raise( |User: { iv_user } not found| ).
+    ENDLOOP.
+
+    ev_fullname = ls_address-fullname.
+
+    " Choose the first email from SU01
+    SORT lt_smtp BY consnumber ASCENDING.
+
+    LOOP AT lt_smtp INTO ls_smtp.
+      ev_email = ls_smtp-e_mail.
+      EXIT.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    DATA ls_user TYPE ty_user.
+
+    " Get user details
+    TRY.
+        check_user_exists(
+          EXPORTING
+            iv_user     = iv_user
+          IMPORTING
+            ev_fullname = ms_user-name
+            ev_email    = ms_user-email ).
+      CATCH zcx_abapgit_exception.
+        " Could not find user, try to get from other clients
+        get_user_dtls_from_other_clnt( iv_user ).
+    ENDTRY.
+
+    " If the user has been found add it to the list
+    IF ms_user-name IS NOT INITIAL AND ms_user-email IS NOT INITIAL.
+      ls_user-user = iv_user.
+      ls_user-o_user = me.
+      INSERT ls_user INTO TABLE gt_user.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_email.
+
+    rv_email = ms_user-email.
+
+  ENDMETHOD.
+  METHOD get_instance.
+
+    FIELD-SYMBOLS <ls_user> TYPE ty_user.
+
+    READ TABLE gt_user ASSIGNING <ls_user> WITH TABLE KEY user = iv_user.
+    IF sy-subrc = 0.
+      ro_user = <ls_user>-o_user.
+    ELSE.
+      CREATE OBJECT ro_user
+        EXPORTING
+          iv_user = iv_user.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_name.
+
+    rv_name = ms_user-name.
+
+  ENDMETHOD.
+  METHOD get_user_dtls_from_other_clnt.
+
+    CONSTANTS lc_cc_category TYPE string VALUE 'C'.
+    TYPES ty_dev_clients TYPE SORTED TABLE OF sy-mandt WITH UNIQUE KEY table_line.
+    DATA lt_dev_clients TYPE ty_dev_clients.
+    FIELD-SYMBOLS <lv_dev_client> LIKE LINE OF lt_dev_clients.
+
+    " Could not find the user, try other development clients
+    SELECT mandt FROM t000 INTO TABLE lt_dev_clients
+        WHERE cccategory = lc_cc_category AND mandt <> sy-mandt
+        ORDER BY PRIMARY KEY.
+
+    LOOP AT lt_dev_clients ASSIGNING <lv_dev_client>.
+      SELECT SINGLE p~name_text a~smtp_addr INTO (ms_user-name, ms_user-email)
+          FROM usr21 AS u
+          INNER JOIN adrp AS p ON p~persnumber = u~persnumber
+                              AND p~client     = u~mandt
+          INNER JOIN adr6 AS a ON a~persnumber = u~persnumber
+                              AND a~addrnumber = u~addrnumber
+                              AND a~client     = u~mandt
+          CLIENT SPECIFIED
+          WHERE u~mandt      = <lv_dev_client>
+            AND u~bname      = iv_user
+            AND p~date_from <= sy-datum
+            AND p~date_to   >= sy-datum
+            AND a~date_from <= sy-datum.
+      IF sy-subrc = 0.
+        EXIT.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD reset.
+    CLEAR gt_user.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_settings IMPLEMENTATION.
+  METHOD get_activate_wo_popup.
+    rv_act_wo_popup = ms_user_settings-activate_wo_popup.
+  ENDMETHOD.
+  METHOD get_adt_jump_enabled.
+    rv_adt_jump_enabled = ms_user_settings-adt_jump_enabled.
+  ENDMETHOD.
+  METHOD get_commitmsg_body_size.
+    rv_length = ms_settings-commitmsg_body_size.
+  ENDMETHOD.
+  METHOD get_commitmsg_comment_default.
+    rv_default = ms_settings-commitmsg_comment_deflt.
+  ENDMETHOD.
+  METHOD get_commitmsg_comment_length.
+    rv_length = ms_settings-commitmsg_comment_length.
+  ENDMETHOD.
+  METHOD get_commitmsg_hide_author.
+    rv_hide_author = ms_settings-commitmsg_hide_author.
+  ENDMETHOD.
+  METHOD get_experimental_features.
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
+      rv_features = ms_settings-experimental_features.
+    ENDIF.
+  ENDMETHOD.
+  METHOD get_icon_scaling.
+    rv_scaling = ms_user_settings-icon_scaling.
+  ENDMETHOD.
+  METHOD get_link_hints_enabled.
+    rv_link_hints_enabled = ms_user_settings-link_hints_enabled.
+  ENDMETHOD.
+  METHOD get_link_hint_key.
+    rv_link_hint_key = ms_user_settings-link_hint_key.
+  ENDMETHOD.
+  METHOD get_max_lines.
+    rv_lines = ms_user_settings-max_lines.
+  ENDMETHOD.
+  METHOD get_parallel_proc_disabled.
+    rv_disable_parallel_proc = ms_user_settings-parallel_proc_disabled.
+  ENDMETHOD.
+  METHOD get_proxy_authentication.
+    rv_auth = ms_settings-proxy_auth.
+  ENDMETHOD.
+  METHOD get_proxy_bypass.
+    rt_bypass = ms_settings-proxy_bypass.
+  ENDMETHOD.
+  METHOD get_proxy_port.
+    rv_port = ms_settings-proxy_port.
+  ENDMETHOD.
+  METHOD get_proxy_url.
+    rv_proxy_url = ms_settings-proxy_url.
+  ENDMETHOD.
+  METHOD get_run_critical_tests.
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_false.
+      rv_run = ms_settings-run_critical_tests.
+    ENDIF.
+  ENDMETHOD.
+  METHOD get_settings_xml.
+
+    DATA: li_output TYPE REF TO zif_abapgit_xml_output.
+    CREATE OBJECT li_output TYPE zcl_abapgit_xml_output.
+
+    li_output->add( iv_name = zcl_abapgit_persistence_db=>c_type_settings
+                    ig_data = ms_settings ).
+
+    rv_settings_xml = li_output->render( ).
+
+  ENDMETHOD.
+  METHOD get_show_default_repo.
+    rv_show_default_repo = ms_user_settings-show_default_repo.
+  ENDMETHOD.
+  METHOD get_ui_theme.
+    DATA lv_frontend_theme TYPE string.
+    DATA lv_cl_gui TYPE string.
+
+    lv_cl_gui = 'CL_GUI_RESOURCES'.
+
+    rv_ui_theme = ms_user_settings-ui_theme.
+
+    IF rv_ui_theme = c_ui_theme-synced_with_gui AND iv_resolve_synced = abap_true.
+      TRY.
+          CALL METHOD (lv_cl_gui)=>get_themename
+            IMPORTING
+              themename              = lv_frontend_theme
+            EXCEPTIONS
+              get_std_resource_error = 1
+              OTHERS                 = 2.
+          IF sy-subrc <> 0.
+            rv_ui_theme = c_ui_theme-default.
+            RETURN.
+          ENDIF.
+        CATCH cx_sy_dyn_call_error.
+          rv_ui_theme = c_ui_theme-default.
+          RETURN.
+      ENDTRY.
+
+      CASE lv_frontend_theme.
+        WHEN 'Belize'.
+          rv_ui_theme = c_ui_theme-belize.
+        WHEN OTHERS.
+          rv_ui_theme = c_ui_theme-default.
+      ENDCASE.
+    ENDIF.
+  ENDMETHOD.
+  METHOD get_user_settings.
+    rs_settings = ms_user_settings.
+  ENDMETHOD.
+  METHOD set_activate_wo_popup.
+    ms_user_settings-activate_wo_popup = iv_act_wo_popup.
+  ENDMETHOD.
+  METHOD set_adt_jump_enanbled.
+    ms_user_settings-adt_jump_enabled = iv_adt_jump_enabled.
+  ENDMETHOD.
+  METHOD set_commitmsg_body_size.
+    ms_settings-commitmsg_body_size = iv_length.
+  ENDMETHOD.
+  METHOD set_commitmsg_comment_default.
+    ms_settings-commitmsg_comment_deflt = iv_default.
+  ENDMETHOD.
+  METHOD set_commitmsg_comment_length.
+    ms_settings-commitmsg_comment_length = iv_length.
+  ENDMETHOD.
+  METHOD set_commitmsg_hide_author.
+    ms_settings-commitmsg_hide_author = iv_hide_author.
+  ENDMETHOD.
+  METHOD set_defaults.
+
+    CLEAR ms_settings.
+
+    set_proxy_authentication( abap_false ).
+    set_run_critical_tests( abap_false ).
+    set_experimental_features( '' ).
+    set_max_lines( 500 ).
+    set_adt_jump_enanbled( abap_true ).
+    set_show_default_repo( abap_false ).
+    set_commitmsg_comment_length( c_commitmsg_comment_length_dft ).
+    set_commitmsg_body_size( c_commitmsg_body_size_dft ).
+    set_default_link_hint_key( ).
+    set_icon_scaling( '' ).
+
+  ENDMETHOD.
+  METHOD set_default_link_hint_key.
+    " Since #5859 'f' is used for "focus filter", we use 't' as the new default
+    set_link_hint_key( |t| ).
+  ENDMETHOD.
+  METHOD set_experimental_features.
+    ms_settings-experimental_features = iv_features.
+  ENDMETHOD.
+  METHOD set_icon_scaling.
+    ms_user_settings-icon_scaling = iv_scaling.
+    IF ms_user_settings-icon_scaling NA c_icon_scaling.
+      ms_user_settings-icon_scaling = ''. " Reset to default
+    ENDIF.
+  ENDMETHOD.
+  METHOD set_link_hints_enabled.
+    ms_user_settings-link_hints_enabled = iv_link_hints_enabled.
+  ENDMETHOD.
+  METHOD set_link_hint_key.
+    ms_user_settings-link_hint_key = iv_link_hint_key.
+  ENDMETHOD.
+  METHOD set_max_lines.
+    ms_user_settings-max_lines = iv_lines.
+  ENDMETHOD.
+  METHOD set_parallel_proc_disabled.
+    ms_user_settings-parallel_proc_disabled = iv_disable_parallel_proc.
+  ENDMETHOD.
+  METHOD set_proxy_authentication.
+    ms_settings-proxy_auth = iv_auth.
+  ENDMETHOD.
+  METHOD set_proxy_bypass.
+    ms_settings-proxy_bypass = it_bypass.
+  ENDMETHOD.
+  METHOD set_proxy_port.
+    ms_settings-proxy_port = iv_port.
+  ENDMETHOD.
+  METHOD set_proxy_url.
+    ms_settings-proxy_url = iv_url.
+  ENDMETHOD.
+  METHOD set_run_critical_tests.
+    ms_settings-run_critical_tests = iv_run.
+  ENDMETHOD.
+  METHOD set_show_default_repo.
+    ms_user_settings-show_default_repo = iv_show_default_repo.
+  ENDMETHOD.
+  METHOD set_ui_theme.
+    ms_user_settings-ui_theme = iv_ui_theme.
+    IF ms_user_settings-ui_theme <> c_ui_theme-default
+        AND ms_user_settings-ui_theme <> c_ui_theme-dark
+        AND ms_user_settings-ui_theme <> c_ui_theme-belize
+        AND ms_user_settings-ui_theme <> c_ui_theme-synced_with_gui.
+      ms_user_settings-ui_theme = c_ui_theme-default. " Reset to default
+    ENDIF.
+  ENDMETHOD.
+  METHOD set_user_settings.
+    ms_user_settings = is_user_settings.
+
+    IF ms_user_settings-link_hint_key IS INITIAL.
+      set_default_link_hint_key( ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD set_xml_settings.
+
+    DATA: lo_input TYPE REF TO zif_abapgit_xml_input.
+    CREATE OBJECT lo_input TYPE zcl_abapgit_xml_input EXPORTING iv_xml = iv_settings_xml.
+
+    CLEAR ms_settings.
+
+    lo_input->read(
+      EXPORTING
+        iv_name = zcl_abapgit_persistence_db=>c_type_settings
+      CHANGING
+        cg_data = ms_settings ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_language IMPLEMENTATION.
+  METHOD class_constructor.
+
+    DATA lv_dummy TYPE string.
+
+    GET LOCALE LANGUAGE gv_login_language COUNTRY lv_dummy MODIFIER lv_dummy.
+
+  ENDMETHOD.
+  METHOD restore_login_language.
+
+    SET LOCALE LANGUAGE gv_login_language.
+
+  ENDMETHOD.
+  METHOD set_current_language.
+
+    SET LOCALE LANGUAGE iv_language.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_feature IMPLEMENTATION.
+  METHOD is_enabled.
+
+    DATA:
+      lv_features TYPE string,
+      lt_features TYPE string_table.
+
+    IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true.
+      RETURN.
+    ENDIF.
+
+    lv_features = zcl_abapgit_persist_factory=>get_settings( )->read( )->get_experimental_features( ).
+    CONDENSE lv_features NO-GAPS.
+
+    rv_run = boolc( lv_features = abap_true ).
+
+    IF iv_feature IS NOT INITIAL.
+      SPLIT lv_features AT ',' INTO TABLE lt_features.
+      READ TABLE lt_features TRANSPORTING NO FIELDS WITH TABLE KEY table_line = iv_feature.
+      rv_run = boolc( rv_run = abap_true OR sy-subrc = 0 ).
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_environment IMPLEMENTATION.
+  METHOD is_system_changes_allowed.
+
+    DATA:
+      lv_systemedit         TYPE tadir-edtflag,
+      lv_sys_cliinddep_edit TYPE t000-ccnocliind,
+      lv_is_shadow          TYPE abap_bool,
+      ls_upginfo            TYPE uvers,
+      lv_is_upgrade         TYPE abap_bool.
+
+    CALL FUNCTION 'TR_SYS_PARAMS'
+      IMPORTING
+        systemedit         = lv_systemedit
+        sys_cliinddep_edit = lv_sys_cliinddep_edit
+      EXCEPTIONS
+        no_systemname      = 1
+        no_systemtype      = 2
+        OTHERS             = 3.
+    IF sy-subrc <> 0.
+      " Assume system can't be changed
+      RETURN.
+    ENDIF.
+
+    CALL FUNCTION 'UPG_IS_SHADOW_SYSTEM'
+      IMPORTING
+        ev_shadow = lv_is_shadow.
+
+    CALL FUNCTION 'UPG_GET_ACTIVE_COMP_UPGRADE'
+      EXPORTING
+        iv_component = 'SAP_BASIS'
+        iv_upgtype   = 'A'
+        iv_buffered  = abap_false
+      IMPORTING
+        ev_upginfo   = ls_upginfo
+      EXCEPTIONS
+        OTHERS       = 4.
+    IF sy-subrc = 0 AND ls_upginfo-putstatus NA 'ITU'.
+      lv_is_upgrade = abap_true.
+    ENDIF.
+
+    " SAP system has status 'not modifiable' (TK 102)
+    " Changes to repository objects are not permitted in this client (TK 729)
+    " Shadow system
+    " Running upgrade
+    rv_result = boolc(
+      lv_systemedit <> 'N' AND
+      lv_sys_cliinddep_edit NA '23' AND
+      lv_is_shadow <> abap_true AND
+      lv_is_upgrade <> abap_true ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_environment~compare_with_inactive.
+    rv_result = zif_abapgit_environment~is_sap_cloud_platform( ).
+  ENDMETHOD.
+  METHOD zif_abapgit_environment~get_basis_release.
+
+    SELECT SINGLE release extrelease FROM cvers INTO (rs_result-release, rs_result-sp)
+      WHERE component = 'SAP_BASIS' ##SUBRC_OK.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_environment~is_merged.
+    DATA lr_marker TYPE REF TO data ##NEEDED.
+
+    IF mv_is_merged = abap_undefined.
+      TRY.
+          CREATE DATA lr_marker TYPE REF TO ('LIF_ABAPMERGE_MARKER').
+          "No exception --> marker found
+          mv_is_merged = abap_true.
+
+        CATCH cx_sy_create_data_error.
+          mv_is_merged = abap_false.
+      ENDTRY.
+    ENDIF.
+    rv_result = mv_is_merged.
+  ENDMETHOD.
+  METHOD zif_abapgit_environment~is_repo_object_changes_allowed.
+    IF mv_modifiable = abap_undefined.
+      mv_modifiable = is_system_changes_allowed( ).
+    ENDIF.
+    rv_result = mv_modifiable.
+  ENDMETHOD.
+  METHOD zif_abapgit_environment~is_restart_required.
+    " This method will be used in the context of SAP Cloud Platform:
+    " Pull/Push operations are executed in background jobs.
+    " In case of the respective application server needs to be restarted,
+    " it is required to terminate the background job and reschedule again.
+    rv_result = abap_false.
+    TRY.
+        CALL METHOD ('CL_APJ_SCP_TOOLS')=>('IS_RESTART_REQUIRED')
+          RECEIVING
+            restart_required = rv_result.
+      CATCH cx_sy_dyn_call_illegal_method cx_sy_dyn_call_illegal_class.
+        rv_result = abap_false.
+    ENDTRY.
+  ENDMETHOD.
+  METHOD zif_abapgit_environment~is_sap_cloud_platform.
+    IF mv_cloud = abap_undefined.
+      TRY.
+          CALL METHOD ('CL_COS_UTILITIES')=>('IS_SAP_CLOUD_PLATFORM')
+            RECEIVING
+              rv_is_sap_cloud_platform = mv_cloud.
+        CATCH cx_sy_dyn_call_error.
+          mv_cloud = abap_false.
+      ENDTRY.
+    ENDIF.
+    rv_result = mv_cloud.
+  ENDMETHOD.
+  METHOD zif_abapgit_environment~is_sap_object_allowed.
+
+    rv_allowed = cl_enh_badi_def_utility=>is_sap_system( ).
+    IF rv_allowed = abap_true.
+      RETURN.
+    ENDIF.
+
+    rv_allowed = zcl_abapgit_exit=>get_instance( )->allow_sap_objects( ).
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_environment~get_system_language_filter.
+    DATA lv_translation_detective_lang TYPE spras.
+    DATA lv_pseudo_translation_language TYPE spras.
+    FIELD-SYMBOLS <ls_system_language_filter> LIKE LINE OF rt_system_language_filter.
+
+    " Translation Object Detective
+    " https://help.sap.com/docs/ABAP_PLATFORM_NEW/ceb25152cb0d4adba664cebea2bf4670/88a3d3cbccf64601975acabaccdfde45.html
+    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_INPUT'
+      EXPORTING
+        input            = '1Q'
+      IMPORTING
+        output           = lv_translation_detective_lang
+      EXCEPTIONS
+        unknown_language = 1
+        OTHERS           = 2.
+    IF sy-subrc = 1.
+      " The language for Translation Object Detective was not setup
+    ENDIF.
+    IF NOT lv_translation_detective_lang IS INITIAL.
+      APPEND INITIAL LINE TO rt_system_language_filter ASSIGNING <ls_system_language_filter>.
+      <ls_system_language_filter>-sign = 'E'.
+      <ls_system_language_filter>-option = 'EQ'.
+      <ls_system_language_filter>-low = lv_translation_detective_lang.
+    ENDIF.
+    " 1943470 - Using technical language key 2Q to create pseudo-translations of ABAP developments
+    " https://launchpad.support.sap.com/#/notes/1943470
+    CALL FUNCTION 'CONVERSION_EXIT_ISOLA_INPUT'
+      EXPORTING
+        input            = '2Q'
+      IMPORTING
+        output           = lv_pseudo_translation_language
+      EXCEPTIONS
+        unknown_language = 1
+        OTHERS           = 2.
+    IF sy-subrc = 1.
+      " The language for Pseudo Translation was not setup
+    ENDIF.
+    IF NOT lv_pseudo_translation_language IS INITIAL.
+      APPEND INITIAL LINE TO rt_system_language_filter ASSIGNING <ls_system_language_filter>.
+      <ls_system_language_filter>-sign = 'E'.
+      <ls_system_language_filter>-option = 'EQ'.
+      <ls_system_language_filter>-low = lv_pseudo_translation_language.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_abapgit_environment~is_variant_maintenance.
+
+    DATA:
+      lt_variscreens TYPE STANDARD TABLE OF rsdynnr
+                          WITH NON-UNIQUE DEFAULT KEY.
+
+    " Memory is set in LSVARF08 / EXPORT_SCREEN_TABLES.
+    IMPORT variscreens = lt_variscreens FROM MEMORY ID '%_SCRNR_%'.
+
+    rv_is_variant_maintenance = boolc( lines( lt_variscreens ) > 0 ).
+
+  ENDMETHOD.
+
+  METHOD zif_abapgit_environment~init_parallel_processing.
+
+    DATA: lv_group TYPE rzlli_apcl.
+
+    lv_group = iv_group.
+
+    " SPBT_INITIALIZE gives error PBT_ENV_ALREADY_INITIALIZED if called
+    " multiple times in same session
+    CALL FUNCTION 'SPBT_INITIALIZE'
+      EXPORTING
+        group_name                     = lv_group
+      IMPORTING
+        free_pbt_wps                   = rv_free_work_processes
+      EXCEPTIONS
+        invalid_group_name             = 1
+        internal_error                 = 2
+        pbt_env_already_initialized    = 3
+        currently_no_resources_avail   = 4
+        no_pbt_resources_found         = 5
+        cant_init_different_pbt_groups = 6
+        OTHERS                         = 7.
+    " If SPBT_INITIALIZE fails, check transactions RZ12, SM50, SM21, SARFC
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS zcl_abapgit_abap_language_vers IMPLEMENTATION.
+  METHOD check_abap_language_version.
+
+    " Check if ABAP language version matches repository setting
+    IF is_item-abap_language_version IS NOT INITIAL AND iv_abap_language_version <> is_item-abap_language_version.
+      zcx_abapgit_exception=>raise(
+        |Object { is_item-obj_type } { is_item-obj_name } has { get_description( iv_abap_language_version ) }| &&
+        | but repository is set to { get_description( is_item-abap_language_version ) }| ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    mo_dot_abapgit = io_dot_abapgit.
+
+    IF zcl_abapgit_feature=>is_enabled( c_feature_flag ) = abap_false.
+      mv_has_abap_language_vers = abap_undefined.
+    ELSEIF get_abap_language_vers_by_repo( ) = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
+      mv_has_abap_language_vers = abap_undefined.
+    ELSEIF get_abap_language_vers_by_repo( ) = zif_abapgit_dot_abapgit=>c_abap_language_version-ignore.
+      mv_has_abap_language_vers = abap_false.
+    ELSE.
+      mv_has_abap_language_vers = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_abap_language_vers_by_devc.
+
+    DATA lv_class TYPE string.
+    DATA lv_abap_lang_version_devc TYPE string.
+    DATA lo_abap_language_version_cfg TYPE REF TO object.
+
+    lv_class = 'CL_ABAP_LANGUAGE_VERSION_CFG'.
+
+    TRY.
+        CALL METHOD (lv_class)=>('GET_INSTANCE')
+          RECEIVING
+            ro_instance = lo_abap_language_version_cfg.
+
+        " For non-existing packages, GET_PACKAGE_DEFAULT_VERSION returns "standard"
+        " but we want to return "undefined" in this case to allow any new packages
+        IF zcl_abapgit_factory=>get_sap_package( iv_package )->exists( ) = abap_true.
+          CALL METHOD lo_abap_language_version_cfg->('IF_ABAP_LANGUAGE_VERSION_CFG~GET_PACKAGE_DEFAULT_VERSION')
+            EXPORTING
+              iv_package_name             = iv_package
+            RECEIVING
+              rv_default_language_version = lv_abap_lang_version_devc.
+        ELSE.
+          lv_abap_lang_version_devc = '-'.
+        ENDIF.
+
+        CASE lv_abap_lang_version_devc.
+          WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-standard.
+            rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-standard.
+          WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-key_user.
+            rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-key_user.
+          WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-cloud_development.
+            rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-cloud_development.
+          WHEN OTHERS.
+            rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
+        ENDCASE.
+
+      CATCH cx_root.
+        rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD get_abap_language_vers_by_objt.
+
+    DATA lv_class TYPE string.
+    DATA lo_abap_language_version TYPE REF TO object.
+
+    IF mv_has_abap_language_vers = abap_undefined.
+      rv_allowed_abap_langu_version = c_any_abap_language_version.
+    ELSEIF mv_has_abap_language_vers = abap_false.
+      rv_allowed_abap_langu_version = c_no_abap_language_version.
+    ELSE. " abap_true
+
+      lv_class = 'CL_ABAP_LANGUAGE_VERSION'.
+
+      TRY.
+          CALL METHOD (lv_class)=>('GET_INSTANCE')
+            RECEIVING
+              ro_version_handler = lo_abap_language_version.
+
+          CALL METHOD lo_abap_language_version->('IF_ABAP_LANGUAGE_VERSION~GET_DEFAULT_VERSION')
+            EXPORTING
+              iv_object_type     = iv_object_type
+              iv_package         = iv_package
+            RECEIVING
+              rv_default_version = rv_allowed_abap_langu_version.
+
+        CATCH cx_root.
+          rv_allowed_abap_langu_version = get_default_abap_language_vers( iv_object_type ).
+      ENDTRY.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_abap_language_vers_by_repo.
+    rv_abap_language_version = mo_dot_abapgit->get_abap_language_version( ).
+    IF rv_abap_language_version IS INITIAL.
+      rv_abap_language_version = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
+    ENDIF.
+  ENDMETHOD.
+  METHOD get_default_abap_language_vers.
+
+    IF zcl_abapgit_factory=>get_environment( )->is_sap_cloud_platform( ) = abap_true.
+      " On BTP, default to ABAP for Cloud Development
+      rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version_cloud-cloud_development.
+    ELSE.
+      " Differentiate between source code object and non-source code objects
+      CASE iv_object_type.
+        WHEN 'BDEF' OR 'CLAS' OR 'FUGR' OR 'FUGS' OR 'INTF' OR 'PROG' OR 'TYPE'.
+          rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version_src-standard.
+        WHEN OTHERS.
+          rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version-standard.
+      ENDCASE.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_description.
+
+    CASE iv_abap_language_version.
+      WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-standard
+        OR zif_abapgit_aff_types_v1=>co_abap_language_version_src-standard.
+        rv_description = 'Standard ABAP'.
+      WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-key_user
+        OR zif_abapgit_aff_types_v1=>co_abap_language_version_src-key_user.
+        rv_description = 'ABAP for Key Users'.
+      WHEN zif_abapgit_aff_types_v1=>co_abap_language_version-cloud_development
+        OR zif_abapgit_aff_types_v1=>co_abap_language_version_src-cloud_development.
+        rv_description = 'ABAP for Cloud Development'.
+      WHEN OTHERS.
+        rv_description = 'Undefined'.
+    ENDCASE.
+
+    rv_description = |ABAP language version "{ rv_description }"|.
+
+  ENDMETHOD.
+  METHOD get_repo_abap_language_version.
+
+    DATA lv_abap_language_version TYPE string.
+
+    IF mv_has_abap_language_vers <> abap_undefined. " abap_true or abap_false
+      lv_abap_language_version = mo_dot_abapgit->get_abap_language_version( ).
+    ENDIF.
+
+    CASE lv_abap_language_version.
+      WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-standard.
+        rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version_src-standard.
+      WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-key_user.
+        rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version_src-key_user.
+      WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-cloud_development.
+        rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version_src-cloud_development.
+      WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-ignore.
+        rv_abap_language_version = c_no_abap_language_version.
+      WHEN OTHERS. " undefined or feature off
+        rv_abap_language_version = c_any_abap_language_version.
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD is_import_allowed.
+
+    DATA lv_package_version TYPE string.
+
+    lv_package_version = get_abap_language_vers_by_devc( iv_package ).
+
+    CASE get_abap_language_vers_by_repo( ).
+      WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-undefined
+        OR zif_abapgit_dot_abapgit=>c_abap_language_version-ignore.
+        rv_allowed = abap_true.
+      WHEN OTHERS.
+        IF get_abap_language_vers_by_repo( ) = lv_package_version.
+          " allow packages that match repo setting
+          rv_allowed = abap_true.
+        ELSEIF lv_package_version = zif_abapgit_dot_abapgit=>c_abap_language_version-undefined.
+          " always allow new packages
+          rv_allowed = abap_true.
+        ELSE.
+          rv_allowed = abap_false.
+        ENDIF.
+    ENDCASE.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_DATA_UTILS IMPLEMENTATION.
   METHOD build_config_filename.
 
@@ -131095,8 +131095,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-12-14T07:55:50.530Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-14T07:55:50.530Z`.
+* abapmerge 0.16.0 - 2023-12-14T08:36:30.373Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-14T08:36:30.373Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
