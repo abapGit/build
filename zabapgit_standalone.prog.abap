@@ -54,8 +54,6 @@ INTERFACE zif_abapgit_gui_event_handler DEFERRED.
 INTERFACE zif_abapgit_gui_event DEFERRED.
 INTERFACE zif_abapgit_gui_error_handler DEFERRED.
 INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
-INTERFACE zif_abapgit_stage_logic DEFERRED.
-INTERFACE zif_abapgit_merge DEFERRED.
 INTERFACE zif_abapgit_repo_srv DEFERRED.
 INTERFACE zif_abapgit_repo_online DEFERRED.
 INTERFACE zif_abapgit_repo_listener DEFERRED.
@@ -63,6 +61,8 @@ INTERFACE zif_abapgit_repo_checksums DEFERRED.
 INTERFACE zif_abapgit_repo DEFERRED.
 INTERFACE zif_abapgit_object_filter DEFERRED.
 INTERFACE zif_abapgit_dot_abapgit DEFERRED.
+INTERFACE zif_abapgit_stage_logic DEFERRED.
+INTERFACE zif_abapgit_merge DEFERRED.
 INTERFACE zif_abapgit_persistence DEFERRED.
 INTERFACE zif_abapgit_persist_user DEFERRED.
 INTERFACE zif_abapgit_persist_settings DEFERRED.
@@ -121,18 +121,12 @@ CLASS zcl_abapgit_xml_pretty DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml_output DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml_input DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml DEFINITION DEFERRED.
-CLASS zcl_abapgit_zip DEFINITION DEFERRED.
-CLASS zcl_abapgit_version DEFINITION DEFERRED.
 CLASS zcl_abapgit_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_timer DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_map DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_buffer DEFINITION DEFERRED.
-CLASS zcl_abapgit_requirement_helper DEFINITION DEFERRED.
-CLASS zcl_abapgit_repo_labels DEFINITION DEFERRED.
 CLASS zcl_abapgit_path DEFINITION DEFERRED.
-CLASS zcl_abapgit_news DEFINITION DEFERRED.
 CLASS zcl_abapgit_log DEFINITION DEFERRED.
-CLASS zcl_abapgit_item_state DEFINITION DEFERRED.
 CLASS zcl_abapgit_diff DEFINITION DEFERRED.
 CLASS zcl_abapgit_convert DEFINITION DEFERRED.
 CLASS zcl_abapgit_ui_injector DEFINITION DEFERRED.
@@ -216,9 +210,6 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_css DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_abap DEFINITION DEFERRED.
-CLASS zcl_abapgit_stage_logic DEFINITION DEFERRED.
-CLASS zcl_abapgit_stage DEFINITION DEFERRED.
-CLASS zcl_abapgit_merge DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_status DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_srv DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_online DEFINITION DEFERRED.
@@ -228,8 +219,17 @@ CLASS zcl_abapgit_repo_cs_migration DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_content_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_checksums DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo DEFINITION DEFERRED.
-CLASS zcl_abapgit_object_filter_tran DEFINITION DEFERRED.
 CLASS zcl_abapgit_dot_abapgit DEFINITION DEFERRED.
+CLASS zcl_abapgit_zip DEFINITION DEFERRED.
+CLASS zcl_abapgit_version DEFINITION DEFERRED.
+CLASS zcl_abapgit_requirement_helper DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_labels DEFINITION DEFERRED.
+CLASS zcl_abapgit_news DEFINITION DEFERRED.
+CLASS zcl_abapgit_item_state DEFINITION DEFERRED.
+CLASS zcl_abapgit_stage_logic DEFINITION DEFERRED.
+CLASS zcl_abapgit_stage DEFINITION DEFERRED.
+CLASS zcl_abapgit_object_filter_tran DEFINITION DEFERRED.
+CLASS zcl_abapgit_merge DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_user DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_repo DEFINITION DEFERRED.
 CLASS zcl_abapgit_persistence_db DEFINITION DEFERRED.
@@ -4472,6 +4472,71 @@ INTERFACE zif_abapgit_objects.
 
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_merge .
+
+  TYPES:
+    BEGIN OF ty_merge,
+      repo     TYPE REF TO zcl_abapgit_repo_online,
+      source   TYPE zif_abapgit_git_definitions=>ty_git_branch,
+      target   TYPE zif_abapgit_git_definitions=>ty_git_branch,
+      common   TYPE zif_abapgit_definitions=>ty_ancestor,
+      stree    TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
+      ttree    TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
+      ctree    TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
+      result   TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
+      stage    TYPE REF TO zcl_abapgit_stage,
+      conflict TYPE string,
+    END OF ty_merge .
+  TYPES:
+    BEGIN OF ty_merge_conflict,
+      path        TYPE string,
+      filename    TYPE string,
+      source_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1,
+      source_data TYPE xstring,
+      target_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1,
+      target_data TYPE xstring,
+      result_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1,
+      result_data TYPE xstring,
+    END OF ty_merge_conflict .
+  TYPES:
+    ty_merge_conflict_tt TYPE STANDARD TABLE OF ty_merge_conflict WITH DEFAULT KEY .
+
+  METHODS get_conflicts
+    RETURNING
+      VALUE(rt_conflicts) TYPE ty_merge_conflict_tt .
+  METHODS get_result
+    RETURNING
+      VALUE(rs_merge) TYPE ty_merge .
+  METHODS get_source_branch
+    RETURNING
+      VALUE(rv_source_branch) TYPE string .
+  METHODS has_conflicts
+    RETURNING
+      VALUE(rv_conflicts_exists) TYPE abap_bool .
+  METHODS resolve_conflict
+    IMPORTING
+      !is_conflict TYPE ty_merge_conflict
+    RAISING
+      zcx_abapgit_exception .
+  METHODS run
+    RAISING
+      zcx_abapgit_exception .
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_stage_logic .
+
+  METHODS get
+    IMPORTING
+      !io_repo        TYPE REF TO zcl_abapgit_repo_online
+      !ii_obj_filter  TYPE REF TO zif_abapgit_object_filter OPTIONAL
+    RETURNING
+      VALUE(rs_files) TYPE zif_abapgit_definitions=>ty_stage_files
+    RAISING
+      zcx_abapgit_exception .
+
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_dot_abapgit.
 
   TYPES:
@@ -5410,71 +5475,6 @@ INTERFACE zif_abapgit_repo_srv .
       VALUE(rt_labels) TYPE ty_labels
     RAISING
       zcx_abapgit_exception.
-
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_merge .
-
-  TYPES:
-    BEGIN OF ty_merge,
-      repo     TYPE REF TO zcl_abapgit_repo_online,
-      source   TYPE zif_abapgit_git_definitions=>ty_git_branch,
-      target   TYPE zif_abapgit_git_definitions=>ty_git_branch,
-      common   TYPE zif_abapgit_definitions=>ty_ancestor,
-      stree    TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
-      ttree    TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
-      ctree    TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
-      result   TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
-      stage    TYPE REF TO zcl_abapgit_stage,
-      conflict TYPE string,
-    END OF ty_merge .
-  TYPES:
-    BEGIN OF ty_merge_conflict,
-      path        TYPE string,
-      filename    TYPE string,
-      source_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1,
-      source_data TYPE xstring,
-      target_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1,
-      target_data TYPE xstring,
-      result_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1,
-      result_data TYPE xstring,
-    END OF ty_merge_conflict .
-  TYPES:
-    ty_merge_conflict_tt TYPE STANDARD TABLE OF ty_merge_conflict WITH DEFAULT KEY .
-
-  METHODS get_conflicts
-    RETURNING
-      VALUE(rt_conflicts) TYPE ty_merge_conflict_tt .
-  METHODS get_result
-    RETURNING
-      VALUE(rs_merge) TYPE ty_merge .
-  METHODS get_source_branch
-    RETURNING
-      VALUE(rv_source_branch) TYPE string .
-  METHODS has_conflicts
-    RETURNING
-      VALUE(rv_conflicts_exists) TYPE abap_bool .
-  METHODS resolve_conflict
-    IMPORTING
-      !is_conflict TYPE ty_merge_conflict
-    RAISING
-      zcx_abapgit_exception .
-  METHODS run
-    RAISING
-      zcx_abapgit_exception .
-
-ENDINTERFACE.
-
-INTERFACE zif_abapgit_stage_logic .
-
-  METHODS get
-    IMPORTING
-      !io_repo        TYPE REF TO zcl_abapgit_repo_online
-      !ii_obj_filter  TYPE REF TO zif_abapgit_object_filter OPTIONAL
-    RETURNING
-      VALUE(rs_files) TYPE zif_abapgit_definitions=>ty_stage_files
-    RAISING
-      zcx_abapgit_exception .
 
 ENDINTERFACE.
 
@@ -17649,6 +17649,575 @@ CLASS zcl_abapgit_persistence_user DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
+CLASS zcl_abapgit_merge DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_merge.
+
+    METHODS constructor
+      IMPORTING
+        !io_repo          TYPE REF TO zcl_abapgit_repo_online
+        !iv_source_branch TYPE string
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      ty_ancestor_tt TYPE STANDARD TABLE OF zif_abapgit_definitions=>ty_ancestor WITH DEFAULT KEY .
+    TYPES:
+      ty_visit_tt TYPE STANDARD TABLE OF zif_abapgit_git_definitions=>ty_sha1 WITH DEFAULT KEY .
+
+    DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
+    DATA ms_merge TYPE zif_abapgit_merge=>ty_merge .
+    DATA mt_conflicts TYPE zif_abapgit_merge=>ty_merge_conflict_tt .
+    DATA mt_objects TYPE zif_abapgit_definitions=>ty_objects_tt .
+    DATA mv_source_branch TYPE string .
+
+    METHODS visit
+      IMPORTING
+        !iv_parent TYPE zif_abapgit_git_definitions=>ty_sha1
+      CHANGING
+        !ct_visit  TYPE ty_visit_tt .
+    METHODS all_files
+      RETURNING
+        VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_expanded_tt .
+    METHODS calculate_result
+      RAISING
+        zcx_abapgit_exception .
+    METHODS fetch_git
+      RETURNING
+        VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS find_ancestors
+      IMPORTING
+        !iv_commit          TYPE zif_abapgit_git_definitions=>ty_sha1
+      RETURNING
+        VALUE(rt_ancestors) TYPE ty_ancestor_tt
+      RAISING
+        zcx_abapgit_exception .
+    METHODS find_first_common
+      IMPORTING
+        !it_list1        TYPE ty_ancestor_tt
+        !it_list2        TYPE ty_ancestor_tt
+      RETURNING
+        VALUE(rs_common) TYPE zif_abapgit_definitions=>ty_ancestor
+      RAISING
+        zcx_abapgit_exception .
+ENDCLASS.
+CLASS zcl_abapgit_object_filter_tran DEFINITION
+  CREATE PUBLIC.
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_object_filter.
+
+    METHODS set_filter_values
+      IMPORTING
+        iv_package  TYPE tadir-devclass
+        it_r_trkorr TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt
+      RAISING
+        zcx_abapgit_exception .
+
+    METHODS get_filter_values
+      EXPORTING
+        ev_package  TYPE tadir-devclass
+        et_r_trkorr TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt.
+
+  PROTECTED SECTION.
+    TYPES: BEGIN OF ty_e071_filter,
+             pgmid    TYPE tadir-pgmid,
+             object   TYPE tadir-object,
+             obj_name TYPE trobj_name,
+           END OF ty_e071_filter,
+           ty_e071_filter_tt TYPE STANDARD TABLE OF ty_e071_filter.
+
+    METHODS adjust_local_filter
+      IMPORTING
+                it_e071_filter   TYPE ty_e071_filter_tt
+                iv_package       TYPE tadir-devclass
+      RETURNING VALUE(rt_filter) TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+                zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+
+    DATA mt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt .
+    DATA mt_r_trkorr TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt .
+    DATA mv_package TYPE tadir-devclass.
+
+    METHODS generate_local_filter
+      IMPORTING
+        iv_package       TYPE tadir-devclass
+        it_r_trkorr      TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt
+      RETURNING
+        VALUE(rt_filter) TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception .
+
+    METHODS init .
+
+    METHODS get_all_sub_packages
+      IMPORTING
+        iv_package       TYPE tadir-devclass
+      RETURNING
+        VALUE(rt_filter) TYPE zif_abapgit_definitions=>ty_tadir_tt.
+ENDCLASS.
+CLASS zcl_abapgit_stage DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS method_description
+      IMPORTING
+        !iv_method            TYPE zif_abapgit_definitions=>ty_method
+      RETURNING
+        VALUE(rv_description) TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    METHODS constructor
+      IMPORTING
+        !iv_merge_source TYPE zif_abapgit_git_definitions=>ty_sha1 OPTIONAL .
+    METHODS add
+      IMPORTING
+        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
+        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
+        !iv_data     TYPE xstring
+        !is_status   TYPE zif_abapgit_definitions=>ty_result OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
+    METHODS reset
+      IMPORTING
+        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
+        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
+      RAISING
+        zcx_abapgit_exception .
+    METHODS rm
+      IMPORTING
+        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
+        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
+        !is_status   TYPE zif_abapgit_definitions=>ty_result OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
+    METHODS ignore
+      IMPORTING
+        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
+        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_merge_source
+      RETURNING
+        VALUE(rv_source) TYPE zif_abapgit_git_definitions=>ty_sha1 .
+    METHODS count
+      RETURNING
+        VALUE(rv_count) TYPE i .
+    METHODS get_all
+      RETURNING
+        VALUE(rt_stage) TYPE zif_abapgit_definitions=>ty_stage_tt .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA mt_stage TYPE zif_abapgit_definitions=>ty_stage_tt .
+    DATA mv_merge_source TYPE zif_abapgit_git_definitions=>ty_sha1 .
+
+    METHODS append
+      IMPORTING
+        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
+        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
+        !iv_method   TYPE zif_abapgit_definitions=>ty_method
+        !is_status   TYPE zif_abapgit_definitions=>ty_result OPTIONAL
+        !iv_data     TYPE xstring OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
+ENDCLASS.
+CLASS zcl_abapgit_stage_logic DEFINITION
+  CREATE PRIVATE
+  FRIENDS ZCL_ABAPGIT_factory .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_stage_logic .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    CLASS-METHODS:
+      remove_ignored
+        IMPORTING io_repo  TYPE REF TO zcl_abapgit_repo_online
+        CHANGING  cs_files TYPE zif_abapgit_definitions=>ty_stage_files,
+      remove_identical
+        CHANGING cs_files TYPE zif_abapgit_definitions=>ty_stage_files.
+
+ENDCLASS.
+CLASS zcl_abapgit_item_state DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS local
+      RETURNING
+        VALUE(rv_state) TYPE zif_abapgit_git_definitions=>ty_item_state.
+    METHODS remote
+      RETURNING
+        VALUE(rv_state) TYPE zif_abapgit_git_definitions=>ty_item_state.
+    METHODS is_reassigned
+      RETURNING
+        VALUE(rv_is_reassigned) TYPE abap_bool.
+    METHODS is_unchanged
+      RETURNING
+        VALUE(rv_is_unchanged) TYPE abap_bool.
+    METHODS sum_with_repo_item
+      IMPORTING
+        !is_repo_item TYPE zif_abapgit_definitions=>ty_repo_item.
+    METHODS sum_with_status_item
+      IMPORTING
+        !is_status_item TYPE zif_abapgit_definitions=>ty_result.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    DATA mv_lstate TYPE zif_abapgit_git_definitions=>ty_item_state.
+    DATA mv_rstate TYPE zif_abapgit_git_definitions=>ty_item_state.
+    DATA mv_is_reassigned TYPE abap_bool.
+
+    CLASS-METHODS reduce
+      IMPORTING
+        iv_prev       TYPE zif_abapgit_git_definitions=>ty_item_state
+        iv_cur        TYPE zif_abapgit_git_definitions=>ty_item_state
+      RETURNING
+        VALUE(rv_new) TYPE zif_abapgit_git_definitions=>ty_item_state.
+ENDCLASS.
+CLASS zcl_abapgit_news DEFINITION
+  FINAL
+  CREATE PRIVATE .
+
+  PUBLIC SECTION.
+
+    TYPES:
+      BEGIN OF ty_log,
+        version      TYPE string,
+        pos_to_cur   TYPE i,
+        is_header    TYPE abap_bool,
+        is_important TYPE abap_bool,
+        text         TYPE string,
+      END OF ty_log .
+    TYPES:
+      ty_logs TYPE STANDARD TABLE OF ty_log WITH DEFAULT KEY .
+
+    CONSTANTS c_tail_length TYPE i VALUE 5 ##NO_TEXT.     " Number of versions to display if no updates
+
+    CLASS-METHODS create     " TODO REFACTOR
+      IMPORTING
+        !io_repo           TYPE REF TO zcl_abapgit_repo
+      RETURNING
+        VALUE(ro_instance) TYPE REF TO zcl_abapgit_news
+      RAISING
+        zcx_abapgit_exception .
+    METHODS get_log
+      RETURNING
+        VALUE(rt_log) TYPE ty_logs .
+    METHODS has_news
+      RETURNING
+        VALUE(rv_boolean) TYPE abap_bool .
+    METHODS has_important
+      RETURNING
+        VALUE(rv_boolean) TYPE abap_bool .
+    METHODS has_updates
+      RETURNING
+        VALUE(rv_boolean) TYPE abap_bool .
+    METHODS has_unseen
+      RETURNING
+        VALUE(rv_boolean) TYPE abap_bool .
+    METHODS constructor
+      IMPORTING
+        !iv_rawdata          TYPE xstring
+        !iv_lastseen_version TYPE string
+        !iv_current_version  TYPE string
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA mt_log TYPE ty_logs .
+    DATA mv_current_version TYPE string .
+    DATA mv_lastseen_version TYPE string .
+    DATA mv_latest_version TYPE string .
+
+    METHODS latest_version
+      RETURNING
+        VALUE(rv_version) TYPE string .
+    CLASS-METHODS parse_line
+      IMPORTING
+        !iv_line            TYPE string
+        !iv_current_version TYPE string
+      RETURNING
+        VALUE(rs_log)       TYPE ty_log .
+    CLASS-METHODS parse
+      IMPORTING
+        !it_lines           TYPE string_table
+        !iv_current_version TYPE string
+      RETURNING
+        VALUE(rt_log)       TYPE ty_logs .
+ENDCLASS.
+CLASS zcl_abapgit_repo_labels DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    TYPES:
+      BEGIN OF ty_label_color,
+        label TYPE string,
+        color TYPE string,
+      END OF ty_label_color,
+      ty_label_colors TYPE STANDARD TABLE OF ty_label_color WITH KEY label.
+
+    TYPES:
+      BEGIN OF ty_color,
+        cls    TYPE string,
+        fg     TYPE string,
+        bg     TYPE string,
+        border TYPE string,
+      END OF ty_color.
+
+    CONSTANTS c_allowed_chars TYPE string VALUE `-_. a-zA-Z0-9` ##NO_TEXT.
+
+    " it is easier to allow chars, though potentially other chars can be added later if needed
+    CLASS-METHODS class_constructor.
+    CLASS-METHODS validate
+      IMPORTING
+        !iv_labels TYPE string
+      RAISING
+        zcx_abapgit_exception.
+    CLASS-METHODS split
+      IMPORTING
+        !iv_labels       TYPE string
+      RETURNING
+        VALUE(rt_labels) TYPE string_table.
+    CLASS-METHODS normalize
+      IMPORTING
+        !iv_labels       TYPE string
+      RETURNING
+        VALUE(rv_labels) TYPE string.
+
+    CLASS-METHODS validate_colors
+      IMPORTING
+        !iv_config TYPE string
+      RAISING
+        zcx_abapgit_exception.
+    CLASS-METHODS split_colors
+      IMPORTING
+        !iv_config             TYPE string
+      RETURNING
+        VALUE(rt_label_colors) TYPE ty_label_colors.
+    CLASS-METHODS split_colors_into_map
+      IMPORTING
+        !iv_config    TYPE string
+      RETURNING
+        VALUE(ro_map) TYPE REF TO zcl_abapgit_string_map.
+    CLASS-METHODS normalize_colors
+      IMPORTING
+        !iv_config       TYPE string
+      RETURNING
+        VALUE(rv_config) TYPE string.
+
+    CLASS-METHODS parse_color
+      IMPORTING
+        iv_color         TYPE string
+      RETURNING
+        VALUE(rs_parsed) TYPE ty_color.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    CLASS-DATA gv_regex TYPE string.
+
+    CLASS-METHODS validate_one_label_color
+      IMPORTING
+        !is_lc    TYPE ty_label_color
+        !iv_index TYPE i DEFAULT 0
+      RAISING
+        zcx_abapgit_exception.
+
+    CLASS-METHODS validate_rgb_color
+      IMPORTING
+        !iv_color TYPE string
+        !iv_index TYPE i DEFAULT 0
+      RAISING
+        zcx_abapgit_exception.
+
+ENDCLASS.
+CLASS zcl_abapgit_requirement_helper DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS requirements_popup
+      IMPORTING
+        !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS is_requirements_met
+      IMPORTING
+        !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
+      RETURNING
+        VALUE(rv_status) TYPE zif_abapgit_definitions=>ty_yes_no
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_requirement_status,
+        met               TYPE abap_bool,
+        component         TYPE tdevc-dlvunit,
+        description       TYPE string,
+        installed_release TYPE saprelease,
+        installed_patch   TYPE sappatchlv,
+        required_release  TYPE saprelease,
+        required_patch    TYPE sappatchlv,
+      END OF ty_requirement_status .
+    TYPES:
+      ty_requirement_status_tt TYPE STANDARD TABLE OF ty_requirement_status WITH DEFAULT KEY .
+
+    CLASS-METHODS show_requirement_popup
+      IMPORTING
+        !it_requirements TYPE ty_requirement_status_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS get_requirement_met_status
+      IMPORTING
+        !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
+      RETURNING
+        VALUE(rt_status) TYPE ty_requirement_status_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS is_version_greater_or_equal
+      IMPORTING
+        !is_status     TYPE ty_requirement_status
+      RETURNING
+        VALUE(rv_true) TYPE abap_bool .
+ENDCLASS.
+CLASS zcl_abapgit_version DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS normalize
+      IMPORTING
+        !iv_version       TYPE string
+      RETURNING
+        VALUE(rv_version) TYPE string .
+    CLASS-METHODS conv_str_to_version
+      IMPORTING
+        !iv_version       TYPE csequence
+      RETURNING
+        VALUE(rs_version) TYPE zif_abapgit_definitions=>ty_version
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS check_dependant_version
+      IMPORTING
+        !is_current   TYPE zif_abapgit_definitions=>ty_version
+        !is_dependant TYPE zif_abapgit_definitions=>ty_version
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS compare
+      IMPORTING
+        !iv_a            TYPE string OPTIONAL
+        !iv_b            TYPE string OPTIONAL
+        !is_a            TYPE zif_abapgit_definitions=>ty_version OPTIONAL
+        !is_b            TYPE zif_abapgit_definitions=>ty_version OPTIONAL
+      RETURNING
+        VALUE(rv_result) TYPE i .
+    CLASS-METHODS get_version_constant_value
+      IMPORTING
+        iv_version_constant TYPE string
+      RETURNING
+        VALUE(rv_version)   TYPE string
+      RAISING
+        zcx_abapgit_exception.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CLASS-METHODS version_to_numeric
+      IMPORTING
+        !iv_version       TYPE string
+      RETURNING
+        VALUE(rv_version) TYPE i.
+ENDCLASS.
+CLASS zcl_abapgit_zip DEFINITION
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS encode_files
+      IMPORTING
+        !it_files      TYPE zif_abapgit_definitions=>ty_files_item_tt
+      RETURNING
+        VALUE(rv_xstr) TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS export
+      IMPORTING
+        !is_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
+        !iv_package        TYPE devclass
+        !io_dot_abapgit    TYPE REF TO zcl_abapgit_dot_abapgit
+        !iv_show_log       TYPE abap_bool DEFAULT abap_true
+        !it_filter         TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
+      RETURNING
+        VALUE(rv_xstr)     TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS export_object
+      IMPORTING
+        !iv_object_type        TYPE trobjtype
+        !iv_object_name        TYPE sobj_name
+        !iv_main_language_only TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS export_package
+      IMPORTING
+        !iv_package        TYPE devclass
+        !iv_folder_logic   TYPE string
+        !iv_main_lang_only TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS load
+      IMPORTING
+        !iv_xstr        TYPE xstring
+      RETURNING
+        VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS save_binstring_to_localfile
+      IMPORTING
+        !iv_filename  TYPE string
+        !iv_binstring TYPE xstring
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CLASS-METHODS filename
+      IMPORTING
+        !iv_str      TYPE string
+      EXPORTING
+        !ev_path     TYPE string
+        !ev_filename TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS normalize_path
+      CHANGING
+        !ct_files TYPE zif_abapgit_git_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS unzip_file
+      IMPORTING
+        !iv_xstr        TYPE xstring
+      RETURNING
+        VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception .
+ENDCLASS.
 CLASS zcl_abapgit_dot_abapgit DEFINITION
   CREATE PUBLIC .
 
@@ -17770,62 +18339,6 @@ CLASS zcl_abapgit_dot_abapgit DEFINITION
         !iv_xml        TYPE string
       RETURNING
         VALUE(rs_data) TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit .
-ENDCLASS.
-CLASS zcl_abapgit_object_filter_tran DEFINITION
-  CREATE PUBLIC.
-  PUBLIC SECTION.
-    INTERFACES zif_abapgit_object_filter.
-
-    METHODS set_filter_values
-      IMPORTING
-        iv_package  TYPE tadir-devclass
-        it_r_trkorr TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt
-      RAISING
-        zcx_abapgit_exception .
-
-    METHODS get_filter_values
-      EXPORTING
-        ev_package  TYPE tadir-devclass
-        et_r_trkorr TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt.
-
-  PROTECTED SECTION.
-    TYPES: BEGIN OF ty_e071_filter,
-             pgmid    TYPE tadir-pgmid,
-             object   TYPE tadir-object,
-             obj_name TYPE trobj_name,
-           END OF ty_e071_filter,
-           ty_e071_filter_tt TYPE STANDARD TABLE OF ty_e071_filter.
-
-    METHODS adjust_local_filter
-      IMPORTING
-                it_e071_filter   TYPE ty_e071_filter_tt
-                iv_package       TYPE tadir-devclass
-      RETURNING VALUE(rt_filter) TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RAISING
-                zcx_abapgit_exception.
-
-  PRIVATE SECTION.
-
-    DATA mt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt .
-    DATA mt_r_trkorr TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt .
-    DATA mv_package TYPE tadir-devclass.
-
-    METHODS generate_local_filter
-      IMPORTING
-        iv_package       TYPE tadir-devclass
-        it_r_trkorr      TYPE zif_abapgit_definitions=>ty_trrngtrkor_tt
-      RETURNING
-        VALUE(rt_filter) TYPE zif_abapgit_definitions=>ty_tadir_tt
-      RAISING
-        zcx_abapgit_exception .
-
-    METHODS init .
-
-    METHODS get_all_sub_packages
-      IMPORTING
-        iv_package       TYPE tadir-devclass
-      RETURNING
-        VALUE(rt_filter) TYPE zif_abapgit_definitions=>ty_tadir_tt.
 ENDCLASS.
 CLASS zcl_abapgit_repo DEFINITION
   ABSTRACT
@@ -18436,149 +18949,6 @@ CLASS zcl_abapgit_repo_status DEFINITION
         !it_cur_state   TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt
       RETURNING
         VALUE(rt_state) TYPE zif_abapgit_git_definitions=>ty_file_signatures_tt.
-
-ENDCLASS.
-CLASS zcl_abapgit_merge DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-    INTERFACES zif_abapgit_merge.
-
-    METHODS constructor
-      IMPORTING
-        !io_repo          TYPE REF TO zcl_abapgit_repo_online
-        !iv_source_branch TYPE string
-      RAISING
-        zcx_abapgit_exception .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    TYPES:
-      ty_ancestor_tt TYPE STANDARD TABLE OF zif_abapgit_definitions=>ty_ancestor WITH DEFAULT KEY .
-    TYPES:
-      ty_visit_tt TYPE STANDARD TABLE OF zif_abapgit_git_definitions=>ty_sha1 WITH DEFAULT KEY .
-
-    DATA mo_repo TYPE REF TO zcl_abapgit_repo_online .
-    DATA ms_merge TYPE zif_abapgit_merge=>ty_merge .
-    DATA mt_conflicts TYPE zif_abapgit_merge=>ty_merge_conflict_tt .
-    DATA mt_objects TYPE zif_abapgit_definitions=>ty_objects_tt .
-    DATA mv_source_branch TYPE string .
-
-    METHODS visit
-      IMPORTING
-        !iv_parent TYPE zif_abapgit_git_definitions=>ty_sha1
-      CHANGING
-        !ct_visit  TYPE ty_visit_tt .
-    METHODS all_files
-      RETURNING
-        VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_expanded_tt .
-    METHODS calculate_result
-      RAISING
-        zcx_abapgit_exception .
-    METHODS fetch_git
-      RETURNING
-        VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_objects_tt
-      RAISING
-        zcx_abapgit_exception .
-    METHODS find_ancestors
-      IMPORTING
-        !iv_commit          TYPE zif_abapgit_git_definitions=>ty_sha1
-      RETURNING
-        VALUE(rt_ancestors) TYPE ty_ancestor_tt
-      RAISING
-        zcx_abapgit_exception .
-    METHODS find_first_common
-      IMPORTING
-        !it_list1        TYPE ty_ancestor_tt
-        !it_list2        TYPE ty_ancestor_tt
-      RETURNING
-        VALUE(rs_common) TYPE zif_abapgit_definitions=>ty_ancestor
-      RAISING
-        zcx_abapgit_exception .
-ENDCLASS.
-CLASS zcl_abapgit_stage DEFINITION
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS method_description
-      IMPORTING
-        !iv_method            TYPE zif_abapgit_definitions=>ty_method
-      RETURNING
-        VALUE(rv_description) TYPE string
-      RAISING
-        zcx_abapgit_exception .
-    METHODS constructor
-      IMPORTING
-        !iv_merge_source TYPE zif_abapgit_git_definitions=>ty_sha1 OPTIONAL .
-    METHODS add
-      IMPORTING
-        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
-        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
-        !iv_data     TYPE xstring
-        !is_status   TYPE zif_abapgit_definitions=>ty_result OPTIONAL
-      RAISING
-        zcx_abapgit_exception .
-    METHODS reset
-      IMPORTING
-        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
-        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
-      RAISING
-        zcx_abapgit_exception .
-    METHODS rm
-      IMPORTING
-        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
-        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
-        !is_status   TYPE zif_abapgit_definitions=>ty_result OPTIONAL
-      RAISING
-        zcx_abapgit_exception .
-    METHODS ignore
-      IMPORTING
-        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
-        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
-      RAISING
-        zcx_abapgit_exception .
-    METHODS get_merge_source
-      RETURNING
-        VALUE(rv_source) TYPE zif_abapgit_git_definitions=>ty_sha1 .
-    METHODS count
-      RETURNING
-        VALUE(rv_count) TYPE i .
-    METHODS get_all
-      RETURNING
-        VALUE(rt_stage) TYPE zif_abapgit_definitions=>ty_stage_tt .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    DATA mt_stage TYPE zif_abapgit_definitions=>ty_stage_tt .
-    DATA mv_merge_source TYPE zif_abapgit_git_definitions=>ty_sha1 .
-
-    METHODS append
-      IMPORTING
-        !iv_path     TYPE zif_abapgit_git_definitions=>ty_file-path
-        !iv_filename TYPE zif_abapgit_git_definitions=>ty_file-filename
-        !iv_method   TYPE zif_abapgit_definitions=>ty_method
-        !is_status   TYPE zif_abapgit_definitions=>ty_result OPTIONAL
-        !iv_data     TYPE xstring OPTIONAL
-      RAISING
-        zcx_abapgit_exception .
-ENDCLASS.
-CLASS zcl_abapgit_stage_logic DEFINITION
-  CREATE PRIVATE
-  FRIENDS ZCL_ABAPGIT_factory .
-
-  PUBLIC SECTION.
-
-    INTERFACES zif_abapgit_stage_logic .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    CLASS-METHODS:
-      remove_ignored
-        IMPORTING io_repo  TYPE REF TO zcl_abapgit_repo_online
-        CHANGING  cs_files TYPE zif_abapgit_definitions=>ty_stage_files,
-      remove_identical
-        CHANGING cs_files TYPE zif_abapgit_definitions=>ty_stage_files.
 
 ENDCLASS.
 CLASS zcl_abapgit_syntax_factory DEFINITION
@@ -24637,43 +25007,6 @@ CLASS zcl_abapgit_diff DEFINITION
     METHODS calculate_stats.
     METHODS adjust_diff.
 ENDCLASS.
-CLASS zcl_abapgit_item_state DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    METHODS local
-      RETURNING
-        VALUE(rv_state) TYPE zif_abapgit_git_definitions=>ty_item_state.
-    METHODS remote
-      RETURNING
-        VALUE(rv_state) TYPE zif_abapgit_git_definitions=>ty_item_state.
-    METHODS is_reassigned
-      RETURNING
-        VALUE(rv_is_reassigned) TYPE abap_bool.
-    METHODS is_unchanged
-      RETURNING
-        VALUE(rv_is_unchanged) TYPE abap_bool.
-    METHODS sum_with_repo_item
-      IMPORTING
-        !is_repo_item TYPE zif_abapgit_definitions=>ty_repo_item.
-    METHODS sum_with_status_item
-      IMPORTING
-        !is_status_item TYPE zif_abapgit_definitions=>ty_result.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    DATA mv_lstate TYPE zif_abapgit_git_definitions=>ty_item_state.
-    DATA mv_rstate TYPE zif_abapgit_git_definitions=>ty_item_state.
-    DATA mv_is_reassigned TYPE abap_bool.
-
-    CLASS-METHODS reduce
-      IMPORTING
-        iv_prev       TYPE zif_abapgit_git_definitions=>ty_item_state
-        iv_cur        TYPE zif_abapgit_git_definitions=>ty_item_state
-      RETURNING
-        VALUE(rv_new) TYPE zif_abapgit_git_definitions=>ty_item_state.
-ENDCLASS.
 CLASS zcl_abapgit_log DEFINITION
   CREATE PUBLIC .
 
@@ -24711,78 +25044,6 @@ CLASS zcl_abapgit_log DEFINITION
         VALUE(rv_status) TYPE sy-msgty .
   PRIVATE SECTION.
 ENDCLASS.
-CLASS zcl_abapgit_news DEFINITION
-  FINAL
-  CREATE PRIVATE .
-
-  PUBLIC SECTION.
-
-    TYPES:
-      BEGIN OF ty_log,
-        version      TYPE string,
-        pos_to_cur   TYPE i,
-        is_header    TYPE abap_bool,
-        is_important TYPE abap_bool,
-        text         TYPE string,
-      END OF ty_log .
-    TYPES:
-      ty_logs TYPE STANDARD TABLE OF ty_log WITH DEFAULT KEY .
-
-    CONSTANTS c_tail_length TYPE i VALUE 5 ##NO_TEXT.     " Number of versions to display if no updates
-
-    CLASS-METHODS create     " TODO REFACTOR
-      IMPORTING
-        !io_repo           TYPE REF TO zcl_abapgit_repo
-      RETURNING
-        VALUE(ro_instance) TYPE REF TO zcl_abapgit_news
-      RAISING
-        zcx_abapgit_exception .
-    METHODS get_log
-      RETURNING
-        VALUE(rt_log) TYPE ty_logs .
-    METHODS has_news
-      RETURNING
-        VALUE(rv_boolean) TYPE abap_bool .
-    METHODS has_important
-      RETURNING
-        VALUE(rv_boolean) TYPE abap_bool .
-    METHODS has_updates
-      RETURNING
-        VALUE(rv_boolean) TYPE abap_bool .
-    METHODS has_unseen
-      RETURNING
-        VALUE(rv_boolean) TYPE abap_bool .
-    METHODS constructor
-      IMPORTING
-        !iv_rawdata          TYPE xstring
-        !iv_lastseen_version TYPE string
-        !iv_current_version  TYPE string
-      RAISING
-        zcx_abapgit_exception .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    DATA mt_log TYPE ty_logs .
-    DATA mv_current_version TYPE string .
-    DATA mv_lastseen_version TYPE string .
-    DATA mv_latest_version TYPE string .
-
-    METHODS latest_version
-      RETURNING
-        VALUE(rv_version) TYPE string .
-    CLASS-METHODS parse_line
-      IMPORTING
-        !iv_line            TYPE string
-        !iv_current_version TYPE string
-      RETURNING
-        VALUE(rs_log)       TYPE ty_log .
-    CLASS-METHODS parse
-      IMPORTING
-        !it_lines           TYPE string_table
-        !iv_current_version TYPE string
-      RETURNING
-        VALUE(rt_log)       TYPE ty_logs .
-ENDCLASS.
 CLASS zcl_abapgit_path DEFINITION FINAL
   CREATE PUBLIC.
 
@@ -24811,145 +25072,6 @@ CLASS zcl_abapgit_path DEFINITION FINAL
       IMPORTING iv_path            TYPE string
       RETURNING VALUE(rv_filename) TYPE string.
 
-ENDCLASS.
-CLASS zcl_abapgit_repo_labels DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    TYPES:
-      BEGIN OF ty_label_color,
-        label TYPE string,
-        color TYPE string,
-      END OF ty_label_color,
-      ty_label_colors TYPE STANDARD TABLE OF ty_label_color WITH KEY label.
-
-    TYPES:
-      BEGIN OF ty_color,
-        cls    TYPE string,
-        fg     TYPE string,
-        bg     TYPE string,
-        border TYPE string,
-      END OF ty_color.
-
-    CONSTANTS c_allowed_chars TYPE string VALUE `-_. a-zA-Z0-9` ##NO_TEXT.
-
-    " it is easier to allow chars, though potentially other chars can be added later if needed
-    CLASS-METHODS class_constructor.
-    CLASS-METHODS validate
-      IMPORTING
-        !iv_labels TYPE string
-      RAISING
-        zcx_abapgit_exception.
-    CLASS-METHODS split
-      IMPORTING
-        !iv_labels       TYPE string
-      RETURNING
-        VALUE(rt_labels) TYPE string_table.
-    CLASS-METHODS normalize
-      IMPORTING
-        !iv_labels       TYPE string
-      RETURNING
-        VALUE(rv_labels) TYPE string.
-
-    CLASS-METHODS validate_colors
-      IMPORTING
-        !iv_config TYPE string
-      RAISING
-        zcx_abapgit_exception.
-    CLASS-METHODS split_colors
-      IMPORTING
-        !iv_config             TYPE string
-      RETURNING
-        VALUE(rt_label_colors) TYPE ty_label_colors.
-    CLASS-METHODS split_colors_into_map
-      IMPORTING
-        !iv_config    TYPE string
-      RETURNING
-        VALUE(ro_map) TYPE REF TO zcl_abapgit_string_map.
-    CLASS-METHODS normalize_colors
-      IMPORTING
-        !iv_config       TYPE string
-      RETURNING
-        VALUE(rv_config) TYPE string.
-
-    CLASS-METHODS parse_color
-      IMPORTING
-        iv_color         TYPE string
-      RETURNING
-        VALUE(rs_parsed) TYPE ty_color.
-
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    CLASS-DATA gv_regex TYPE string.
-
-    CLASS-METHODS validate_one_label_color
-      IMPORTING
-        !is_lc    TYPE ty_label_color
-        !iv_index TYPE i DEFAULT 0
-      RAISING
-        zcx_abapgit_exception.
-
-    CLASS-METHODS validate_rgb_color
-      IMPORTING
-        !iv_color TYPE string
-        !iv_index TYPE i DEFAULT 0
-      RAISING
-        zcx_abapgit_exception.
-
-ENDCLASS.
-CLASS zcl_abapgit_requirement_helper DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS requirements_popup
-      IMPORTING
-        !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS is_requirements_met
-      IMPORTING
-        !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
-      RETURNING
-        VALUE(rv_status) TYPE zif_abapgit_definitions=>ty_yes_no
-      RAISING
-        zcx_abapgit_exception .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    TYPES:
-      BEGIN OF ty_requirement_status,
-        met               TYPE abap_bool,
-        component         TYPE tdevc-dlvunit,
-        description       TYPE string,
-        installed_release TYPE saprelease,
-        installed_patch   TYPE sappatchlv,
-        required_release  TYPE saprelease,
-        required_patch    TYPE sappatchlv,
-      END OF ty_requirement_status .
-    TYPES:
-      ty_requirement_status_tt TYPE STANDARD TABLE OF ty_requirement_status WITH DEFAULT KEY .
-
-    CLASS-METHODS show_requirement_popup
-      IMPORTING
-        !it_requirements TYPE ty_requirement_status_tt
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS get_requirement_met_status
-      IMPORTING
-        !it_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt
-      RETURNING
-        VALUE(rt_status) TYPE ty_requirement_status_tt
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS is_version_greater_or_equal
-      IMPORTING
-        !is_status     TYPE ty_requirement_status
-      RETURNING
-        VALUE(rv_true) TYPE abap_bool .
 ENDCLASS.
 CLASS zcl_abapgit_string_buffer DEFINITION
   FINAL
@@ -25116,128 +25238,6 @@ CLASS zcl_abapgit_utils DEFINITION
         VALUE(rv_valid) TYPE abap_bool.
   PROTECTED SECTION.
   PRIVATE SECTION.
-ENDCLASS.
-CLASS zcl_abapgit_version DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS normalize
-      IMPORTING
-        !iv_version       TYPE string
-      RETURNING
-        VALUE(rv_version) TYPE string .
-    CLASS-METHODS conv_str_to_version
-      IMPORTING
-        !iv_version       TYPE csequence
-      RETURNING
-        VALUE(rs_version) TYPE zif_abapgit_definitions=>ty_version
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS check_dependant_version
-      IMPORTING
-        !is_current   TYPE zif_abapgit_definitions=>ty_version
-        !is_dependant TYPE zif_abapgit_definitions=>ty_version
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS compare
-      IMPORTING
-        !iv_a            TYPE string OPTIONAL
-        !iv_b            TYPE string OPTIONAL
-        !is_a            TYPE zif_abapgit_definitions=>ty_version OPTIONAL
-        !is_b            TYPE zif_abapgit_definitions=>ty_version OPTIONAL
-      RETURNING
-        VALUE(rv_result) TYPE i .
-    CLASS-METHODS get_version_constant_value
-      IMPORTING
-        iv_version_constant TYPE string
-      RETURNING
-        VALUE(rv_version)   TYPE string
-      RAISING
-        zcx_abapgit_exception.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    CLASS-METHODS version_to_numeric
-      IMPORTING
-        !iv_version       TYPE string
-      RETURNING
-        VALUE(rv_version) TYPE i.
-ENDCLASS.
-CLASS zcl_abapgit_zip DEFINITION
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-
-    CLASS-METHODS encode_files
-      IMPORTING
-        !it_files      TYPE zif_abapgit_definitions=>ty_files_item_tt
-      RETURNING
-        VALUE(rv_xstr) TYPE xstring
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS export
-      IMPORTING
-        !is_local_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings
-        !iv_package        TYPE devclass
-        !io_dot_abapgit    TYPE REF TO zcl_abapgit_dot_abapgit
-        !iv_show_log       TYPE abap_bool DEFAULT abap_true
-        !it_filter         TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
-      RETURNING
-        VALUE(rv_xstr)     TYPE xstring
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS export_object
-      IMPORTING
-        !iv_object_type        TYPE trobjtype
-        !iv_object_name        TYPE sobj_name
-        !iv_main_language_only TYPE abap_bool DEFAULT abap_false
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS export_package
-      IMPORTING
-        !iv_package        TYPE devclass
-        !iv_folder_logic   TYPE string
-        !iv_main_lang_only TYPE abap_bool
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS load
-      IMPORTING
-        !iv_xstr        TYPE xstring
-      RETURNING
-        VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_files_tt
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS save_binstring_to_localfile
-      IMPORTING
-        !iv_filename  TYPE string
-        !iv_binstring TYPE xstring
-      RAISING
-        zcx_abapgit_exception .
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-
-    CLASS-METHODS filename
-      IMPORTING
-        !iv_str      TYPE string
-      EXPORTING
-        !ev_path     TYPE string
-        !ev_filename TYPE string
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS normalize_path
-      CHANGING
-        !ct_files TYPE zif_abapgit_git_definitions=>ty_files_tt
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS unzip_file
-      IMPORTING
-        !iv_xstr        TYPE xstring
-      RETURNING
-        VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_files_tt
-      RAISING
-        zcx_abapgit_exception .
 ENDCLASS.
 CLASS zcl_abapgit_xml DEFINITION
   ABSTRACT
@@ -26005,480 +26005,6 @@ CLASS zcl_abapgit_xml IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_zip IMPLEMENTATION.
-  METHOD encode_files.
-
-    DATA: lo_zip      TYPE REF TO cl_abap_zip,
-          lv_filename TYPE string.
-
-    FIELD-SYMBOLS: <ls_file> LIKE LINE OF it_files.
-    CREATE OBJECT lo_zip.
-
-    LOOP AT it_files ASSIGNING <ls_file>.
-      CONCATENATE <ls_file>-file-path+1 <ls_file>-file-filename INTO lv_filename.
-      lo_zip->add( name    = lv_filename
-                   content = <ls_file>-file-data ).
-    ENDLOOP.
-
-    rv_xstr = lo_zip->save( ).
-
-  ENDMETHOD.
-  METHOD export.
-
-    DATA li_log       TYPE REF TO zif_abapgit_log.
-    DATA lt_zip       TYPE zif_abapgit_definitions=>ty_files_item_tt.
-    DATA lo_serialize TYPE REF TO zcl_abapgit_serialize.
-
-    CREATE OBJECT li_log TYPE zcl_abapgit_log.
-    li_log->set_title( 'Zip Export Log' ).
-
-    IF zcl_abapgit_factory=>get_sap_package( iv_package )->exists( ) = abap_false.
-      zcx_abapgit_exception=>raise( |Package { iv_package } doesn't exist| ).
-    ENDIF.
-
-    CREATE OBJECT lo_serialize
-      EXPORTING
-        io_dot_abapgit    = io_dot_abapgit
-        is_local_settings = is_local_settings.
-
-    lt_zip = lo_serialize->files_local(
-      iv_package = iv_package
-      ii_log     = li_log
-      it_filter  = it_filter ).
-
-    FREE lo_serialize.
-
-    IF li_log->count( ) > 0 AND iv_show_log = abap_true.
-      zcl_abapgit_log_viewer=>show_log( li_log ).
-    ENDIF.
-
-    rv_xstr = encode_files( lt_zip ).
-
-  ENDMETHOD.
-  METHOD export_object.
-
-    DATA: ls_tadir         TYPE zif_abapgit_definitions=>ty_tadir,
-          lv_folder        TYPE string,
-          lv_fullpath      TYPE string,
-          lv_sep           TYPE c LENGTH 1,
-          ls_files_item    TYPE zif_abapgit_objects=>ty_serialization,
-          lo_frontend_serv TYPE REF TO zif_abapgit_frontend_services.
-
-    FIELD-SYMBOLS: <ls_file> LIKE LINE OF ls_files_item-files.
-
-    ls_tadir = zcl_abapgit_factory=>get_tadir( )->read_single(
-        iv_object   = iv_object_type
-        iv_obj_name = iv_object_name ).
-
-    IF ls_tadir IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Object could not be found' ).
-    ENDIF.
-
-    ls_files_item-item-obj_type = ls_tadir-object.
-    ls_files_item-item-obj_name = ls_tadir-obj_name.
-    ls_files_item-item-abap_language_version = '*'. "any
-
-    ls_files_item = zcl_abapgit_objects=>serialize(
-      is_item        = ls_files_item-item
-      io_i18n_params = zcl_abapgit_i18n_params=>new(
-        iv_main_language_only = iv_main_language_only
-        iv_main_language      = sy-langu ) ).
-
-    IF lines( ls_files_item-files ) = 0.
-      zcx_abapgit_exception=>raise( 'Empty' ).
-    ENDIF.
-
-    lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
-    lo_frontend_serv->directory_browse( CHANGING cv_selected_folder = lv_folder ).
-    IF lv_folder IS INITIAL.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    lo_frontend_serv->get_file_separator( CHANGING cv_file_separator = lv_sep ).
-
-    LOOP AT ls_files_item-files ASSIGNING <ls_file>.
-      lv_fullpath = |{ lv_folder }{ lv_sep }{ <ls_file>-filename }|.
-      save_binstring_to_localfile( iv_filename  = lv_fullpath
-                                   iv_binstring = <ls_file>-data ).
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD export_package.
-
-    DATA: ls_local_settings  TYPE zif_abapgit_persistence=>ty_repo-local_settings,
-          lo_dot_abapgit     TYPE REF TO zcl_abapgit_dot_abapgit,
-          lo_frontend_serv   TYPE REF TO zif_abapgit_frontend_services,
-          lv_default         TYPE string,
-          lv_package_escaped TYPE string,
-          lv_path            TYPE string,
-          lv_zip_xstring     TYPE xstring.
-
-    ls_local_settings-main_language_only = iv_main_lang_only.
-
-    lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
-    lo_dot_abapgit->set_folder_logic( iv_folder_logic ).
-
-    lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
-
-    lv_package_escaped = iv_package.
-    REPLACE ALL OCCURRENCES OF '/' IN lv_package_escaped WITH '#'.
-    lv_default = |{ lv_package_escaped }_{ sy-datlo }_{ sy-timlo }.zip|.
-
-    lv_zip_xstring = export(
-     is_local_settings = ls_local_settings
-     iv_package        = iv_package
-     io_dot_abapgit    = lo_dot_abapgit ).
-
-    lv_path = lo_frontend_serv->show_file_save_dialog(
-        iv_title            = 'Package Export'
-        iv_extension        = 'zip'
-        iv_default_filename = lv_default ).
-
-    lo_frontend_serv->file_download(
-        iv_path = lv_path
-        iv_xstr = lv_zip_xstring ).
-  ENDMETHOD.
-  METHOD filename.
-
-    IF iv_str CA '/'.
-      FIND REGEX '(.*/)(.*)' IN iv_str
-        SUBMATCHES ev_path ev_filename.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'Malformed path' ).
-      ENDIF.
-      IF ev_path <> '/'.
-        CONCATENATE '/' ev_path INTO ev_path.
-      ENDIF.
-    ELSE.
-      ev_path = '/'.
-      ev_filename = iv_str.
-    ENDIF.
-    TRANSLATE ev_filename TO LOWER CASE.
-
-  ENDMETHOD.
-  METHOD load.
-
-    rt_files = unzip_file( iv_xstr ).
-
-  ENDMETHOD.
-  METHOD normalize_path.
-* removes first folder from path if needed
-
-    DATA: lt_split  TYPE TABLE OF string,
-          lv_needed TYPE abap_bool,
-          lv_length TYPE i,
-          lv_split  LIKE LINE OF lt_split.
-
-    FIELD-SYMBOLS: <ls_file> LIKE LINE OF ct_files.
-    READ TABLE ct_files INDEX 1 ASSIGNING <ls_file>.
-    IF sy-subrc <> 0.
-      RETURN.
-    ENDIF.
-
-    SPLIT <ls_file>-path AT '/' INTO TABLE lt_split.
-    IF sy-subrc <> 0.
-      RETURN.
-    ENDIF.
-    READ TABLE lt_split INDEX 2 INTO lv_split.
-    IF sy-subrc <> 0 OR strlen( lv_split ) = 0.
-      RETURN.
-    ENDIF.
-
-    CONCATENATE '/' lv_split '/*' INTO lv_split.
-
-    lv_needed = abap_true.
-    LOOP AT ct_files ASSIGNING <ls_file>.
-      IF NOT <ls_file>-path CP lv_split.
-        lv_needed = abap_false.
-        EXIT. " current loop
-      ENDIF.
-    ENDLOOP.
-
-    IF lv_needed = abap_true.
-      lv_length = strlen( lv_split ) - 2.
-      LOOP AT ct_files ASSIGNING <ls_file>.
-        <ls_file>-path = <ls_file>-path+lv_length.
-      ENDLOOP.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD save_binstring_to_localfile.
-
-    zcl_abapgit_ui_factory=>get_frontend_services( )->file_download(
-      iv_path = iv_filename
-      iv_xstr = iv_binstring ).
-
-  ENDMETHOD.
-  METHOD unzip_file.
-
-    DATA: lo_zip  TYPE REF TO cl_abap_zip,
-          lv_data TYPE xstring.
-
-    FIELD-SYMBOLS: <ls_zipfile> LIKE LINE OF lo_zip->files,
-                   <ls_file>    LIKE LINE OF rt_files.
-    CREATE OBJECT lo_zip.
-    lo_zip->load( EXPORTING
-                    zip             = iv_xstr
-                  EXCEPTIONS
-                    zip_parse_error = 1
-                    OTHERS          = 2 ).
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'error from zip' ).
-    ENDIF.
-
-    LOOP AT lo_zip->files ASSIGNING <ls_zipfile>.
-
-      lo_zip->get(
-        EXPORTING
-          name                    = <ls_zipfile>-name
-        IMPORTING
-          content                 = lv_data
-        EXCEPTIONS
-          zip_index_error         = 1
-          zip_decompression_error = 2
-          OTHERS                  = 3 ).
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( 'error from zip get' ).
-      ENDIF.
-
-      APPEND INITIAL LINE TO rt_files ASSIGNING <ls_file>.
-
-      filename(
-        EXPORTING
-          iv_str      = <ls_zipfile>-name
-        IMPORTING
-          ev_path     = <ls_file>-path
-          ev_filename = <ls_file>-filename ).
-
-      <ls_file>-data = lv_data.
-
-      <ls_file>-sha1 = zcl_abapgit_hash=>sha1_blob( <ls_file>-data ).
-
-    ENDLOOP.
-
-    DELETE rt_files WHERE filename IS INITIAL.
-
-    normalize_path( CHANGING ct_files = rt_files ).
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_version IMPLEMENTATION.
-  METHOD check_dependant_version.
-
-    CONSTANTS: lc_message TYPE string VALUE 'Current version is older than required'.
-
-    IF is_dependant-major > is_current-major.
-      zcx_abapgit_exception=>raise( lc_message ).
-    ELSEIF is_dependant-major < is_current-major.
-      RETURN.
-    ENDIF.
-
-    IF is_dependant-minor > is_current-minor.
-      zcx_abapgit_exception=>raise( lc_message ).
-    ELSEIF is_dependant-minor < is_current-minor.
-      RETURN.
-    ENDIF.
-
-    IF is_dependant-patch > is_current-patch.
-      zcx_abapgit_exception=>raise( lc_message ).
-    ELSEIF is_dependant-patch < is_current-patch.
-      RETURN.
-    ENDIF.
-
-    IF is_current-prerelase IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    CASE is_current-prerelase.
-      WHEN 'rc'.
-        IF is_dependant-prerelase = ''.
-          zcx_abapgit_exception=>raise( lc_message ).
-        ENDIF.
-
-      WHEN 'beta'.
-        IF is_dependant-prerelase = '' OR is_dependant-prerelase = 'rc'.
-          zcx_abapgit_exception=>raise( lc_message ).
-        ENDIF.
-
-      WHEN 'alpha'.
-        IF is_dependant-prerelase = '' OR is_dependant-prerelase = 'rc' OR is_dependant-prerelase = 'beta'.
-          zcx_abapgit_exception=>raise( lc_message ).
-        ENDIF.
-
-    ENDCASE.
-
-    IF is_dependant-prerelase = is_current-prerelase AND is_dependant-prerelase_patch > is_current-prerelase_patch.
-      zcx_abapgit_exception=>raise( lc_message ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD compare.
-
-    DATA: ls_version_a TYPE zif_abapgit_definitions=>ty_version,
-          ls_version_b TYPE zif_abapgit_definitions=>ty_version.
-
-    TRY.
-        IF is_a IS NOT INITIAL.
-          ls_version_a = is_a.
-        ELSE.
-          ls_version_a = conv_str_to_version( iv_a ).
-        ENDIF.
-
-        IF is_b IS NOT INITIAL.
-          ls_version_b = is_b.
-        ELSE.
-          ls_version_b = conv_str_to_version( iv_b ).
-        ENDIF.
-      CATCH zcx_abapgit_exception.
-        rv_result = 0.
-        RETURN.
-    ENDTRY.
-
-    IF ls_version_a = ls_version_b.
-      rv_result = 0.
-    ELSE.
-      TRY.
-          check_dependant_version( is_current   = ls_version_a
-                                   is_dependant = ls_version_b ).
-          rv_result = 1.
-        CATCH zcx_abapgit_exception.
-          rv_result = -1.
-          RETURN.
-      ENDTRY.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD conv_str_to_version.
-
-    DATA: lt_segments TYPE STANDARD TABLE OF string,
-          lt_parts    TYPE STANDARD TABLE OF string,
-          lv_segment  TYPE string.
-
-    SPLIT iv_version AT '-' INTO TABLE lt_segments.
-
-    READ TABLE lt_segments INTO lv_segment INDEX 1. " Version
-    IF sy-subrc <> 0.   " No version
-      RETURN.
-    ENDIF.
-
-    SPLIT lv_segment AT '.' INTO TABLE lt_parts.
-
-    LOOP AT lt_parts INTO lv_segment.
-
-      TRY.
-          CASE sy-tabix.
-            WHEN 1.
-              rs_version-major = lv_segment.
-            WHEN 2.
-              rs_version-minor = lv_segment.
-            WHEN 3.
-              rs_version-patch = lv_segment.
-          ENDCASE.
-        CATCH cx_sy_conversion_no_number.
-          zcx_abapgit_exception=>raise( 'Incorrect format for Semantic Version' ).
-      ENDTRY.
-
-    ENDLOOP.
-
-    READ TABLE lt_segments INTO lv_segment INDEX 2. " Pre-release Version
-    IF sy-subrc <> 0.   " No version
-      RETURN.
-    ENDIF.
-
-    SPLIT lv_segment AT '.' INTO TABLE lt_parts.
-
-    LOOP AT lt_parts INTO lv_segment.
-
-      CASE sy-tabix.
-        WHEN 1.
-          rs_version-prerelase = lv_segment.
-          TRANSLATE rs_version-prerelase TO LOWER CASE.
-        WHEN 2.
-          rs_version-prerelase_patch = lv_segment.
-      ENDCASE.
-
-    ENDLOOP.
-
-    IF rs_version-prerelase <> 'rc' AND rs_version-prerelase <> 'beta' AND rs_version-prerelase <> 'alpha'.
-      zcx_abapgit_exception=>raise( 'Incorrect format for Semantic Version' ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD normalize.
-
-    " Internal program version should be in format "XXX.XXX.XXX" or "vXXX.XXX.XXX"
-    CONSTANTS:
-      lc_version_pattern    TYPE string VALUE '^v?(\d{1,3}\.\d{1,3}\.\d{1,3})\s*$',
-      lc_prerelease_pattern TYPE string VALUE '^((rc|beta|alpha)\.\d{1,3})\s*$'.
-
-    DATA: lv_version      TYPE string,
-          lv_prerelease   TYPE string,
-          lv_version_n    TYPE string,
-          lv_prerelease_n TYPE string.
-
-    SPLIT iv_version AT '-' INTO lv_version lv_prerelease.
-
-    FIND FIRST OCCURRENCE OF REGEX lc_version_pattern
-      IN lv_version SUBMATCHES lv_version_n.
-
-    IF lv_prerelease IS NOT INITIAL.
-
-      FIND FIRST OCCURRENCE OF REGEX lc_prerelease_pattern
-        IN lv_prerelease SUBMATCHES lv_prerelease_n.
-
-    ENDIF.
-
-    IF lv_version_n IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    rv_version = lv_version_n.
-
-    IF lv_prerelease_n IS NOT INITIAL.
-      CONCATENATE rv_version '-' lv_prerelease_n INTO rv_version.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD version_to_numeric.
-
-    DATA: lv_major   TYPE n LENGTH 4,
-          lv_minor   TYPE n LENGTH 4,
-          lv_release TYPE n LENGTH 4.
-
-    SPLIT iv_version AT '.' INTO lv_major lv_minor lv_release.
-
-    " Calculated value of version number, empty version will become 0 which is OK
-    rv_version = lv_major * 1000000 + lv_minor * 1000 + lv_release.
-
-  ENDMETHOD.
-
-  METHOD get_version_constant_value.
-    DATA: lv_version_class     TYPE string,
-          lv_version_component TYPE string.
-    FIELD-SYMBOLS: <lv_version> TYPE string.
-
-    IF iv_version_constant NP '*=>*'.
-      zcx_abapgit_exception=>raise( 'Version constant needs to use the format CLASS=>CONSTANT' ).
-    ENDIF.
-
-    SPLIT iv_version_constant AT '=>' INTO lv_version_class lv_version_component.
-    IF sy-subrc <> 0 OR lv_version_class IS INITIAL OR lv_version_component IS INITIAL.
-      zcx_abapgit_exception=>raise( 'Version constant cannot be parsed' ).
-    ENDIF.
-
-    ASSIGN (lv_version_class)=>(lv_version_component) TO <lv_version>.
-    IF sy-subrc = 0.
-      rv_version = <lv_version>.
-    ELSE.
-      zcx_abapgit_exception=>raise( |Could not access version at class { lv_version_class } component | &&
-                                    |{ lv_version_component }| ).
-    ENDIF.
-  ENDMETHOD.
-
-ENDCLASS.
-
 CLASS zcl_abapgit_utils IMPLEMENTATION.
   METHOD is_binary.
 
@@ -26760,397 +26286,6 @@ CLASS ZCL_ABAPGIT_STRING_BUFFER IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
-  METHOD get_requirement_met_status.
-
-    DATA: lt_installed TYPE STANDARD TABLE OF cvers_sdu.
-
-    FIELD-SYMBOLS: <ls_requirement>    TYPE zif_abapgit_dot_abapgit=>ty_requirement,
-                   <ls_status>         TYPE ty_requirement_status,
-                   <ls_installed_comp> TYPE cvers_sdu.
-    CALL FUNCTION 'DELIVERY_GET_INSTALLED_COMPS'
-      TABLES
-        tt_comptab       = lt_installed
-      EXCEPTIONS
-        no_release_found = 1
-        OTHERS           = 2.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Error from DELIVERY_GET_INSTALLED_COMPS { sy-subrc }| ).
-    ENDIF.
-
-    LOOP AT it_requirements ASSIGNING <ls_requirement>.
-      APPEND INITIAL LINE TO rt_status ASSIGNING <ls_status>.
-      <ls_status>-component = <ls_requirement>-component.
-      <ls_status>-required_release = <ls_requirement>-min_release.
-      <ls_status>-required_patch = <ls_requirement>-min_patch.
-
-      READ TABLE lt_installed WITH KEY component = <ls_requirement>-component
-                              ASSIGNING <ls_installed_comp>.
-      IF sy-subrc = 0.
-        " Component is installed, requirement is met if the installed version is greater or equal
-        " to the required one.
-        <ls_status>-installed_release = <ls_installed_comp>-release.
-        <ls_status>-installed_patch = <ls_installed_comp>-extrelease.
-        <ls_status>-description = <ls_installed_comp>-desc_text.
-        <ls_status>-met = is_version_greater_or_equal( <ls_status> ).
-      ELSE.
-        " Component is not installed at all
-        <ls_status>-met = abap_false.
-      ENDIF.
-
-      UNASSIGN <ls_installed_comp>.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD is_requirements_met.
-
-    DATA: lt_met_status TYPE ty_requirement_status_tt.
-
-    lt_met_status = get_requirement_met_status( it_requirements ).
-
-    READ TABLE lt_met_status TRANSPORTING NO FIELDS WITH KEY met = abap_false.
-    IF sy-subrc = 0.
-      rv_status = zif_abapgit_definitions=>c_no.
-    ELSE.
-      rv_status = zif_abapgit_definitions=>c_yes.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD is_version_greater_or_equal.
-
-    DATA:
-      lv_installed_release TYPE n LENGTH 4,
-      lv_installed_patch   TYPE n LENGTH 4,
-      lv_required_release  TYPE n LENGTH 4,
-      lv_required_patch    TYPE n LENGTH 4.
-
-    TRY.
-        MOVE EXACT: is_status-installed_release TO lv_installed_release,
-                    is_status-installed_patch   TO lv_installed_patch,
-                    is_status-required_release  TO lv_required_release,
-                    is_status-required_patch    TO lv_required_patch.
-      CATCH cx_sy_conversion_error.
-        " Cannot compare by number, assume requirement not fullfilled (user can force install
-        " anyways if this was an error)
-        rv_true = abap_false.
-        RETURN.
-    ENDTRY.
-
-    " Versions are comparable by number, compare release and if necessary patch level
-    IF lv_installed_release > lv_required_release
-        OR ( lv_installed_release = lv_required_release
-         AND ( lv_required_patch = 0
-            OR lv_installed_patch >= lv_required_patch ) ).
-
-      rv_true = abap_true.
-
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD requirements_popup.
-
-    DATA: lt_met_status TYPE ty_requirement_status_tt,
-          lv_answer     TYPE c LENGTH 1.
-    lt_met_status = get_requirement_met_status( it_requirements ).
-
-    show_requirement_popup( lt_met_status ).
-
-    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
-      iv_titlebar      = 'Warning'
-      iv_text_question = 'The project has unmet requirements. Do you want to continue?' ).
-
-    IF lv_answer <> '1'.
-      zcx_abapgit_exception=>raise( 'Cancelling because of unmet requirements.' ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD show_requirement_popup.
-
-    TYPES: BEGIN OF ty_color_line,
-             color TYPE lvc_t_scol.
-             INCLUDE TYPE ty_requirement_status.
-    TYPES: END OF ty_color_line.
-
-    TYPES: ty_color_tab TYPE STANDARD TABLE OF ty_color_line WITH DEFAULT KEY.
-
-    DATA: lo_alv            TYPE REF TO cl_salv_table,
-          lo_column         TYPE REF TO cl_salv_column,
-          lo_columns        TYPE REF TO cl_salv_columns_table,
-          lt_color_table    TYPE ty_color_tab,
-          lt_color_negative TYPE lvc_t_scol,
-          lt_color_positive TYPE lvc_t_scol,
-          ls_color          TYPE lvc_s_scol,
-          ls_position       TYPE zif_abapgit_popups=>ty_popup_position,
-          lx_ex             TYPE REF TO cx_root.
-
-    FIELD-SYMBOLS: <ls_line>        TYPE ty_color_line,
-                   <ls_requirement> LIKE LINE OF it_requirements.
-    ls_color-color-col = col_negative.
-    APPEND ls_color TO lt_color_negative.
-
-    ls_color-color-col = col_positive.
-    APPEND ls_color TO lt_color_positive.
-
-    CLEAR ls_color.
-
-    LOOP AT it_requirements ASSIGNING <ls_requirement>.
-      APPEND INITIAL LINE TO lt_color_table ASSIGNING <ls_line>.
-      MOVE-CORRESPONDING <ls_requirement> TO <ls_line>.
-    ENDLOOP.
-
-    LOOP AT lt_color_table ASSIGNING <ls_line>.
-      IF <ls_line>-met = abap_false.
-        <ls_line>-color = lt_color_negative.
-      ELSE.
-        <ls_line>-color = lt_color_positive.
-      ENDIF.
-    ENDLOOP.
-    UNASSIGN <ls_line>.
-
-    TRY.
-        cl_salv_table=>factory( IMPORTING r_salv_table = lo_alv
-                                CHANGING t_table       = lt_color_table ).
-
-        lo_columns = lo_alv->get_columns( ).
-        lo_columns->get_column( 'MET' )->set_short_text( 'Met' ).
-        lo_columns->set_color_column( 'COLOR' ).
-        lo_columns->set_optimize( ).
-
-        lo_column = lo_columns->get_column( 'REQUIRED_RELEASE' ).
-        lo_column->set_short_text( 'Req. Rel.' ).
-
-        lo_column = lo_columns->get_column( 'REQUIRED_PATCH' ).
-        lo_column->set_short_text( 'Req. SP L.' ).
-
-        ls_position = zcl_abapgit_popups=>center(
-          iv_width  = 70
-          iv_height = 10 ).
-
-        lo_alv->set_screen_popup( start_column = ls_position-start_column
-                                  end_column   = ls_position-end_column
-                                  start_line   = ls_position-start_row
-                                  end_line     = ls_position-end_row ).
-
-        lo_alv->get_display_settings( )->set_list_header( 'Requirements' ).
-        lo_alv->display( ).
-
-      CATCH cx_salv_msg cx_salv_not_found cx_salv_data_error INTO lx_ex.
-        zcx_abapgit_exception=>raise( lx_ex->get_text( ) ).
-    ENDTRY.
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_repo_labels IMPLEMENTATION.
-  METHOD class_constructor.
-    gv_regex = |^[{ c_allowed_chars }]*$|. " Must start with -
-  ENDMETHOD.
-  METHOD normalize.
-
-    DATA lt_labels TYPE string_table.
-    DATA lt_normalized TYPE string_table.
-    FIELD-SYMBOLS <lv_lab> LIKE LINE OF lt_labels.
-
-    lt_labels = split( iv_labels ).
-
-    LOOP AT lt_labels ASSIGNING <lv_lab>.
-      FIND REGEX gv_regex IN <lv_lab>.
-      IF sy-subrc = 0.
-        APPEND <lv_lab> TO lt_normalized.
-      ENDIF.
-    ENDLOOP.
-
-    SORT lt_normalized.
-    DELETE ADJACENT DUPLICATES FROM lt_normalized.
-
-    rv_labels = concat_lines_of(
-      table = lt_normalized
-      sep = `, ` ).
-
-  ENDMETHOD.
-  METHOD normalize_colors.
-
-    DATA lt_colors TYPE ty_label_colors.
-    DATA lt_normalized TYPE ty_label_colors.
-    DATA lt_pairs TYPE string_table.
-    DATA lv_pair TYPE string.
-    FIELD-SYMBOLS <ls_c> LIKE LINE OF lt_colors.
-
-    lt_colors = split_colors( iv_config ).
-
-    LOOP AT lt_colors ASSIGNING <ls_c>.
-      TRY.
-          validate_one_label_color( <ls_c> ).
-          APPEND <ls_c> TO lt_normalized.
-        CATCH zcx_abapgit_exception.
-      ENDTRY.
-    ENDLOOP.
-
-    SORT lt_normalized BY label.
-    DELETE ADJACENT DUPLICATES FROM lt_normalized COMPARING label.
-
-    LOOP AT lt_normalized ASSIGNING <ls_c>.
-      lv_pair = <ls_c>-label && `:` && <ls_c>-color.
-      APPEND lv_pair TO lt_pairs.
-    ENDLOOP.
-
-    rv_config = concat_lines_of(
-      table = lt_pairs
-      sep = `, ` ).
-
-  ENDMETHOD.
-  METHOD parse_color.
-
-    DATA lv_tmp TYPE string.
-
-    IF iv_color IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    IF iv_color+0(1) = '#'.
-      lv_tmp  = iv_color+1.
-      SPLIT lv_tmp AT '/' INTO rs_parsed-fg rs_parsed-bg rs_parsed-border.
-    ELSE.
-      rs_parsed-cls = iv_color.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD split.
-
-    FIELD-SYMBOLS <lv_lab> LIKE LINE OF rt_labels.
-
-    SPLIT iv_labels AT ',' INTO TABLE rt_labels.
-    LOOP AT rt_labels ASSIGNING <lv_lab>.
-      CONDENSE <lv_lab>.
-    ENDLOOP.
-    DELETE rt_labels WHERE table_line IS INITIAL.
-
-  ENDMETHOD.
-  METHOD split_colors.
-
-    DATA lt_pairs TYPE string_table.
-    DATA lv_clean_config LIKE iv_config.
-    DATA ls_c LIKE LINE OF rt_label_colors.
-    FIELD-SYMBOLS <lv_pair> LIKE LINE OF lt_pairs.
-
-    lv_clean_config = replace(
-      val = iv_config
-      sub = cl_abap_char_utilities=>newline
-      with = ` ` ). " text area ends with LF
-
-    SPLIT lv_clean_config AT ',' INTO TABLE lt_pairs.
-    LOOP AT lt_pairs ASSIGNING <lv_pair>.
-      CONDENSE <lv_pair>.
-      IF <lv_pair> IS NOT INITIAL.
-        SPLIT <lv_pair> AT ':' INTO ls_c-label ls_c-color.
-        CONDENSE ls_c-label.
-        CONDENSE ls_c-color.
-        APPEND ls_c TO rt_label_colors.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD split_colors_into_map.
-
-    DATA lt_colors TYPE ty_label_colors.
-    FIELD-SYMBOLS <ls_c> LIKE LINE OF lt_colors.
-
-    lt_colors = split_colors( iv_config ).
-
-    ro_map = zcl_abapgit_string_map=>create( ).
-    LOOP AT lt_colors ASSIGNING <ls_c>.
-      TRY.
-          ro_map->set(
-            iv_key = <ls_c>-label
-            iv_val = <ls_c>-color ).
-        CATCH zcx_abapgit_exception.
-      ENDTRY.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD validate.
-
-    DATA lt_labels TYPE string_table.
-    FIELD-SYMBOLS <lv_lab> LIKE LINE OF lt_labels.
-
-    lt_labels = split( iv_labels ).
-
-    LOOP AT lt_labels ASSIGNING <lv_lab>.
-      FIND REGEX gv_regex IN <lv_lab>.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Disallowed chars in label #{ sy-tabix }| ).
-      ENDIF.
-      " TODO: maybe also limit length ?
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD validate_colors.
-
-    DATA lt_colors TYPE ty_label_colors.
-    FIELD-SYMBOLS <ls_c> LIKE LINE OF lt_colors.
-
-    lt_colors = split_colors( iv_config ).
-
-    LOOP AT lt_colors ASSIGNING <ls_c>.
-      validate_one_label_color(
-        is_lc    = <ls_c>
-        iv_index = sy-tabix ).
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD validate_one_label_color.
-
-    DATA ls_parsed_color TYPE ty_color.
-
-    IF is_lc-label IS INITIAL.
-      zcx_abapgit_exception=>raise( |Label is empty in pair #{ iv_index }| ).
-    ENDIF.
-
-    IF is_lc-color IS INITIAL.
-      zcx_abapgit_exception=>raise( |Color is empty in pair #{ iv_index }| ).
-    ENDIF.
-
-    FIND REGEX gv_regex IN is_lc-label.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( |Disallowed chars in label in pair #{ iv_index }| ).
-    ENDIF.
-
-    ls_parsed_color = parse_color( is_lc-color ).
-    IF ls_parsed_color-cls IS NOT INITIAL.
-      FIND REGEX '^[-_A-Za-z]+$' IN ls_parsed_color-cls.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Disallowed chars in color in pair #{ iv_index }| ).
-      ENDIF.
-    ENDIF.
-    IF ls_parsed_color-fg IS NOT INITIAL.
-      validate_rgb_color( ls_parsed_color-fg ).
-    ENDIF.
-    IF ls_parsed_color-bg IS NOT INITIAL.
-      validate_rgb_color( ls_parsed_color-bg ).
-    ENDIF.
-    IF ls_parsed_color-border IS NOT INITIAL.
-      validate_rgb_color( ls_parsed_color-border ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD validate_rgb_color.
-
-    DATA lv_len TYPE i.
-
-    IF iv_color IS NOT INITIAL.
-      FIND REGEX '^[0-9A-Fa-f]+$' IN iv_color.
-      IF sy-subrc <> 0.
-        zcx_abapgit_exception=>raise( |Disallowed chars in color in pair #{ iv_index }| ).
-      ENDIF.
-      lv_len = strlen( iv_color ).
-      IF NOT ( lv_len = 3 OR lv_len = 6 ).
-        zcx_abapgit_exception=>raise( |Incorrect color in pair #{ iv_index }| ).
-      ENDIF.
-    ENDIF.
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_PATH IMPLEMENTATION.
   METHOD change_dir.
 
@@ -27236,195 +26371,6 @@ CLASS ZCL_ABAPGIT_PATH IMPLEMENTATION.
     ENDIF.
 
     ev_filename = cl_http_utility=>unescape_url( escaped = ev_filename ).
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_news IMPLEMENTATION.
-  METHOD constructor.
-
-    DATA: lt_lines    TYPE string_table,
-          lv_string   TYPE string,
-          ls_log_line LIKE LINE OF mt_log.
-
-    " Validate params
-    mv_current_version  = zcl_abapgit_version=>normalize( iv_current_version ).
-    mv_lastseen_version = zcl_abapgit_version=>normalize( iv_lastseen_version ).
-    IF mv_current_version IS INITIAL.
-      RETURN. " Internal format of program version is not correct -> abort parsing
-    ENDIF.
-
-    lv_string = zcl_abapgit_convert=>xstring_to_string_utf8( iv_rawdata ).
-    lt_lines  = zcl_abapgit_convert=>split_string( lv_string ).
-    mt_log    = parse( it_lines = lt_lines
-                       iv_current_version = mv_current_version ).
-
-    READ TABLE mt_log INTO ls_log_line INDEX 1.
-    mv_latest_version = ls_log_line-version. " Empty if not found
-
-  ENDMETHOD.
-  METHOD create.
-
-    CONSTANTS: " TODO refactor
-      lc_log_path        TYPE string VALUE '/',
-      lc_log_filename    TYPE string VALUE 'changelog*',
-      lc_log_filename_up TYPE string VALUE 'CHANGELOG*'.
-
-    DATA: lo_apack            TYPE REF TO zcl_abapgit_apack_reader,
-          lt_remote           TYPE zif_abapgit_git_definitions=>ty_files_tt,
-          lv_version          TYPE string,
-          lv_last_seen        TYPE string,
-          lv_url              TYPE string,
-          lo_repo_online      TYPE REF TO zcl_abapgit_repo_online,
-          lv_version_constant TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit-version_constant.
-
-    FIELD-SYMBOLS <ls_file> LIKE LINE OF lt_remote.
-    IF io_repo->is_offline( ) = abap_true.
-      RETURN.
-    ENDIF.
-
-    lo_repo_online ?= io_repo.
-    lv_url          = lo_repo_online->get_url( ).
-
-    lo_apack = io_repo->get_dot_apack( ).
-    IF lo_apack IS BOUND.
-      lv_version = lo_apack->get_manifest_descriptor( )-version.
-    ENDIF.
-
-    IF lv_version IS INITIAL.
-      TRY.
-          lv_version_constant = io_repo->get_dot_abapgit( )->get_version_constant( ).
-          IF lv_version_constant IS NOT INITIAL.
-            lv_version = zcl_abapgit_version=>get_version_constant_value( lv_version_constant ).
-          ENDIF.
-        CATCH zcx_abapgit_exception.
-          CLEAR lv_version.
-      ENDTRY.
-    ENDIF.
-
-    IF lv_version IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    lv_last_seen = zcl_abapgit_persistence_user=>get_instance( )->get_repo_last_change_seen( lv_url ).
-
-    TRY. " Find changelog
-        lt_remote = io_repo->get_files_remote( ).
-      CATCH zcx_abapgit_exception.
-        RETURN.
-    ENDTRY.
-
-    LOOP AT lt_remote ASSIGNING <ls_file> WHERE path = lc_log_path
-                                            AND ( filename CP lc_log_filename OR filename CP lc_log_filename_up ).
-
-      CREATE OBJECT ro_instance
-        EXPORTING
-          iv_rawdata          = <ls_file>-data
-          iv_current_version  = lv_version
-          iv_lastseen_version = zcl_abapgit_version=>normalize( lv_last_seen ).
-
-      EXIT.
-
-    ENDLOOP.
-
-    IF ro_instance IS BOUND AND lv_last_seen <> ro_instance->latest_version( ).
-      zcl_abapgit_persistence_user=>get_instance( )->set_repo_last_change_seen(
-        iv_url     = lv_url
-        iv_version = ro_instance->latest_version( ) ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_log.
-    rt_log = mt_log.
-  ENDMETHOD.
-  METHOD has_important.
-    READ TABLE mt_log WITH KEY is_important = abap_true TRANSPORTING NO FIELDS.
-    rv_boolean = boolc( sy-subrc IS INITIAL ).
-  ENDMETHOD.
-  METHOD has_news.
-    rv_boolean = boolc( lines( mt_log ) > 0 ).
-  ENDMETHOD.
-  METHOD has_unseen.
-    rv_boolean = boolc( zcl_abapgit_version=>compare(
-      iv_a = mv_latest_version
-      iv_b = mv_lastseen_version ) > 0 ).
-  ENDMETHOD.
-  METHOD has_updates.
-    rv_boolean = boolc( zcl_abapgit_version=>compare(
-      iv_a = mv_latest_version
-      iv_b = mv_current_version ) > 0 ).
-  ENDMETHOD.
-  METHOD latest_version.
-    rv_version = mv_latest_version.
-  ENDMETHOD.
-  METHOD parse.
-
-    DATA: lv_tail                TYPE i,
-          lv_first_version_found TYPE abap_bool,
-          lv_version             TYPE string,
-          ls_log                 LIKE LINE OF rt_log.
-
-    FIELD-SYMBOLS: <lv_line> LIKE LINE OF it_lines.
-    LOOP AT it_lines ASSIGNING <lv_line>.
-      ls_log = parse_line( iv_line = <lv_line>
-                           iv_current_version = iv_current_version ).
-
-      " Skip until first version head and Skip empty lines
-      CHECK ls_log IS NOT INITIAL AND
-            ( lv_first_version_found = abap_true OR ls_log-version IS NOT INITIAL ).
-
-      IF lv_first_version_found = abap_false.
-        lv_first_version_found = abap_true.
-        IF zcl_abapgit_version=>compare( iv_a = ls_log-version
-                                         iv_b = iv_current_version ) <= 0.
-          lv_tail = c_tail_length. " Display some last versions if no updates
-        ENDIF.
-      ENDIF.
-
-      IF ls_log-is_header = abap_true.
-        "Skip everything below current version or show tail news
-        IF zcl_abapgit_version=>compare( iv_a = ls_log-version
-                                         iv_b = iv_current_version ) <= 0.
-          IF lv_tail > 0.
-            lv_tail = lv_tail - 1.
-          ELSE.
-            EXIT.
-          ENDIF.
-        ENDIF.
-        lv_version = ls_log-version. " Save to fill news lines
-      ELSE.
-        ls_log-version = lv_version.
-      ENDIF.
-
-      APPEND ls_log TO rt_log.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD parse_line.
-
-    CONSTANTS: lc_header_pattern TYPE string
-        VALUE '^\d{4}-\d{2}-\d{2}\s+v(\d{1,3}\.\d{1,3}\.\d{1,3})\s*$'.
-
-    DATA: lv_version TYPE string.
-
-    IF iv_line IS INITIAL OR iv_line CO ' -='.
-      RETURN. " Skip empty and markup lines
-    ENDIF.
-
-    " Check if line is a header line
-    FIND FIRST OCCURRENCE OF REGEX lc_header_pattern IN iv_line SUBMATCHES lv_version.
-    IF sy-subrc IS INITIAL.
-      lv_version        = zcl_abapgit_version=>normalize( lv_version ).
-      rs_log-version    = lv_version.
-      rs_log-is_header  = abap_true.
-      rs_log-pos_to_cur = zcl_abapgit_version=>compare( iv_a = lv_version
-                                                        iv_b = iv_current_version ).
-    ELSE.
-      FIND FIRST OCCURRENCE OF REGEX '^\s*!' IN iv_line.
-      rs_log-is_important = boolc( sy-subrc IS INITIAL ). " Change is important
-    ENDIF.
-
-    rs_log-text = iv_line.
 
   ENDMETHOD.
 ENDCLASS.
@@ -27671,57 +26617,6 @@ CLASS zcl_abapgit_log IMPLEMENTATION.
   METHOD zif_abapgit_log~set_title.
     mv_title = iv_title.
     ri_log = me.
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS ZCL_ABAPGIT_ITEM_STATE IMPLEMENTATION.
-  METHOD is_reassigned.
-    rv_is_reassigned = mv_is_reassigned.
-  ENDMETHOD.
-  METHOD is_unchanged.
-    rv_is_unchanged = boolc( mv_is_reassigned = abap_false
-      AND mv_lstate = zif_abapgit_definitions=>c_state-unchanged
-      AND mv_rstate = zif_abapgit_definitions=>c_state-unchanged ).
-  ENDMETHOD.
-  METHOD local.
-    rv_state = mv_lstate.
-  ENDMETHOD.
-  METHOD reduce.
-
-    rv_new = iv_prev.
-    IF rv_new = iv_cur OR iv_cur IS INITIAL.
-      RETURN. " No change
-    ELSEIF rv_new IS INITIAL.
-      rv_new = iv_cur.
-    ELSE.
-      rv_new = zif_abapgit_definitions=>c_state-mixed.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD remote.
-    rv_state = mv_rstate.
-  ENDMETHOD.
-  METHOD sum_with_repo_item.
-
-    mv_lstate = reduce(
-      iv_prev = mv_lstate
-      iv_cur  = is_repo_item-lstate ).
-    mv_rstate = reduce(
-      iv_prev = mv_rstate
-      iv_cur  = is_repo_item-rstate ).
-    mv_is_reassigned = boolc( mv_is_reassigned = abap_true OR is_repo_item-packmove = abap_true ).
-
-  ENDMETHOD.
-  METHOD sum_with_status_item.
-
-    mv_lstate = reduce(
-      iv_prev = mv_lstate
-      iv_cur  = is_status_item-lstate ).
-    mv_rstate = reduce(
-      iv_prev = mv_rstate
-      iv_cur  = is_status_item-rstate ).
-    mv_is_reassigned = boolc( mv_is_reassigned = abap_true OR is_status_item-packmove = abap_true ).
-
   ENDMETHOD.
 ENDCLASS.
 
@@ -57974,514 +56869,6 @@ CLASS ZCL_ABAPGIT_SYNTAX_ABAP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_stage_logic IMPLEMENTATION.
-  METHOD remove_identical.
-
-    DATA: lv_index  TYPE i,
-          ls_remote LIKE LINE OF cs_files-remote.
-
-    FIELD-SYMBOLS: <ls_local> LIKE LINE OF cs_files-local.
-
-    SORT cs_files-remote BY path filename.
-
-    LOOP AT cs_files-local ASSIGNING <ls_local>.
-      lv_index = sy-tabix.
-
-      READ TABLE cs_files-remote INTO ls_remote
-        WITH KEY path = <ls_local>-file-path filename = <ls_local>-file-filename
-        BINARY SEARCH.
-      IF sy-subrc = 0.
-        DELETE cs_files-remote INDEX sy-tabix.
-        IF ls_remote-sha1 = <ls_local>-file-sha1.
-          DELETE cs_files-local INDEX lv_index.
-        ENDIF.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD remove_ignored.
-
-    DATA: lv_index TYPE i.
-
-    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF cs_files-remote,
-                   <ls_local>  LIKE LINE OF cs_files-local.
-    LOOP AT cs_files-remote ASSIGNING <ls_remote>.
-      lv_index = sy-tabix.
-
-      IF io_repo->get_dot_abapgit( )->is_ignored(
-          iv_path     = <ls_remote>-path
-          iv_filename = <ls_remote>-filename ) = abap_true.
-        DELETE cs_files-remote INDEX lv_index.
-      ELSEIF <ls_remote>-path = zif_abapgit_definitions=>c_root_dir
-          AND <ls_remote>-filename = zif_abapgit_definitions=>c_dot_abapgit.
-        " Remove .abapgit from remotes - it cannot be removed or ignored
-        DELETE cs_files-remote INDEX lv_index.
-      ENDIF.
-
-    ENDLOOP.
-
-    LOOP AT cs_files-local ASSIGNING <ls_local>.
-      lv_index = sy-tabix.
-
-      IF io_repo->get_dot_abapgit( )->is_ignored(
-          iv_path     = <ls_local>-file-path
-          iv_filename = <ls_local>-file-filename ) = abap_true.
-        DELETE cs_files-local INDEX lv_index.
-      ENDIF.
-
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_stage_logic~get.
-
-    " Getting REMOTE before LOCAL is critical to ensure that DATA config is loaded first
-    rs_files-remote = io_repo->get_files_remote( ii_obj_filter ).
-
-    IF ii_obj_filter IS INITIAL.
-      rs_files-local  = io_repo->get_files_local( ).
-    ELSE.
-      rs_files-local  = io_repo->get_files_local_filtered( ii_obj_filter ).
-    ENDIF.
-
-    rs_files-status = zcl_abapgit_repo_status=>calculate( io_repo = io_repo
-                                                          ii_obj_filter = ii_obj_filter ).
-
-    remove_identical( CHANGING cs_files = rs_files ).
-    remove_ignored( EXPORTING io_repo  = io_repo
-                    CHANGING  cs_files = rs_files ).
-
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_stage IMPLEMENTATION.
-  METHOD add.
-
-    append( iv_path     = iv_path
-            iv_filename = iv_filename
-            iv_method   = zif_abapgit_definitions=>c_method-add
-            is_status   = is_status
-            iv_data     = iv_data ).
-
-  ENDMETHOD.
-  METHOD append.
-
-    DATA: ls_stage LIKE LINE OF mt_stage.
-
-    FIELD-SYMBOLS: <ls_stage> LIKE LINE OF mt_stage.
-    READ TABLE mt_stage WITH KEY
-      file-path     = iv_path
-      file-filename = iv_filename
-      ASSIGNING <ls_stage>.
-    IF sy-subrc = 0.
-      <ls_stage>-file-data = iv_data.
-      <ls_stage>-method    = iv_method.
-    ELSE.
-      ls_stage-file-path     = iv_path.
-      ls_stage-file-filename = iv_filename.
-      ls_stage-file-data     = iv_data.
-      ls_stage-method        = iv_method.
-      ls_stage-status        = is_status.
-      INSERT ls_stage INTO TABLE mt_stage.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD constructor.
-    mv_merge_source = iv_merge_source.
-  ENDMETHOD.
-  METHOD count.
-    rv_count = lines( mt_stage ).
-  ENDMETHOD.
-  METHOD get_all.
-    rt_stage = mt_stage.
-  ENDMETHOD.
-  METHOD get_merge_source.
-    rv_source = mv_merge_source.
-  ENDMETHOD.
-  METHOD ignore.
-    append( iv_path     = iv_path
-            iv_filename = iv_filename
-            iv_method   = zif_abapgit_definitions=>c_method-ignore ).
-  ENDMETHOD.
-  METHOD method_description.
-
-    CASE iv_method.
-      WHEN zif_abapgit_definitions=>c_method-add.
-        rv_description = 'add'.
-      WHEN zif_abapgit_definitions=>c_method-rm.
-        rv_description = 'remove'.
-      WHEN zif_abapgit_definitions=>c_method-ignore.
-        rv_description = 'ignore'.
-      WHEN OTHERS.
-        zcx_abapgit_exception=>raise( 'unknown staging method type' ).
-    ENDCASE.
-
-  ENDMETHOD.
-  METHOD reset.
-    DELETE mt_stage WHERE file-path = iv_path AND file-filename = iv_filename.
-    ASSERT sy-subrc = 0.
-  ENDMETHOD.
-  METHOD rm.
-    append( iv_path     = iv_path
-            iv_filename = iv_filename
-            is_status   = is_status
-            iv_method   = zif_abapgit_definitions=>c_method-rm ).
-  ENDMETHOD.
-ENDCLASS.
-
-CLASS zcl_abapgit_merge IMPLEMENTATION.
-  METHOD all_files.
-
-    APPEND LINES OF ms_merge-stree TO rt_files.
-    APPEND LINES OF ms_merge-ttree TO rt_files.
-    APPEND LINES OF ms_merge-ctree TO rt_files.
-    SORT rt_files BY path DESCENDING name ASCENDING.
-    DELETE ADJACENT DUPLICATES FROM rt_files COMPARING path name.
-
-  ENDMETHOD.
-  METHOD calculate_result.
-
-    DATA: lt_files        TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
-          lv_found_source TYPE abap_bool,
-          lv_found_target TYPE abap_bool,
-          lv_found_common TYPE abap_bool.
-
-    FIELD-SYMBOLS: <ls_source>   LIKE LINE OF lt_files,
-                   <ls_target>   LIKE LINE OF lt_files,
-                   <ls_common>   LIKE LINE OF lt_files,
-                   <ls_file>     LIKE LINE OF lt_files,
-                   <ls_result>   LIKE LINE OF ms_merge-result,
-                   <ls_object>   LIKE LINE OF mt_objects,
-                   <ls_conflict> LIKE LINE OF mt_conflicts.
-
-    lt_files = all_files( ).
-
-    CREATE OBJECT ms_merge-stage
-      EXPORTING
-        iv_merge_source = ms_merge-source-sha1.
-
-    LOOP AT lt_files ASSIGNING <ls_file>.
-
-      UNASSIGN <ls_source>.
-      UNASSIGN <ls_target>.
-      UNASSIGN <ls_common>.
-
-      READ TABLE ms_merge-stree ASSIGNING <ls_source>
-        WITH KEY path_name
-        COMPONENTS path = <ls_file>-path name = <ls_file>-name. "#EC CI_SUBRC
-      READ TABLE ms_merge-ttree ASSIGNING <ls_target>
-        WITH KEY path_name
-        COMPONENTS path = <ls_file>-path name = <ls_file>-name. "#EC CI_SUBRC
-      READ TABLE ms_merge-ctree ASSIGNING <ls_common>
-        WITH KEY path_name
-        COMPONENTS path = <ls_file>-path name = <ls_file>-name. "#EC CI_SUBRC
-
-      lv_found_source = boolc( <ls_source> IS ASSIGNED ).
-      lv_found_target = boolc( <ls_target> IS ASSIGNED ).
-      lv_found_common = boolc( <ls_common> IS ASSIGNED ).
-
-      IF lv_found_source = abap_false
-          AND lv_found_target = abap_false.
-* deleted in source and target, skip
-        CONTINUE.
-      ELSEIF lv_found_source = abap_false
-          AND lv_found_common = abap_true
-          AND <ls_target>-sha1 = <ls_common>-sha1.
-* deleted in source, skip
-        ms_merge-stage->rm( iv_path     = <ls_file>-path
-                            iv_filename = <ls_file>-name ).
-        CONTINUE.
-      ELSEIF lv_found_target = abap_false
-          AND lv_found_common = abap_true
-          AND <ls_source>-sha1 = <ls_common>-sha1.
-* deleted in target, skip
-        CONTINUE.
-      ENDIF.
-
-      APPEND INITIAL LINE TO ms_merge-result ASSIGNING <ls_result>.
-      <ls_result>-path = <ls_file>-path.
-      <ls_result>-name = <ls_file>-name.
-
-      IF lv_found_target = abap_false.
-* added in source
-        READ TABLE mt_objects ASSIGNING <ls_object>
-          WITH KEY type COMPONENTS
-            type = zif_abapgit_git_definitions=>c_type-blob
-            sha1 = <ls_source>-sha1.
-        ASSERT sy-subrc = 0.
-
-        ms_merge-stage->add( iv_path     = <ls_file>-path
-                             iv_filename = <ls_file>-name
-                             iv_data     = <ls_object>-data ).
-        <ls_result>-sha1 = <ls_source>-sha1.
-        CONTINUE.
-      ELSEIF lv_found_source = abap_false.
-* added in target
-        <ls_result>-sha1 = <ls_target>-sha1.
-      ELSEIF lv_found_common = abap_false
-          AND <ls_target>-sha1 = <ls_source>-sha1.
-* added in source and target
-        <ls_result>-sha1 = <ls_source>-sha1.
-      ELSEIF lv_found_common = abap_false
-          AND <ls_target>-sha1 <> <ls_source>-sha1.
-
-        INSERT INITIAL LINE INTO TABLE mt_conflicts ASSIGNING <ls_conflict>.
-        <ls_conflict>-path = <ls_file>-path.
-        <ls_conflict>-filename = <ls_file>-name.
-        <ls_conflict>-source_sha1 = <ls_source>-sha1.
-        READ TABLE mt_objects ASSIGNING <ls_object>
-          WITH KEY type COMPONENTS
-            type = zif_abapgit_git_definitions=>c_type-blob
-            sha1 = <ls_source>-sha1.
-        <ls_conflict>-source_data = <ls_object>-data.
-
-        <ls_conflict>-target_sha1 = <ls_target>-sha1.
-        READ TABLE mt_objects ASSIGNING <ls_object>
-          WITH KEY type COMPONENTS
-            type = zif_abapgit_git_definitions=>c_type-blob
-            sha1 = <ls_target>-sha1.
-        <ls_conflict>-target_data = <ls_object>-data.
-
-* added in source and target, but different, merge conflict must be resolved
-        ms_merge-conflict = |{ <ls_file>-name } merge conflict|.
-        CONTINUE.
-      ENDIF.
-
-      IF lv_found_source = abap_false
-          OR lv_found_target = abap_false
-          OR lv_found_common = abap_false.
-        ms_merge-conflict = |{ <ls_file>-name } merge conflict, not found anywhere|.
-        CONTINUE.
-      ENDIF.
-
-      IF <ls_target>-sha1 = <ls_source>-sha1.
-* target and source match
-        <ls_result>-sha1 = <ls_source>-sha1.
-      ELSEIF <ls_target>-sha1 = <ls_common>-sha1.
-* changed in source
-        READ TABLE mt_objects ASSIGNING <ls_object>
-          WITH KEY type COMPONENTS
-            type = zif_abapgit_git_definitions=>c_type-blob
-            sha1 = <ls_source>-sha1.
-        ASSERT sy-subrc = 0.
-
-        ms_merge-stage->add( iv_path     = <ls_file>-path
-                             iv_filename = <ls_file>-name
-                             iv_data     = <ls_object>-data ).
-        <ls_result>-sha1 = <ls_source>-sha1.
-      ELSEIF <ls_source>-sha1 = <ls_common>-sha1.
-* changed in target
-        <ls_result>-sha1 = <ls_target>-sha1.
-      ELSE.
-* changed in source and target, conflict
-* conflict must be resolved before merge
-        INSERT INITIAL LINE INTO TABLE mt_conflicts ASSIGNING <ls_conflict>.
-        <ls_conflict>-path = <ls_file>-path.
-        <ls_conflict>-filename = <ls_file>-name.
-        <ls_conflict>-source_sha1 = <ls_source>-sha1.
-        READ TABLE mt_objects ASSIGNING <ls_object>
-          WITH KEY type COMPONENTS
-            type = zif_abapgit_git_definitions=>c_type-blob
-            sha1 = <ls_source>-sha1.
-        <ls_conflict>-source_data = <ls_object>-data.
-
-        <ls_conflict>-target_sha1 = <ls_target>-sha1.
-        READ TABLE mt_objects ASSIGNING <ls_object>
-          WITH KEY type COMPONENTS
-            type = zif_abapgit_git_definitions=>c_type-blob
-            sha1 = <ls_target>-sha1.
-        <ls_conflict>-target_data = <ls_object>-data.
-
-        ms_merge-conflict = |{ <ls_file>-name } merge conflict, changed in source and target branch|.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD constructor.
-
-    IF iv_source_branch = io_repo->get_selected_branch( ).
-      zcx_abapgit_exception=>raise( 'source = target' ).
-    ENDIF.
-
-    mo_repo = io_repo.
-    mv_source_branch = iv_source_branch.
-
-  ENDMETHOD.
-  METHOD fetch_git.
-
-    DATA: lo_branch_list TYPE REF TO zcl_abapgit_git_branch_list,
-          lt_upload      TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt.
-
-    lo_branch_list = zcl_abapgit_git_transport=>branches( ms_merge-repo->get_url( ) ).
-
-    ms_merge-source = lo_branch_list->find_by_name(
-      zcl_abapgit_git_branch_list=>complete_heads_branch_name( mv_source_branch ) ).
-
-    ms_merge-target = lo_branch_list->find_by_name(
-      zcl_abapgit_git_branch_list=>complete_heads_branch_name( mo_repo->get_selected_branch( ) ) ).
-
-    APPEND ms_merge-source TO lt_upload.
-    APPEND ms_merge-target TO lt_upload.
-
-    zcl_abapgit_git_transport=>upload_pack_by_branch(
-      EXPORTING
-        iv_url          = ms_merge-repo->get_url( )
-        iv_branch_name  = ms_merge-repo->get_selected_branch( )
-        iv_deepen_level = 0
-        it_branches     = lt_upload
-      IMPORTING
-        et_objects      = rt_objects ).
-
-  ENDMETHOD.
-  METHOD find_ancestors.
-
-    DATA: ls_commit TYPE zcl_abapgit_git_pack=>ty_commit,
-          lt_visit  TYPE ty_visit_tt,
-          lv_commit LIKE LINE OF lt_visit.
-
-    FIELD-SYMBOLS: <ls_ancestor> LIKE LINE OF rt_ancestors,
-                   <ls_object>   LIKE LINE OF mt_objects.
-    APPEND iv_commit TO lt_visit.
-
-    LOOP AT lt_visit INTO lv_commit.
-      READ TABLE mt_objects ASSIGNING <ls_object>
-        WITH KEY type COMPONENTS
-          type = zif_abapgit_git_definitions=>c_type-commit
-          sha1 = lv_commit.
-      ASSERT sy-subrc = 0.
-
-      ls_commit = zcl_abapgit_git_pack=>decode_commit( <ls_object>-data ).
-
-      visit( EXPORTING iv_parent = ls_commit-parent
-             CHANGING ct_visit   = lt_visit ).
-      visit( EXPORTING iv_parent = ls_commit-parent2
-             CHANGING ct_visit   = lt_visit ).
-
-      APPEND INITIAL LINE TO rt_ancestors ASSIGNING <ls_ancestor>.
-      <ls_ancestor>-commit = lv_commit.
-      <ls_ancestor>-tree = ls_commit-tree.
-      <ls_ancestor>-body = ls_commit-body.
-      <ls_ancestor>-time = ls_commit-author.
-
-      "Strip Author entry of all but the time component
-      REPLACE ALL OCCURRENCES OF REGEX '[a-zA-Z<>@.-]*' IN <ls_ancestor>-time WITH ''.
-      CONDENSE <ls_ancestor>-time.
-    ENDLOOP.
-
-    SORT rt_ancestors BY time DESCENDING.
-
-  ENDMETHOD.
-  METHOD find_first_common.
-
-    FIELD-SYMBOLS: <ls_list1> LIKE LINE OF it_list1,
-                   <ls_list2> LIKE LINE OF it_list2.
-
-    LOOP AT it_list1 ASSIGNING <ls_list1>.
-      LOOP AT it_list2 ASSIGNING <ls_list2>.
-        IF <ls_list1>-tree = <ls_list2>-tree.
-          rs_common = <ls_list1>.
-          RETURN.
-        ENDIF.
-      ENDLOOP.
-    ENDLOOP.
-
-    zcx_abapgit_exception=>raise( 'error finding common ancestor' ).
-
-  ENDMETHOD.
-  METHOD visit.
-
-    IF NOT iv_parent IS INITIAL.
-      READ TABLE ct_visit FROM iv_parent TRANSPORTING NO FIELDS.
-      IF sy-subrc <> 0.
-        APPEND iv_parent TO ct_visit.
-      ENDIF.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_merge~get_conflicts.
-
-    rt_conflicts = mt_conflicts.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_merge~get_result.
-
-    rs_merge = ms_merge.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_merge~get_source_branch.
-
-    rv_source_branch = mv_source_branch.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_merge~has_conflicts.
-
-    rv_conflicts_exists = boolc( lines( mt_conflicts ) > 0 ).
-
-  ENDMETHOD.
-  METHOD zif_abapgit_merge~resolve_conflict.
-
-    FIELD-SYMBOLS: <ls_conflict> TYPE zif_abapgit_merge=>ty_merge_conflict,
-                   <ls_result>   LIKE LINE OF ms_merge-result.
-
-    IF is_conflict-result_sha1 IS NOT INITIAL
-        AND is_conflict-result_data IS NOT INITIAL.
-      READ TABLE mt_conflicts ASSIGNING <ls_conflict> WITH KEY path = is_conflict-path
-                                                               filename = is_conflict-filename.
-      IF sy-subrc = 0.
-        READ TABLE ms_merge-result ASSIGNING <ls_result>
-          WITH KEY path_name
-          COMPONENTS path = is_conflict-path name = is_conflict-filename.
-        IF sy-subrc = 0.
-          <ls_result>-sha1 = is_conflict-result_sha1.
-
-          ms_merge-stage->add( iv_path     = <ls_conflict>-path
-                               iv_filename = <ls_conflict>-filename
-                               iv_data     = is_conflict-result_data ).
-
-          DELETE mt_conflicts WHERE path     = is_conflict-path
-                                AND filename = is_conflict-filename.
-        ENDIF.
-
-        READ TABLE ms_merge-result ASSIGNING <ls_result> WITH KEY sha1 = space.
-        IF sy-subrc = 0.
-          ms_merge-conflict = |{ <ls_result>-name } merge conflict, changed in source and target branch|.
-        ELSE.
-          CLEAR ms_merge-conflict.
-        ENDIF.
-      ENDIF.
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_merge~run.
-
-    DATA: lt_asource TYPE ty_ancestor_tt,
-          lt_atarget TYPE ty_ancestor_tt.
-
-    CLEAR: ms_merge, mt_objects, mt_conflicts.
-
-    ms_merge-repo = mo_repo.
-    mt_objects = fetch_git( ).
-
-    lt_asource = find_ancestors( ms_merge-source-sha1 ).
-    lt_atarget = find_ancestors( ms_merge-target-sha1 ).
-
-    ms_merge-common = find_first_common( it_list1 = lt_asource
-                                         it_list2 = lt_atarget ).
-
-    ms_merge-stree = zcl_abapgit_git_porcelain=>full_tree(
-      it_objects = mt_objects
-      iv_parent  = ms_merge-source-sha1 ).
-    ms_merge-ttree = zcl_abapgit_git_porcelain=>full_tree(
-      it_objects = mt_objects
-      iv_parent  = ms_merge-target-sha1 ).
-    ms_merge-ctree = zcl_abapgit_git_porcelain=>full_tree(
-      it_objects = mt_objects
-      iv_parent  = ms_merge-common-commit ).
-
-    calculate_result( ).
-
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS kHGwlVCHrsAtuwxHoXzuQzYvAOqpyr DEFINITION DEFERRED.
 * renamed: zcl_abapgit_repo_status :: lcl_status_consistency_checks
 CLASS kHGwlVCHrsAtuwxHoXzuQzYvAOqpyr DEFINITION FINAL.
@@ -61573,128 +59960,6 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_object_filter_tran IMPLEMENTATION.
-  METHOD adjust_local_filter.
-
-    DATA lt_e071_filter TYPE ty_e071_filter_tt.
-    DATA lr_e071_filter TYPE REF TO ty_e071_filter.
-    DATA ls_filter TYPE zif_abapgit_definitions=>ty_tadir.
-    DATA lv_trobj_name_new TYPE trobj_name.
-    DATA lv_trobj_type_new TYPE tadir-object.
-    DATA lt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt.
-    DATA lr_cts_api TYPE REF TO zif_abapgit_cts_api.
-
-    lt_e071_filter = it_e071_filter.
-
-    LOOP AT lt_e071_filter REFERENCE INTO lr_e071_filter.
-
-      IF lr_e071_filter->pgmid = 'LIMU'.
-        "Get Main Object from LIMU Object (Example the Class (R3TR) of a Method (LIMU))
-
-        lr_cts_api = zcl_abapgit_factory=>get_cts_api( ).
-
-        TRY.
-            lr_cts_api->get_r3tr_obj_for_limu_obj(
-              EXPORTING
-                iv_object   = lr_e071_filter->object
-                iv_obj_name = lr_e071_filter->obj_name
-              IMPORTING
-                ev_object   = lv_trobj_type_new
-                ev_obj_name = lv_trobj_name_new ).
-          CATCH zcx_abapgit_exception.
-            CONTINUE.
-        ENDTRY.
-
-        CLEAR ls_filter.
-        ls_filter-pgmid = 'R3TR'.
-        ls_filter-object = lv_trobj_type_new.
-        ls_filter-obj_name = lv_trobj_name_new.
-      ELSE.
-        ls_filter-pgmid = lr_e071_filter->pgmid.
-        ls_filter-object = lr_e071_filter->object.
-        ls_filter-obj_name = lr_e071_filter->obj_name.
-      ENDIF.
-      INSERT ls_filter INTO TABLE rt_filter.
-    ENDLOOP.
-
-    IF iv_package IS NOT INITIAL.
-      ls_filter-pgmid = 'R3TR'.
-      ls_filter-object = 'DEVC'.
-      ls_filter-obj_name = iv_package.
-      INSERT ls_filter INTO TABLE rt_filter.
-
-      lt_filter = get_all_sub_packages( iv_package ).
-      INSERT LINES OF lt_filter INTO TABLE rt_filter.
-
-    ENDIF.
-
-    SORT rt_filter.
-    DELETE ADJACENT DUPLICATES FROM rt_filter.
-
-    IF rt_filter IS INITIAL.
-
-      zcx_abapgit_exception=>raise( 'No objects found for transport filter' ).
-
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD generate_local_filter.
-    DATA lt_e071_filter TYPE ty_e071_filter_tt.
-
-    SELECT DISTINCT pgmid object obj_name
-      INTO CORRESPONDING FIELDS OF TABLE lt_e071_filter
-      FROM e071
-      WHERE trkorr IN it_r_trkorr
-      ORDER BY pgmid object obj_name.
-    IF sy-subrc <> 0.
-      CLEAR lt_e071_filter.
-    ENDIF.
-    rt_filter = adjust_local_filter(
-      iv_package     = iv_package
-      it_e071_filter = lt_e071_filter ).
-  ENDMETHOD.
-  METHOD get_all_sub_packages.
-
-    DATA li_package TYPE REF TO zif_abapgit_sap_package.
-    DATA lt_list TYPE zif_abapgit_sap_package=>ty_devclass_tt.
-    DATA lr_list TYPE REF TO devclass.
-    DATA ls_filter TYPE zif_abapgit_definitions=>ty_tadir.
-
-    li_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
-    lt_list = li_package->list_subpackages( ).
-    LOOP AT lt_list REFERENCE INTO lr_list.
-      ls_filter-pgmid = 'R3TR'.
-      ls_filter-object = 'DEVC'.
-      ls_filter-obj_name = lr_list->*.
-      INSERT ls_filter INTO TABLE rt_filter.
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD get_filter_values.
-    et_r_trkorr = mt_r_trkorr.
-    ev_package = mv_package.
-  ENDMETHOD.
-  METHOD init.
-    CLEAR mt_filter.
-    CLEAR mt_r_trkorr.
-    CLEAR mv_package.
-  ENDMETHOD.
-  METHOD set_filter_values.
-    init( ).
-    mt_r_trkorr = it_r_trkorr.
-    mv_package = iv_package.
-    IF it_r_trkorr IS NOT INITIAL.
-      mt_filter = generate_local_filter(
-        iv_package  = mv_package
-        it_r_trkorr = mt_r_trkorr ).
-
-    ENDIF.
-  ENDMETHOD.
-  METHOD zif_abapgit_object_filter~get_filter.
-    rt_filter = mt_filter.
-  ENDMETHOD.
-ENDCLASS.
-
 CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
   METHOD add_ignore.
 
@@ -61896,6 +60161,1741 @@ CLASS zcl_abapgit_dot_abapgit IMPLEMENTATION.
     ENDIF.
 
     rv_yes = ms_data-use_lxe.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_zip IMPLEMENTATION.
+  METHOD encode_files.
+
+    DATA: lo_zip      TYPE REF TO cl_abap_zip,
+          lv_filename TYPE string.
+
+    FIELD-SYMBOLS: <ls_file> LIKE LINE OF it_files.
+    CREATE OBJECT lo_zip.
+
+    LOOP AT it_files ASSIGNING <ls_file>.
+      CONCATENATE <ls_file>-file-path+1 <ls_file>-file-filename INTO lv_filename.
+      lo_zip->add( name    = lv_filename
+                   content = <ls_file>-file-data ).
+    ENDLOOP.
+
+    rv_xstr = lo_zip->save( ).
+
+  ENDMETHOD.
+  METHOD export.
+
+    DATA li_log       TYPE REF TO zif_abapgit_log.
+    DATA lt_zip       TYPE zif_abapgit_definitions=>ty_files_item_tt.
+    DATA lo_serialize TYPE REF TO zcl_abapgit_serialize.
+
+    CREATE OBJECT li_log TYPE zcl_abapgit_log.
+    li_log->set_title( 'Zip Export Log' ).
+
+    IF zcl_abapgit_factory=>get_sap_package( iv_package )->exists( ) = abap_false.
+      zcx_abapgit_exception=>raise( |Package { iv_package } doesn't exist| ).
+    ENDIF.
+
+    CREATE OBJECT lo_serialize
+      EXPORTING
+        io_dot_abapgit    = io_dot_abapgit
+        is_local_settings = is_local_settings.
+
+    lt_zip = lo_serialize->files_local(
+      iv_package = iv_package
+      ii_log     = li_log
+      it_filter  = it_filter ).
+
+    FREE lo_serialize.
+
+    IF li_log->count( ) > 0 AND iv_show_log = abap_true.
+      zcl_abapgit_log_viewer=>show_log( li_log ).
+    ENDIF.
+
+    rv_xstr = encode_files( lt_zip ).
+
+  ENDMETHOD.
+  METHOD export_object.
+
+    DATA: ls_tadir         TYPE zif_abapgit_definitions=>ty_tadir,
+          lv_folder        TYPE string,
+          lv_fullpath      TYPE string,
+          lv_sep           TYPE c LENGTH 1,
+          ls_files_item    TYPE zif_abapgit_objects=>ty_serialization,
+          lo_frontend_serv TYPE REF TO zif_abapgit_frontend_services.
+
+    FIELD-SYMBOLS: <ls_file> LIKE LINE OF ls_files_item-files.
+
+    ls_tadir = zcl_abapgit_factory=>get_tadir( )->read_single(
+        iv_object   = iv_object_type
+        iv_obj_name = iv_object_name ).
+
+    IF ls_tadir IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Object could not be found' ).
+    ENDIF.
+
+    ls_files_item-item-obj_type = ls_tadir-object.
+    ls_files_item-item-obj_name = ls_tadir-obj_name.
+    ls_files_item-item-abap_language_version = '*'. "any
+
+    ls_files_item = zcl_abapgit_objects=>serialize(
+      is_item        = ls_files_item-item
+      io_i18n_params = zcl_abapgit_i18n_params=>new(
+        iv_main_language_only = iv_main_language_only
+        iv_main_language      = sy-langu ) ).
+
+    IF lines( ls_files_item-files ) = 0.
+      zcx_abapgit_exception=>raise( 'Empty' ).
+    ENDIF.
+
+    lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
+    lo_frontend_serv->directory_browse( CHANGING cv_selected_folder = lv_folder ).
+    IF lv_folder IS INITIAL.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
+
+    lo_frontend_serv->get_file_separator( CHANGING cv_file_separator = lv_sep ).
+
+    LOOP AT ls_files_item-files ASSIGNING <ls_file>.
+      lv_fullpath = |{ lv_folder }{ lv_sep }{ <ls_file>-filename }|.
+      save_binstring_to_localfile( iv_filename  = lv_fullpath
+                                   iv_binstring = <ls_file>-data ).
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD export_package.
+
+    DATA: ls_local_settings  TYPE zif_abapgit_persistence=>ty_repo-local_settings,
+          lo_dot_abapgit     TYPE REF TO zcl_abapgit_dot_abapgit,
+          lo_frontend_serv   TYPE REF TO zif_abapgit_frontend_services,
+          lv_default         TYPE string,
+          lv_package_escaped TYPE string,
+          lv_path            TYPE string,
+          lv_zip_xstring     TYPE xstring.
+
+    ls_local_settings-main_language_only = iv_main_lang_only.
+
+    lo_dot_abapgit = zcl_abapgit_dot_abapgit=>build_default( ).
+    lo_dot_abapgit->set_folder_logic( iv_folder_logic ).
+
+    lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
+
+    lv_package_escaped = iv_package.
+    REPLACE ALL OCCURRENCES OF '/' IN lv_package_escaped WITH '#'.
+    lv_default = |{ lv_package_escaped }_{ sy-datlo }_{ sy-timlo }.zip|.
+
+    lv_zip_xstring = export(
+     is_local_settings = ls_local_settings
+     iv_package        = iv_package
+     io_dot_abapgit    = lo_dot_abapgit ).
+
+    lv_path = lo_frontend_serv->show_file_save_dialog(
+        iv_title            = 'Package Export'
+        iv_extension        = 'zip'
+        iv_default_filename = lv_default ).
+
+    lo_frontend_serv->file_download(
+        iv_path = lv_path
+        iv_xstr = lv_zip_xstring ).
+  ENDMETHOD.
+  METHOD filename.
+
+    IF iv_str CA '/'.
+      FIND REGEX '(.*/)(.*)' IN iv_str
+        SUBMATCHES ev_path ev_filename.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'Malformed path' ).
+      ENDIF.
+      IF ev_path <> '/'.
+        CONCATENATE '/' ev_path INTO ev_path.
+      ENDIF.
+    ELSE.
+      ev_path = '/'.
+      ev_filename = iv_str.
+    ENDIF.
+    TRANSLATE ev_filename TO LOWER CASE.
+
+  ENDMETHOD.
+  METHOD load.
+
+    rt_files = unzip_file( iv_xstr ).
+
+  ENDMETHOD.
+  METHOD normalize_path.
+* removes first folder from path if needed
+
+    DATA: lt_split  TYPE TABLE OF string,
+          lv_needed TYPE abap_bool,
+          lv_length TYPE i,
+          lv_split  LIKE LINE OF lt_split.
+
+    FIELD-SYMBOLS: <ls_file> LIKE LINE OF ct_files.
+    READ TABLE ct_files INDEX 1 ASSIGNING <ls_file>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+
+    SPLIT <ls_file>-path AT '/' INTO TABLE lt_split.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    READ TABLE lt_split INDEX 2 INTO lv_split.
+    IF sy-subrc <> 0 OR strlen( lv_split ) = 0.
+      RETURN.
+    ENDIF.
+
+    CONCATENATE '/' lv_split '/*' INTO lv_split.
+
+    lv_needed = abap_true.
+    LOOP AT ct_files ASSIGNING <ls_file>.
+      IF NOT <ls_file>-path CP lv_split.
+        lv_needed = abap_false.
+        EXIT. " current loop
+      ENDIF.
+    ENDLOOP.
+
+    IF lv_needed = abap_true.
+      lv_length = strlen( lv_split ) - 2.
+      LOOP AT ct_files ASSIGNING <ls_file>.
+        <ls_file>-path = <ls_file>-path+lv_length.
+      ENDLOOP.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD save_binstring_to_localfile.
+
+    zcl_abapgit_ui_factory=>get_frontend_services( )->file_download(
+      iv_path = iv_filename
+      iv_xstr = iv_binstring ).
+
+  ENDMETHOD.
+  METHOD unzip_file.
+
+    DATA: lo_zip  TYPE REF TO cl_abap_zip,
+          lv_data TYPE xstring.
+
+    FIELD-SYMBOLS: <ls_zipfile> LIKE LINE OF lo_zip->files,
+                   <ls_file>    LIKE LINE OF rt_files.
+    CREATE OBJECT lo_zip.
+    lo_zip->load( EXPORTING
+                    zip             = iv_xstr
+                  EXCEPTIONS
+                    zip_parse_error = 1
+                    OTHERS          = 2 ).
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'error from zip' ).
+    ENDIF.
+
+    LOOP AT lo_zip->files ASSIGNING <ls_zipfile>.
+
+      lo_zip->get(
+        EXPORTING
+          name                    = <ls_zipfile>-name
+        IMPORTING
+          content                 = lv_data
+        EXCEPTIONS
+          zip_index_error         = 1
+          zip_decompression_error = 2
+          OTHERS                  = 3 ).
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( 'error from zip get' ).
+      ENDIF.
+
+      APPEND INITIAL LINE TO rt_files ASSIGNING <ls_file>.
+
+      filename(
+        EXPORTING
+          iv_str      = <ls_zipfile>-name
+        IMPORTING
+          ev_path     = <ls_file>-path
+          ev_filename = <ls_file>-filename ).
+
+      <ls_file>-data = lv_data.
+
+      <ls_file>-sha1 = zcl_abapgit_hash=>sha1_blob( <ls_file>-data ).
+
+    ENDLOOP.
+
+    DELETE rt_files WHERE filename IS INITIAL.
+
+    normalize_path( CHANGING ct_files = rt_files ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_version IMPLEMENTATION.
+  METHOD check_dependant_version.
+
+    CONSTANTS: lc_message TYPE string VALUE 'Current version is older than required'.
+
+    IF is_dependant-major > is_current-major.
+      zcx_abapgit_exception=>raise( lc_message ).
+    ELSEIF is_dependant-major < is_current-major.
+      RETURN.
+    ENDIF.
+
+    IF is_dependant-minor > is_current-minor.
+      zcx_abapgit_exception=>raise( lc_message ).
+    ELSEIF is_dependant-minor < is_current-minor.
+      RETURN.
+    ENDIF.
+
+    IF is_dependant-patch > is_current-patch.
+      zcx_abapgit_exception=>raise( lc_message ).
+    ELSEIF is_dependant-patch < is_current-patch.
+      RETURN.
+    ENDIF.
+
+    IF is_current-prerelase IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    CASE is_current-prerelase.
+      WHEN 'rc'.
+        IF is_dependant-prerelase = ''.
+          zcx_abapgit_exception=>raise( lc_message ).
+        ENDIF.
+
+      WHEN 'beta'.
+        IF is_dependant-prerelase = '' OR is_dependant-prerelase = 'rc'.
+          zcx_abapgit_exception=>raise( lc_message ).
+        ENDIF.
+
+      WHEN 'alpha'.
+        IF is_dependant-prerelase = '' OR is_dependant-prerelase = 'rc' OR is_dependant-prerelase = 'beta'.
+          zcx_abapgit_exception=>raise( lc_message ).
+        ENDIF.
+
+    ENDCASE.
+
+    IF is_dependant-prerelase = is_current-prerelase AND is_dependant-prerelase_patch > is_current-prerelase_patch.
+      zcx_abapgit_exception=>raise( lc_message ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD compare.
+
+    DATA: ls_version_a TYPE zif_abapgit_definitions=>ty_version,
+          ls_version_b TYPE zif_abapgit_definitions=>ty_version.
+
+    TRY.
+        IF is_a IS NOT INITIAL.
+          ls_version_a = is_a.
+        ELSE.
+          ls_version_a = conv_str_to_version( iv_a ).
+        ENDIF.
+
+        IF is_b IS NOT INITIAL.
+          ls_version_b = is_b.
+        ELSE.
+          ls_version_b = conv_str_to_version( iv_b ).
+        ENDIF.
+      CATCH zcx_abapgit_exception.
+        rv_result = 0.
+        RETURN.
+    ENDTRY.
+
+    IF ls_version_a = ls_version_b.
+      rv_result = 0.
+    ELSE.
+      TRY.
+          check_dependant_version( is_current   = ls_version_a
+                                   is_dependant = ls_version_b ).
+          rv_result = 1.
+        CATCH zcx_abapgit_exception.
+          rv_result = -1.
+          RETURN.
+      ENDTRY.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD conv_str_to_version.
+
+    DATA: lt_segments TYPE STANDARD TABLE OF string,
+          lt_parts    TYPE STANDARD TABLE OF string,
+          lv_segment  TYPE string.
+
+    SPLIT iv_version AT '-' INTO TABLE lt_segments.
+
+    READ TABLE lt_segments INTO lv_segment INDEX 1. " Version
+    IF sy-subrc <> 0.   " No version
+      RETURN.
+    ENDIF.
+
+    SPLIT lv_segment AT '.' INTO TABLE lt_parts.
+
+    LOOP AT lt_parts INTO lv_segment.
+
+      TRY.
+          CASE sy-tabix.
+            WHEN 1.
+              rs_version-major = lv_segment.
+            WHEN 2.
+              rs_version-minor = lv_segment.
+            WHEN 3.
+              rs_version-patch = lv_segment.
+          ENDCASE.
+        CATCH cx_sy_conversion_no_number.
+          zcx_abapgit_exception=>raise( 'Incorrect format for Semantic Version' ).
+      ENDTRY.
+
+    ENDLOOP.
+
+    READ TABLE lt_segments INTO lv_segment INDEX 2. " Pre-release Version
+    IF sy-subrc <> 0.   " No version
+      RETURN.
+    ENDIF.
+
+    SPLIT lv_segment AT '.' INTO TABLE lt_parts.
+
+    LOOP AT lt_parts INTO lv_segment.
+
+      CASE sy-tabix.
+        WHEN 1.
+          rs_version-prerelase = lv_segment.
+          TRANSLATE rs_version-prerelase TO LOWER CASE.
+        WHEN 2.
+          rs_version-prerelase_patch = lv_segment.
+      ENDCASE.
+
+    ENDLOOP.
+
+    IF rs_version-prerelase <> 'rc' AND rs_version-prerelase <> 'beta' AND rs_version-prerelase <> 'alpha'.
+      zcx_abapgit_exception=>raise( 'Incorrect format for Semantic Version' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD normalize.
+
+    " Internal program version should be in format "XXX.XXX.XXX" or "vXXX.XXX.XXX"
+    CONSTANTS:
+      lc_version_pattern    TYPE string VALUE '^v?(\d{1,3}\.\d{1,3}\.\d{1,3})\s*$',
+      lc_prerelease_pattern TYPE string VALUE '^((rc|beta|alpha)\.\d{1,3})\s*$'.
+
+    DATA: lv_version      TYPE string,
+          lv_prerelease   TYPE string,
+          lv_version_n    TYPE string,
+          lv_prerelease_n TYPE string.
+
+    SPLIT iv_version AT '-' INTO lv_version lv_prerelease.
+
+    FIND FIRST OCCURRENCE OF REGEX lc_version_pattern
+      IN lv_version SUBMATCHES lv_version_n.
+
+    IF lv_prerelease IS NOT INITIAL.
+
+      FIND FIRST OCCURRENCE OF REGEX lc_prerelease_pattern
+        IN lv_prerelease SUBMATCHES lv_prerelease_n.
+
+    ENDIF.
+
+    IF lv_version_n IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    rv_version = lv_version_n.
+
+    IF lv_prerelease_n IS NOT INITIAL.
+      CONCATENATE rv_version '-' lv_prerelease_n INTO rv_version.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD version_to_numeric.
+
+    DATA: lv_major   TYPE n LENGTH 4,
+          lv_minor   TYPE n LENGTH 4,
+          lv_release TYPE n LENGTH 4.
+
+    SPLIT iv_version AT '.' INTO lv_major lv_minor lv_release.
+
+    " Calculated value of version number, empty version will become 0 which is OK
+    rv_version = lv_major * 1000000 + lv_minor * 1000 + lv_release.
+
+  ENDMETHOD.
+
+  METHOD get_version_constant_value.
+    DATA: lv_version_class     TYPE string,
+          lv_version_component TYPE string.
+    FIELD-SYMBOLS: <lv_version> TYPE string.
+
+    IF iv_version_constant NP '*=>*'.
+      zcx_abapgit_exception=>raise( 'Version constant needs to use the format CLASS=>CONSTANT' ).
+    ENDIF.
+
+    SPLIT iv_version_constant AT '=>' INTO lv_version_class lv_version_component.
+    IF sy-subrc <> 0 OR lv_version_class IS INITIAL OR lv_version_component IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Version constant cannot be parsed' ).
+    ENDIF.
+
+    ASSIGN (lv_version_class)=>(lv_version_component) TO <lv_version>.
+    IF sy-subrc = 0.
+      rv_version = <lv_version>.
+    ELSE.
+      zcx_abapgit_exception=>raise( |Could not access version at class { lv_version_class } component | &&
+                                    |{ lv_version_component }| ).
+    ENDIF.
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_REQUIREMENT_HELPER IMPLEMENTATION.
+  METHOD get_requirement_met_status.
+
+    DATA: lt_installed TYPE STANDARD TABLE OF cvers_sdu.
+
+    FIELD-SYMBOLS: <ls_requirement>    TYPE zif_abapgit_dot_abapgit=>ty_requirement,
+                   <ls_status>         TYPE ty_requirement_status,
+                   <ls_installed_comp> TYPE cvers_sdu.
+    CALL FUNCTION 'DELIVERY_GET_INSTALLED_COMPS'
+      TABLES
+        tt_comptab       = lt_installed
+      EXCEPTIONS
+        no_release_found = 1
+        OTHERS           = 2.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Error from DELIVERY_GET_INSTALLED_COMPS { sy-subrc }| ).
+    ENDIF.
+
+    LOOP AT it_requirements ASSIGNING <ls_requirement>.
+      APPEND INITIAL LINE TO rt_status ASSIGNING <ls_status>.
+      <ls_status>-component = <ls_requirement>-component.
+      <ls_status>-required_release = <ls_requirement>-min_release.
+      <ls_status>-required_patch = <ls_requirement>-min_patch.
+
+      READ TABLE lt_installed WITH KEY component = <ls_requirement>-component
+                              ASSIGNING <ls_installed_comp>.
+      IF sy-subrc = 0.
+        " Component is installed, requirement is met if the installed version is greater or equal
+        " to the required one.
+        <ls_status>-installed_release = <ls_installed_comp>-release.
+        <ls_status>-installed_patch = <ls_installed_comp>-extrelease.
+        <ls_status>-description = <ls_installed_comp>-desc_text.
+        <ls_status>-met = is_version_greater_or_equal( <ls_status> ).
+      ELSE.
+        " Component is not installed at all
+        <ls_status>-met = abap_false.
+      ENDIF.
+
+      UNASSIGN <ls_installed_comp>.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD is_requirements_met.
+
+    DATA: lt_met_status TYPE ty_requirement_status_tt.
+
+    lt_met_status = get_requirement_met_status( it_requirements ).
+
+    READ TABLE lt_met_status TRANSPORTING NO FIELDS WITH KEY met = abap_false.
+    IF sy-subrc = 0.
+      rv_status = zif_abapgit_definitions=>c_no.
+    ELSE.
+      rv_status = zif_abapgit_definitions=>c_yes.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD is_version_greater_or_equal.
+
+    DATA:
+      lv_installed_release TYPE n LENGTH 4,
+      lv_installed_patch   TYPE n LENGTH 4,
+      lv_required_release  TYPE n LENGTH 4,
+      lv_required_patch    TYPE n LENGTH 4.
+
+    TRY.
+        MOVE EXACT: is_status-installed_release TO lv_installed_release,
+                    is_status-installed_patch   TO lv_installed_patch,
+                    is_status-required_release  TO lv_required_release,
+                    is_status-required_patch    TO lv_required_patch.
+      CATCH cx_sy_conversion_error.
+        " Cannot compare by number, assume requirement not fullfilled (user can force install
+        " anyways if this was an error)
+        rv_true = abap_false.
+        RETURN.
+    ENDTRY.
+
+    " Versions are comparable by number, compare release and if necessary patch level
+    IF lv_installed_release > lv_required_release
+        OR ( lv_installed_release = lv_required_release
+         AND ( lv_required_patch = 0
+            OR lv_installed_patch >= lv_required_patch ) ).
+
+      rv_true = abap_true.
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD requirements_popup.
+
+    DATA: lt_met_status TYPE ty_requirement_status_tt,
+          lv_answer     TYPE c LENGTH 1.
+    lt_met_status = get_requirement_met_status( it_requirements ).
+
+    show_requirement_popup( lt_met_status ).
+
+    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
+      iv_titlebar      = 'Warning'
+      iv_text_question = 'The project has unmet requirements. Do you want to continue?' ).
+
+    IF lv_answer <> '1'.
+      zcx_abapgit_exception=>raise( 'Cancelling because of unmet requirements.' ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD show_requirement_popup.
+
+    TYPES: BEGIN OF ty_color_line,
+             color TYPE lvc_t_scol.
+             INCLUDE TYPE ty_requirement_status.
+    TYPES: END OF ty_color_line.
+
+    TYPES: ty_color_tab TYPE STANDARD TABLE OF ty_color_line WITH DEFAULT KEY.
+
+    DATA: lo_alv            TYPE REF TO cl_salv_table,
+          lo_column         TYPE REF TO cl_salv_column,
+          lo_columns        TYPE REF TO cl_salv_columns_table,
+          lt_color_table    TYPE ty_color_tab,
+          lt_color_negative TYPE lvc_t_scol,
+          lt_color_positive TYPE lvc_t_scol,
+          ls_color          TYPE lvc_s_scol,
+          ls_position       TYPE zif_abapgit_popups=>ty_popup_position,
+          lx_ex             TYPE REF TO cx_root.
+
+    FIELD-SYMBOLS: <ls_line>        TYPE ty_color_line,
+                   <ls_requirement> LIKE LINE OF it_requirements.
+    ls_color-color-col = col_negative.
+    APPEND ls_color TO lt_color_negative.
+
+    ls_color-color-col = col_positive.
+    APPEND ls_color TO lt_color_positive.
+
+    CLEAR ls_color.
+
+    LOOP AT it_requirements ASSIGNING <ls_requirement>.
+      APPEND INITIAL LINE TO lt_color_table ASSIGNING <ls_line>.
+      MOVE-CORRESPONDING <ls_requirement> TO <ls_line>.
+    ENDLOOP.
+
+    LOOP AT lt_color_table ASSIGNING <ls_line>.
+      IF <ls_line>-met = abap_false.
+        <ls_line>-color = lt_color_negative.
+      ELSE.
+        <ls_line>-color = lt_color_positive.
+      ENDIF.
+    ENDLOOP.
+    UNASSIGN <ls_line>.
+
+    TRY.
+        cl_salv_table=>factory( IMPORTING r_salv_table = lo_alv
+                                CHANGING t_table       = lt_color_table ).
+
+        lo_columns = lo_alv->get_columns( ).
+        lo_columns->get_column( 'MET' )->set_short_text( 'Met' ).
+        lo_columns->set_color_column( 'COLOR' ).
+        lo_columns->set_optimize( ).
+
+        lo_column = lo_columns->get_column( 'REQUIRED_RELEASE' ).
+        lo_column->set_short_text( 'Req. Rel.' ).
+
+        lo_column = lo_columns->get_column( 'REQUIRED_PATCH' ).
+        lo_column->set_short_text( 'Req. SP L.' ).
+
+        ls_position = zcl_abapgit_popups=>center(
+          iv_width  = 70
+          iv_height = 10 ).
+
+        lo_alv->set_screen_popup( start_column = ls_position-start_column
+                                  end_column   = ls_position-end_column
+                                  start_line   = ls_position-start_row
+                                  end_line     = ls_position-end_row ).
+
+        lo_alv->get_display_settings( )->set_list_header( 'Requirements' ).
+        lo_alv->display( ).
+
+      CATCH cx_salv_msg cx_salv_not_found cx_salv_data_error INTO lx_ex.
+        zcx_abapgit_exception=>raise( lx_ex->get_text( ) ).
+    ENDTRY.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_repo_labels IMPLEMENTATION.
+  METHOD class_constructor.
+    gv_regex = |^[{ c_allowed_chars }]*$|. " Must start with -
+  ENDMETHOD.
+  METHOD normalize.
+
+    DATA lt_labels TYPE string_table.
+    DATA lt_normalized TYPE string_table.
+    FIELD-SYMBOLS <lv_lab> LIKE LINE OF lt_labels.
+
+    lt_labels = split( iv_labels ).
+
+    LOOP AT lt_labels ASSIGNING <lv_lab>.
+      FIND REGEX gv_regex IN <lv_lab>.
+      IF sy-subrc = 0.
+        APPEND <lv_lab> TO lt_normalized.
+      ENDIF.
+    ENDLOOP.
+
+    SORT lt_normalized.
+    DELETE ADJACENT DUPLICATES FROM lt_normalized.
+
+    rv_labels = concat_lines_of(
+      table = lt_normalized
+      sep = `, ` ).
+
+  ENDMETHOD.
+  METHOD normalize_colors.
+
+    DATA lt_colors TYPE ty_label_colors.
+    DATA lt_normalized TYPE ty_label_colors.
+    DATA lt_pairs TYPE string_table.
+    DATA lv_pair TYPE string.
+    FIELD-SYMBOLS <ls_c> LIKE LINE OF lt_colors.
+
+    lt_colors = split_colors( iv_config ).
+
+    LOOP AT lt_colors ASSIGNING <ls_c>.
+      TRY.
+          validate_one_label_color( <ls_c> ).
+          APPEND <ls_c> TO lt_normalized.
+        CATCH zcx_abapgit_exception.
+      ENDTRY.
+    ENDLOOP.
+
+    SORT lt_normalized BY label.
+    DELETE ADJACENT DUPLICATES FROM lt_normalized COMPARING label.
+
+    LOOP AT lt_normalized ASSIGNING <ls_c>.
+      lv_pair = <ls_c>-label && `:` && <ls_c>-color.
+      APPEND lv_pair TO lt_pairs.
+    ENDLOOP.
+
+    rv_config = concat_lines_of(
+      table = lt_pairs
+      sep = `, ` ).
+
+  ENDMETHOD.
+  METHOD parse_color.
+
+    DATA lv_tmp TYPE string.
+
+    IF iv_color IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    IF iv_color+0(1) = '#'.
+      lv_tmp  = iv_color+1.
+      SPLIT lv_tmp AT '/' INTO rs_parsed-fg rs_parsed-bg rs_parsed-border.
+    ELSE.
+      rs_parsed-cls = iv_color.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD split.
+
+    FIELD-SYMBOLS <lv_lab> LIKE LINE OF rt_labels.
+
+    SPLIT iv_labels AT ',' INTO TABLE rt_labels.
+    LOOP AT rt_labels ASSIGNING <lv_lab>.
+      CONDENSE <lv_lab>.
+    ENDLOOP.
+    DELETE rt_labels WHERE table_line IS INITIAL.
+
+  ENDMETHOD.
+  METHOD split_colors.
+
+    DATA lt_pairs TYPE string_table.
+    DATA lv_clean_config LIKE iv_config.
+    DATA ls_c LIKE LINE OF rt_label_colors.
+    FIELD-SYMBOLS <lv_pair> LIKE LINE OF lt_pairs.
+
+    lv_clean_config = replace(
+      val = iv_config
+      sub = cl_abap_char_utilities=>newline
+      with = ` ` ). " text area ends with LF
+
+    SPLIT lv_clean_config AT ',' INTO TABLE lt_pairs.
+    LOOP AT lt_pairs ASSIGNING <lv_pair>.
+      CONDENSE <lv_pair>.
+      IF <lv_pair> IS NOT INITIAL.
+        SPLIT <lv_pair> AT ':' INTO ls_c-label ls_c-color.
+        CONDENSE ls_c-label.
+        CONDENSE ls_c-color.
+        APPEND ls_c TO rt_label_colors.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD split_colors_into_map.
+
+    DATA lt_colors TYPE ty_label_colors.
+    FIELD-SYMBOLS <ls_c> LIKE LINE OF lt_colors.
+
+    lt_colors = split_colors( iv_config ).
+
+    ro_map = zcl_abapgit_string_map=>create( ).
+    LOOP AT lt_colors ASSIGNING <ls_c>.
+      TRY.
+          ro_map->set(
+            iv_key = <ls_c>-label
+            iv_val = <ls_c>-color ).
+        CATCH zcx_abapgit_exception.
+      ENDTRY.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD validate.
+
+    DATA lt_labels TYPE string_table.
+    FIELD-SYMBOLS <lv_lab> LIKE LINE OF lt_labels.
+
+    lt_labels = split( iv_labels ).
+
+    LOOP AT lt_labels ASSIGNING <lv_lab>.
+      FIND REGEX gv_regex IN <lv_lab>.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Disallowed chars in label #{ sy-tabix }| ).
+      ENDIF.
+      " TODO: maybe also limit length ?
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD validate_colors.
+
+    DATA lt_colors TYPE ty_label_colors.
+    FIELD-SYMBOLS <ls_c> LIKE LINE OF lt_colors.
+
+    lt_colors = split_colors( iv_config ).
+
+    LOOP AT lt_colors ASSIGNING <ls_c>.
+      validate_one_label_color(
+        is_lc    = <ls_c>
+        iv_index = sy-tabix ).
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD validate_one_label_color.
+
+    DATA ls_parsed_color TYPE ty_color.
+
+    IF is_lc-label IS INITIAL.
+      zcx_abapgit_exception=>raise( |Label is empty in pair #{ iv_index }| ).
+    ENDIF.
+
+    IF is_lc-color IS INITIAL.
+      zcx_abapgit_exception=>raise( |Color is empty in pair #{ iv_index }| ).
+    ENDIF.
+
+    FIND REGEX gv_regex IN is_lc-label.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Disallowed chars in label in pair #{ iv_index }| ).
+    ENDIF.
+
+    ls_parsed_color = parse_color( is_lc-color ).
+    IF ls_parsed_color-cls IS NOT INITIAL.
+      FIND REGEX '^[-_A-Za-z]+$' IN ls_parsed_color-cls.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Disallowed chars in color in pair #{ iv_index }| ).
+      ENDIF.
+    ENDIF.
+    IF ls_parsed_color-fg IS NOT INITIAL.
+      validate_rgb_color( ls_parsed_color-fg ).
+    ENDIF.
+    IF ls_parsed_color-bg IS NOT INITIAL.
+      validate_rgb_color( ls_parsed_color-bg ).
+    ENDIF.
+    IF ls_parsed_color-border IS NOT INITIAL.
+      validate_rgb_color( ls_parsed_color-border ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD validate_rgb_color.
+
+    DATA lv_len TYPE i.
+
+    IF iv_color IS NOT INITIAL.
+      FIND REGEX '^[0-9A-Fa-f]+$' IN iv_color.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise( |Disallowed chars in color in pair #{ iv_index }| ).
+      ENDIF.
+      lv_len = strlen( iv_color ).
+      IF NOT ( lv_len = 3 OR lv_len = 6 ).
+        zcx_abapgit_exception=>raise( |Incorrect color in pair #{ iv_index }| ).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_news IMPLEMENTATION.
+  METHOD constructor.
+
+    DATA: lt_lines    TYPE string_table,
+          lv_string   TYPE string,
+          ls_log_line LIKE LINE OF mt_log.
+
+    " Validate params
+    mv_current_version  = zcl_abapgit_version=>normalize( iv_current_version ).
+    mv_lastseen_version = zcl_abapgit_version=>normalize( iv_lastseen_version ).
+    IF mv_current_version IS INITIAL.
+      RETURN. " Internal format of program version is not correct -> abort parsing
+    ENDIF.
+
+    lv_string = zcl_abapgit_convert=>xstring_to_string_utf8( iv_rawdata ).
+    lt_lines  = zcl_abapgit_convert=>split_string( lv_string ).
+    mt_log    = parse( it_lines = lt_lines
+                       iv_current_version = mv_current_version ).
+
+    READ TABLE mt_log INTO ls_log_line INDEX 1.
+    mv_latest_version = ls_log_line-version. " Empty if not found
+
+  ENDMETHOD.
+  METHOD create.
+
+    CONSTANTS: " TODO refactor
+      lc_log_path        TYPE string VALUE '/',
+      lc_log_filename    TYPE string VALUE 'changelog*',
+      lc_log_filename_up TYPE string VALUE 'CHANGELOG*'.
+
+    DATA: lo_apack            TYPE REF TO zcl_abapgit_apack_reader,
+          lt_remote           TYPE zif_abapgit_git_definitions=>ty_files_tt,
+          lv_version          TYPE string,
+          lv_last_seen        TYPE string,
+          lv_url              TYPE string,
+          lo_repo_online      TYPE REF TO zcl_abapgit_repo_online,
+          lv_version_constant TYPE zif_abapgit_dot_abapgit=>ty_dot_abapgit-version_constant.
+
+    FIELD-SYMBOLS <ls_file> LIKE LINE OF lt_remote.
+    IF io_repo->is_offline( ) = abap_true.
+      RETURN.
+    ENDIF.
+
+    lo_repo_online ?= io_repo.
+    lv_url          = lo_repo_online->get_url( ).
+
+    lo_apack = io_repo->get_dot_apack( ).
+    IF lo_apack IS BOUND.
+      lv_version = lo_apack->get_manifest_descriptor( )-version.
+    ENDIF.
+
+    IF lv_version IS INITIAL.
+      TRY.
+          lv_version_constant = io_repo->get_dot_abapgit( )->get_version_constant( ).
+          IF lv_version_constant IS NOT INITIAL.
+            lv_version = zcl_abapgit_version=>get_version_constant_value( lv_version_constant ).
+          ENDIF.
+        CATCH zcx_abapgit_exception.
+          CLEAR lv_version.
+      ENDTRY.
+    ENDIF.
+
+    IF lv_version IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    lv_last_seen = zcl_abapgit_persistence_user=>get_instance( )->get_repo_last_change_seen( lv_url ).
+
+    TRY. " Find changelog
+        lt_remote = io_repo->get_files_remote( ).
+      CATCH zcx_abapgit_exception.
+        RETURN.
+    ENDTRY.
+
+    LOOP AT lt_remote ASSIGNING <ls_file> WHERE path = lc_log_path
+                                            AND ( filename CP lc_log_filename OR filename CP lc_log_filename_up ).
+
+      CREATE OBJECT ro_instance
+        EXPORTING
+          iv_rawdata          = <ls_file>-data
+          iv_current_version  = lv_version
+          iv_lastseen_version = zcl_abapgit_version=>normalize( lv_last_seen ).
+
+      EXIT.
+
+    ENDLOOP.
+
+    IF ro_instance IS BOUND AND lv_last_seen <> ro_instance->latest_version( ).
+      zcl_abapgit_persistence_user=>get_instance( )->set_repo_last_change_seen(
+        iv_url     = lv_url
+        iv_version = ro_instance->latest_version( ) ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_log.
+    rt_log = mt_log.
+  ENDMETHOD.
+  METHOD has_important.
+    READ TABLE mt_log WITH KEY is_important = abap_true TRANSPORTING NO FIELDS.
+    rv_boolean = boolc( sy-subrc IS INITIAL ).
+  ENDMETHOD.
+  METHOD has_news.
+    rv_boolean = boolc( lines( mt_log ) > 0 ).
+  ENDMETHOD.
+  METHOD has_unseen.
+    rv_boolean = boolc( zcl_abapgit_version=>compare(
+      iv_a = mv_latest_version
+      iv_b = mv_lastseen_version ) > 0 ).
+  ENDMETHOD.
+  METHOD has_updates.
+    rv_boolean = boolc( zcl_abapgit_version=>compare(
+      iv_a = mv_latest_version
+      iv_b = mv_current_version ) > 0 ).
+  ENDMETHOD.
+  METHOD latest_version.
+    rv_version = mv_latest_version.
+  ENDMETHOD.
+  METHOD parse.
+
+    DATA: lv_tail                TYPE i,
+          lv_first_version_found TYPE abap_bool,
+          lv_version             TYPE string,
+          ls_log                 LIKE LINE OF rt_log.
+
+    FIELD-SYMBOLS: <lv_line> LIKE LINE OF it_lines.
+    LOOP AT it_lines ASSIGNING <lv_line>.
+      ls_log = parse_line( iv_line = <lv_line>
+                           iv_current_version = iv_current_version ).
+
+      " Skip until first version head and Skip empty lines
+      CHECK ls_log IS NOT INITIAL AND
+            ( lv_first_version_found = abap_true OR ls_log-version IS NOT INITIAL ).
+
+      IF lv_first_version_found = abap_false.
+        lv_first_version_found = abap_true.
+        IF zcl_abapgit_version=>compare( iv_a = ls_log-version
+                                         iv_b = iv_current_version ) <= 0.
+          lv_tail = c_tail_length. " Display some last versions if no updates
+        ENDIF.
+      ENDIF.
+
+      IF ls_log-is_header = abap_true.
+        "Skip everything below current version or show tail news
+        IF zcl_abapgit_version=>compare( iv_a = ls_log-version
+                                         iv_b = iv_current_version ) <= 0.
+          IF lv_tail > 0.
+            lv_tail = lv_tail - 1.
+          ELSE.
+            EXIT.
+          ENDIF.
+        ENDIF.
+        lv_version = ls_log-version. " Save to fill news lines
+      ELSE.
+        ls_log-version = lv_version.
+      ENDIF.
+
+      APPEND ls_log TO rt_log.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD parse_line.
+
+    CONSTANTS: lc_header_pattern TYPE string
+        VALUE '^\d{4}-\d{2}-\d{2}\s+v(\d{1,3}\.\d{1,3}\.\d{1,3})\s*$'.
+
+    DATA: lv_version TYPE string.
+
+    IF iv_line IS INITIAL OR iv_line CO ' -='.
+      RETURN. " Skip empty and markup lines
+    ENDIF.
+
+    " Check if line is a header line
+    FIND FIRST OCCURRENCE OF REGEX lc_header_pattern IN iv_line SUBMATCHES lv_version.
+    IF sy-subrc IS INITIAL.
+      lv_version        = zcl_abapgit_version=>normalize( lv_version ).
+      rs_log-version    = lv_version.
+      rs_log-is_header  = abap_true.
+      rs_log-pos_to_cur = zcl_abapgit_version=>compare( iv_a = lv_version
+                                                        iv_b = iv_current_version ).
+    ELSE.
+      FIND FIRST OCCURRENCE OF REGEX '^\s*!' IN iv_line.
+      rs_log-is_important = boolc( sy-subrc IS INITIAL ). " Change is important
+    ENDIF.
+
+    rs_log-text = iv_line.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS ZCL_ABAPGIT_ITEM_STATE IMPLEMENTATION.
+  METHOD is_reassigned.
+    rv_is_reassigned = mv_is_reassigned.
+  ENDMETHOD.
+  METHOD is_unchanged.
+    rv_is_unchanged = boolc( mv_is_reassigned = abap_false
+      AND mv_lstate = zif_abapgit_definitions=>c_state-unchanged
+      AND mv_rstate = zif_abapgit_definitions=>c_state-unchanged ).
+  ENDMETHOD.
+  METHOD local.
+    rv_state = mv_lstate.
+  ENDMETHOD.
+  METHOD reduce.
+
+    rv_new = iv_prev.
+    IF rv_new = iv_cur OR iv_cur IS INITIAL.
+      RETURN. " No change
+    ELSEIF rv_new IS INITIAL.
+      rv_new = iv_cur.
+    ELSE.
+      rv_new = zif_abapgit_definitions=>c_state-mixed.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD remote.
+    rv_state = mv_rstate.
+  ENDMETHOD.
+  METHOD sum_with_repo_item.
+
+    mv_lstate = reduce(
+      iv_prev = mv_lstate
+      iv_cur  = is_repo_item-lstate ).
+    mv_rstate = reduce(
+      iv_prev = mv_rstate
+      iv_cur  = is_repo_item-rstate ).
+    mv_is_reassigned = boolc( mv_is_reassigned = abap_true OR is_repo_item-packmove = abap_true ).
+
+  ENDMETHOD.
+  METHOD sum_with_status_item.
+
+    mv_lstate = reduce(
+      iv_prev = mv_lstate
+      iv_cur  = is_status_item-lstate ).
+    mv_rstate = reduce(
+      iv_prev = mv_rstate
+      iv_cur  = is_status_item-rstate ).
+    mv_is_reassigned = boolc( mv_is_reassigned = abap_true OR is_status_item-packmove = abap_true ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_stage_logic IMPLEMENTATION.
+  METHOD remove_identical.
+
+    DATA: lv_index  TYPE i,
+          ls_remote LIKE LINE OF cs_files-remote.
+
+    FIELD-SYMBOLS: <ls_local> LIKE LINE OF cs_files-local.
+
+    SORT cs_files-remote BY path filename.
+
+    LOOP AT cs_files-local ASSIGNING <ls_local>.
+      lv_index = sy-tabix.
+
+      READ TABLE cs_files-remote INTO ls_remote
+        WITH KEY path = <ls_local>-file-path filename = <ls_local>-file-filename
+        BINARY SEARCH.
+      IF sy-subrc = 0.
+        DELETE cs_files-remote INDEX sy-tabix.
+        IF ls_remote-sha1 = <ls_local>-file-sha1.
+          DELETE cs_files-local INDEX lv_index.
+        ENDIF.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD remove_ignored.
+
+    DATA: lv_index TYPE i.
+
+    FIELD-SYMBOLS: <ls_remote> LIKE LINE OF cs_files-remote,
+                   <ls_local>  LIKE LINE OF cs_files-local.
+    LOOP AT cs_files-remote ASSIGNING <ls_remote>.
+      lv_index = sy-tabix.
+
+      IF io_repo->get_dot_abapgit( )->is_ignored(
+          iv_path     = <ls_remote>-path
+          iv_filename = <ls_remote>-filename ) = abap_true.
+        DELETE cs_files-remote INDEX lv_index.
+      ELSEIF <ls_remote>-path = zif_abapgit_definitions=>c_root_dir
+          AND <ls_remote>-filename = zif_abapgit_definitions=>c_dot_abapgit.
+        " Remove .abapgit from remotes - it cannot be removed or ignored
+        DELETE cs_files-remote INDEX lv_index.
+      ENDIF.
+
+    ENDLOOP.
+
+    LOOP AT cs_files-local ASSIGNING <ls_local>.
+      lv_index = sy-tabix.
+
+      IF io_repo->get_dot_abapgit( )->is_ignored(
+          iv_path     = <ls_local>-file-path
+          iv_filename = <ls_local>-file-filename ) = abap_true.
+        DELETE cs_files-local INDEX lv_index.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_stage_logic~get.
+
+    " Getting REMOTE before LOCAL is critical to ensure that DATA config is loaded first
+    rs_files-remote = io_repo->get_files_remote( ii_obj_filter ).
+
+    IF ii_obj_filter IS INITIAL.
+      rs_files-local  = io_repo->get_files_local( ).
+    ELSE.
+      rs_files-local  = io_repo->get_files_local_filtered( ii_obj_filter ).
+    ENDIF.
+
+    rs_files-status = zcl_abapgit_repo_status=>calculate( io_repo = io_repo
+                                                          ii_obj_filter = ii_obj_filter ).
+
+    remove_identical( CHANGING cs_files = rs_files ).
+    remove_ignored( EXPORTING io_repo  = io_repo
+                    CHANGING  cs_files = rs_files ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_stage IMPLEMENTATION.
+  METHOD add.
+
+    append( iv_path     = iv_path
+            iv_filename = iv_filename
+            iv_method   = zif_abapgit_definitions=>c_method-add
+            is_status   = is_status
+            iv_data     = iv_data ).
+
+  ENDMETHOD.
+  METHOD append.
+
+    DATA: ls_stage LIKE LINE OF mt_stage.
+
+    FIELD-SYMBOLS: <ls_stage> LIKE LINE OF mt_stage.
+    READ TABLE mt_stage WITH KEY
+      file-path     = iv_path
+      file-filename = iv_filename
+      ASSIGNING <ls_stage>.
+    IF sy-subrc = 0.
+      <ls_stage>-file-data = iv_data.
+      <ls_stage>-method    = iv_method.
+    ELSE.
+      ls_stage-file-path     = iv_path.
+      ls_stage-file-filename = iv_filename.
+      ls_stage-file-data     = iv_data.
+      ls_stage-method        = iv_method.
+      ls_stage-status        = is_status.
+      INSERT ls_stage INTO TABLE mt_stage.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD constructor.
+    mv_merge_source = iv_merge_source.
+  ENDMETHOD.
+  METHOD count.
+    rv_count = lines( mt_stage ).
+  ENDMETHOD.
+  METHOD get_all.
+    rt_stage = mt_stage.
+  ENDMETHOD.
+  METHOD get_merge_source.
+    rv_source = mv_merge_source.
+  ENDMETHOD.
+  METHOD ignore.
+    append( iv_path     = iv_path
+            iv_filename = iv_filename
+            iv_method   = zif_abapgit_definitions=>c_method-ignore ).
+  ENDMETHOD.
+  METHOD method_description.
+
+    CASE iv_method.
+      WHEN zif_abapgit_definitions=>c_method-add.
+        rv_description = 'add'.
+      WHEN zif_abapgit_definitions=>c_method-rm.
+        rv_description = 'remove'.
+      WHEN zif_abapgit_definitions=>c_method-ignore.
+        rv_description = 'ignore'.
+      WHEN OTHERS.
+        zcx_abapgit_exception=>raise( 'unknown staging method type' ).
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD reset.
+    DELETE mt_stage WHERE file-path = iv_path AND file-filename = iv_filename.
+    ASSERT sy-subrc = 0.
+  ENDMETHOD.
+  METHOD rm.
+    append( iv_path     = iv_path
+            iv_filename = iv_filename
+            is_status   = is_status
+            iv_method   = zif_abapgit_definitions=>c_method-rm ).
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_object_filter_tran IMPLEMENTATION.
+  METHOD adjust_local_filter.
+
+    DATA lt_e071_filter TYPE ty_e071_filter_tt.
+    DATA lr_e071_filter TYPE REF TO ty_e071_filter.
+    DATA ls_filter TYPE zif_abapgit_definitions=>ty_tadir.
+    DATA lv_trobj_name_new TYPE trobj_name.
+    DATA lv_trobj_type_new TYPE tadir-object.
+    DATA lt_filter TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    DATA lr_cts_api TYPE REF TO zif_abapgit_cts_api.
+
+    lt_e071_filter = it_e071_filter.
+
+    LOOP AT lt_e071_filter REFERENCE INTO lr_e071_filter.
+
+      IF lr_e071_filter->pgmid = 'LIMU'.
+        "Get Main Object from LIMU Object (Example the Class (R3TR) of a Method (LIMU))
+
+        lr_cts_api = zcl_abapgit_factory=>get_cts_api( ).
+
+        TRY.
+            lr_cts_api->get_r3tr_obj_for_limu_obj(
+              EXPORTING
+                iv_object   = lr_e071_filter->object
+                iv_obj_name = lr_e071_filter->obj_name
+              IMPORTING
+                ev_object   = lv_trobj_type_new
+                ev_obj_name = lv_trobj_name_new ).
+          CATCH zcx_abapgit_exception.
+            CONTINUE.
+        ENDTRY.
+
+        CLEAR ls_filter.
+        ls_filter-pgmid = 'R3TR'.
+        ls_filter-object = lv_trobj_type_new.
+        ls_filter-obj_name = lv_trobj_name_new.
+      ELSE.
+        ls_filter-pgmid = lr_e071_filter->pgmid.
+        ls_filter-object = lr_e071_filter->object.
+        ls_filter-obj_name = lr_e071_filter->obj_name.
+      ENDIF.
+      INSERT ls_filter INTO TABLE rt_filter.
+    ENDLOOP.
+
+    IF iv_package IS NOT INITIAL.
+      ls_filter-pgmid = 'R3TR'.
+      ls_filter-object = 'DEVC'.
+      ls_filter-obj_name = iv_package.
+      INSERT ls_filter INTO TABLE rt_filter.
+
+      lt_filter = get_all_sub_packages( iv_package ).
+      INSERT LINES OF lt_filter INTO TABLE rt_filter.
+
+    ENDIF.
+
+    SORT rt_filter.
+    DELETE ADJACENT DUPLICATES FROM rt_filter.
+
+    IF rt_filter IS INITIAL.
+
+      zcx_abapgit_exception=>raise( 'No objects found for transport filter' ).
+
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD generate_local_filter.
+    DATA lt_e071_filter TYPE ty_e071_filter_tt.
+
+    SELECT DISTINCT pgmid object obj_name
+      INTO CORRESPONDING FIELDS OF TABLE lt_e071_filter
+      FROM e071
+      WHERE trkorr IN it_r_trkorr
+      ORDER BY pgmid object obj_name.
+    IF sy-subrc <> 0.
+      CLEAR lt_e071_filter.
+    ENDIF.
+    rt_filter = adjust_local_filter(
+      iv_package     = iv_package
+      it_e071_filter = lt_e071_filter ).
+  ENDMETHOD.
+  METHOD get_all_sub_packages.
+
+    DATA li_package TYPE REF TO zif_abapgit_sap_package.
+    DATA lt_list TYPE zif_abapgit_sap_package=>ty_devclass_tt.
+    DATA lr_list TYPE REF TO devclass.
+    DATA ls_filter TYPE zif_abapgit_definitions=>ty_tadir.
+
+    li_package = zcl_abapgit_factory=>get_sap_package( iv_package ).
+    lt_list = li_package->list_subpackages( ).
+    LOOP AT lt_list REFERENCE INTO lr_list.
+      ls_filter-pgmid = 'R3TR'.
+      ls_filter-object = 'DEVC'.
+      ls_filter-obj_name = lr_list->*.
+      INSERT ls_filter INTO TABLE rt_filter.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD get_filter_values.
+    et_r_trkorr = mt_r_trkorr.
+    ev_package = mv_package.
+  ENDMETHOD.
+  METHOD init.
+    CLEAR mt_filter.
+    CLEAR mt_r_trkorr.
+    CLEAR mv_package.
+  ENDMETHOD.
+  METHOD set_filter_values.
+    init( ).
+    mt_r_trkorr = it_r_trkorr.
+    mv_package = iv_package.
+    IF it_r_trkorr IS NOT INITIAL.
+      mt_filter = generate_local_filter(
+        iv_package  = mv_package
+        it_r_trkorr = mt_r_trkorr ).
+
+    ENDIF.
+  ENDMETHOD.
+  METHOD zif_abapgit_object_filter~get_filter.
+    rt_filter = mt_filter.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_merge IMPLEMENTATION.
+  METHOD all_files.
+
+    APPEND LINES OF ms_merge-stree TO rt_files.
+    APPEND LINES OF ms_merge-ttree TO rt_files.
+    APPEND LINES OF ms_merge-ctree TO rt_files.
+    SORT rt_files BY path DESCENDING name ASCENDING.
+    DELETE ADJACENT DUPLICATES FROM rt_files COMPARING path name.
+
+  ENDMETHOD.
+  METHOD calculate_result.
+
+    DATA: lt_files        TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
+          lv_found_source TYPE abap_bool,
+          lv_found_target TYPE abap_bool,
+          lv_found_common TYPE abap_bool.
+
+    FIELD-SYMBOLS: <ls_source>   LIKE LINE OF lt_files,
+                   <ls_target>   LIKE LINE OF lt_files,
+                   <ls_common>   LIKE LINE OF lt_files,
+                   <ls_file>     LIKE LINE OF lt_files,
+                   <ls_result>   LIKE LINE OF ms_merge-result,
+                   <ls_object>   LIKE LINE OF mt_objects,
+                   <ls_conflict> LIKE LINE OF mt_conflicts.
+
+    lt_files = all_files( ).
+
+    CREATE OBJECT ms_merge-stage
+      EXPORTING
+        iv_merge_source = ms_merge-source-sha1.
+
+    LOOP AT lt_files ASSIGNING <ls_file>.
+
+      UNASSIGN <ls_source>.
+      UNASSIGN <ls_target>.
+      UNASSIGN <ls_common>.
+
+      READ TABLE ms_merge-stree ASSIGNING <ls_source>
+        WITH KEY path_name
+        COMPONENTS path = <ls_file>-path name = <ls_file>-name. "#EC CI_SUBRC
+      READ TABLE ms_merge-ttree ASSIGNING <ls_target>
+        WITH KEY path_name
+        COMPONENTS path = <ls_file>-path name = <ls_file>-name. "#EC CI_SUBRC
+      READ TABLE ms_merge-ctree ASSIGNING <ls_common>
+        WITH KEY path_name
+        COMPONENTS path = <ls_file>-path name = <ls_file>-name. "#EC CI_SUBRC
+
+      lv_found_source = boolc( <ls_source> IS ASSIGNED ).
+      lv_found_target = boolc( <ls_target> IS ASSIGNED ).
+      lv_found_common = boolc( <ls_common> IS ASSIGNED ).
+
+      IF lv_found_source = abap_false
+          AND lv_found_target = abap_false.
+* deleted in source and target, skip
+        CONTINUE.
+      ELSEIF lv_found_source = abap_false
+          AND lv_found_common = abap_true
+          AND <ls_target>-sha1 = <ls_common>-sha1.
+* deleted in source, skip
+        ms_merge-stage->rm( iv_path     = <ls_file>-path
+                            iv_filename = <ls_file>-name ).
+        CONTINUE.
+      ELSEIF lv_found_target = abap_false
+          AND lv_found_common = abap_true
+          AND <ls_source>-sha1 = <ls_common>-sha1.
+* deleted in target, skip
+        CONTINUE.
+      ENDIF.
+
+      APPEND INITIAL LINE TO ms_merge-result ASSIGNING <ls_result>.
+      <ls_result>-path = <ls_file>-path.
+      <ls_result>-name = <ls_file>-name.
+
+      IF lv_found_target = abap_false.
+* added in source
+        READ TABLE mt_objects ASSIGNING <ls_object>
+          WITH KEY type COMPONENTS
+            type = zif_abapgit_git_definitions=>c_type-blob
+            sha1 = <ls_source>-sha1.
+        ASSERT sy-subrc = 0.
+
+        ms_merge-stage->add( iv_path     = <ls_file>-path
+                             iv_filename = <ls_file>-name
+                             iv_data     = <ls_object>-data ).
+        <ls_result>-sha1 = <ls_source>-sha1.
+        CONTINUE.
+      ELSEIF lv_found_source = abap_false.
+* added in target
+        <ls_result>-sha1 = <ls_target>-sha1.
+      ELSEIF lv_found_common = abap_false
+          AND <ls_target>-sha1 = <ls_source>-sha1.
+* added in source and target
+        <ls_result>-sha1 = <ls_source>-sha1.
+      ELSEIF lv_found_common = abap_false
+          AND <ls_target>-sha1 <> <ls_source>-sha1.
+
+        INSERT INITIAL LINE INTO TABLE mt_conflicts ASSIGNING <ls_conflict>.
+        <ls_conflict>-path = <ls_file>-path.
+        <ls_conflict>-filename = <ls_file>-name.
+        <ls_conflict>-source_sha1 = <ls_source>-sha1.
+        READ TABLE mt_objects ASSIGNING <ls_object>
+          WITH KEY type COMPONENTS
+            type = zif_abapgit_git_definitions=>c_type-blob
+            sha1 = <ls_source>-sha1.
+        <ls_conflict>-source_data = <ls_object>-data.
+
+        <ls_conflict>-target_sha1 = <ls_target>-sha1.
+        READ TABLE mt_objects ASSIGNING <ls_object>
+          WITH KEY type COMPONENTS
+            type = zif_abapgit_git_definitions=>c_type-blob
+            sha1 = <ls_target>-sha1.
+        <ls_conflict>-target_data = <ls_object>-data.
+
+* added in source and target, but different, merge conflict must be resolved
+        ms_merge-conflict = |{ <ls_file>-name } merge conflict|.
+        CONTINUE.
+      ENDIF.
+
+      IF lv_found_source = abap_false
+          OR lv_found_target = abap_false
+          OR lv_found_common = abap_false.
+        ms_merge-conflict = |{ <ls_file>-name } merge conflict, not found anywhere|.
+        CONTINUE.
+      ENDIF.
+
+      IF <ls_target>-sha1 = <ls_source>-sha1.
+* target and source match
+        <ls_result>-sha1 = <ls_source>-sha1.
+      ELSEIF <ls_target>-sha1 = <ls_common>-sha1.
+* changed in source
+        READ TABLE mt_objects ASSIGNING <ls_object>
+          WITH KEY type COMPONENTS
+            type = zif_abapgit_git_definitions=>c_type-blob
+            sha1 = <ls_source>-sha1.
+        ASSERT sy-subrc = 0.
+
+        ms_merge-stage->add( iv_path     = <ls_file>-path
+                             iv_filename = <ls_file>-name
+                             iv_data     = <ls_object>-data ).
+        <ls_result>-sha1 = <ls_source>-sha1.
+      ELSEIF <ls_source>-sha1 = <ls_common>-sha1.
+* changed in target
+        <ls_result>-sha1 = <ls_target>-sha1.
+      ELSE.
+* changed in source and target, conflict
+* conflict must be resolved before merge
+        INSERT INITIAL LINE INTO TABLE mt_conflicts ASSIGNING <ls_conflict>.
+        <ls_conflict>-path = <ls_file>-path.
+        <ls_conflict>-filename = <ls_file>-name.
+        <ls_conflict>-source_sha1 = <ls_source>-sha1.
+        READ TABLE mt_objects ASSIGNING <ls_object>
+          WITH KEY type COMPONENTS
+            type = zif_abapgit_git_definitions=>c_type-blob
+            sha1 = <ls_source>-sha1.
+        <ls_conflict>-source_data = <ls_object>-data.
+
+        <ls_conflict>-target_sha1 = <ls_target>-sha1.
+        READ TABLE mt_objects ASSIGNING <ls_object>
+          WITH KEY type COMPONENTS
+            type = zif_abapgit_git_definitions=>c_type-blob
+            sha1 = <ls_target>-sha1.
+        <ls_conflict>-target_data = <ls_object>-data.
+
+        ms_merge-conflict = |{ <ls_file>-name } merge conflict, changed in source and target branch|.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    IF iv_source_branch = io_repo->get_selected_branch( ).
+      zcx_abapgit_exception=>raise( 'source = target' ).
+    ENDIF.
+
+    mo_repo = io_repo.
+    mv_source_branch = iv_source_branch.
+
+  ENDMETHOD.
+  METHOD fetch_git.
+
+    DATA: lo_branch_list TYPE REF TO zcl_abapgit_git_branch_list,
+          lt_upload      TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt.
+
+    lo_branch_list = zcl_abapgit_git_transport=>branches( ms_merge-repo->get_url( ) ).
+
+    ms_merge-source = lo_branch_list->find_by_name(
+      zcl_abapgit_git_branch_list=>complete_heads_branch_name( mv_source_branch ) ).
+
+    ms_merge-target = lo_branch_list->find_by_name(
+      zcl_abapgit_git_branch_list=>complete_heads_branch_name( mo_repo->get_selected_branch( ) ) ).
+
+    APPEND ms_merge-source TO lt_upload.
+    APPEND ms_merge-target TO lt_upload.
+
+    zcl_abapgit_git_transport=>upload_pack_by_branch(
+      EXPORTING
+        iv_url          = ms_merge-repo->get_url( )
+        iv_branch_name  = ms_merge-repo->get_selected_branch( )
+        iv_deepen_level = 0
+        it_branches     = lt_upload
+      IMPORTING
+        et_objects      = rt_objects ).
+
+  ENDMETHOD.
+  METHOD find_ancestors.
+
+    DATA: ls_commit TYPE zcl_abapgit_git_pack=>ty_commit,
+          lt_visit  TYPE ty_visit_tt,
+          lv_commit LIKE LINE OF lt_visit.
+
+    FIELD-SYMBOLS: <ls_ancestor> LIKE LINE OF rt_ancestors,
+                   <ls_object>   LIKE LINE OF mt_objects.
+    APPEND iv_commit TO lt_visit.
+
+    LOOP AT lt_visit INTO lv_commit.
+      READ TABLE mt_objects ASSIGNING <ls_object>
+        WITH KEY type COMPONENTS
+          type = zif_abapgit_git_definitions=>c_type-commit
+          sha1 = lv_commit.
+      ASSERT sy-subrc = 0.
+
+      ls_commit = zcl_abapgit_git_pack=>decode_commit( <ls_object>-data ).
+
+      visit( EXPORTING iv_parent = ls_commit-parent
+             CHANGING ct_visit   = lt_visit ).
+      visit( EXPORTING iv_parent = ls_commit-parent2
+             CHANGING ct_visit   = lt_visit ).
+
+      APPEND INITIAL LINE TO rt_ancestors ASSIGNING <ls_ancestor>.
+      <ls_ancestor>-commit = lv_commit.
+      <ls_ancestor>-tree = ls_commit-tree.
+      <ls_ancestor>-body = ls_commit-body.
+      <ls_ancestor>-time = ls_commit-author.
+
+      "Strip Author entry of all but the time component
+      REPLACE ALL OCCURRENCES OF REGEX '[a-zA-Z<>@.-]*' IN <ls_ancestor>-time WITH ''.
+      CONDENSE <ls_ancestor>-time.
+    ENDLOOP.
+
+    SORT rt_ancestors BY time DESCENDING.
+
+  ENDMETHOD.
+  METHOD find_first_common.
+
+    FIELD-SYMBOLS: <ls_list1> LIKE LINE OF it_list1,
+                   <ls_list2> LIKE LINE OF it_list2.
+
+    LOOP AT it_list1 ASSIGNING <ls_list1>.
+      LOOP AT it_list2 ASSIGNING <ls_list2>.
+        IF <ls_list1>-tree = <ls_list2>-tree.
+          rs_common = <ls_list1>.
+          RETURN.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+
+    zcx_abapgit_exception=>raise( 'error finding common ancestor' ).
+
+  ENDMETHOD.
+  METHOD visit.
+
+    IF NOT iv_parent IS INITIAL.
+      READ TABLE ct_visit FROM iv_parent TRANSPORTING NO FIELDS.
+      IF sy-subrc <> 0.
+        APPEND iv_parent TO ct_visit.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_merge~get_conflicts.
+
+    rt_conflicts = mt_conflicts.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_merge~get_result.
+
+    rs_merge = ms_merge.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_merge~get_source_branch.
+
+    rv_source_branch = mv_source_branch.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_merge~has_conflicts.
+
+    rv_conflicts_exists = boolc( lines( mt_conflicts ) > 0 ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_merge~resolve_conflict.
+
+    FIELD-SYMBOLS: <ls_conflict> TYPE zif_abapgit_merge=>ty_merge_conflict,
+                   <ls_result>   LIKE LINE OF ms_merge-result.
+
+    IF is_conflict-result_sha1 IS NOT INITIAL
+        AND is_conflict-result_data IS NOT INITIAL.
+      READ TABLE mt_conflicts ASSIGNING <ls_conflict> WITH KEY path = is_conflict-path
+                                                               filename = is_conflict-filename.
+      IF sy-subrc = 0.
+        READ TABLE ms_merge-result ASSIGNING <ls_result>
+          WITH KEY path_name
+          COMPONENTS path = is_conflict-path name = is_conflict-filename.
+        IF sy-subrc = 0.
+          <ls_result>-sha1 = is_conflict-result_sha1.
+
+          ms_merge-stage->add( iv_path     = <ls_conflict>-path
+                               iv_filename = <ls_conflict>-filename
+                               iv_data     = is_conflict-result_data ).
+
+          DELETE mt_conflicts WHERE path     = is_conflict-path
+                                AND filename = is_conflict-filename.
+        ENDIF.
+
+        READ TABLE ms_merge-result ASSIGNING <ls_result> WITH KEY sha1 = space.
+        IF sy-subrc = 0.
+          ms_merge-conflict = |{ <ls_result>-name } merge conflict, changed in source and target branch|.
+        ELSE.
+          CLEAR ms_merge-conflict.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_merge~run.
+
+    DATA: lt_asource TYPE ty_ancestor_tt,
+          lt_atarget TYPE ty_ancestor_tt.
+
+    CLEAR: ms_merge, mt_objects, mt_conflicts.
+
+    ms_merge-repo = mo_repo.
+    mt_objects = fetch_git( ).
+
+    lt_asource = find_ancestors( ms_merge-source-sha1 ).
+    lt_atarget = find_ancestors( ms_merge-target-sha1 ).
+
+    ms_merge-common = find_first_common( it_list1 = lt_asource
+                                         it_list2 = lt_atarget ).
+
+    ms_merge-stree = zcl_abapgit_git_porcelain=>full_tree(
+      it_objects = mt_objects
+      iv_parent  = ms_merge-source-sha1 ).
+    ms_merge-ttree = zcl_abapgit_git_porcelain=>full_tree(
+      it_objects = mt_objects
+      iv_parent  = ms_merge-target-sha1 ).
+    ms_merge-ctree = zcl_abapgit_git_porcelain=>full_tree(
+      it_objects = mt_objects
+      iv_parent  = ms_merge-common-commit ).
+
+    calculate_result( ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -131113,8 +131113,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-12-15T06:53:46.197Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-15T06:53:46.197Z`.
+* abapmerge 0.16.0 - 2023-12-15T07:00:38.742Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-15T07:00:38.742Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
