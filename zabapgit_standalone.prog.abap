@@ -24201,6 +24201,12 @@ CLASS zcl_abapgit_services_repo DEFINITION
         !io_repo TYPE REF TO zcl_abapgit_repo
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS real_deserialize
+      IMPORTING
+        !io_repo   TYPE REF TO zcl_abapgit_repo
+        !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS activate_objects
       IMPORTING
         !iv_key       TYPE zif_abapgit_persistence=>ty_repo-key
@@ -36189,10 +36195,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD gui_deserialize.
 
-    DATA:
-      lv_msg    TYPE string,
-      ls_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks,
-      li_log    TYPE REF TO zif_abapgit_log.
+    DATA ls_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks.
 
     " find troublesome objects
     ls_checks = io_repo->deserialize_checks( ).
@@ -36214,17 +36217,28 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
         RETURN.
     ENDTRY.
 
+    real_deserialize(
+      io_repo   = io_repo
+      is_checks = ls_checks ).
+
+  ENDMETHOD.
+
+  METHOD real_deserialize.
+
+    DATA li_log TYPE REF TO zif_abapgit_log.
+    DATA lv_msg TYPE string.
+
     li_log = io_repo->create_new_log( 'Pull Log' ).
 
     " pass decisions to delete
     delete_unnecessary_objects(
       io_repo   = io_repo
-      is_checks = ls_checks
+      is_checks = is_checks
       ii_log    = li_log ).
 
     " pass decisions to deserialize
     io_repo->deserialize(
-      is_checks = ls_checks
+      is_checks = is_checks
       ii_log    = li_log ).
 
     IF li_log->get_status( ) = zif_abapgit_log=>c_status-ok.
@@ -44494,7 +44508,6 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PULL IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
-    DATA lo_log TYPE REF TO zcl_abapgit_log.
     DATA lv_value TYPE string.
 
     FIELD-SYMBOLS <ls_overwrite> LIKE LINE OF ms_checks-overwrite.
@@ -44521,10 +44534,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_PULL IMPLEMENTATION.
         ENDLOOP.
 
 * todo, show log?
-        CREATE OBJECT lo_log.
-        mo_repo->deserialize(
+        zcl_abapgit_services_repo=>real_deserialize(
           is_checks = ms_checks
-          ii_log    = lo_log ).
+          io_repo   = mo_repo ).
 
         rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
     ENDCASE.
@@ -131101,8 +131113,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.0 - 2023-12-14T20:46:30.734Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-14T20:46:30.734Z`.
+* abapmerge 0.16.0 - 2023-12-15T06:53:46.197Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2023-12-15T06:53:46.197Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.0`.
 ENDINTERFACE.
 ****************************************************
