@@ -48724,7 +48724,6 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
     DATA lv_commitmsg_comment_length TYPE i.
     DATA lv_button_text TYPE string.
     CONSTANTS lc_commitmsg_comment_min_len TYPE i VALUE 1.
-    CONSTANTS lc_commitmsg_comment_max_len TYPE i VALUE 255.
 
     ro_form = zcl_abapgit_html_form=>create(
       iv_form_id   = 'commit-form'
@@ -48738,7 +48737,7 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
       iv_required    = abap_true
       iv_min         = lc_commitmsg_comment_min_len
       iv_max         = lv_commitmsg_comment_length
-      iv_placeholder = |Add a mandatory comment with max { lc_commitmsg_comment_max_len } characters|
+      iv_placeholder = |Add a mandatory comment with max { lv_commitmsg_comment_length } characters|
     )->textarea(
       iv_name        = c_id-body
       iv_label       = 'Body'
@@ -153425,8 +153424,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.8 - 2026-07-27T10:12:49.144Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-07-27T10:12:49.144Z`.
+* abapmerge 0.16.8 - 2026-07-27T14:44:48.425Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-07-27T14:44:48.425Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.8`.
 ENDINTERFACE.
 ****************************************************
