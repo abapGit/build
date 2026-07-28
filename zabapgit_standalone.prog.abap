@@ -23792,12 +23792,6 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
   PUBLIC SECTION.
 
     TYPES:
-      BEGIN OF ty_event_signature,
-        method TYPE string,
-        name   TYPE string,
-      END OF  ty_event_signature .
-
-    TYPES:
       BEGIN OF ty_col_spec,
         tech_name      TYPE string,
         display_name   TYPE string,
@@ -23889,11 +23883,6 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS render_event_as_form
-      IMPORTING
-        !is_event      TYPE ty_event_signature
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     CLASS-METHODS render_repo_palette
       IMPORTING
         iv_action      TYPE string
@@ -28682,9 +28671,6 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
     METHODS count_default_files_to_commit
       RETURNING
         VALUE(rv_count) TYPE i .
-    METHODS render_deferred_hidden_events
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS render_scripts
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
@@ -35400,6 +35386,29 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// genuine user Back press. See that function for details.' ).
     lo_buf->add( 'var gSapeventNavPending = false;' ).
     lo_buf->add( '' ).
+    lo_buf->add( '// Encode a sapevent action for the ITS "PARAMS=" slot. PARAMS carries the whole' ).
+    lo_buf->add( '// action including its own query string, so characters that would terminate the' ).
+    lo_buf->add( '// value inside the enclosing URL have to be escaped (ITS decodes the parameter' ).
+    lo_buf->add( '// again before handing it to the control). "?" and "=" are deliberately left' ).
+    lo_buf->add( '// alone so single-parameter actions keep producing the exact URL they did' ).
+    lo_buf->add( '// before.' ).
+    lo_buf->add( 'function encodeItsParams(action) {' ).
+    lo_buf->add( '  return action.replace(/[%&#+]/g, function(character) {' ).
+    lo_buf->add( '    return "%" + character.charCodeAt(0).toString(16).toUpperCase();' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Append params to a sapevent action as a query string, the way a GET form' ).
+    lo_buf->add( '// submit would have appended them to the action URL' ).
+    lo_buf->add( 'function appendParamsToAction(action, params) {' ).
+    lo_buf->add( '  var pairs = [];' ).
+    lo_buf->add( '  for (var key in params) {' ).
+    lo_buf->add( '    pairs.push(encodeURIComponent(key) + "=" + encodeURIComponent(params[key]));' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  if (!pairs.length) return action;' ).
+    lo_buf->add( '  return action + (action.indexOf("?") === -1 ? "?" : "&") + pairs.join("&");' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( '// Use a supplied form, a pre-created form or create a hidden form' ).
     lo_buf->add( '// and submit with sapevent' ).
     lo_buf->add( 'function submitSapeventForm(params, action, method, form) {' ).
@@ -35418,11 +35427,43 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var stub_form_id = "form_" + action;' ).
+    lo_buf->add( '  // A GET submit replaces the action URL''s query string with the form fields.' ).
+    lo_buf->add( '  // On WebGUI that would wipe the ITS routing parameters the wired-up form' ).
+    lo_buf->add( '  // action carries (~control / ~event / PARAMS), so the request no longer' ).
+    lo_buf->add( '  // routes as a sapevent. Carry the params in the action instead and post: the' ).
+    lo_buf->add( '  // desktop controls end up navigating to exactly the sapevent URL a GET submit' ).
+    lo_buf->add( '  // produced, and WebGUI keeps its routing parameters intact.' ).
+    lo_buf->add( '  if (method && method.toLowerCase() === "get") {' ).
+    lo_buf->add( '    action = appendParamsToAction(action, params);' ).
+    lo_buf->add( '    params = null;' ).
+    lo_buf->add( '    method = "post";' ).
+    lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  form = form' ).
-    lo_buf->add( '    || document.getElementById(stub_form_id)' ).
-    lo_buf->add( '    || document.createElement("form");' ).
+    lo_buf->add( '  var isGlobalForm = false;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (!form) {' ).
+    lo_buf->add( '    // Reuse the page-global, server-rendered form. On WebGUI a sapevent only' ).
+    lo_buf->add( '    // routes through a form ITS wired up while rendering the page; a form' ).
+    lo_buf->add( '    // created here is not wired and the raw "sapevent:" scheme is rejected.' ).
+    lo_buf->add( '    // The global form is harmless on the desktop control, where its action is' ).
+    lo_buf->add( '    // overwritten below.' ).
+    lo_buf->add( '    form = document.getElementById("global_sapevent_form");' ).
+    lo_buf->add( '    isGlobalForm = Boolean(form);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  if (!form) {' ).
+    lo_buf->add( '    // Fallback for a page not rendered through the standard scaffold' ).
+    lo_buf->add( '    form = document.createElement("form");' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // The global form is shared across submits; drop fields a previous submit' ).
+    lo_buf->add( '  // appended so stale values do not accumulate (matters for actions that do' ).
+    lo_buf->add( '  // not navigate away, e.g. filtering or clipboard yank).' ).
+    lo_buf->add( '  if (isGlobalForm) {' ).
+    lo_buf->add( '    var priorFields = form.querySelectorAll("input[data-sapevent-field]");' ).
+    lo_buf->add( '    for (var p = 0; p < priorFields.length; p++) {' ).
+    lo_buf->add( '      priorFields[p].parentNode.removeChild(priorFields[p]);' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  form.setAttribute("method", method || "post");' ).
     lo_buf->add( '  var form_action = form.getAttribute("action");' ).
@@ -35430,7 +35471,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // SAP GUI for HTML: inside an HTML control, form actions look as follows:' ).
     lo_buf->add( '  // ~control=116&~event=OnSAPEvent&ALINK=1&frameName=&PARAMS=stage_commit' ).
     lo_buf->add( '  if (/~control=/i.test(form_action)) {' ).
-    lo_buf->add( '    form.setAttribute("action", form_action.replace(/PARAMS=.*$/, "PARAMS=" + action));' ).
+    lo_buf->add( '    form.setAttribute("action", form_action.replace(/PARAMS=.*$/, "PARAMS=" + encodeItsParams(action)));' ).
     lo_buf->add( '  } else if (/sapevent/i.test(action)) {' ).
     lo_buf->add( '    form.setAttribute("action", action);' ).
     lo_buf->add( '  } else {' ).
@@ -35442,12 +35483,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    hiddenField.setAttribute("type", "hidden");' ).
     lo_buf->add( '    hiddenField.setAttribute("name", key);' ).
     lo_buf->add( '    hiddenField.setAttribute("value", params[key]);' ).
+    lo_buf->add( '    if (isGlobalForm) hiddenField.setAttribute("data-sapevent-field", "");' ).
     lo_buf->add( '    form.appendChild(hiddenField);' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var formExistsInDOM = form.id && Boolean(document.querySelector("#" + form.id));' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if (form.id !== stub_form_id && !formExistsInDOM) {' ).
+    lo_buf->add( '  if (!formExistsInDOM) {' ).
     lo_buf->add( '    document.body.appendChild(form);' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
@@ -35455,6 +35497,20 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // sapevent navigation is self-initiated, not a user Back press' ).
     lo_buf->add( '  gSapeventNavPending = true;' ).
     lo_buf->add( '  form.submit();' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Trigger a server-rendered sapevent element (anchor / submit input) the way a' ).
+    lo_buf->add( '// user click would. Flag the navigation as self-initiated first, so the' ).
+    lo_buf->add( '// browser-back trap ignores any popstate the browser control emits while' ).
+    lo_buf->add( '// handling it (mirrors submitSapeventForm). Some callers (command palette)' ).
+    lo_buf->add( '// pass anchors that are not sapevents (onclick / plain links); those must not' ).
+    lo_buf->add( '// arm the flag - it would never be consumed and the next genuine Back press' ).
+    lo_buf->add( '// would be swallowed.' ).
+    lo_buf->add( 'function clickSapEvent(element) {' ).
+    lo_buf->add( '  var isSapEvent = element.getAttribute("data-sapevent")' ).
+    lo_buf->add( '    || /sapevent/i.test(element.hrefsav || element.href || element.getAttribute("formaction") || "");' ).
+    lo_buf->add( '  if (isSapEvent) gSapeventNavPending = true;' ).
+    lo_buf->add( '  element.click();' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Set focus to a control' ).
@@ -35674,6 +35730,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    // see /sap/public/icmandir/its/lsgui/js/htmlviewer.js' ).
     lo_buf->add( '    if (link.hrefsav) {' ).
     lo_buf->add( '      link.hrefsav = link.hrefsav.replace(reKey, newKey);' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    // keep the backend''s action marker in sync with the rewritten href, so it' ).
+    lo_buf->add( '    // stays a faithful description of what clicking the link will do' ).
+    lo_buf->add( '    var sapevent = link.getAttribute("data-sapevent");' ).
+    lo_buf->add( '    if (sapevent) {' ).
+    lo_buf->add( '      link.setAttribute("data-sapevent", sapevent.replace(reKey, newKey));' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '' ).
     lo_buf->add( '    // toggle button visibility' ).
@@ -36950,7 +37013,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    var action = this.oKeyMap[sKey];' ).
     lo_buf->add( '' ).
     lo_buf->add( '    // add a tooltip/title with the hotkey, currently only sapevents are supported' ).
-    lo_buf->add( '    this.getAllSapEventsForSapEventName(action).forEach(function(elAnchor) {' ).
+    lo_buf->add( '    findSapEventElements(action).forEach(function(elAnchor) {' ).
     lo_buf->add( '      elAnchor.title = elAnchor.title + " [" + sKey + "]";' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '' ).
@@ -36979,26 +37042,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '        return;' ).
     lo_buf->add( '      }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '      // Or a SAP event link' ).
-    lo_buf->add( '      var sUiSapEventHref = this.getSapEventHref(action);' ).
-    lo_buf->add( '      if (sUiSapEventHref) {' ).
-    lo_buf->add( '        submitSapeventForm({}, sUiSapEventHref, "post");' ).
-    lo_buf->add( '        oEvent.preventDefault();' ).
-    lo_buf->add( '        return;' ).
-    lo_buf->add( '      }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '      // Or an SAP event input' ).
-    lo_buf->add( '      var sUiSapEventInputAction = this.getSapEventInputAction(action);' ).
-    lo_buf->add( '      if (sUiSapEventInputAction) {' ).
-    lo_buf->add( '        submitSapeventForm({}, sUiSapEventInputAction, "post");' ).
-    lo_buf->add( '        oEvent.preventDefault();' ).
-    lo_buf->add( '        return;' ).
-    lo_buf->add( '      }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '      // Or an SAP event main form' ).
-    lo_buf->add( '      var elForm = this.getSapEventForm(action);' ).
-    lo_buf->add( '      if (elForm) {' ).
-    lo_buf->add( '        elForm.submit();' ).
+    lo_buf->add( '      // Or a SAP event element (anchor / submit input) rendered on the page.' ).
+    lo_buf->add( '      // Click it so the browser control routes the event: on WebGUI ITS has' ).
+    lo_buf->add( '      // rewritten the href/formaction, so we must trigger the real element' ).
+    lo_buf->add( '      // rather than rebuild the sapevent URL. Clicking also preserves any' ).
+    lo_buf->add( '      // getdata the element carries (e.g. "...?key=<repo>").' ).
+    lo_buf->add( '      var elSapEvent = findSapEventElement(action);' ).
+    lo_buf->add( '      if (elSapEvent) {' ).
+    lo_buf->add( '        clickSapEvent(elSapEvent);' ).
     lo_buf->add( '        oEvent.preventDefault();' ).
     lo_buf->add( '        return;' ).
     lo_buf->add( '      }' ).
@@ -37014,69 +37065,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  if (elHotkeys) {' ).
     lo_buf->add( '    elHotkeys.style.display = (elHotkeys.style.display) ? "" : "none";' ).
     lo_buf->add( '  }' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'Hotkeys.prototype.getAllSapEventsForSapEventName = function (sSapEvent) {' ).
-    lo_buf->add( '  if (/^#+$/.test(sSapEvent)){' ).
-    lo_buf->add( '    // sSapEvent contains only #. Nothing sensible can be done here' ).
-    lo_buf->add( '    return [];' ).
-    lo_buf->add( '  }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  var includesSapEvent = function(text){' ).
-    lo_buf->add( '    return (text.includes("sapevent") || text.includes("SAPEVENT"));' ).
-    lo_buf->add( '  };' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  return [].slice' ).
-    lo_buf->add( '    .call(document.querySelectorAll("a[href*="+ sSapEvent +"], input[formaction*="+ sSapEvent+"]"))' ).
-    lo_buf->add( '    .filter(function (elem) {' ).
-    lo_buf->add( '      return (elem.nodeName === "A" && includesSapEvent(elem.href)' ).
-    lo_buf->add( '          || (elem.nodeName === "INPUT" && includesSapEvent(elem.formAction)));' ).
-    lo_buf->add( '    });' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'Hotkeys.prototype.getSapEventHref = function(sSapEvent) {' ).
-    lo_buf->add( '  return this.getAllSapEventsForSapEventName(sSapEvent)' ).
-    lo_buf->add( '    .filter(function(el) {' ).
-    lo_buf->add( '      // only anchors' ).
-    lo_buf->add( '      return (!!el.href);' ).
-    lo_buf->add( '    })' ).
-    lo_buf->add( '    .map(function(oSapEvent) {' ).
-    lo_buf->add( '      return oSapEvent.href;' ).
-    lo_buf->add( '    })' ).
-    lo_buf->add( '    .filter(this.eliminateSapEventFalsePositives(sSapEvent))' ).
-    lo_buf->add( '    .pop();' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'Hotkeys.prototype.getSapEventInputAction = function(sSapEvent) {' ).
-    lo_buf->add( '  return this.getAllSapEventsForSapEventName(sSapEvent)' ).
-    lo_buf->add( '    .filter(function(el) {' ).
-    lo_buf->add( '      // input forms' ).
-    lo_buf->add( '      return (el.type === "submit");' ).
-    lo_buf->add( '    })' ).
-    lo_buf->add( '    .map(function(oSapEvent) {' ).
-    lo_buf->add( '      return oSapEvent.formAction;' ).
-    lo_buf->add( '    })' ).
-    lo_buf->add( '    .filter(this.eliminateSapEventFalsePositives(sSapEvent))' ).
-    lo_buf->add( '    .pop();' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'Hotkeys.prototype.getSapEventForm = function(sSapEvent) {' ).
-    lo_buf->add( '  return this.getAllSapEventsForSapEventName(sSapEvent)' ).
-    lo_buf->add( '    .filter(function(el) {' ).
-    lo_buf->add( '      // forms' ).
-    lo_buf->add( '      var parentForm = el.parentNode.parentNode.parentNode;' ).
-    lo_buf->add( '      return (el.type === "submit" && parentForm.nodeName === "FORM");' ).
-    lo_buf->add( '    })' ).
-    lo_buf->add( '    .map(function(oSapEvent) {' ).
-    lo_buf->add( '      return oSapEvent.parentNode.parentNode.parentNode;' ).
-    lo_buf->add( '    })' ).
-    lo_buf->add( '    .pop();' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'Hotkeys.prototype.eliminateSapEventFalsePositives = function(sapEvent) {' ).
-    lo_buf->add( '  return function(sapEventAttr) {' ).
-    lo_buf->add( '    return sapEventAttr.match(new RegExp("\\b" + sapEvent + "\\b"));' ).
-    lo_buf->add( '  };' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.prototype.onkeydown = function(oEvent) {' ).
@@ -37703,15 +37691,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    });' ).
     lo_buf->add( '' ).
     lo_buf->add( '  items = items.map(function(item) {' ).
-    lo_buf->add( '    var action;' ).
     lo_buf->add( '    var anchor = item[0];' ).
-    lo_buf->add( '    if (anchor.href.includes("#")) {' ).
-    lo_buf->add( '      action = function() {' ).
-    lo_buf->add( '        anchor.click();' ).
-    lo_buf->add( '      };' ).
-    lo_buf->add( '    } else {' ).
-    lo_buf->add( '      action = anchor.href.replace("sapevent:", "");' ).
-    lo_buf->add( '    }' ).
     lo_buf->add( '    var prefix = item[1];' ).
     lo_buf->add( '    // title is re-read on each palette open, some labels change dynamically' ).
     lo_buf->add( '    // (e.g. commit/patch buttons on the stage page)' ).
@@ -37719,7 +37699,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      return (prefix ? prefix + ": " : "") + anchor.innerText.trim();' ).
     lo_buf->add( '    };' ).
     lo_buf->add( '    return {' ).
-    lo_buf->add( '      action  : action,' ).
+    lo_buf->add( '      // Clicking the wired anchor routes on every browser control (desktop and' ).
+    lo_buf->add( '      // WebGUI); no need to reconstruct the sapevent from the href, which ITS' ).
+    lo_buf->add( '      // rewrites on WebGUI anyway.' ).
+    lo_buf->add( '      action  : function() { clickSapEvent(anchor) },' ).
     lo_buf->add( '      getTitle: getTitle,' ).
     lo_buf->add( '      title   : getTitle()' ).
     lo_buf->add( '    };' ).
@@ -37762,7 +37745,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    }).forEach(function(anchor) {' ).
     lo_buf->add( '      items.push({' ).
     lo_buf->add( '        action: function() {' ).
-    lo_buf->add( '          anchor.click();' ).
+    lo_buf->add( '          clickSapEvent(anchor);' ).
     lo_buf->add( '        },' ).
     lo_buf->add( '        title: (function() {' ).
     lo_buf->add( '          var result = anchor.title + anchor.text;' ).
@@ -37909,22 +37892,49 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  });' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '// Find the back element the backend rendered for the given sapevent action.' ).
+    lo_buf->add( '// Find the server-rendered elements (anchors / submit inputs) the backend' ).
+    lo_buf->add( '// rendered for a given sapevent action. Used to trigger the action by clicking' ).
+    lo_buf->add( '// one, which routes on every browser control - on WebGUI ITS rewrites the href' ).
+    lo_buf->add( '// and drives the submit through its own machinery, so we cannot rebuild the' ).
+    lo_buf->add( '// navigation ourselves - and to annotate hotkey tooltips.' ).
     lo_buf->add( '//' ).
-    lo_buf->add( '// We cannot rebuild the navigation ourselves: on WebGUI, ITS rewrites the' ).
-    lo_buf->add( '// sapevent href (e.g. "sapevent:go_back" -> "#sapevent25") and drives the' ).
-    lo_buf->add( '// submit through its own machinery with session context we do not have.' ).
-    lo_buf->add( '// ITS preserves the original href in the "hrefsav" property though' ).
-    lo_buf->add( '// (see comment in RepoOverViewHelper.updateActionLinks), so we match on' ).
-    lo_buf->add( '// that on WebGUI and on href/formaction on the desktop browser control.' ).
-    lo_buf->add( 'function findSapEventElement(action) {' ).
+    lo_buf->add( '// Matches the backend''s data-sapevent marker first: it carries the original' ).
+    lo_buf->add( '// action and survives ITS href rewriting on WebGUI. Falls back to' ).
+    lo_buf->add( '// hrefsav/href/formaction on the desktop controls. Whole-word match so' ).
+    lo_buf->add( '// "go_back" does not also match "go_back_something".' ).
+    lo_buf->add( 'function findSapEventElements(action) {' ).
+    lo_buf->add( '  if (!action || /^#+$/.test(action)) return [];' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Escape regex metacharacters so actions like "jump?key=1" cannot break the' ).
+    lo_buf->add( '  // pattern (\b still assumes word-shaped action names, which all current are)' ).
+    lo_buf->add( '  var re = new RegExp("\\b" + action.replace(/[.*+?^${}()|[\]\\]/g, "\\$$") + "\\b");' ).
     lo_buf->add( '  return [].slice' ).
-    lo_buf->add( '    .call(document.querySelectorAll("a[href], input[formaction]"))' ).
+    lo_buf->add( '    .call(document.querySelectorAll("a, input[type=''submit'']"))' ).
     lo_buf->add( '    .filter(function(el) {' ).
-    lo_buf->add( '      var sTarget = el.hrefsav || el.href || el.formAction || "";' ).
-    lo_buf->add( '      return sTarget.indexOf(action) !== -1' ).
-    lo_buf->add( '        && sTarget.toLowerCase().indexOf("sapevent") !== -1;' ).
-    lo_buf->add( '    })[0];' ).
+    lo_buf->add( '      var target = el.getAttribute("data-sapevent");' ).
+    lo_buf->add( '      if (!target) {' ).
+    lo_buf->add( '        // getAttribute, not the formAction property: the property falls back to' ).
+    lo_buf->add( '        // the document URL when the attribute is absent, and a WebGUI document' ).
+    lo_buf->add( '        // URL can carry both "OnSAPEvent" and "PARAMS=<action>" and so match' ).
+    lo_buf->add( '        // every submit button on the page.' ).
+    lo_buf->add( '        target = el.hrefsav || el.href || el.getAttribute("formaction") || "";' ).
+    lo_buf->add( '        if (!/sapevent/i.test(target)) return false;' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '      return re.test(target);' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// First matching sapevent element (anchor preferred), or undefined. Shared by' ).
+    lo_buf->add( '// the browser-back trap (triggerSapEventBack) and the hotkey handler.' ).
+    lo_buf->add( '//' ).
+    lo_buf->add( '// When a page renders the same action more than once (typically a toolbar entry' ).
+    lo_buf->add( '// plus an inline link) we deliberately take the first one in document order,' ).
+    lo_buf->add( '// i.e. the toolbar entry. All renderings of an action point at the same target,' ).
+    lo_buf->add( '// so the choice only decides which element receives the synthetic click.' ).
+    lo_buf->add( 'function findSapEventElement(action) {' ).
+    lo_buf->add( '  var elements = findSapEventElements(action);' ).
+    lo_buf->add( '  var anchors  = elements.filter(function(el) { return el.nodeName === "A" });' ).
+    lo_buf->add( '  return (anchors.length ? anchors : elements)[0];' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function triggerSapEventBack(backAction) {' ).
@@ -37940,11 +37950,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '  // No Back element on this page (e.g. repo list) -> submit go_back directly,' ).
     lo_buf->add( '  // so browser Back mirrors F3 everywhere (e.g. leaving a top-level page).' ).
-    lo_buf->add( '  // NOTE: this bare-form submit only works in the desktop browser control.' ).
-    lo_buf->add( '  // On WebGUI it does not route (the ITS session context is missing), so on' ).
-    lo_buf->add( '  // pages that render no Back element there, browser Back has no effect.' ).
-    lo_buf->add( '  // Pages that do render a Back element use the click path above and work' ).
-    lo_buf->add( '  // in both controls.' ).
+    lo_buf->add( '  // This reuses the page-global sapevent form, so it routes on WebGUI as well' ).
+    lo_buf->add( '  // as on the desktop browser controls.' ).
     lo_buf->add( '  submitSapeventForm({}, backAction);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -43808,16 +43815,6 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     ri_html->add( '</table>' ).
 
   ENDMETHOD.
-  METHOD render_deferred_hidden_events.
-
-    DATA ls_event TYPE zcl_abapgit_gui_chunk_lib=>ty_event_signature.
-
-    ls_event-method = 'post'.
-    ls_event-name   = c_action-stage_commit.
-    ri_html = zcl_abapgit_gui_chunk_lib=>render_event_as_form( ls_event ).
-    ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
-
-  ENDMETHOD.
   METHOD render_file.
 
     DATA: lv_param    TYPE string,
@@ -44241,9 +44238,6 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
 
     ri_html->add( '</div>' ).
 
-    gui_services( )->get_html_parts( )->add_part(
-      iv_collection = zcl_abapgit_gui_component=>c_html_parts-hidden_forms
-      ii_part       = render_deferred_hidden_events( ) ).
     register_deferred_script( render_scripts( ) ).
 
   ENDMETHOD.
@@ -60108,9 +60102,21 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ri_html->add( render_hotkey_overview( ) ).
     ri_html->add( render_error_message_box( ) ).
 
+    " Extension point for pages that need their own hidden form. No page in
+    " abapGit uses it since the global sapevent form below replaced the
+    " per-action stub forms, but it stays available to subclasses.
     render_deferred_parts(
       ii_html          = ri_html
       iv_part_category = c_html_parts-hidden_forms ).
+
+    " Reusable, server-rendered sapevent form. On WebGUI a sapevent only routes
+    " through a form/anchor that ITS wired up while rendering the page; a form
+    " built in JS at submit time is not wired, so the raw sapevent: scheme is
+    " rejected. submitSapeventForm submits through this form whenever the caller
+    " does not supply one of its own, so JS-triggered sapevents work on WebGUI.
+    " On the desktop browser control its action is simply overwritten, so it is
+    " harmless there.
+    ri_html->add( |<form id="global_sapevent_form" method="post" action="sapevent:noop"></form>| ).
 
     ri_html->add( footer( lo_timer->end( ) ) ).
 
@@ -60628,14 +60634,6 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     ri_html->add( |{ lv_longtext }| ).
     ri_html->add( |</div>| ).
     ri_html->add( |</div>| ).
-
-  ENDMETHOD.
-  METHOD render_event_as_form.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    ri_html->add(
-      |<form id="form_{ is_event-name }" method="{ is_event-method }" action="sapevent:{ is_event-name }"></form>| ).
 
   ENDMETHOD.
   METHOD render_help_hint.
@@ -65008,13 +65006,14 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_html~a.
 
-    DATA: lv_class TYPE string,
-          lv_href  TYPE string,
-          lv_click TYPE string,
-          lv_id    TYPE string,
-          lv_act   TYPE string,
-          lv_style TYPE string,
-          lv_title TYPE string.
+    DATA: lv_class         TYPE string,
+          lv_href          TYPE string,
+          lv_click         TYPE string,
+          lv_id            TYPE string,
+          lv_act           TYPE string,
+          lv_style         TYPE string,
+          lv_title         TYPE string,
+          lv_data_sapevent TYPE string.
 
     lv_class = iv_class.
 
@@ -65046,7 +65045,12 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
           IF iv_query IS NOT INITIAL.
             lv_act = lv_act && `?` && iv_query.
           ENDIF.
-          lv_href  = | href="sapevent:{ lv_act }"|.
+          lv_href          = | href="sapevent:{ lv_act }"|.
+          " Stable action marker that survives ITS href rewriting on WebGUI,
+          " so JS (e.g. hotkeys) can find and click the element by its sapevent.
+          lv_data_sapevent = | data-sapevent="{ escape(
+            val    = lv_act
+            format = cl_abap_format=>e_html_attr ) }"|.
         WHEN zif_abapgit_html=>c_action_type-onclick.
           lv_href  = ' href="#"'.
           lv_click = | onclick="{ iv_act }"|.
@@ -65074,7 +65078,7 @@ CLASS zcl_abapgit_html IMPLEMENTATION.
         format = cl_abap_format=>e_html_attr ) }"|.
     ENDIF.
 
-    rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_click }{ lv_style }{ lv_title }>|
+    rv_str = |<a{ lv_id }{ lv_class }{ lv_href }{ lv_data_sapevent }{ lv_click }{ lv_style }{ lv_title }>|
           && |{ iv_txt }</a>|.
 
   ENDMETHOD.
@@ -153432,8 +153436,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.8 - 2026-07-28T05:18:01.177Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-07-28T05:18:01.177Z`.
+* abapmerge 0.16.8 - 2026-07-28T13:47:14.539Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-07-28T13:47:14.539Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.8`.
 ENDINTERFACE.
 ****************************************************
