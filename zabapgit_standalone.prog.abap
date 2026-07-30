@@ -37107,6 +37107,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  return (activeElementReadOnly || (activeElementType !== "INPUT" && activeElementType !== "TEXTAREA"));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
+    lo_buf->add( '// ctrl-modified keys are denoted with a leading "^" (e.g. "^p"), spell it out for the help sheet' ).
+    lo_buf->add( '// an array of keys means "any of them" and is displayed as "F1 / ctrl+p"' ).
+    lo_buf->add( 'Hotkeys.formatKeyForDisplay = function(key) {' ).
+    lo_buf->add( '  if (Array.isArray(key)) {' ).
+    lo_buf->add( '    return key.map(function(singleKey) { return Hotkeys.formatKeyForDisplay(singleKey) }).join(" / ");' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  return (key[0] === "^") ? "ctrl+" + key.substring(1) : key;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.addHotkeyToHelpSheet = function(key, description) {' ).
     lo_buf->add( '  var hotkeysUl = document.querySelector("#hotkeys ul.hotkeys");' ).
     lo_buf->add( '  if (!hotkeysUl) return;' ).
@@ -37116,7 +37125,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  var spanDescr = document.createElement("span");' ).
     lo_buf->add( '' ).
     lo_buf->add( '  spanId.className    = "key-id";' ).
-    lo_buf->add( '  spanId.innerText    = key;' ).
+    lo_buf->add( '  spanId.innerText    = Hotkeys.formatKeyForDisplay(key);' ).
     lo_buf->add( '  spanDescr.className = "key-descr";' ).
     lo_buf->add( '  spanDescr.innerText = description;' ).
     lo_buf->add( '  li.appendChild(spanId);' ).
@@ -37431,7 +37440,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'function CommandPalette(commandEnumerator, opts) {' ).
     lo_buf->add( '  if (typeof commandEnumerator !== "function") throw Error("commandEnumerator must be a function");' ).
     lo_buf->add( '  if (typeof opts !== "object") throw Error("opts must be an object");' ).
-    lo_buf->add( '  if (typeof opts.toggleKey !== "string" || !opts.toggleKey) throw Error("toggleKey must be a string");' ).
+    lo_buf->add( '  if (!opts.toggleKey || typeof opts.toggleKey !== "string" && !Array.isArray(opts.toggleKey)) {' ).
+    lo_buf->add( '    throw Error("toggleKey must be a string or an array of strings");' ).
+    lo_buf->add( '  }' ).
     lo_buf->add( '  this.commands = commandEnumerator();' ).
     lo_buf->add( '  if (!this.commands) return;' ).
     lo_buf->add( '  // this.commands = [{' ).
@@ -37440,14 +37451,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  //   title:     "my command X"' ).
     lo_buf->add( '  // }, ...];' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if (opts.toggleKey[0] === "^") {' ).
-    lo_buf->add( '    this.toggleKeyCtrl = true;' ).
-    lo_buf->add( '    this.toggleKey     = opts.toggleKey.substring(1);' ).
-    lo_buf->add( '    if (!this.toggleKey) throw Error("Incorrect toggleKey");' ).
-    lo_buf->add( '  } else {' ).
-    lo_buf->add( '    this.toggleKeyCtrl = false;' ).
-    lo_buf->add( '    this.toggleKey     = opts.toggleKey;' ).
-    lo_buf->add( '  }' ).
+    lo_buf->add( '  // one or more keys can open the palette, e.g. ["F1", "^p"]' ).
+    lo_buf->add( '  var toggleKeys  = Array.isArray(opts.toggleKey) ? opts.toggleKey : [opts.toggleKey];' ).
+    lo_buf->add( '  this.toggleKeys = toggleKeys.map(function(toggleKey) {' ).
+    lo_buf->add( '    if (typeof toggleKey !== "string") throw Error("Incorrect toggleKey");' ).
+    lo_buf->add( '    var isCtrl = toggleKey[0] === "^";' ).
+    lo_buf->add( '    var key    = isCtrl ? toggleKey.substring(1) : toggleKey;' ).
+    lo_buf->add( '    if (!key) throw Error("Incorrect toggleKey");' ).
+    lo_buf->add( '    return { key: key, ctrl: isCtrl };' ).
+    lo_buf->add( '  });' ).
     lo_buf->add( '' ).
     lo_buf->add( '  this.hotkeyDescription = opts.hotkeyDescription;' ).
     lo_buf->add( '  this.elements          = {' ).
@@ -37507,8 +37519,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'CommandPalette.prototype.handleToggleKey = function(event) {' ).
-    lo_buf->add( '  if (event.key !== this.toggleKey) return;' ).
-    lo_buf->add( '  if (this.toggleKeyCtrl && !event.ctrlKey) return;' ).
+    lo_buf->add( '  var isToggleKey = this.toggleKeys.some(function(toggleKey) {' ).
+    lo_buf->add( '    return event.key === toggleKey.key && (!toggleKey.ctrl || event.ctrlKey);' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '  if (!isToggleKey) return;' ).
     lo_buf->add( '  this.toggleDisplay();' ).
     lo_buf->add( '  event.preventDefault();' ).
     lo_buf->add( '};' ).
@@ -59950,7 +59964,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   METHOD render_command_palettes.
 
     ii_html->add( 'var gCommandPalette = new CommandPalette(enumerateUiActions, {' ).
-    ii_html->add( '  toggleKey: "F1",' ).
+    ii_html->add( '  toggleKey: ["F1", "^p"],' ).
     ii_html->add( '  hotkeyDescription: "Command Palette"' ).
     ii_html->add( '});' ).
 
@@ -153478,8 +153492,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-07-30T12:18:50.317Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-07-30T12:18:50.317Z`.
+* abapmerge 0.16.10 - 2026-07-30T13:55:29.388Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-07-30T13:55:29.388Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
