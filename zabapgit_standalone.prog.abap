@@ -98,10 +98,13 @@ INTERFACE zif_abapgit_ecatt_download DEFERRED.
 INTERFACE zif_abapgit_ecatt DEFERRED.
 INTERFACE zif_abapgit_tadir DEFERRED.
 INTERFACE zif_abapgit_aff_types_v1 DEFERRED.
+INTERFACE zif_abapgit_aff_smtg_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_oo_types_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_intf_v1 DEFERRED.
+INTERFACE zif_abapgit_aff_dtel_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_doma_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_docu_v1 DEFERRED.
+INTERFACE zif_abapgit_aff_ddic_types_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_type_mapping DEFERRED.
 INTERFACE zif_abapgit_aff_registry DEFERRED.
 INTERFACE zif_abapgit_ajson_types DEFERRED.
@@ -2452,6 +2455,57 @@ INTERFACE zif_abapgit_aff_type_mapping .
       EXPORTING es_data TYPE data.
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_aff_ddic_types_v1.
+
+  TYPES ty_data_type TYPE c LENGTH 4.
+
+  CONSTANTS:
+    BEGIN OF co_data_type,
+      accp       TYPE ty_data_type VALUE 'ACCP',
+      char       TYPE ty_data_type VALUE 'CHAR',
+      clnt       TYPE ty_data_type VALUE 'CLNT',
+      cuky       TYPE ty_data_type VALUE 'CUKY',
+      curr       TYPE ty_data_type VALUE 'CURR',
+      df16_dec   TYPE ty_data_type VALUE 'D16D',
+      df16_raw   TYPE ty_data_type VALUE 'D16R',
+      df16_scl   TYPE ty_data_type VALUE 'D16S',
+      decfloat16 TYPE ty_data_type VALUE 'D16N',
+      df34_dec   TYPE ty_data_type VALUE 'D34D',
+      df34_raw   TYPE ty_data_type VALUE 'D34R',
+      df34_scl   TYPE ty_data_type VALUE 'D34S',
+      decfloat34 TYPE ty_data_type VALUE 'D34N',
+      dats       TYPE ty_data_type VALUE 'DATS',
+      datn       TYPE ty_data_type VALUE 'DATN',
+      dec        TYPE ty_data_type VALUE 'DEC',
+      fltp       TYPE ty_data_type VALUE 'FLTP',
+      geom_ewkb  TYPE ty_data_type VALUE 'GGM1',
+      int1       TYPE ty_data_type VALUE 'INT1',
+      int2       TYPE ty_data_type VALUE 'INT2',
+      int4       TYPE ty_data_type VALUE 'INT4',
+      int8       TYPE ty_data_type VALUE 'INT8',
+      lang       TYPE ty_data_type VALUE 'LANG',
+      lchr       TYPE ty_data_type VALUE 'LCHR',
+      lraw       TYPE ty_data_type VALUE 'LRAW',
+      numc       TYPE ty_data_type VALUE 'NUMC',
+      prec       TYPE ty_data_type VALUE 'PREC',
+      quan       TYPE ty_data_type VALUE 'QUAN',
+      raw        TYPE ty_data_type VALUE 'RAW',
+      rawstring  TYPE ty_data_type VALUE 'RSTR',
+      sstring    TYPE ty_data_type VALUE 'SSTR',
+      string     TYPE ty_data_type VALUE 'STRG',
+      tims       TYPE ty_data_type VALUE 'TIMS',
+      timn       TYPE ty_data_type VALUE 'TIMN',
+      unit       TYPE ty_data_type VALUE 'UNIT',
+      utclong    TYPE ty_data_type VALUE 'UTCL',
+      varc       TYPE ty_data_type VALUE 'VARC',
+    END OF co_data_type.
+
+  TYPES ty_length TYPE i.
+
+  TYPES ty_decimals TYPE i.
+
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_aff_types_v1.
 
   TYPES ty_format_version TYPE string.
@@ -2483,6 +2537,8 @@ INTERFACE zif_abapgit_aff_types_v1.
     END OF co_abap_language_version_cloud.
 
   TYPES ty_description_60 TYPE c LENGTH 60.
+
+  TYPES ty_description_70 TYPE c LENGTH 70.
 
   TYPES ty_description_80 TYPE c LENGTH 80.
 
@@ -2522,6 +2578,12 @@ INTERFACE zif_abapgit_aff_types_v1.
     END OF ty_header_60_src.
 
   TYPES:
+    BEGIN OF ty_header_70_no_abap_lv,
+      description       TYPE ty_description_70,
+      original_language TYPE ty_original_language,
+    END OF ty_header_70_no_abap_lv.
+
+  TYPES:
     BEGIN OF ty_header_80,
       description           TYPE ty_description_80,
       original_language     TYPE ty_original_language,
@@ -2548,11 +2610,6 @@ INTERFACE zif_abapgit_aff_types_v1.
       original_language     TYPE ty_original_language,
       abap_language_version TYPE ty_abap_language_version_cloud,
     END OF ty_header_100_cloud.
-
-  TYPES:
-    BEGIN OF ty_header_only_description,
-      description TYPE ty_description_60,
-    END OF ty_header_only_description.
 
   TYPES ty_option TYPE c LENGTH 2.
 
@@ -2599,49 +2656,6 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_aff_doma_v1.
 
-  TYPES ty_data_type TYPE c LENGTH 4.
-
-  CONSTANTS:
-    BEGIN OF co_data_type,
-      accp       TYPE ty_data_type VALUE 'ACCP',
-      char       TYPE ty_data_type VALUE 'CHAR',
-      clnt       TYPE ty_data_type VALUE 'CLNT',
-      cuky       TYPE ty_data_type VALUE 'CUKY',
-      curr       TYPE ty_data_type VALUE 'CURR',
-      df16_dec   TYPE ty_data_type VALUE 'D16D',
-      df16_raw   TYPE ty_data_type VALUE 'D16R',
-      df16_scl   TYPE ty_data_type VALUE 'D16S',
-      decfloat16 TYPE ty_data_type VALUE 'D16N',
-      df34_dec   TYPE ty_data_type VALUE 'D34D',
-      df34_raw   TYPE ty_data_type VALUE 'D34R',
-      df34_scl   TYPE ty_data_type VALUE 'D34S',
-      decfloat34 TYPE ty_data_type VALUE 'D34N',
-      dats       TYPE ty_data_type VALUE 'DATS',
-      datn       TYPE ty_data_type VALUE 'DATN',
-      dec        TYPE ty_data_type VALUE 'DEC',
-      fltp       TYPE ty_data_type VALUE 'FLTP',
-      geom_ewkb  TYPE ty_data_type VALUE 'GGM1',
-      int1       TYPE ty_data_type VALUE 'INT1',
-      int2       TYPE ty_data_type VALUE 'INT2',
-      int4       TYPE ty_data_type VALUE 'INT4',
-      int8       TYPE ty_data_type VALUE 'INT8',
-      lang       TYPE ty_data_type VALUE 'LANG',
-      lchr       TYPE ty_data_type VALUE 'LCHR',
-      lraw       TYPE ty_data_type VALUE 'LRAW',
-      numc       TYPE ty_data_type VALUE 'NUMC',
-      prec       TYPE ty_data_type VALUE 'PREC',
-      quan       TYPE ty_data_type VALUE 'QUAN',
-      raw        TYPE ty_data_type VALUE 'RAW',
-      rawstring  TYPE ty_data_type VALUE 'RSTR',
-      sstring    TYPE ty_data_type VALUE 'SSTR',
-      string     TYPE ty_data_type VALUE 'STRG',
-      tims       TYPE ty_data_type VALUE 'TIMS',
-      timn       TYPE ty_data_type VALUE 'TIMN',
-      unit       TYPE ty_data_type VALUE 'UNIT',
-      utclong    TYPE ty_data_type VALUE 'UTCL',
-      varc       TYPE ty_data_type VALUE 'VARC',
-    END OF co_data_type.
-
   TYPES ty_output_style TYPE n LENGTH 2.
 
   CONSTANTS:
@@ -2655,21 +2669,17 @@ INTERFACE zif_abapgit_aff_doma_v1.
                engineering                  TYPE ty_output_style VALUE '06',
              END OF co_output_style.
 
-  TYPES ty_length               TYPE i.
-
-  TYPES ty_decimals             TYPE i.
-
   TYPES ty_output_length        TYPE i.
 
   TYPES ty_conv_routine         TYPE c LENGTH 5.
 
   TYPES:
     BEGIN OF ty_format,
-      data_type TYPE ty_data_type,
+      data_type TYPE zif_abapgit_aff_ddic_types_v1=>ty_data_type,
 
-      length    TYPE ty_length,
+      length    TYPE zif_abapgit_aff_ddic_types_v1=>ty_length,
 
-      decimals  TYPE ty_decimals,
+      decimals  TYPE zif_abapgit_aff_ddic_types_v1=>ty_decimals,
 
     END OF ty_format.
 
@@ -2737,6 +2747,85 @@ INTERFACE zif_abapgit_aff_doma_v1.
 
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_aff_dtel_v1.
+
+  TYPES:
+    BEGIN OF ty_predefined_type,
+      data_type TYPE zif_abapgit_aff_ddic_types_v1=>ty_data_type,
+      length    TYPE zif_abapgit_aff_ddic_types_v1=>ty_length,
+      decimals  TYPE zif_abapgit_aff_ddic_types_v1=>ty_decimals,
+    END OF ty_predefined_type.
+
+  TYPES:
+    BEGIN OF ty_field_labels,
+      short          TYPE c LENGTH 10,
+      short_length   TYPE i,
+      medium         TYPE c LENGTH 20,
+      medium_length  TYPE i,
+      long           TYPE c LENGTH 40,
+      long_length    TYPE i,
+      heading        TYPE c LENGTH 55,
+      heading_length TYPE i,
+    END OF ty_field_labels.
+
+  TYPES ty_category TYPE c LENGTH 30.
+  CONSTANTS:
+    BEGIN OF co_category,
+      domain                       TYPE ty_category VALUE 'domain',
+      predefined_type              TYPE ty_category VALUE 'predefinedAbapType',
+      reference_to_predefined_type TYPE ty_category VALUE 'refToPredefinedAbapType',
+      reference_dictionary_type    TYPE ty_category VALUE 'refToDictionaryType',
+      reference_clas_int_type      TYPE ty_category VALUE 'refToClifType',
+    END OF co_category.
+
+  TYPES:
+    BEGIN OF ty_data_type_information,
+      category        TYPE ty_category,
+      type_name       TYPE zif_abapgit_aff_types_v1=>ty_object_name_30,
+      predefined_type TYPE ty_predefined_type,
+    END OF ty_data_type_information.
+
+  TYPES:
+    BEGIN OF ty_search_help,
+      name      TYPE zif_abapgit_aff_types_v1=>ty_object_name_30,
+      parameter TYPE c LENGTH 30,
+    END OF ty_search_help.
+
+  TYPES ty_basic_direction TYPE c LENGTH 1.
+
+  CONSTANTS:
+    BEGIN OF co_bidi_basic_direction,
+      left_to_right TYPE c LENGTH 1 VALUE ' ',
+      right_to_left TYPE c LENGTH 1 VALUE 'X',
+    END OF co_bidi_basic_direction.
+
+  TYPES:
+    BEGIN OF ty_bidirectional_options,
+      basic_direction TYPE ty_basic_direction,
+      no_filtering    TYPE abap_bool,
+    END OF ty_bidirectional_options.
+
+  TYPES:
+    BEGIN OF ty_additional_properties,
+      search_help              TYPE ty_search_help,
+      bidirectional_options    TYPE ty_bidirectional_options,
+      parameter_id             TYPE c LENGTH 20,
+      default_component_name   TYPE c LENGTH 30,
+      change_document_relevant TYPE abap_bool,
+      no_input_history         TYPE abap_bool,
+    END OF ty_additional_properties.
+
+  TYPES:
+    BEGIN OF ty_main,
+      format_version        TYPE zif_abapgit_aff_types_v1=>ty_format_version,
+      header                TYPE zif_abapgit_aff_types_v1=>ty_header_60,
+      data_type_information TYPE ty_data_type_information,
+      field_labels          TYPE ty_field_labels,
+      additional_properties TYPE ty_additional_properties,
+    END OF ty_main.
+
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_aff_oo_types_v1.
 
   TYPES:
@@ -2795,6 +2884,35 @@ INTERFACE zif_abapgit_aff_intf_v1.
       category       TYPE ty_category,
       proxy          TYPE abap_bool,
       descriptions   TYPE zif_abapgit_aff_oo_types_v1=>ty_descriptions,
+    END OF ty_main.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_aff_smtg_v1.
+
+  TYPES:
+    BEGIN OF ty_general_information,
+      template_description        TYPE c LENGTH 255,
+      cds_view                    TYPE zif_abapgit_aff_types_v1=>ty_object_name_30,
+      is_predelivered             TYPE abap_bool,
+      email_subject               TYPE c LENGTH 255,
+      is_plaintext_auto_generated TYPE abap_bool,
+    END OF ty_general_information.
+  " Corresponding content ist stored in a separate file and implemented as action
+
+  TYPES:
+    BEGIN OF ty_template_content,
+      name TYPE string,
+    END OF ty_template_content.
+
+  TYPES ty_template_contents TYPE STANDARD TABLE OF ty_template_content WITH DEFAULT KEY.
+
+  TYPES:
+    BEGIN OF ty_main,
+      format_version      TYPE zif_abapgit_aff_types_v1=>ty_format_version,
+      header              TYPE zif_abapgit_aff_types_v1=>ty_header_60,
+      general_information TYPE ty_general_information,
+      template_content    TYPE ty_template_contents,
     END OF ty_main.
 
 ENDINTERFACE.
@@ -111478,10 +111596,10 @@ CLASS kHGwllSxIcaRTGzWEpvFvDDGtKNvAd DEFINITION.
         IMPORTING
           iv_ddic_type       TYPE dd01v-datatype
         RETURNING
-          VALUE(rv_aff_type) TYPE zif_abapgit_aff_doma_v1=>ty_data_type,
+          VALUE(rv_aff_type) TYPE zif_abapgit_aff_ddic_types_v1=>ty_data_type,
       map_data_type_to_ddic
         IMPORTING
-          iv_aff_type         TYPE zif_abapgit_aff_doma_v1=>ty_data_type
+          iv_aff_type         TYPE zif_abapgit_aff_ddic_types_v1=>ty_data_type
         RETURNING
           VALUE(rv_ddic_type) TYPE dd01v-datatype.
 ENDCLASS.
@@ -111637,159 +111755,159 @@ CLASS kHGwllSxIcaRTGzWEpvFvDDGtKNvAd IMPLEMENTATION.
   METHOD map_data_type_to_aff.
     CASE iv_ddic_type.
       WHEN 'ACCP'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-accp.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-accp.
       WHEN 'CHAR'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-char.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-char.
       WHEN 'CLNT'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-clnt.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-clnt.
       WHEN 'CUKY'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-cuky.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-cuky.
       WHEN 'CURR'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-curr.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-curr.
       WHEN 'DF16_DEC'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-df16_dec.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-df16_dec.
       WHEN 'DF16_RAW'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-df16_raw.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-df16_raw.
       WHEN 'DF16_SCL'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-df16_scl.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-df16_scl.
       WHEN 'DECFLOAT16'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-decfloat16.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-decfloat16.
       WHEN 'DF34_DEC'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-df34_dec.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-df34_dec.
       WHEN 'DF34_RAW'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-df34_raw.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-df34_raw.
       WHEN 'DF34_SCL'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-df34_scl.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-df34_scl.
       WHEN 'DECFLOAT34'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-decfloat34.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-decfloat34.
       WHEN 'DATS'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-dats.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-dats.
       WHEN 'DATN'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-datn.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-datn.
       WHEN 'DEC'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-dec.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-dec.
       WHEN 'FLTP'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-fltp.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-fltp.
       WHEN 'GEOM_EWKB'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-geom_ewkb.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-geom_ewkb.
       WHEN 'INT1'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-int1.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-int1.
       WHEN 'INT2'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-int2.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-int2.
       WHEN 'INT4'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-int4.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-int4.
       WHEN 'INT8'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-int8.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-int8.
       WHEN 'LANG'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-lang.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-lang.
       WHEN 'LCHR'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-lchr.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-lchr.
       WHEN 'LRAW'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-lraw.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-lraw.
       WHEN 'NUMC'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-numc.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-numc.
       WHEN 'PREC'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-prec.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-prec.
       WHEN 'QUAN'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-quan.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-quan.
       WHEN 'RAW'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-raw.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-raw.
       WHEN 'RAWSTRING'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-rawstring.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-rawstring.
       WHEN 'SSTRING'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-sstring.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-sstring.
       WHEN 'STRING' OR 'STRG'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-string.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-string.
       WHEN 'TIMS'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-tims.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-tims.
       WHEN 'TIMN'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-timn.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-timn.
       WHEN 'UNIT'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-unit.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-unit.
       WHEN 'UTCLONG'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-utclong.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-utclong.
       WHEN 'VARC'.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-varc.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-varc.
       WHEN OTHERS.
-        rv_aff_type = zif_abapgit_aff_doma_v1=>co_data_type-char.
+        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-char.
     ENDCASE.
   ENDMETHOD.
 
   METHOD map_data_type_to_ddic.
     CASE iv_aff_type.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-accp.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-accp.
         rv_ddic_type = 'ACCP'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-char.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-char.
         rv_ddic_type = 'CHAR'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-clnt.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-clnt.
         rv_ddic_type = 'CLNT'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-cuky.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-cuky.
         rv_ddic_type = 'CUKY'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-curr.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-curr.
         rv_ddic_type = 'CURR'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-df16_dec.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-df16_dec.
         rv_ddic_type = 'DF16'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-df16_raw.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-df16_raw.
         rv_ddic_type = 'DF16'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-df16_scl.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-df16_scl.
         rv_ddic_type = 'DF16'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-decfloat16.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-decfloat16.
         rv_ddic_type = 'DECF'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-df34_dec.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-df34_dec.
         rv_ddic_type = 'DF34'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-df34_raw.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-df34_raw.
         rv_ddic_type = 'DF34'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-df34_scl.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-df34_scl.
         rv_ddic_type = 'DF34'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-decfloat34.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-decfloat34.
         rv_ddic_type = 'DECF'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-dats.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-dats.
         rv_ddic_type = 'DATS'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-datn.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-datn.
         rv_ddic_type = 'DATN'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-dec.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-dec.
         rv_ddic_type = 'DEC'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-fltp.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-fltp.
         rv_ddic_type = 'FLTP'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-geom_ewkb.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-geom_ewkb.
         rv_ddic_type = 'GEOM'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-int1.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-int1.
         rv_ddic_type = 'INT1'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-int2.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-int2.
         rv_ddic_type = 'INT2'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-int4.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-int4.
         rv_ddic_type = 'INT4'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-int8.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-int8.
         rv_ddic_type = 'INT8'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-lang.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-lang.
         rv_ddic_type = 'LANG'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-lchr.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-lchr.
         rv_ddic_type = 'LCHR'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-lraw.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-lraw.
         rv_ddic_type = 'LRAW'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-numc.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-numc.
         rv_ddic_type = 'NUMC'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-prec.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-prec.
         rv_ddic_type = 'PREC'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-quan.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-quan.
         rv_ddic_type = 'QUAN'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-raw.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-raw.
         rv_ddic_type = 'RAW'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-rawstring.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-rawstring.
         rv_ddic_type = 'RAWS'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-sstring.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-sstring.
         rv_ddic_type = 'SSTR'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-string.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-string.
         rv_ddic_type = 'STRG'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-tims.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-tims.
         rv_ddic_type = 'TIMS'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-timn.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-timn.
         rv_ddic_type = 'TIMN'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-unit.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-unit.
         rv_ddic_type = 'UNIT'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-utclong.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-utclong.
         rv_ddic_type = 'UTCL'.
-      WHEN zif_abapgit_aff_doma_v1=>co_data_type-varc.
+      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-varc.
         rv_ddic_type = 'VARC'.
       WHEN OTHERS.
         rv_ddic_type = 'CHAR'.
@@ -153502,8 +153620,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-07-30T14:19:51.934Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-07-30T14:19:51.934Z`.
+* abapmerge 0.16.10 - 2026-07-30T16:17:19.892Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-07-30T16:17:19.892Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
