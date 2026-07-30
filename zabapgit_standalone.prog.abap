@@ -3849,6 +3849,10 @@ INTERFACE zif_abapgit_frontend_services.
     RETURNING
       VALUE(rv_is_webgui) TYPE abap_bool.
 
+  METHODS get_gui_type
+    RETURNING
+      VALUE(rv_gui_type) TYPE string.
+
   METHODS open_ie_devtools
     RAISING
       zcx_abapgit_exception.
@@ -29458,6 +29462,12 @@ CLASS zcl_abapgit_frontend_services DEFINITION
       RETURNING
         VALUE(rv_path) TYPE string.
 
+    METHODS normalize_gui_release
+      IMPORTING
+        iv_raw_gui_release               TYPE file_table-filename
+      RETURNING
+        VALUE(rv_normalized_gui_release) TYPE zif_abapgit_frontend_services=>ty_gui_release.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_hotkey_ctl DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -32876,6 +32886,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'div#footer {' ).
     lo_buf->add( '  padding:          0.5em 0.5em;' ).
     lo_buf->add( '  border-top:       3px double;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '/* narrow the side cells so the version line does not wrap */' ).
+    lo_buf->add( 'div#footer td.sponsor,' ).
+    lo_buf->add( 'div#footer td#debug-output {' ).
+    lo_buf->add( '  width: 25%;' ).
     lo_buf->add( '}' ).
     lo_buf->add( 'div#footer .version {' ).
     lo_buf->add( '  margin-top: 0.5em;' ).
@@ -40491,7 +40506,7 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
         get_gui_version_failed   = 1
         cant_write_version_table = 2
         gui_no_version           = 3
-        cntl_error               = 4
+        cntl_error               = 4 " <== raised by WebGUI
         error_no_gui             = 5
         not_supported_by_gui     = 6
         OTHERS                   = 7 ).
@@ -40500,7 +40515,7 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
     ENDIF.
 
     READ TABLE lt_version_table INTO ls_version INDEX 1. " gui release
-    ev_gui_release = ls_version-filename.
+    ev_gui_release = normalize_gui_release( ls_version-filename ).
     READ TABLE lt_version_table INTO ls_version INDEX 2. " gui sp
     ev_gui_sp = ls_version-filename.
     READ TABLE lt_version_table INTO ls_version INDEX 3. " gui patch
@@ -40534,6 +40549,21 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
 * when running on open-abap
         RETURN.
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~get_gui_type.
+
+    CASE abap_true.
+      WHEN zif_abapgit_frontend_services~is_webgui( ).
+        rv_gui_type = 'SAP GUI for HTML'.
+      WHEN zif_abapgit_frontend_services~is_sapgui_for_windows( ).
+        rv_gui_type = 'SAP GUI for Windows'.
+      WHEN zif_abapgit_frontend_services~is_sapgui_for_java( ).
+        rv_gui_type = 'SAP GUI for Java'.
+      WHEN OTHERS.
+* eg. open-abap?
+        rv_gui_type = 'Unknown'.
+    ENDCASE.
 
   ENDMETHOD.
   METHOD zif_abapgit_frontend_services~is_sapgui_for_java.
@@ -40672,6 +40702,18 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
     gv_initial_folder = lv_path.
 
   ENDMETHOD.
+  METHOD normalize_gui_release.
+
+    IF zif_abapgit_frontend_services~is_sapgui_for_java( ) = abap_true
+    AND strlen( iv_raw_gui_release ) = 6.
+      " e.g. 081000
+      rv_normalized_gui_release = iv_raw_gui_release+1(4).
+    ELSE.
+      " e.g. 8100
+      rv_normalized_gui_release = iv_raw_gui_release.
+    ENDIF.
+
+  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_frontend_no_gui IMPLEMENTATION.
@@ -40694,6 +40736,9 @@ CLASS zcl_abapgit_frontend_no_gui IMPLEMENTATION.
   METHOD zif_abapgit_frontend_services~get_gui_version.
   ENDMETHOD.
   METHOD zif_abapgit_frontend_services~get_system_directory.
+  ENDMETHOD.
+  METHOD zif_abapgit_frontend_services~get_gui_type.
+    rv_gui_type = 'Unknown'.
   ENDMETHOD.
   METHOD zif_abapgit_frontend_services~gui_is_available.
     rv_gui_is_available = abap_false.
@@ -47613,6 +47658,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
 
     DATA: ls_release       TYPE zif_abapgit_environment=>ty_release_sp,
           lv_gui_version   TYPE string,
+          lv_gui_type      TYPE string,
           lv_devclass      TYPE devclass,
           lo_frontend_serv TYPE REF TO zif_abapgit_frontend_services.
 
@@ -47622,6 +47668,8 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
       CATCH zcx_abapgit_exception ##NO_HANDLER.
         " Continue rendering even if this fails
     ENDTRY.
+
+    lv_gui_type = lo_frontend_serv->get_gui_type( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -47655,6 +47703,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
     ri_html->add( |<table>| ).
     ri_html->add( |<tr><td>abapGit version:</td><td>{ zif_abapgit_version=>c_abap_version }</td></tr>| ).
     ri_html->add( |<tr><td>XML version:    </td><td>{ zif_abapgit_version=>c_xml_version }</td></tr>| ).
+    ri_html->add( |<tr><td>GUI type:       </td><td>{ lv_gui_type }</td></tr>| ).
     ri_html->add( |<tr><td>GUI version:    </td><td>{ lv_gui_version }</td></tr>| ).
     ri_html->add( |<tr><td>APACK version:  </td><td>{
                   zcl_abapgit_apack_migration=>c_apack_interface_version }</td></tr>| ).
@@ -59742,7 +59791,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ri_html->add( '<div id="footer">' ).
     ri_html->add( '<table class="w100"><tr>' ).
 
-    ri_html->add( '<td class="w40 sponsor">' ).
+    ri_html->add( '<td class="sponsor">' ).
     ri_html->add_a( iv_act = zif_abapgit_definitions=>c_action-sponsor
                     iv_txt = ri_html->icon( iv_name = 'heart-regular/pink'
                                             iv_hint = 'Sponsor us' ) ).
@@ -59761,7 +59810,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ri_html->add( |<div id="footer-version" class="version">{ get_version_details( ) }</div>| ).
     ri_html->add( '</td>' ).
 
-    ri_html->add( '<td id="debug-output" class="w40"></td>' ).
+    ri_html->add( '<td id="debug-output"></td>' ).
 
     ri_html->add( '</tr></table>' ).
     ri_html->add( '</div>' ).
@@ -59781,17 +59830,7 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 
     lo_frontend_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
 
-    CASE abap_true.
-      WHEN lo_frontend_serv->is_webgui( ).
-        rv_version = rv_version && ` - Web`.
-      WHEN lo_frontend_serv->is_sapgui_for_windows( ).
-        rv_version = rv_version && ` - Win`.
-      WHEN lo_frontend_serv->is_sapgui_for_java( ).
-        rv_version = rv_version && ` - Java`.
-      WHEN OTHERS.
-* eg. open-abap?
-        rv_version = rv_version && ` - Unknown`.
-    ENDCASE.
+    rv_version = rv_version && | - { lo_frontend_serv->get_gui_type( ) }|.
 
     " Will be filled by JS method displayBrowserControlFooter
     rv_version = rv_version && '<span id="browser-control-footer"></span>'.
@@ -153439,8 +153478,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-07-30T08:15:56.560Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-07-30T08:15:56.560Z`.
+* abapmerge 0.16.10 - 2026-07-30T12:18:50.317Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-07-30T12:18:50.317Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
