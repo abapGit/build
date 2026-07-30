@@ -64379,6 +64379,7 @@ CLASS zcl_abapgit_flow_git IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_commit> LIKE LINE OF it_objects.
     CREATE OBJECT lo_visit.
+    CLEAR ev_latest_merge_commit.
 
     " find first commit and latest merge commit
     lo_visit->clear( )->push( iv_branch_sha1 ).
@@ -143522,6 +143523,8 @@ CLASS zcl_abapgit_git_transport IMPLEMENTATION.
   ENDMETHOD.
   METHOD find_branch.
 
+    CLEAR ev_branch.
+
     branch_list(
       EXPORTING
         iv_url          = iv_url
@@ -153436,8 +153439,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.8 - 2026-07-28T13:47:14.539Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-07-28T13:47:14.539Z`.
-  CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.8`.
+* abapmerge 0.16.10 - 2026-07-30T08:15:56.560Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-07-30T08:15:56.560Z`.
+  CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
