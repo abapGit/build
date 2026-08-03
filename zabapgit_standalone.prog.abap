@@ -62527,14 +62527,6 @@ CLASS zcl_abapgit_gui_page_flow IMPLEMENTATION.
 
   ENDMETHOD.
   METHOD refresh.
-
-    DATA ls_feature LIKE LINE OF ms_information-features.
-    DATA li_repo  TYPE REF TO zif_abapgit_repo.
-    LOOP AT ms_information-features INTO ls_feature.
-      li_repo = zcl_abapgit_repo_srv=>get_instance( )->get( ls_feature-repo-key ).
-      li_repo->refresh( ).
-    ENDLOOP.
-
     CLEAR ms_information.
 
   ENDMETHOD.
@@ -62953,6 +62945,7 @@ CLASS zcl_abapgit_gui_page_flow IMPLEMENTATION.
     DATA lv_message  LIKE LINE OF ms_information-errors.
     DATA lv_filter   TYPE string.
     DATA lv_language TYPE laiso.
+    DATA lv_timestamp TYPE timestampl.
     lo_timer = zcl_abapgit_timer=>create( )->start( ).
 
     register_handlers( ).
@@ -63009,12 +63002,14 @@ CLASS zcl_abapgit_gui_page_flow IMPLEMENTATION.
     ENDIF.
 
     lv_language = zcl_abapgit_convert=>conversion_exit_isola_output( sy-langu ).
+    GET TIME STAMP FIELD lv_timestamp.
 
     ri_html->add( |<small>{ lines( ms_information-features ) } features| &&
       | in { lo_timer->end( ) }{ lv_filter }| &&
       |, SAP user: { sy-uname }| &&
       |, Logon language: { lv_language }| &&
       |, GitHub user: { ms_information-github_username }| &&
+      |, { zcl_abapgit_gui_chunk_lib=>render_timestamp( lv_timestamp ) }| &&
       |</small>| ).
 
     ri_html->add( '</div>' ).
@@ -63694,6 +63689,11 @@ CLASS zcl_abapgit_flow_logic IMPLEMENTATION.
     lt_repos = list_repos( ).
     rs_information-enabled_repositories = lines( lt_repos ).
     rs_information-github_username = find_github_username( lt_repos ).
+
+* Repository instances may contain stale snapshots when Flow is first opened
+    LOOP AT lt_repos INTO li_repo_online.
+      li_repo_online->zif_abapgit_repo~refresh( ).
+    ENDLOOP.
 
     LOOP AT lt_repos INTO li_repo_online.
 
@@ -153620,8 +153620,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-07-30T16:17:19.892Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-07-30T16:17:19.892Z`.
+* abapmerge 0.16.10 - 2026-08-03T06:02:24.737Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-03T06:02:24.737Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
