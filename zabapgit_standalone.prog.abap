@@ -24647,6 +24647,11 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
         !ii_html TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
+    METHODS render_back_navigation
+      IMPORTING
+        !ii_html TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     METHODS render_command_palettes
       IMPORTING
         !ii_html TYPE REF TO zif_abapgit_html
@@ -33644,7 +33649,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'div.info-panel div.info-hint {' ).
-    lo_buf->add( '  text-transform: uppercase;' ).
     lo_buf->add( '  font-size: small;' ).
     lo_buf->add( '  padding: 8px 6px 0px;' ).
     lo_buf->add( '  text-align: center;' ).
@@ -33792,7 +33796,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  border-radius: 3px;' ).
     lo_buf->add( '  padding: 1px 7px;' ).
-    lo_buf->add( '  width: 3em;' ).
+    lo_buf->add( '  width: 5em;' ).
     lo_buf->add( '  display: inline-block;' ).
     lo_buf->add( '  text-align: center;' ).
     lo_buf->add( '  margin-top: 0.2em;' ).
@@ -35408,32 +35412,62 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
-    lo_buf->add( '  Global variables used from outside' ).
+    lo_buf->add( ' * Where used in ABAP / ESLint hints' ).
+    lo_buf->add( ' **********************************************************' ).
+    lo_buf->add( ' *' ).
+    lo_buf->add( ' *  "--" is the ABAP caller' ).
+    lo_buf->add( ' *' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* exported setInitialFocus */' ).
-    lo_buf->add( '/* exported setInitialFocusWithQuerySelector */' ).
-    lo_buf->add( '/* exported submitFormById */' ).
-    lo_buf->add( '/* exported errorStub */' ).
-    lo_buf->add( '/* exported confirmInitialized */' ).
-    lo_buf->add( '/* exported perfOut */' ).
-    lo_buf->add( '/* exported perfLog */' ).
-    lo_buf->add( '/* exported perfClear */' ).
-    lo_buf->add( '/* exported enableArrowListNavigation */' ).
-    lo_buf->add( '/* exported activateLinkHints */' ).
-    lo_buf->add( '/* exported setKeyBindings */' ).
-    lo_buf->add( '/* exported preparePatch */' ).
-    lo_buf->add( '/* exported registerStagePatch */' ).
-    lo_buf->add( '/* exported getIndocStyleSheet */' ).
-    lo_buf->add( '/* exported addMarginBottom */' ).
-    lo_buf->add( '/* exported enumerateJumpAllFiles */' ).
-    lo_buf->add( '/* exported createRepoCatalogEnumerator */' ).
-    lo_buf->add( '/* exported enumerateUiActions */' ).
-    lo_buf->add( '/* exported onDiffCollapse */' ).
-    lo_buf->add( '/* exported restoreScrollPosition */' ).
-    lo_buf->add( '/* exported toggleBrowserControlWarning */' ).
-    lo_buf->add( '/* exported displayBrowserControlFooter */' ).
-    lo_buf->add( '/* exported redirectBrowserBackToSapEvent */' ).
+    lo_buf->add( '/* exported confirmInitialized' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_page->zif_abapgit_gui_renderable~render */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* exported toggleBrowserControlWarning, displayBrowserControlFooter,' ).
+    lo_buf->add( '            redirectBrowserBackToSapEvent, addHotkey' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_page->scripts */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* exported activateLinkHints, setInitialFocusWithQuerySelector,' ).
+    lo_buf->add( '            enableArrowListNavigation' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_page->render_link_hints */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* exported enumerateUiActions' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_page->render_command_palettes,' ).
+    lo_buf->add( '      as new CommandPalette( enumerateUiActions ) */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* exported createRepoCatalogEnumerator' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_chunk_lib->render_repo_palette,' ).
+    lo_buf->add( '      as new CommandPalette( createRepoCatalogEnumerator ) */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* exported submitFormById' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_page_db_entry->build_toolbar' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_page_merge_res (three call sites) */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* exported restoreScrollPosition, addMarginBottom, enumerateJumpAllFiles' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_page_diff_base->render_scripts,' ).
+    lo_buf->add( '      which also does new CommandPalette( enumerateJumpAllFiles ) */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* exported onDiffCollapse' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_page_diff_base->render_diff_head */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* exported preparePatch, registerStagePatch' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_page_patch->render_scripts */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* exported setKeyBindings' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_hotkey_ctl->render_scripts */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* exported perfOut, perfLog, perfClear' ).
+    lo_buf->add( '    -- not called from ABAP, for frontend debugging */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* Constructors instantiated from ABAP. These need no "exported"' ).
+    lo_buf->add( '   directive - the XxxHelper.prototype assignments further down already' ).
+    lo_buf->add( '   count as a use - but they belong in the where-used list:' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '     new RepoOverViewHelper   zcl_abapgit_gui_page_repo_over->render_scripts' ).
+    lo_buf->add( '     new StageHelper          zcl_abapgit_gui_page_stage->render_scripts' ).
+    lo_buf->add( '     new DiffHelper           zcl_abapgit_gui_page_diff_base->render_scripts' ).
+    lo_buf->add( '     new DiffColumnSelection  zcl_abapgit_gui_page_diff_base->render_scripts' ).
+    lo_buf->add( '     new CommandPalette       see enumerateUiActions / createRepoCatalogEnumerator /' ).
+    lo_buf->add( '                              enumerateJumpAllFiles above                            */' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
     lo_buf->add( ' * Polyfills' ).
@@ -35669,13 +35703,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  document.getElementById(id).submit();' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '// JS error stub' ).
-    lo_buf->add( 'function errorStub(event) {' ).
-    lo_buf->add( '  var element    = event.target || event.srcElement;' ).
-    lo_buf->add( '  var targetName = element.id || element.name || "???";' ).
-    lo_buf->add( '  alert("JS Error, please log an issue (@" + targetName + ")");' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
     lo_buf->add( '// Confirm JS initialization' ).
     lo_buf->add( 'function confirmInitialized() {' ).
     lo_buf->add( '  var errorBanner = document.getElementById("js-error-banner");' ).
@@ -35729,16 +35756,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      if (classes[i].selectorText === name) return classes[i];' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'function getIndocStyleSheet() {' ).
-    lo_buf->add( '  for (var s = 0; s < document.styleSheets.length; s++) {' ).
-    lo_buf->add( '    if (!document.styleSheets[s].href) return document.styleSheets[s]; // One with empty href' ).
-    lo_buf->add( '  }' ).
-    lo_buf->add( '  // None found ? create one' ).
-    lo_buf->add( '  var style = document.createElement("style");' ).
-    lo_buf->add( '  document.head.appendChild(style);' ).
-    lo_buf->add( '  return style.sheet;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function RepoOverViewHelper(opts) {' ).
@@ -37790,6 +37807,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'CommandPalette.isVisible = function() {' ).
     lo_buf->add( '  return CommandPalette.instances.reduce(function(result, instance) { return result || instance.elements.palette.style.display !== "none" }, false);' ).
     lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function addHotkey(opts) {' ).
+    lo_buf->add( '  Hotkeys.addHotkeyToHelpSheet(opts.toggleKey, opts.hotkeyDescription);' ).
+    lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
     lo_buf->add( ' * Command Enumerators' ).
@@ -45246,8 +45267,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_palette(
-      iv_action = zif_abapgit_definitions=>c_action-go_repo ) ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_palette( zif_abapgit_definitions=>c_action-go_repo ) ).
 
   ENDMETHOD.
   METHOD render_table_footer.
@@ -46147,6 +46167,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
     ri_html->add( 'var gHelper = new RepoOverViewHelper({ focusFilterKey: "f" });' ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_palette( c_action-select ) ).
 
   ENDMETHOD.
   METHOD render_table_body.
@@ -46550,7 +46571,6 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ri_html->add( |</div>| ).
 
     register_deferred_script( render_scripts( ) ).
-    register_deferred_script( zcl_abapgit_gui_chunk_lib=>render_repo_palette( c_action-select ) ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -60055,9 +60075,9 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
         li_frontend_services = zcl_abapgit_ui_factory=>get_frontend_services( ).
         li_frontend_services->get_gui_version(
           IMPORTING
-            ev_gui_release        = lv_gui_release
-            ev_gui_sp             = lv_gui_sp
-            ev_gui_patch          = lv_gui_patch ).
+            ev_gui_release = lv_gui_release
+            ev_gui_sp      = lv_gui_sp
+            ev_gui_patch   = lv_gui_patch ).
 
       CATCH zcx_abapgit_exception.
         RETURN.
@@ -60070,6 +60090,14 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD render_back_navigation.
+
+    ii_html->add( 'addHotkey({' ).
+    ii_html->add( '  toggleKey: "F3",' ).
+    ii_html->add( '  hotkeyDescription: "Go back"' ).
+    ii_html->add( '});' ).
+
+  ENDMETHOD.
   METHOD render_browser_control_warning.
 
     DATA li_documentation_link TYPE REF TO zif_abapgit_html.
@@ -60077,9 +60105,9 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     CREATE OBJECT li_documentation_link TYPE zcl_abapgit_html.
 
     li_documentation_link->add_a(
-        iv_txt = 'Documentation'
-        iv_typ = zif_abapgit_html=>c_action_type-url
-        iv_act = 'https://docs.abapgit.org/guide-sapgui.html#sap-gui-for-windows' ).
+      iv_txt = 'Documentation'
+      iv_typ = zif_abapgit_html=>c_action_type-url
+      iv_act = 'https://docs.abapgit.org/guide-sapgui.html#sap-gui-for-windows' ).
 
     ii_html->add( '<div id="browser-control-warning" class="browser-control-warning">' ).
     ii_html->add( zcl_abapgit_gui_chunk_lib=>render_warning_banner(
@@ -60162,15 +60190,17 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
+    render_link_hints( ri_html ).
+    render_command_palettes( ri_html ).
+
     render_deferred_parts(
       ii_html          = ri_html
       iv_part_category = c_html_parts-scripts ).
 
-    render_link_hints( ri_html ).
-    render_command_palettes( ri_html ).
     ri_html->add( |toggleBrowserControlWarning();| ).
     ri_html->add( |displayBrowserControlFooter();| ).
     ri_html->add( |redirectBrowserBackToSapEvent();| ).
+    render_back_navigation( ri_html ).
 
   ENDMETHOD.
   METHOD title.
@@ -153620,8 +153650,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-03T06:02:24.737Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-03T06:02:24.737Z`.
+* abapmerge 0.16.10 - 2026-08-03T19:33:02.601Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-03T19:33:02.601Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
