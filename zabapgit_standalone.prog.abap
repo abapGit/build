@@ -46459,6 +46459,11 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ls_hotkey_action-hotkey = |x|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
+    ls_hotkey_action-description   = |Personal Settings|.
+    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_settings_personal.
+    ls_hotkey_action-hotkey = |v|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
     ls_hotkey_action-description = |Stage|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_stage.
     ls_hotkey_action-hotkey = |s|.
@@ -46527,7 +46532,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_act = zif_abapgit_definitions=>c_action-repo_newoffline
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>settings( )
-      iv_act = zif_abapgit_definitions=>c_action-go_settings
+      io_sub = zcl_abapgit_gui_menus=>settings( space )
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>refresh( )
       iv_act = c_action-refresh_list
@@ -61666,7 +61671,7 @@ CLASS zcl_abapgit_gui_buttons IMPLEMENTATION.
     rv_html_string = zcl_abapgit_html=>icon( 'bars' ) && ' Repository List'.
   ENDMETHOD.
   METHOD settings.
-    rv_html_string = zcl_abapgit_html=>icon( 'cog' ) && ' Global Settings'.
+    rv_html_string = zcl_abapgit_html=>icon( 'cog' ) && ' Settings'.
   ENDMETHOD.
 ENDCLASS.
 
@@ -153650,8 +153655,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-03T19:33:02.601Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-03T19:33:02.601Z`.
+* abapmerge 0.16.10 - 2026-08-04T01:10:03.511Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-04T01:10:03.511Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
