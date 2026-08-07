@@ -65938,6 +65938,7 @@ CLASS zcl_abapgit_gui_event IMPLEMENTATION.
     REPLACE ALL OCCURRENCES OF '%3F' IN rv_string WITH '?' IGNORING CASE.
     REPLACE ALL OCCURRENCES OF '%3D' IN rv_string WITH '=' IGNORING CASE.
     REPLACE ALL OCCURRENCES OF '%2F' IN rv_string WITH '/' IGNORING CASE.
+    REPLACE ALL OCCURRENCES OF '%23' IN rv_string WITH '#' IGNORING CASE.
     REPLACE ALL OCCURRENCES OF '%25' IN rv_string WITH '%' IGNORING CASE.
     REPLACE ALL OCCURRENCES OF '%26' IN rv_string WITH '&' IGNORING CASE.
     REPLACE ALL OCCURRENCES OF gv_non_breaking_space IN rv_string WITH ` `.
@@ -154242,8 +154243,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-07T14:20:13.709Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-07T14:20:13.709Z`.
+* abapmerge 0.16.10 - 2026-08-07T15:15:21.041Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-07T15:15:21.041Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
