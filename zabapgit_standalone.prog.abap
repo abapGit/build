@@ -40843,9 +40843,13 @@ CLASS zcl_abapgit_frontend_services IMPLEMENTATION.
   METHOD zif_abapgit_frontend_services~is_sapgui_for_windows.
 
     TRY.
-        CALL FUNCTION 'GUI_HAS_ACTIVEX'
-          IMPORTING
-            return = rv_result.
+        " Sole ActiveX check is not sufficient as it is also TRUE for WebGUI
+        IF zif_abapgit_frontend_services~is_webgui( ) = abap_false.
+          CALL FUNCTION 'GUI_HAS_ACTIVEX'
+            IMPORTING
+              return = rv_result.
+        ENDIF.
+
       CATCH cx_sy_dyn_call_illegal_func.
 * when running on open-abap
         RETURN.
@@ -154230,8 +154234,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-07T01:53:11.597Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-07T01:53:11.597Z`.
+* abapmerge 0.16.10 - 2026-08-07T13:29:31.656Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-07T13:29:31.656Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
