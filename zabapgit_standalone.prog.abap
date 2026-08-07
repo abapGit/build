@@ -38131,6 +38131,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// Output type of HTML control in the abapGit footer' ).
     lo_buf->add( 'function displayBrowserControlFooter() {' ).
     lo_buf->add( '  var out = document.getElementById("browser-control-footer");' ).
+    lo_buf->add( '  // Only rendered where there is a browser control to report on, i.e. not on' ).
+    lo_buf->add( '  // the HTML GUI, which runs in the browser of the user' ).
+    lo_buf->add( '  if (!out) return;' ).
     lo_buf->add( '  out.innerHTML = " - " + ( navigator.userAgent.includes("Edg") ? "Edge" : "IE"  );' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -60112,8 +60115,13 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 
     rv_version = rv_version && | - { lo_frontend_serv->get_gui_type( ) }|.
 
+    " Only SAP GUI for Windows embeds a browser control whose type is worth
+    " reporting. The HTML GUI runs in the browser of the user, and guessing the
+    " control from its user agent produced nonsense there (e.g. "IE" on Chrome).
     " Will be filled by JS method displayBrowserControlFooter
-    rv_version = rv_version && '<span id="browser-control-footer"></span>'.
+    IF lo_frontend_serv->is_sapgui_for_windows( ) = abap_true.
+      rv_version = rv_version && '<span id="browser-control-footer"></span>'.
+    ENDIF.
 
   ENDMETHOD.
   METHOD header_script_links.
@@ -154234,8 +154242,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-07T13:29:31.656Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-07T13:29:31.656Z`.
+* abapmerge 0.16.10 - 2026-08-07T14:20:13.709Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-07T14:20:13.709Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
