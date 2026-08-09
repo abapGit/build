@@ -30696,7 +30696,7 @@ CLASS zcl_abapgit_xml_pretty IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_XML_OUTPUT IMPLEMENTATION.
+CLASS zcl_abapgit_xml_output IMPLEMENTATION.
   METHOD build_asx_node.
 
     DATA: li_attr TYPE REF TO if_ixml_attribute.
@@ -30720,6 +30720,7 @@ CLASS ZCL_ABAPGIT_XML_OUTPUT IMPLEMENTATION.
     DATA: li_node TYPE REF TO if_ixml_node,
           li_doc  TYPE REF TO if_ixml_document,
           lt_stab TYPE abap_trans_srcbind_tab.
+    DATA lx_error TYPE REF TO cx_transformation_error.
 
     FIELD-SYMBOLS: <ls_stab> LIKE LINE OF lt_stab.
     ASSERT NOT iv_name IS INITIAL.
@@ -30734,11 +30735,19 @@ CLASS ZCL_ABAPGIT_XML_OUTPUT IMPLEMENTATION.
 
     li_doc = cl_ixml=>create( )->create_document( ).
 
-    CALL TRANSFORMATION id
-      OPTIONS initial_components = 'suppress'
-      value_handling = 'move'
-      SOURCE (lt_stab)
-      RESULT XML li_doc.
+    TRY.
+        CALL TRANSFORMATION id
+          OPTIONS initial_components = 'suppress'
+          value_handling = 'move'
+          SOURCE (lt_stab)
+          RESULT XML li_doc.
+      CATCH cx_transformation_error INTO lx_error.
+        IF mv_filename IS INITIAL.
+          zcx_abapgit_exception=>raise( lx_error->get_text( ) ).
+        ELSE.
+          zcx_abapgit_exception=>raise( |File { mv_filename }: { lx_error->get_text( ) }| ).
+        ENDIF.
+    ENDTRY.
 
     li_node = mi_xml_doc->get_root( )->get_first_child( ).
     IF li_node IS BOUND.
@@ -30774,7 +30783,7 @@ CLASS ZCL_ABAPGIT_XML_OUTPUT IMPLEMENTATION.
     ENDIF.
 
     li_git = mi_xml_doc->create_element( c_abapgit_tag ).
-    li_git->set_attribute( name = c_attr_version
+    li_git->set_attribute( name  = c_attr_version
                            value = zif_abapgit_version=>c_xml_version ).
     IF NOT is_metadata IS INITIAL.
       li_git->set_attribute( name  = c_attr_serializer
@@ -154243,8 +154252,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-07T15:15:21.041Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-07T15:15:21.041Z`.
+* abapmerge 0.16.10 - 2026-08-09T10:43:29.599Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-09T10:43:29.599Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
