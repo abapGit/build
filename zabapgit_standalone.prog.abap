@@ -35753,9 +35753,25 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  form.setAttribute("method", method || "post");' ).
     lo_buf->add( '  var form_action = form.getAttribute("action");' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  // SAP GUI for HTML: inside an HTML control, form actions look as follows:' ).
+    lo_buf->add( '  // SAP GUI for HTML: ITS wires the sapevent routing into the form while it' ).
+    lo_buf->add( '  // renders the page. Depending on the release (and on the form) it ends up' ).
+    lo_buf->add( '  // either in hidden fields, leaving a dummy action behind, or in the action:' ).
     lo_buf->add( '  // ~control=116&~event=OnSAPEvent&ALINK=1&frameName=&PARAMS=stage_commit' ).
-    lo_buf->add( '  if (/~control=/i.test(form_action)) {' ).
+    lo_buf->add( '  // The event to raise sits in PARAMS, the rest of the routing has to be kept' ).
+    lo_buf->add( '  // exactly as ITS set it up.' ).
+    lo_buf->add( '  var itsParams = form.querySelectorAll("input[name=''PARAMS'']");' ).
+    lo_buf->add( '  var isItsForm = itsParams.length > 0 || /~control=/i.test(form_action);' ).
+    lo_buf->add( '  var i;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (itsParams.length > 0) {' ).
+    lo_buf->add( '    // A form can carry several of them, one per element ITS wired up (e.g. the' ).
+    lo_buf->add( '    // form itself plus its hidden submit button), so set all of them - a' ).
+    lo_buf->add( '    // request with conflicting PARAMS would raise whichever event ITS picks.' ).
+    lo_buf->add( '    // No escaping here, unlike the action below: the browser encodes the value' ).
+    lo_buf->add( '    for (i = 0; i < itsParams.length; i++) {' ).
+    lo_buf->add( '      itsParams[i].value = action;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  } else if (/~control=/i.test(form_action)) {' ).
     lo_buf->add( '    form.setAttribute("action", form_action.replace(/PARAMS=.*$/, "PARAMS=" + encodeItsParams(action)));' ).
     lo_buf->add( '  } else if (/sapevent/i.test(action)) {' ).
     lo_buf->add( '    form.setAttribute("action", action);' ).
@@ -35772,10 +35788,24 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    form.appendChild(hiddenField);' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var formExistsInDOM = form.id && Boolean(document.querySelector("#" + form.id));' ).
+    lo_buf->add( '  // getElementById, not a selector: a generated form id carries a timestamp' ).
+    lo_buf->add( '  // and its dot would have to be escaped in a selector' ).
+    lo_buf->add( '  var formExistsInDOM = form.id && Boolean(document.getElementById(form.id));' ).
     lo_buf->add( '' ).
     lo_buf->add( '  if (!formExistsInDOM) {' ).
     lo_buf->add( '    document.body.appendChild(form);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (isItsForm) {' ).
+    lo_buf->add( '    // ITS replaces submit() and collects the fields of the form itself, reading' ).
+    lo_buf->add( '    // the value of every entry of form.elements. A fieldset is part of that' ).
+    lo_buf->add( '    // collection but has no value, so the collection dies on any dialog using' ).
+    lo_buf->add( '    // field groups. Hand out an empty value for those to keep it going.' ).
+    lo_buf->add( '    for (i = 0; i < form.elements.length; i++) {' ).
+    lo_buf->add( '      if (form.elements[i].value === undefined) {' ).
+    lo_buf->add( '        form.elements[i].value = "";' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // Mark that the popstate the browser control may emit while handling this' ).
@@ -58931,7 +58961,10 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
 
     IF ro_form->mv_form_id IS INITIAL.
       GET TIME STAMP FIELD lv_ts.
-      ro_form->mv_form_id = |form_{ lv_ts }|.
+      " The id is used in selectors, where the separator of the decimals of the
+      " time stamp would have to be escaped, so drop it
+      ro_form->mv_form_id = |form_{ lv_ts NUMBER = RAW }|.
+      REPLACE ALL OCCURRENCES OF '.' IN ro_form->mv_form_id WITH ''.
     ENDIF.
 
     ro_form->mv_webgui = zcl_abapgit_ui_factory=>get_frontend_services( )->is_webgui( ).
@@ -59141,7 +59174,9 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
   ENDMETHOD.
   METHOD render_command.
 
-    " HTML GUI supports only links for submitting forms
+    " On the HTML GUI, ITS wires up the action of a form, but not the
+    " formaction attribute of an input, so a command cannot raise its event
+    " that way and is rendered as a link submitting the form instead
     IF mv_webgui = abap_true.
       render_command_link(
         is_cmd  = is_cmd
@@ -59178,9 +59213,29 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
   METHOD render_command_link.
 
     DATA lv_class TYPE string VALUE 'dialog-commands'.
+    DATA lv_action TYPE string.
+    DATA lv_js TYPE string.
 
     IF is_cmd-cmd_type = zif_abapgit_html_form=>c_cmd_type-input_main.
       lv_class = lv_class && ' main'.
+    ENDIF.
+
+    " On the HTML GUI all commands are rendered as links, but a plain link
+    " navigates without the form payload, so everything the user entered is
+    " lost. Submit the enclosing form instead: its action was wired up by ITS
+    " while rendering the page and submitSapeventForm merely swaps in the
+    " event of this command.
+    IF mv_webgui = abap_true AND is_cmd-cmd_type <> zif_abapgit_html_form=>c_cmd_type-link.
+      lv_action = escape( val    = is_cmd-action
+                          format = cl_abap_format=>e_html_attr ).
+      lv_js = |submitSapeventForm(\{ \}, '{ lv_action }', 'post', |
+           && |document.getElementById('{ mv_form_id }'))|.
+      ii_html->add_a(
+        iv_txt   = is_cmd-label
+        iv_act   = lv_js
+        iv_typ   = zif_abapgit_html=>c_action_type-onclick
+        iv_class = lv_class ).
+      RETURN.
     ENDIF.
 
     ii_html->add_a(
@@ -59393,6 +59448,7 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
       lv_checked   TYPE string,
       lv_opt_id    TYPE string,
       lv_opt_value TYPE string,
+      lv_click     TYPE string,
       lv_onclick   TYPE string.
 
     FIELD-SYMBOLS <ls_opt> LIKE LINE OF is_field-subitems.
@@ -59419,11 +59475,14 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
       " With edge browser control radio buttons aren't checked automatically when
       " activated with link hints. Therefore we need to check them manually.
       IF is_field-click IS NOT INITIAL.
+        " Never write a raw sapevent url into a handler: ITS rewrites the ones
+        " it finds while rendering the page, which breaks the JS around it
+        lv_click = escape( val    = is_field-click
+                           format = cl_abap_format=>e_html_attr ).
         lv_onclick = |onclick="|
-                  && |var form = document.getElementById('{ mv_form_id }');|
                   && |document.getElementById('{ lv_opt_id }').checked = true;|
-                  && |form.action = 'sapevent:{ is_field-click }';|
-                  && |form.submit();"|.
+                  && |submitSapeventForm(\{ \}, '{ lv_click }', 'post', |
+                  && |document.getElementById('{ mv_form_id }'));"|.
       ELSE.
         lv_onclick = |onclick="document.getElementById('{ lv_opt_id }').checked = true;"|.
       ENDIF.
@@ -59515,9 +59574,10 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
   METHOD render_field_text.
 
     DATA:
-      lv_type      TYPE string,
-      lv_minlength TYPE string,
-      lv_maxlength TYPE string.
+      lv_type        TYPE string,
+      lv_minlength   TYPE string,
+      lv_maxlength   TYPE string,
+      lv_side_action TYPE string.
 
     ii_html->add( |<label for="{ is_field-name }"{ is_attr-hint }>{ is_field-label }{ is_attr-required }</label>| ).
 
@@ -59551,8 +59611,19 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     IF is_field-side_action IS NOT INITIAL.
       ii_html->add( '</div>' ).
       ii_html->add( '<div class="command-container">' ).
-      ii_html->add( |<input type="submit" value="&#x2026;" formaction="sapevent:{ is_field-side_action }"|
-                 && | title="{ is_field-label }">| ).
+      IF mv_webgui = abap_true.
+        " ITS wires up the action of a form, but not the formaction attribute
+        " of an input, which would post to the plain WebGUI url and start a
+        " nested session instead of raising the event
+        lv_side_action = escape( val    = is_field-side_action
+                                 format = cl_abap_format=>e_html_attr ).
+        ii_html->add( |<input type="button" value="&#x2026;" title="{ is_field-label }"|
+                   && | onclick="submitSapeventForm(\{ \}, '{ lv_side_action }', 'post', |
+                   && |document.getElementById('{ mv_form_id }'))">| ).
+      ELSE.
+        ii_html->add( |<input type="submit" value="&#x2026;" formaction="sapevent:{ is_field-side_action }"|
+                   && | title="{ is_field-label }">| ).
+      ENDIF.
       ii_html->add( '</div>' ).
     ENDIF.
 
@@ -59637,8 +59708,13 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     IF iv_side_action IS NOT INITIAL AND mv_form_id IS NOT INITIAL.
       ls_field-item_class = 'with-command'.
       ls_field-side_action = iv_side_action.
-      ls_field-dblclick = | ondblclick="document.getElementById('{ mv_form_id }').action = 'sapevent:|
-                       && |{ iv_side_action }'; document.getElementById('{ mv_form_id }').submit()"|.
+      " Let submitSapeventForm rewrite the action of the form: it knows the url
+      " scheme of the browser control in use, and on the HTML GUI it keeps the
+      " routing parameters ITS put into the action of the form
+      ls_field-dblclick = | ondblclick="submitSapeventForm(\{ \}, '{ escape(
+                            val    = iv_side_action
+                            format = cl_abap_format=>e_html_attr ) }', 'post', |
+                       && |document.getElementById('{ mv_form_id }'))"|.
     ENDIF.
 
     APPEND ls_field TO mt_fields.
@@ -154252,8 +154328,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-09T10:43:29.599Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-09T10:43:29.599Z`.
+* abapmerge 0.16.10 - 2026-08-10T07:49:30.126Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-10T07:49:30.126Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
