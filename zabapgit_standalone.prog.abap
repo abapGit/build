@@ -1130,6 +1130,85 @@ CLASS zcx_abapgit_exception IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcx_abapgit_auth_required DEFINITION
+  INHERITING FROM zcx_abapgit_exception
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    DATA mv_url TYPE string READ-ONLY.
+
+    METHODS constructor
+      IMPORTING
+        !textid   LIKE if_t100_message=>t100key OPTIONAL
+        !previous LIKE previous OPTIONAL
+        !log      TYPE REF TO zif_abapgit_log OPTIONAL
+        !msgv1    TYPE symsgv OPTIONAL
+        !msgv2    TYPE symsgv OPTIONAL
+        !msgv3    TYPE symsgv OPTIONAL
+        !msgv4    TYPE symsgv OPTIONAL
+        !longtext TYPE csequence OPTIONAL
+        !iv_url   TYPE string OPTIONAL.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CONSTANTS c_text TYPE string VALUE `Authentication required`.
+ENDCLASS.
+CLASS zcx_abapgit_auth_required IMPLEMENTATION.
+  METHOD constructor ##ADT_SUPPRESS_GENERATION.
+
+    DATA ls_textid TYPE scx_t100key.
+    DATA lv_msgv1  TYPE symsgv.
+    DATA lv_msgv2  TYPE symsgv.
+    DATA lv_msgv3  TYPE symsgv.
+    DATA lv_msgv4  TYPE symsgv.
+
+    ls_textid = textid.
+    lv_msgv1  = msgv1.
+    lv_msgv2  = msgv2.
+    lv_msgv3  = msgv3.
+    lv_msgv4  = msgv4.
+
+    IF ls_textid IS INITIAL.
+      " MESSAGE takes the text from the T100 key, IF_MESSAGE~GET_TEXT is only used for
+      " exceptions without IF_T100_MESSAGE. So build a key for the text, same approach
+      " as ZCX_ABAPGIT_EXCEPTION=>RAISE
+      IF iv_url IS INITIAL.
+        cl_message_helper=>set_msg_vars_for_clike( c_text ).
+      ELSE.
+        cl_message_helper=>set_msg_vars_for_clike( |{ c_text } for { iv_url }| ).
+      ENDIF.
+      ls_textid-msgid = sy-msgid.
+      ls_textid-msgno = sy-msgno.
+      ls_textid-attr1 = 'MSGV1'.
+      ls_textid-attr2 = 'MSGV2'.
+      ls_textid-attr3 = 'MSGV3'.
+      ls_textid-attr4 = 'MSGV4'.
+      lv_msgv1 = sy-msgv1.
+      lv_msgv2 = sy-msgv2.
+      lv_msgv3 = sy-msgv3.
+      lv_msgv4 = sy-msgv4.
+    ENDIF.
+
+    super->constructor(
+      previous = previous
+      log      = log
+      msgv1    = lv_msgv1
+      msgv2    = lv_msgv2
+      msgv3    = lv_msgv3
+      msgv4    = lv_msgv4
+      longtext = longtext ).
+
+    mv_url = iv_url.
+
+    CLEAR me->textid.
+
+    if_t100_message~t100key = ls_textid.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcx_abapgit_cancel DEFINITION
   INHERITING FROM zcx_abapgit_exception
   FINAL
@@ -10384,6 +10463,18 @@ CLASS zcl_abapgit_login_manager DEFINITION
         !iv_uri            TYPE string
       RETURNING
         VALUE(rv_username) TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS get_password
+      IMPORTING
+        !iv_uri            TYPE string
+      RETURNING
+        VALUE(rv_password) TYPE string
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS remove
+      IMPORTING
+        !iv_uri TYPE string
       RAISING
         zcx_abapgit_exception .
   PROTECTED SECTION.
@@ -23198,6 +23289,13 @@ CLASS zcl_abapgit_gui DEFINITION
         !iv_state          TYPE i
       RETURNING
         VALUE(rv_new_page) TYPE abap_bool.
+    METHODS request_credentials
+      IMPORTING
+        !iv_url           TYPE string
+      RETURNING
+        VALUE(rv_success) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_asset_manager DEFINITION FINAL CREATE PUBLIC .
@@ -66416,6 +66514,7 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
 
     DATA:
       lx_exception TYPE REF TO zcx_abapgit_exception,
+      lx_auth      TYPE REF TO zcx_abapgit_auth_required,
       li_handler   TYPE REF TO zif_abapgit_gui_event_handler,
       li_event     TYPE REF TO zif_abapgit_gui_event,
       ls_handled   TYPE zif_abapgit_gui_event_handler=>ty_handling_result.
@@ -66472,6 +66571,33 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
 
       CATCH zcx_abapgit_cancel ##NO_HANDLER.
         " Do nothing = c_event_state-no_more_act
+      CATCH zcx_abapgit_auth_required INTO lx_auth.
+        " Credentials are needed for a repository. Prompt the user (UI layer)
+        " and cache them in the login manager.
+        TRY.
+            IF request_credentials( lx_auth->mv_url ) = abap_true.
+              IF ls_handled-state IS INITIAL.
+                " Authentication interrupted the event handler, retry the action
+                handle_action(
+                  iv_action   = iv_action
+                  iv_getdata  = iv_getdata
+                  it_postdata = it_postdata ).
+              ELSE.
+                " The action already changed the current page before rendering
+                " requested authentication, so only complete the rendering
+                render( ).
+              ENDIF.
+            ELSEIF is_new_page( ls_handled-state ) = abap_true.
+              " The user cancelled the popup. The new page is already the current one
+              " but cannot be rendered without credentials, so go back to keep the GUI
+              " in a state where the next action can be handled
+              back( ).
+            ENDIF.
+          CATCH zcx_abapgit_exception INTO lx_exception.
+            handle_error(
+              iv_state     = ls_handled-state
+              ix_exception = lx_exception ).
+        ENDTRY.
       CATCH zcx_abapgit_exception INTO lx_exception.
         handle_error(
           iv_state     = ls_handled-state
@@ -66482,6 +66608,7 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
   METHOD handle_error.
 
     DATA: li_gui_error_handler TYPE REF TO zif_abapgit_gui_error_handler,
+          lx_auth              TYPE REF TO zcx_abapgit_auth_required,
           lx_exception         TYPE REF TO cx_root.
 
     IF mv_rollback_on_error = abap_true.
@@ -66510,6 +66637,16 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
           MESSAGE ix_exception TYPE 'S' DISPLAY LIKE 'E'.
         ENDIF.
 
+      CATCH zcx_abapgit_auth_required INTO lx_auth.
+        " Rendering the page requires credentials. Do not prompt while already handling
+        " an error, the popup was either cancelled or the credentials were rejected.
+        " Fall back to the previous page so the GUI stays usable
+        MESSAGE lx_auth TYPE 'S' DISPLAY LIKE 'E'.
+        TRY.
+            back( ).
+          CATCH zcx_abapgit_exception ##NO_HANDLER.
+            " Nothing more we can do here
+        ENDTRY.
       CATCH zcx_abapgit_exception cx_sy_move_cast_error INTO lx_exception.
         " In case of fire we just fallback to plain old message
         MESSAGE lx_exception TYPE 'S' DISPLAY LIKE 'E'.
@@ -66577,6 +66714,48 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
 
     lv_url = cache_html( lv_html ).
     mi_html_viewer->show_url( lv_url ).
+
+  ENDMETHOD.
+  METHOD request_credentials.
+
+    DATA lv_default_user TYPE string.
+    DATA lv_user         TYPE string.
+    DATA lv_pass         TYPE string.
+    DATA lv_auth         TYPE string.
+
+    lv_default_user = zcl_abapgit_persist_factory=>get_user( )->get_repo_login( iv_url ).
+    lv_user         = lv_default_user.
+
+    " The password popup itself is unchanged, it is only invoked from the UI layer now
+    zcl_abapgit_password_dialog=>popup(
+      EXPORTING
+        iv_repo_url = iv_url
+      CHANGING
+        cv_user     = lv_user
+        cv_pass     = lv_pass ).
+
+    IF lv_user IS INITIAL.
+      " User cancelled the dialog
+      RETURN.
+    ENDIF.
+
+    IF lv_user <> lv_default_user.
+      zcl_abapgit_persist_factory=>get_user( )->set_repo_login(
+        iv_url   = iv_url
+        iv_login = lv_user ).
+    ENDIF.
+
+    " Cache the credentials so create_by_url picks them up on the retry
+    lv_auth = zcl_abapgit_login_manager=>set_basic(
+      iv_uri      = iv_url
+      iv_username = lv_user
+      iv_password = lv_pass ).
+
+    IF lv_auth IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    rv_success = abap_true.
 
   ENDMETHOD.
   METHOD set_focus.
@@ -141935,13 +142114,15 @@ CLASS zcl_abapgit_login_manager IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_auth> LIKE LINE OF gt_auth.
 
-    READ TABLE gt_auth WITH KEY uri = zcl_abapgit_url=>host( iv_uri )
-      TRANSPORTING NO FIELDS.
+    " Overwrite any existing entry, the caller is the authority on the credentials
+    " to be used for the host from now on
+    READ TABLE gt_auth ASSIGNING <ls_auth> WITH KEY uri = zcl_abapgit_url=>host( iv_uri ).
     IF sy-subrc <> 0.
       APPEND INITIAL LINE TO gt_auth ASSIGNING <ls_auth>.
-      <ls_auth>-uri           = zcl_abapgit_url=>host( iv_uri ).
-      <ls_auth>-authorization = iv_auth.
+      <ls_auth>-uri = zcl_abapgit_url=>host( iv_uri ).
     ENDIF.
+
+    <ls_auth>-authorization = iv_auth.
 
   ENDMETHOD.
   METHOD clear.
@@ -141974,6 +142155,29 @@ CLASS zcl_abapgit_login_manager IMPLEMENTATION.
       lv_decoded = cl_http_utility=>decode_base64( lv_auth ).
       SPLIT lv_decoded AT ':' INTO rv_username lv_decoded.
     ENDIF.
+
+  ENDMETHOD.
+  METHOD get_password.
+
+    DATA lv_auth     TYPE string.
+    DATA lv_username TYPE string.
+
+    lv_auth = get( iv_uri ).
+    IF lv_auth IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    IF lv_auth CP 'Basic *'.
+      lv_auth = lv_auth+6.
+      lv_auth = cl_http_utility=>decode_base64( lv_auth ).
+      " Keep everything after the first colon, passwords/tokens may contain colons
+      SPLIT lv_auth AT ':' INTO lv_username rv_password.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD remove.
+
+    DELETE gt_auth WHERE uri = zcl_abapgit_url=>host( iv_uri ).
 
   ENDMETHOD.
   METHOD load.
@@ -142485,37 +142689,61 @@ ENDCLASS.
 CLASS zcl_abapgit_http IMPLEMENTATION.
   METHOD acquire_login_details.
 
-    DATA: lv_default_user TYPE string,
-          lv_user         TYPE string,
-          lv_pass         TYPE string,
-          lo_digest       TYPE REF TO zcl_abapgit_http_digest.
-    lv_default_user = zcl_abapgit_persist_factory=>get_user( )->get_repo_login( iv_url ).
-    lv_user         = lv_default_user.
+    DATA: lv_user   TYPE string,
+          lv_pass   TYPE string,
+          lo_digest TYPE REF TO zcl_abapgit_http_digest.
+    rv_scheme = ii_client->response->get_header_field( 'www-authenticate' ).
+    FIND REGEX '^(\w+)' IN rv_scheme SUBMATCHES rv_scheme ##REGEX_POSIX.
 
+    " Credentials are gathered by the UI layer (see ZCX_ABAPGIT_AUTH_REQUIRED) and
+    " cached in the login manager. create_by_url applies a cached Basic header before
+    " sending, so for Basic auth we only reach this point when there are no credentials
+    " yet or the cached ones were rejected with a 401.
+    lv_user = zcl_abapgit_login_manager=>get_username( iv_url ).
+    lv_pass = zcl_abapgit_login_manager=>get_password( iv_url ).
+
+    " Digest (e.g. https://www.gerritcodereview.com/) needs the cleartext password on
+    " every challenge and cannot be pre-applied as a static header, so reconstruct it
+    " from the cached credentials.
+    " https://en.wikipedia.org/wiki/Digest_access_authentication
+    IF rv_scheme = c_scheme-digest AND lv_user IS NOT INITIAL.
+      CREATE OBJECT lo_digest
+        EXPORTING
+          ii_client   = ii_client
+          iv_username = lv_user
+          iv_password = lv_pass.
+      lo_digest->run( ii_client ).
+      io_client->set_digest( lo_digest ).
+      RETURN.
+    ENDIF.
+
+    " Cached Basic credentials were already sent and rejected, drop them
+    IF lv_user IS NOT INITIAL.
+      zcl_abapgit_login_manager=>remove( iv_url ).
+    ENDIF.
+
+    IF zcl_abapgit_ui_factory=>get_frontend_services( )->gui_is_available( ) = abap_true.
+      " Prompting is done by the UI layer. Raise so it can ask the user for credentials,
+      " cache them in the login manager, and retry the operation.
+      RAISE EXCEPTION TYPE zcx_abapgit_auth_required
+        EXPORTING
+          iv_url = iv_url.
+    ENDIF.
+
+    " Headless (ADT, CI, ...): credentials come from the environment
     zcl_abapgit_password_dialog=>popup(
       EXPORTING
-        iv_repo_url     = iv_url
+        iv_repo_url = iv_url
       CHANGING
-        cv_user         = lv_user
-        cv_pass         = lv_pass ).
+        cv_user     = lv_user
+        cv_pass     = lv_pass ).
 
     IF lv_user IS INITIAL.
       zcx_abapgit_exception=>raise( 'Unauthorized access. Check your credentials' ).
     ENDIF.
 
-    IF lv_user <> lv_default_user.
-      zcl_abapgit_persist_factory=>get_user( )->set_repo_login(
-        iv_url   = iv_url
-        iv_login = lv_user ).
-    ENDIF.
-
-    rv_scheme = ii_client->response->get_header_field( 'www-authenticate' ).
-    FIND REGEX '^(\w+)' IN rv_scheme SUBMATCHES rv_scheme ##REGEX_POSIX.
-
     CASE rv_scheme.
       WHEN c_scheme-digest.
-* https://en.wikipedia.org/wiki/Digest_access_authentication
-* e.g. used by https://www.gerritcodereview.com/
         CREATE OBJECT lo_digest
           EXPORTING
             ii_client   = ii_client
@@ -153873,8 +154101,15 @@ CLASS lcl_password_dialog IMPLEMENTATION.
 
     CASE iv_ucomm.
       WHEN 'OK'. " Enter
-        gv_confirm = abap_true.
-        LEAVE TO SCREEN 0.
+        IF p_user IS INITIAL OR p_pass IS INITIAL.
+          " Empty credentials cannot be used for authentication, and returning them
+          " is indistinguishable from cancelling the popup. The error message keeps
+          " the popup open, so the input can be corrected
+          MESSAGE 'User and password are obligatory' TYPE 'E'.
+        ELSE.
+          gv_confirm = abap_true.
+          LEAVE TO SCREEN 0.
+        ENDIF.
       WHEN 'HELP'. " F1
         TRY.
             zcl_abapgit_services_abapgit=>open_abapgit_wikipage( 'guide-authentication.html' ).
@@ -154333,8 +154568,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-11T11:05:48.490Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-11T11:05:48.490Z`.
+* abapmerge 0.16.10 - 2026-08-11T12:18:12.850Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-11T12:18:12.850Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
