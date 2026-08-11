@@ -150856,6 +150856,11 @@ CLASS zcl_abapgit_data_config IMPLEMENTATION.
     DATA lx_ajson TYPE REF TO zcx_abapgit_ajson_error.
     DATA lv_json  TYPE string.
 
+    IF mt_config IS INITIAL.
+      zcl_abapgit_persist_factory=>get_repo_data( )->delete( iv_repo_key ).
+      RETURN.
+    ENDIF.
+
     TRY.
         lo_ajson = zcl_abapgit_ajson=>create_empty( ).
         lo_ajson->zif_abapgit_ajson~set(
@@ -154328,8 +154333,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-10T07:49:30.126Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-10T07:49:30.126Z`.
+* abapmerge 0.16.10 - 2026-08-11T11:05:48.490Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-11T11:05:48.490Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
