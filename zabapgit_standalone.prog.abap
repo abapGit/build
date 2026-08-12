@@ -26130,6 +26130,12 @@ CLASS zcl_abapgit_gui_page_db DEFINITION
       RAISING
         zcx_abapgit_exception.
 
+    METHODS get_repo_description
+      IMPORTING
+        !iv_key        TYPE zif_abapgit_persistence=>ty_value
+      RETURNING
+        VALUE(rv_text) TYPE string.
+
     METHODS explain_content
       IMPORTING
         !is_data       TYPE zif_abapgit_persistence=>ty_content
@@ -30721,7 +30727,13 @@ CLASS zcl_abapgit_xml_pretty IMPLEMENTATION.
           li_encoding       TYPE REF TO if_ixml_encoding,
           li_ostream        TYPE REF TO if_ixml_ostream,
           li_renderer       TYPE REF TO if_ixml_renderer.
-    ASSERT NOT iv_xml IS INITIAL.
+
+    IF iv_xml IS INITIAL.
+      IF iv_ignore_errors = abap_true.
+        RETURN.
+      ENDIF.
+      zcx_abapgit_exception=>raise( 'XML is empty' ).
+    ENDIF.
 
     li_ixml    = cl_ixml=>create( ).
     li_xml_doc = li_ixml->create_document( ).
@@ -30729,9 +30741,9 @@ CLASS zcl_abapgit_xml_pretty IMPLEMENTATION.
     li_stream_factory = li_ixml->create_stream_factory( ).
     li_istream        = li_stream_factory->create_istream_xstring(
       zcl_abapgit_convert=>string_to_xstring_utf8( iv_xml ) ).
-    li_parser         = li_ixml->create_parser( stream_factory = li_stream_factory
-                                                istream        = li_istream
-                                                document       = li_xml_doc ).
+    li_parser = li_ixml->create_parser( stream_factory = li_stream_factory
+                                        istream        = li_istream
+                                        document       = li_xml_doc ).
     li_parser->set_normalizing( abap_true ).
     IF li_parser->parse( ) <> 0.
       IF iv_ignore_errors = abap_true.
@@ -30771,8 +30783,8 @@ CLASS zcl_abapgit_xml_pretty IMPLEMENTATION.
     DO lv_num_errors TIMES.
 
       li_error = ii_parser->get_error(
-                     index        = sy-index
-                     min_severity = if_ixml_parse_error=>co_info ).
+        index        = sy-index
+        min_severity = if_ixml_parse_error=>co_info ).
 
       IF li_error IS BOUND.
         lv_reason = li_error->get_reason( ).
@@ -30791,7 +30803,6 @@ CLASS zcl_abapgit_xml_pretty IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
 ENDCLASS.
 
 CLASS zcl_abapgit_xml_output IMPLEMENTATION.
@@ -55608,15 +55619,21 @@ CLASS zcl_abapgit_gui_page_db_entry IMPLEMENTATION.
 
     DATA lv_formatted TYPE string.
 
-    lv_formatted = escape(
-      val    = zcl_abapgit_xml_pretty=>print( iv_raw_db_value )
-      format = cl_abap_format=>e_html_attr ).
+    IF iv_raw_db_value CS '<?xml'.
+      lv_formatted = escape(
+        val    = zcl_abapgit_xml_pretty=>print( iv_raw_db_value )
+        format = cl_abap_format=>e_html_attr ).
+    ELSE.
+      lv_formatted = escape(
+        val    = iv_raw_db_value
+        format = cl_abap_format=>e_html_attr ).
+    ENDIF.
 
     " Form
     ii_html->add( |<form id="{ c_edit_form_id }" method="post" action="sapevent:{ c_action-update }">| ).
     ii_html->add( |<input type="hidden" name="type" value="{ ms_key-type }">| ).
     ii_html->add( |<input type="hidden" name="value" value="{ ms_key-value }">| ).
-    ii_html->add( |<textarea rows="20" cols="100" name="xmldata">{ lv_formatted }</textarea>| ).
+    ii_html->add( |<textarea rows="34" cols="100" name="xmldata">{ lv_formatted }</textarea>| ).
     ii_html->add( '</form>' ).
 
   ENDMETHOD.
@@ -56081,7 +56098,7 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
       lv_class  TYPE string,
       ls_method LIKE LINE OF mt_methods.
 
-    rs_expl-value = |{ zcl_abapgit_repo_srv=>get_instance( )->get( is_data-value )->get_name( ) }|.
+    rs_expl-value = get_repo_description( is_data-value ).
 
     FIND FIRST OCCURRENCE OF REGEX '<METHOD>(.*)</METHOD>'
       IN is_data-data_str IGNORING CASE RESULTS ls_result ##REGEX_POSIX.
@@ -56159,13 +56176,31 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
           val    = rs_expl-value
           format = cl_abap_format=>e_html_attr ).
       ENDIF.
+    ELSE.
+      rs_expl-value = get_repo_description( is_data-value ).
+      rs_expl-extra = |0 lines|.
     ENDIF.
 
   ENDMETHOD.
   METHOD explain_content_repo_data.
 
-    rs_expl-extra = 'Data Config'.
-    rs_expl-value = is_data-value.
+    DATA lv_table_count TYPE i.
+
+    lv_table_count = count(
+      val = is_data-data_str
+      sub = '"name"' ).
+
+    rs_expl-extra = |{ lv_table_count } tables|.
+    rs_expl-value = get_repo_description( is_data-value ).
+
+  ENDMETHOD.
+  METHOD get_repo_description.
+
+    TRY.
+        rv_text = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key )->get_name( ).
+      CATCH zcx_abapgit_exception.
+        rv_text = 'n/a'.
+    ENDTRY.
 
   ENDMETHOD.
   METHOD register_stylesheet.
@@ -154568,8 +154603,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-11T12:18:12.850Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-11T12:18:12.850Z`.
+* abapmerge 0.16.10 - 2026-08-12T03:57:16.179Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-12T03:57:16.179Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
