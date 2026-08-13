@@ -120575,7 +120575,7 @@ CLASS zcl_abapgit_object_aifc IMPLEMENTATION.
     APPEND zif_abapgit_object=>gc_step_id-abap TO rt_steps.
   ENDMETHOD.
   METHOD zif_abapgit_object~get_metadata.
-    RETURN.
+    rs_metadata = get_metadata( ).
   ENDMETHOD.
   METHOD zif_abapgit_object~is_active.
     rv_active = abap_false.
@@ -154603,8 +154603,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-12T03:57:16.179Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-12T03:57:16.179Z`.
+* abapmerge 0.16.10 - 2026-08-13T21:33:50.433Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-13T21:33:50.433Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
