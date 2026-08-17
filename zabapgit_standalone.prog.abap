@@ -116571,6 +116571,9 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
           lt_test_classes          TYPE seop_source_string,
           ls_class_key             TYPE seoclskey,
           lt_attributes            TYPE zif_abapgit_oo_object_fnc=>ty_obj_attribute_tt.
+
+    FIELD-SYMBOLS <lv_simple> TYPE simple.
+
     lt_source = mo_files->read_abap( ).
 
     lt_local_definitions = mo_files->read_abap(
@@ -116593,6 +116596,11 @@ CLASS zcl_abapgit_object_clas IMPLEMENTATION.
 
     ii_xml->read( EXPORTING iv_name = 'VSEOCLASS'
                   CHANGING  cg_data = ls_vseoclass ).
+
+    ASSIGN COMPONENT 'RELEASE' OF STRUCTURE ls_vseoclass TO <lv_simple>.
+    IF sy-subrc = 0 AND <lv_simple> CA sy-abcde.
+      zcx_abapgit_exception=>raise( |Invalid value for field RELEASE: { <lv_simple> }| ).
+    ENDIF.
 
     set_abap_language_version( CHANGING cv_abap_language_version = ls_vseoclass-unicode ).
 
@@ -154603,8 +154611,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-13T21:33:50.433Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-13T21:33:50.433Z`.
+* abapmerge 0.16.10 - 2026-08-17T12:46:40.576Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-17T12:46:40.576Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
