@@ -26068,10 +26068,6 @@ CLASS zcl_abapgit_gui_page_db DEFINITION
       RAISING
         zcx_abapgit_exception.
 
-    METHODS constructor
-      RAISING
-        zcx_abapgit_exception.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -26087,7 +26083,6 @@ CLASS zcl_abapgit_gui_page_db DEFINITION
         cancel                   TYPE string VALUE 'cancel',
       END OF c_action.
 
-    CONSTANTS c_css_url TYPE string VALUE 'css/page_db.css'.
     CONSTANTS c_toc_filename TYPE string VALUE '#_Table_of_Content_#.txt'.
 
     TYPES:
@@ -26097,10 +26092,6 @@ CLASS zcl_abapgit_gui_page_db DEFINITION
       END OF ty_explanation.
 
     DATA mt_methods TYPE zcl_abapgit_background=>ty_methods.
-
-    METHODS register_stylesheet
-      RAISING
-        zcx_abapgit_exception.
 
     METHODS render_stats
       IMPORTING
@@ -26209,14 +26200,9 @@ CLASS zcl_abapgit_gui_page_db_entry DEFINITION
       END OF c_action .
 
     CONSTANTS c_edit_form_id TYPE string VALUE `db_form`.
-    CONSTANTS c_css_url TYPE string VALUE 'css/page_db_entry.css'.
 
     DATA ms_key TYPE zif_abapgit_persistence=>ty_content.
     DATA mv_edit_mode TYPE abap_bool.
-
-    METHODS register_stylesheet
-      RAISING
-        zcx_abapgit_exception.
 
     METHODS render_view
       IMPORTING
@@ -33332,11 +33318,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  overflow: hidden;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* STATE BLOCK COMMON*/' ).
+    lo_buf->add( '/* STATE BLOCK COMMON */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'span.state-block {' ).
     lo_buf->add( '  margin-left: 1em;' ).
-    lo_buf->add( '  font-family: Consolas, "Lucida Console", Courier, monospace;' ).
     lo_buf->add( '  font-size: x-small;' ).
     lo_buf->add( '  vertical-align: 13%;' ).
     lo_buf->add( '  display: inline-block;' ).
@@ -33350,7 +33335,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border-style: solid;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* REPOSITORY TABLE*/' ).
+    lo_buf->add( '/* REPOSITORY TABLE */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'div.repo_container {' ).
     lo_buf->add( '  position: relative;' ).
@@ -33568,7 +33553,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/* DIFF TABLE */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'table.diff_tab {' ).
-    lo_buf->add( '  font-family: Consolas, Courier, monospace;' ).
     lo_buf->add( '  font-size: 10pt;' ).
     lo_buf->add( '  width: 100%;' ).
     lo_buf->add( '}' ).
@@ -33685,19 +33669,18 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  cursor: text;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* DEBUG INFO STYLES */' ).
+    lo_buf->add( '/* DEBUG INFO */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'div.debug_container {' ).
     lo_buf->add( '  padding: 0.5em;' ).
     lo_buf->add( '  font-size: 10pt;' ).
-    lo_buf->add( '  font-family: Consolas, Courier, monospace;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'div.debug_container p {' ).
     lo_buf->add( '  margin: 0px;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* *** */' ).
+    lo_buf->add( '/* ACTION LINKS */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'li.action_link.enabled{' ).
     lo_buf->add( '  visibility: visible;' ).
@@ -33714,7 +33697,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/* TUTORIAL */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'div.tutorial {' ).
-    lo_buf->add( '  margin-top:       3px;' ).
+    lo_buf->add( '  margin-top: 3px;' ).
     lo_buf->add( '  padding: 0.5em 1em 0.5em 1em;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -34045,13 +34028,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  z-index: 99;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* Commit popup */' ).
+    lo_buf->add( '/* COMMIT POPUP */' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'table.commit tr .title {' ).
     lo_buf->add( '  font-weight: bold;' ).
     lo_buf->add( '  vertical-align: top;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '/* Repo overview */' ).
+    lo_buf->add( '/* REPO OVERVIEW */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '.repo-overview {' ).
     lo_buf->add( '  padding: 0.5em 0.7em;' ).
     lo_buf->add( '}' ).
@@ -34544,7 +34529,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  width: 100%;' ).
     lo_buf->add( '  box-sizing: border-box;' ).
     lo_buf->add( '  padding: 10px;' ).
-    lo_buf->add( '  font-family: Arial,Helvetica,sans-serif;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog .radio-container input[type="radio"] {' ).
     lo_buf->add( '  visibility: hidden;' ).
@@ -34756,6 +34740,74 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'div.wu table th[data-gid="where"] {' ).
     lo_buf->add( '  background-color: hsl(0, 0%, 97%);' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DATABASE UTILITY */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.db-list {' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '  overflow-x: auto;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-list table { table-layout: fixed; }' ).
+    lo_buf->add( '.db-list table pre {' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  overflow: hidden;' ).
+    lo_buf->add( '  word-wrap:break-word;' ).
+    lo_buf->add( '  white-space: pre-wrap;' ).
+    lo_buf->add( '  margin: 0px;' ).
+    lo_buf->add( '  width: 30em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-list table th {' ).
+    lo_buf->add( '  text-align: left;' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-list table thead tr { border-bottom: 1px solid; }' ).
+    lo_buf->add( '.db-list table td {' ).
+    lo_buf->add( '  padding: 4px 0.5em;' ).
+    lo_buf->add( '  vertical-align: middle;' ).
+    lo_buf->add( '  word-break: break-all;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-list table td.data { font-style: italic; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DATABASE ENTRIES */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.db-entry {' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry pre {' ).
+    lo_buf->add( '  display: block;' ).
+    lo_buf->add( '  font-size: 10pt;' ).
+    lo_buf->add( '  overflow: hidden;' ).
+    lo_buf->add( '  word-wrap:break-word;' ).
+    lo_buf->add( '  white-space: pre-wrap;' ).
+    lo_buf->add( '  border: 1px  solid;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  padding: 0.5em;' ).
+    lo_buf->add( '  margin: 0.5em 0em;' ).
+    lo_buf->add( '  width: 98%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry textarea {' ).
+    lo_buf->add( '  margin: 0.5em 0em;' ).
+    lo_buf->add( '  width: 98%;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry .toolbar {' ).
+    lo_buf->add( '  padding-left: 0.5em;' ).
+    lo_buf->add( '  padding-right: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry dl.entry-tag div {' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  border: 1px solid;' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  margin-right: 0.5em;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry dl.entry-tag div:last-child {' ).
+    lo_buf->add( '  margin-right: 0px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry dt, .db-entry dd {' ).
+    lo_buf->add( '  display: inline-block;' ).
+    lo_buf->add( '  margin-left: 0px;' ).
+    lo_buf->add( '  padding: 2px 5px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry dt::after { content: ":" }' ).
     li_asset_man->register_asset(
       iv_url       = 'css/common.css'
       iv_type      = 'text/css'
@@ -34781,6 +34833,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  --theme-primary-font: "72", Arial, Helvetica, sans-serif;' ).
     lo_buf->add( '  --theme-primary-font-color: #333333;' ).
     lo_buf->add( '  --theme-primary-font-color-reduced: #ccc;' ).
+    lo_buf->add( '  --theme-fixed-font: "Consolas", "SF Mono", "Menlo", "Courier New", monospace;' ).
     lo_buf->add( '  --theme-font-size: 12pt;' ).
     lo_buf->add( '  --theme-link-color: #4078c0;' ).
     lo_buf->add( '' ).
@@ -34808,6 +34861,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'input, textarea, select     { border-color: #ddd; }' ).
     lo_buf->add( 'input:focus, textarea:focus { border-color: #8cadd9; }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'pre {' ).
+    lo_buf->add( '  font-family: var(--theme-fixed-font);' ).
+    lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* COLOR PALETTE */' ).
     lo_buf->add( '' ).
@@ -34852,6 +34909,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'span.transport-box {' ).
     lo_buf->add( '  border-color: #a7e3cf;' ).
     lo_buf->add( '  background-color: #dbf3eb;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( 'span.state-block {' ).
+    lo_buf->add( '  font-family: var(--theme-fixed-font);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* PANELS */' ).
@@ -35035,6 +35095,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '/* DIFF TABLE */' ).
     lo_buf->add( '' ).
+    lo_buf->add( 'table.diff_tab {' ).
+    lo_buf->add( '  font-family: var(--theme-fixed-font);' ).
+    lo_buf->add( '}' ).
     lo_buf->add( 'table.diff_tab td,' ).
     lo_buf->add( 'table.diff_tab th {' ).
     lo_buf->add( '  color: #444;' ).
@@ -35087,6 +35150,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'div.debug_container {' ).
     lo_buf->add( '  color: #444;' ).
     lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
+    lo_buf->add( '  font-family: var(--theme-fixed-font);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* Repo overview */' ).
@@ -35251,6 +35315,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border-color: #ccc;' ).
     lo_buf->add( '  background-color: #f0f0f0;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '.dialog textarea {' ).
+    lo_buf->add( '  font-family: var(--theme-primary-font);' ).
+    lo_buf->add( '}' ).
     lo_buf->add( '.dialog li.dialog-commands a,' ).
     lo_buf->add( '.dialog li.dialog-commands input[type="submit"] {' ).
     lo_buf->add( '  border-color: #ccc;' ).
@@ -35303,6 +35370,51 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  background-color: #f4f4f4;' ).
     lo_buf->add( '  color: var(--theme-greyscale-dark);' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* DATABASE UTILITIES */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.db-list {' ).
+    lo_buf->add( '  background-color: var(--theme-table-background-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-list table td {' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-list table td.data {' ).
+    lo_buf->add( '  color: var(--theme-greyscale-dark);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-list table tbody tr:hover td {' ).
+    lo_buf->add( '  background-color: rgba(0, 0, 0, 0.075);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-list table tbody tr:active td {' ).
+    lo_buf->add( '  background-color: #f4f4f4;' ).
+    lo_buf->add( '} /* Needed? */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.db-list table th {' ).
+    lo_buf->add( '  color: var(--theme-link-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-list table thead tr {' ).
+    lo_buf->add( '  border-color: var(--theme-table-border-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.db-entry {' ).
+    lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry pre {' ).
+    lo_buf->add( '  background-color: #f4f4f4;' ).
+    lo_buf->add( '  border-color: var(--theme-container-border-color);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry textarea {' ).
+    lo_buf->add( '  background-color: var(--theme-table-background-color);' ).
+    lo_buf->add( '  border-color: var(--theme-container-border-color);' ).
+    lo_buf->add( '  font-family: var(--theme-fixed-font);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry dl.entry-tag div {' ).
+    lo_buf->add( '  border-color: hsl(206, 20%, 75%);' ).
+    lo_buf->add( '  background-color: hsl(206, 20%, 90%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.db-entry dt {' ).
+    lo_buf->add( '  background-color: hsl(206, 20%, 75%);' ).
+    lo_buf->add( '}' ).
     li_asset_man->register_asset(
       iv_url       = 'css/theme-default.css'
       iv_type      = 'text/css'
@@ -35325,6 +35437,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  --theme-primary-font: "72", Arial, Helvetica, sans-serif;' ).
     lo_buf->add( '  --theme-primary-font-color: #cccccc;' ).
     lo_buf->add( '  --theme-primary-font-color-reduced: #EEEEEE;' ).
+    lo_buf->add( '  --theme-fixed-font: "Consolas", "SF Mono", "Menlo", "Courier New", monospace;' ).
     lo_buf->add( '  --theme-font-size: 11pt;' ).
     lo_buf->add( '  --theme-link-color: #d9ffff;' ).
     lo_buf->add( '  --theme-link-color-hover: #f6f6f6;' ).
@@ -35611,6 +35724,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  --theme-primary-font: "72", Arial, Helvetica, sans-serif;' ).
     lo_buf->add( '  --theme-primary-font-color: var(--fiori-color-font-primary);' ).
     lo_buf->add( '  --theme-primary-font-color-reduced: var(--fiori-color-font-secondary);' ).
+    lo_buf->add( '  --theme-fixed-font: "Consolas", "SF Mono", "Menlo", "Courier New", monospace;' ).
     lo_buf->add( '  --theme-font-size: 11pt;' ).
     lo_buf->add( '  --theme-link-color: var(--fiori-color-font-highlighted);' ).
     lo_buf->add( '  --theme-container-border-color: var(--fiori-color-gui-container-border);' ).
@@ -55518,7 +55632,7 @@ CLASS zcl_abapgit_gui_page_db_entry IMPLEMENTATION.
   METHOD constructor.
 
     super->constructor( ).
-    register_stylesheet( ).
+
     mv_edit_mode = iv_edit_mode.
     ms_key       = is_key.
 
@@ -55533,7 +55647,6 @@ CLASS zcl_abapgit_gui_page_db_entry IMPLEMENTATION.
         is_key       = is_key.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
-      iv_extra_css_url       = c_css_url
       ii_page_title_provider = lo_component
       ii_child_component     = lo_component ).
 
@@ -55559,87 +55672,6 @@ CLASS zcl_abapgit_gui_page_db_entry IMPLEMENTATION.
       iv_data  = is_content-data_str ).
 
     COMMIT WORK.
-
-  ENDMETHOD.
-  METHOD register_stylesheet.
-
-    DATA lo_buf TYPE REF TO zcl_abapgit_string_buffer.
-
-    CREATE OBJECT lo_buf.
-
-****************************************************
-* abapmerge Pragma [include] - ZABAPGIT_CSS_PAGE_DB_ENTRY.W3MI.DATA.CSS
-****************************************************
-    lo_buf->add( '/*' ).
-    lo_buf->add( ' * PAGE DB ENTRY CSS' ).
-    lo_buf->add( ' */' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '/* LAYOUT */' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '.db-entry {' ).
-    lo_buf->add( '  padding: 0.5em;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-entry pre {' ).
-    lo_buf->add( '  display: block;' ).
-    lo_buf->add( '  font-size: 10pt;' ).
-    lo_buf->add( '  overflow: hidden;' ).
-    lo_buf->add( '  word-wrap:break-word;' ).
-    lo_buf->add( '  white-space: pre-wrap;' ).
-    lo_buf->add( '  border: 1px  solid;' ).
-    lo_buf->add( '  border-radius: 3px;' ).
-    lo_buf->add( '  padding: 0.5em;' ).
-    lo_buf->add( '  margin: 0.5em 0em;' ).
-    lo_buf->add( '  width: 98%;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-entry textarea {' ).
-    lo_buf->add( '  margin: 0.5em 0em;' ).
-    lo_buf->add( '  width: 98%;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-entry .toolbar {' ).
-    lo_buf->add( '  padding-left: 0.5em;' ).
-    lo_buf->add( '  padding-right: 0.5em;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-entry dl.entry-tag div {' ).
-    lo_buf->add( '  display: inline-block;' ).
-    lo_buf->add( '  border: 1px solid;' ).
-    lo_buf->add( '  border-radius: 3px;' ).
-    lo_buf->add( '  margin-right: 0.5em;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-entry dl.entry-tag div:last-child {' ).
-    lo_buf->add( '  margin-right: 0px;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-entry dt, .db-entry dd {' ).
-    lo_buf->add( '  display: inline-block;' ).
-    lo_buf->add( '  margin-left: 0px;' ).
-    lo_buf->add( '  padding: 2px 5px;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-entry dt::after { content: ":" }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '/* COLORS */' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '.db-entry {' ).
-    lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-entry pre {' ).
-    lo_buf->add( '  background-color: #f4f4f4;' ).
-    lo_buf->add( '  border-color: var(--theme-container-border-color);' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-entry textarea {' ).
-    lo_buf->add( '  background-color: var(--theme-table-background-color);' ).
-    lo_buf->add( '  border-color: var(--theme-container-border-color);' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-entry dl.entry-tag div {' ).
-    lo_buf->add( '  border-color: hsl(206, 20%, 75%);' ).
-    lo_buf->add( '  background-color: hsl(206, 20%, 90%);' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-entry dt {' ).
-    lo_buf->add( '  background-color: hsl(206, 20%, 75%);' ).
-    lo_buf->add( '}' ).
-    gui_services( )->register_page_asset(
-      iv_url       = c_css_url
-      iv_type      = 'text/css'
-      iv_mime_name = 'ZABAPGIT_CSS_PAGE_DB_ENTRY'
-      iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
 
   ENDMETHOD.
   METHOD render_edit.
@@ -55846,10 +55878,6 @@ CLASS kHGwlxICmvGxodeMYPnggWiyFgrAiM IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
-  METHOD constructor.
-    super->constructor( ).
-    register_stylesheet( ).
-  ENDMETHOD.
   METHOD create.
 
     DATA lo_component TYPE REF TO zcl_abapgit_gui_page_db.
@@ -55858,7 +55886,6 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
       iv_page_title         = 'Database Utility'
-      iv_extra_css_url      = c_css_url
       ii_page_menu_provider = lo_component
       ii_child_component    = lo_component ).
 
@@ -56228,62 +56255,6 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
       CATCH zcx_abapgit_exception.
         rv_text = 'n/a'.
     ENDTRY.
-
-  ENDMETHOD.
-  METHOD register_stylesheet.
-
-    DATA lo_buf TYPE REF TO zcl_abapgit_string_buffer.
-
-    CREATE OBJECT lo_buf.
-
-****************************************************
-* abapmerge Pragma [include] - ZABAPGIT_CSS_PAGE_DB.W3MI.DATA.CSS
-****************************************************
-    lo_buf->add( '/*' ).
-    lo_buf->add( ' * PAGE DB CSS' ).
-    lo_buf->add( ' */' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '/* LAYOUT */' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '.db-list {' ).
-    lo_buf->add( '  padding: 0.5em;' ).
-    lo_buf->add( '  overflow-x: auto;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-list table { table-layout: fixed; }' ).
-    lo_buf->add( '.db-list table pre {' ).
-    lo_buf->add( '  display: inline-block;' ).
-    lo_buf->add( '  overflow: hidden;' ).
-    lo_buf->add( '  word-wrap:break-word;' ).
-    lo_buf->add( '  white-space: pre-wrap;' ).
-    lo_buf->add( '  margin: 0px;' ).
-    lo_buf->add( '  width: 30em;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-list table th {' ).
-    lo_buf->add( '  text-align: left;' ).
-    lo_buf->add( '  padding: 0.5em;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-list table thead tr { border-bottom: 1px solid; }' ).
-    lo_buf->add( '.db-list table td {' ).
-    lo_buf->add( '  padding: 4px 0.5em;' ).
-    lo_buf->add( '  vertical-align: middle;' ).
-    lo_buf->add( '  word-break: break-all;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.db-list table td.data { font-style: italic; }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '/* COLORS */' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '.db-list { background-color: var(--theme-table-background-color); }' ).
-    lo_buf->add( '.db-list table td      { color: var(--theme-primary-font-color); }' ).
-    lo_buf->add( '.db-list table td.data { color: var(--theme-greyscale-dark); }' ).
-    lo_buf->add( '.db-list table tbody tr:hover td  { background-color: rgba(0, 0, 0, 0.075); }' ).
-    lo_buf->add( '.db-list table tbody tr:active td { background-color: #f4f4f4; } /* Needed? */' ).
-    lo_buf->add( '.db-list table th { color: var(--theme-link-color); }' ).
-    lo_buf->add( '.db-list table thead tr { border-color: var(--theme-table-border-color); }' ).
-    gui_services( )->register_page_asset(
-      iv_url       = c_css_url
-      iv_type      = 'text/css'
-      iv_mime_name = 'ZABAPGIT_CSS_PAGE_DB'
-      iv_inline    = lo_buf->join_w_newline_and_flush( ) ).
 
   ENDMETHOD.
   METHOD render_stats.
@@ -154638,8 +154609,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-18T05:30:23.431Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-18T05:30:23.431Z`.
+* abapmerge 0.16.10 - 2026-08-18T05:37:24.960Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-18T05:37:24.960Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
