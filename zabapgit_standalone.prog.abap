@@ -36069,8 +36069,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '// Submit an existing form' ).
+    lo_buf->add( '// Submit an existing, server-rendered sapevent form (its action carries the' ).
+    lo_buf->add( '// event, so nothing has to be rewritten here).' ).
+    lo_buf->add( '//' ).
+    lo_buf->add( '// Flag the navigation as self-initiated first, so the browser-back trap ignores' ).
+    lo_buf->add( '// the popstate the browser control emits while handling it (mirrors' ).
+    lo_buf->add( '// submitSapeventForm / clickSapEvent). Without the flag the trap reads that' ).
+    lo_buf->add( '// popstate as a user Back press and fires go_back, which supersedes the submit:' ).
+    lo_buf->add( '// the page returns without saving on the Edge control, while the IE control -' ).
+    lo_buf->add( '// where the trap never arms - is unaffected.' ).
     lo_buf->add( 'function submitFormById(id) {' ).
+    lo_buf->add( '  gSapeventNavPending = true;' ).
     lo_buf->add( '  document.getElementById(id).submit();' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -154609,8 +154618,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-18T05:37:24.960Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-18T05:37:24.960Z`.
+* abapmerge 0.16.10 - 2026-08-19T20:42:24.554Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-19T20:42:24.554Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
