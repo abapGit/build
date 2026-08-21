@@ -148302,7 +148302,7 @@ CLASS zcl_abapgit_abap_language_vers IMPLEMENTATION.
       iv_abap_language_version_1 = iv_abap_language_version
       iv_abap_language_version_2 = is_item-abap_language_version ).
 
-    IF lv_compare = abap_false.
+    IF is_item-abap_language_version IS NOT INITIAL AND lv_compare = abap_false.
       zcx_abapgit_exception=>raise(
         |Object { is_item-obj_type } { is_item-obj_name } has { get_description( iv_abap_language_version ) }| &&
         | but repository is set to { get_description( is_item-abap_language_version ) }| ).
@@ -154648,8 +154648,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-21T11:21:01.406Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-21T11:21:01.406Z`.
+* abapmerge 0.16.10 - 2026-08-21T18:31:26.065Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-21T18:31:26.065Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
