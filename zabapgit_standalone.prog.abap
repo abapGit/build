@@ -8586,6 +8586,13 @@ CLASS zcl_abapgit_abap_language_vers DEFINITION
       RETURNING
         VALUE(rv_description)     TYPE string.
 
+    CLASS-METHODS compare_language_versions
+      IMPORTING
+        !iv_abap_language_version_1 TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version
+        !iv_abap_language_version_2 TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version
+      RETURNING
+        VALUE(rv_compare)           TYPE abap_bool.
+
 ENDCLASS.
 CLASS zcl_abapgit_env_factory DEFINITION FRIENDS ZCL_abapgit_env_injector.
   PUBLIC SECTION.
@@ -75393,7 +75400,11 @@ ENDCLASS.
 CLASS zcl_abapgit_objects_super IMPLEMENTATION.
   METHOD clear_abap_language_version.
 
-    " Used during serializing of objects
+    " This method is used during serializing of objects
+    "
+    " ms_item-abap_language_version is the ABAP language version of the repository
+    " cv_abap_language_version is the ABAP language version of the current object
+
     IF ms_item-abap_language_version = zcl_abapgit_abap_language_vers=>c_no_abap_language_version.
       " Ignore ABAP language version
       CLEAR cv_abap_language_version.
@@ -75610,15 +75621,6 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
     rv_active = zcl_abapgit_objects_activation=>is_active( ms_item ).
 
   ENDMETHOD.
-
-  METHOD serialize_longtexts_aff.
-    zcl_abapgit_factory=>get_longtexts( )->serialize_aff(
-      iv_object_name   = ms_item-obj_name
-*      iv_longtext_name = iv_longtext_name
-      iv_longtext_id   = iv_longtext_id
-      it_dokil         = it_dokil
-      io_files         = mo_files ).
-  ENDMETHOD.
   METHOD serialize_longtexts.
 
     zcl_abapgit_factory=>get_longtexts( )->serialize(
@@ -75630,9 +75632,21 @@ CLASS zcl_abapgit_objects_super IMPLEMENTATION.
       ii_xml           = ii_xml ).
 
   ENDMETHOD.
+  METHOD serialize_longtexts_aff.
+    zcl_abapgit_factory=>get_longtexts( )->serialize_aff(
+      iv_object_name   = ms_item-obj_name
+*      iv_longtext_name = iv_longtext_name
+      iv_longtext_id   = iv_longtext_id
+      it_dokil         = it_dokil
+      io_files         = mo_files ).
+  ENDMETHOD.
   METHOD set_abap_language_version.
 
-    " Used during deserializing of objects
+    " This method is used during deserializing of objects
+    "
+    " ms_item-abap_language_version is the ABAP language version of the repository
+    " cv_abap_language_version is the ABAP language version of the current object
+
     IF ms_item-abap_language_version = zcl_abapgit_abap_language_vers=>c_no_abap_language_version.
       " ABAP language version is derived from object type and target package (see zcl_abapgit_objects->deserialize)
       cv_abap_language_version = ms_item-abap_language_version.
@@ -148281,12 +148295,28 @@ ENDCLASS.
 CLASS zcl_abapgit_abap_language_vers IMPLEMENTATION.
   METHOD check_abap_language_version.
 
+    DATA lv_compare TYPE abap_bool.
+
     " Check if ABAP language version matches repository setting
-    IF is_item-abap_language_version IS NOT INITIAL AND iv_abap_language_version <> is_item-abap_language_version.
+    lv_compare = compare_language_versions(
+      iv_abap_language_version_1 = iv_abap_language_version
+      iv_abap_language_version_2 = is_item-abap_language_version ).
+
+    IF lv_compare = abap_false.
       zcx_abapgit_exception=>raise(
         |Object { is_item-obj_type } { is_item-obj_name } has { get_description( iv_abap_language_version ) }| &&
         | but repository is set to { get_description( is_item-abap_language_version ) }| ).
     ENDIF.
+
+  ENDMETHOD.
+  METHOD compare_language_versions.
+
+    " For "standard" the values differ between regular and source objects but logically they are the same
+    rv_compare = boolc( iv_abap_language_version_1 = iv_abap_language_version_2 OR
+      ( iv_abap_language_version_1 = zif_abapgit_aff_types_v1=>co_abap_language_version-standard AND
+        iv_abap_language_version_2 = zif_abapgit_aff_types_v1=>co_abap_language_version_src-standard ) OR
+      ( iv_abap_language_version_1 = zif_abapgit_aff_types_v1=>co_abap_language_version_src-standard AND
+        iv_abap_language_version_2 = zif_abapgit_aff_types_v1=>co_abap_language_version-standard ) ).
 
   ENDMETHOD.
   METHOD constructor.
@@ -154618,8 +154648,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-20T08:18:33.713Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-20T08:18:33.713Z`.
+* abapmerge 0.16.10 - 2026-08-21T11:21:01.406Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-21T11:21:01.406Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
