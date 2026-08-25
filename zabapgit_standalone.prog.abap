@@ -34815,6 +34815,80 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  padding: 2px 5px;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.db-entry dt::after { content: ":" }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* SOURCE VIEWER */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.source-viewer {' ).
+    lo_buf->add( '  position: fixed;' ).
+    lo_buf->add( '  z-index: 2147483647;' ).
+    lo_buf->add( '  top: 0;' ).
+    lo_buf->add( '  right: 0;' ).
+    lo_buf->add( '  bottom: 0;' ).
+    lo_buf->add( '  left: 0;' ).
+    lo_buf->add( '  padding: 20px;' ).
+    lo_buf->add( '  background: rgba(0, 0, 0, 0.8);' ).
+    lo_buf->add( '  box-sizing: border-box;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.source-viewer-heading {' ).
+    lo_buf->add( '  height: 30px;' ).
+    lo_buf->add( '  color: #fff;' ).
+    lo_buf->add( '  font: 16px sans-serif;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.source-viewer-close {' ).
+    lo_buf->add( '  float: right;' ).
+    lo_buf->add( '  font-size: 24px;' ).
+    lo_buf->add( '  line-height: 20px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.source-viewer-tabs {' ).
+    lo_buf->add( '  height: 30px;' ).
+    lo_buf->add( '  white-space: nowrap;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.source-viewer-tab {' ).
+    lo_buf->add( '  margin-right: 4px;' ).
+    lo_buf->add( '  padding: 4px 8px;' ).
+    lo_buf->add( '  border: 0;' ).
+    lo_buf->add( '  background: #ccc;' ).
+    lo_buf->add( '  color: #000;' ).
+    lo_buf->add( '  font: 12px sans-serif;' ).
+    lo_buf->add( '  cursor: pointer;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.source-viewer-tab-active {' ).
+    lo_buf->add( '  background: #fff;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.source-viewer-content {' ).
+    lo_buf->add( '  display: flex;' ).
+    lo_buf->add( '  height: calc(100% - 60px);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.source-viewer-line-numbers {' ).
+    lo_buf->add( '  display: block;' ).
+    lo_buf->add( '  margin: 0;' ).
+    lo_buf->add( '  padding: 2px 8px 2px 4px;' ).
+    lo_buf->add( '  overflow: hidden;' ).
+    lo_buf->add( '  box-sizing: border-box;' ).
+    lo_buf->add( '  background: #eee;' ).
+    lo_buf->add( '  color: #666;' ).
+    lo_buf->add( '  text-align: right;' ).
+    lo_buf->add( '  font-size: 12px;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.source-viewer-source {' ).
+    lo_buf->add( '  display: block;' ).
+    lo_buf->add( '  flex: 1;' ).
+    lo_buf->add( '  min-width: 0;' ).
+    lo_buf->add( '  height: 100%;' ).
+    lo_buf->add( '  padding: 2px;' ).
+    lo_buf->add( '  box-sizing: border-box;' ).
+    lo_buf->add( '  resize: none;' ).
+    lo_buf->add( '  font-size: 12px;' ).
+    lo_buf->add( '  white-space: pre;' ).
+    lo_buf->add( '}' ).
     li_asset_man->register_asset(
       iv_url       = 'css/common.css'
       iv_type      = 'text/css'
@@ -35421,6 +35495,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '.db-entry dt {' ).
     lo_buf->add( '  background-color: hsl(206, 20%, 75%);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/* SOURCE VIEWER */' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.source-viewer-line-numbers, .source-viewer-source {' ).
+    lo_buf->add( '  font-family: var(--theme-fixed-font);' ).
     lo_buf->add( '}' ).
     li_asset_man->register_asset(
       iv_url       = 'css/theme-default.css'
@@ -38565,6 +38645,293 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    }' ).
     lo_buf->add( '  };' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Source Viewer' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function SourceViewer() {' ).
+    lo_buf->add( '  this.sources = [' ).
+    lo_buf->add( '    { title: "HTML source (1)", getContent: this.getHtmlSource },' ).
+    lo_buf->add( '    { title: "css/common.css (2)", url: "css/common.css" },' ).
+    lo_buf->add( '    { title: "css/bundle.css (3)", url: "css/bundle.css" },' ).
+    lo_buf->add( '    { title: "css/ag-icons.css (4)", url: "css/ag-icons.css" },' ).
+    lo_buf->add( '    { title: "js/common.js (5)", url: "js/common.js" }' ).
+    lo_buf->add( '  ];' ).
+    lo_buf->add( '  this.overlay = null;' ).
+    lo_buf->add( '  this.source = null;' ).
+    lo_buf->add( '  this.lineNumbers = null;' ).
+    lo_buf->add( '  this.activeSource = null;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'SourceViewer.prototype.getHtmlSource = function() {' ).
+    lo_buf->add( '  var doctype = document.doctype ? "<!DOCTYPE " + document.doctype.name + ">\n" : "";' ).
+    lo_buf->add( '  return doctype + document.documentElement.outerHTML;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'SourceViewer.prototype.getStylesheetSource = function(url) {' ).
+    lo_buf->add( '  var styleSheets = document.styleSheets;' ).
+    lo_buf->add( '  var index;' ).
+    lo_buf->add( '  var ruleIndex;' ).
+    lo_buf->add( '  var rules;' ).
+    lo_buf->add( '  var source = "";' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  for (index = 0; index < styleSheets.length; index++) {' ).
+    lo_buf->add( '    if (!styleSheets[index].href || styleSheets[index].href.indexOf(url) === -1) continue;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    try {' ).
+    lo_buf->add( '      rules = styleSheets[index].cssRules || styleSheets[index].rules;' ).
+    lo_buf->add( '    } catch (error) {' ).
+    lo_buf->add( '      this.reportError("Could not access " + url + " from the document stylesheets.");' ).
+    lo_buf->add( '      return "";' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    for (ruleIndex = 0; ruleIndex < rules.length; ruleIndex++) {' ).
+    lo_buf->add( '      source += rules[ruleIndex].cssText + "\n";' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    return source;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.reportError("Could not find " + url + " in the document stylesheets.");' ).
+    lo_buf->add( '  return "";' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'SourceViewer.prototype.log = function(message) {' ).
+    lo_buf->add( '  if (window.console && window.console.log) {' ).
+    lo_buf->add( '    window.console.log("abapGit source viewer: " + message);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'SourceViewer.prototype.reportError = function(message) {' ).
+    lo_buf->add( '  this.log(message);' ).
+    lo_buf->add( '  window.alert("abapGit source viewer error:\n" + message);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'SourceViewer.prototype.isInternetExplorer = function() {' ).
+    lo_buf->add( '  return !!document.documentMode;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'SourceViewer.prototype.updateLineNumbers = function(content) {' ).
+    lo_buf->add( '  var lineCount = content ? content.split(/\r\n|\r|\n/).length : 1;' ).
+    lo_buf->add( '  var lineNumbers = [];' ).
+    lo_buf->add( '  var index;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  for (index = 1; index <= lineCount; index++) {' ).
+    lo_buf->add( '    lineNumbers.push(index);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  this.lineNumbers.textContent = lineNumbers.join("\n");' ).
+    lo_buf->add( '  this.lineNumbers.scrollTop = 0;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'SourceViewer.prototype.getAssetSource = function(url, success) {' ).
+    lo_buf->add( '  var request = new XMLHttpRequest();' ).
+    lo_buf->add( '  var sourceViewer = this;' ).
+    lo_buf->add( '  var isHandled = false;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  request.onreadystatechange = function() {' ).
+    lo_buf->add( '    if (request.readyState !== 4) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    isHandled = true;' ).
+    lo_buf->add( '    if ((request.status >= 200 && request.status < 300) ||' ).
+    lo_buf->add( '        (request.status === 0 && request.responseText)) {' ).
+    lo_buf->add( '      sourceViewer.log("loaded " + url + " (" + request.responseText.length + " bytes)");' ).
+    lo_buf->add( '      success(request.responseText);' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      sourceViewer.reportError("Could not load " + url + " (HTTP status " + request.status + ").");' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  request.onerror = function() {' ).
+    lo_buf->add( '    if (!isHandled) {' ).
+    lo_buf->add( '      isHandled = true;' ).
+    lo_buf->add( '      sourceViewer.reportError("Network error while loading " + url + ".");' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  try {' ).
+    lo_buf->add( '    sourceViewer.log("loading " + url + " with XMLHttpRequest");' ).
+    lo_buf->add( '    request.open("GET", url, true);' ).
+    lo_buf->add( '    request.send();' ).
+    lo_buf->add( '  } catch (error) {' ).
+    lo_buf->add( '    sourceViewer.reportError("Could not request " + url + ": " + error.message);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'SourceViewer.prototype.show = function() {' ).
+    lo_buf->add( '  var overlay = document.createElement("div");' ).
+    lo_buf->add( '  var heading = document.createElement("div");' ).
+    lo_buf->add( '  var close = document.createElement("button");' ).
+    lo_buf->add( '  var tabs = document.createElement("div");' ).
+    lo_buf->add( '  var sourceContainer = document.createElement("div");' ).
+    lo_buf->add( '  var lineNumbers = document.createElement("pre");' ).
+    lo_buf->add( '  var source = document.createElement("textarea");' ).
+    lo_buf->add( '  var sourceViewer = this;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  overlay.className = "source-viewer";' ).
+    lo_buf->add( '  overlay.tabIndex = -1;' ).
+    lo_buf->add( '  heading.className = "source-viewer-heading";' ).
+    lo_buf->add( '  heading.appendChild(document.createTextNode("Source Viewer (" +' ).
+    lo_buf->add( '    (this.isInternetExplorer() ? "X" : "Esc or X") + " to close)"));' ).
+    lo_buf->add( '  close.type = "button";' ).
+    lo_buf->add( '  close.innerHTML = "&times;";' ).
+    lo_buf->add( '  close.className = "source-viewer-close";' ).
+    lo_buf->add( '  close.title = "Close (X)";' ).
+    lo_buf->add( '  tabs.className = "source-viewer-tabs";' ).
+    lo_buf->add( '  sourceContainer.className = "source-viewer-content";' ).
+    lo_buf->add( '  lineNumbers.setAttribute("aria-hidden", "true");' ).
+    lo_buf->add( '  lineNumbers.className = "source-viewer-line-numbers";' ).
+    lo_buf->add( '  source.wrap = "off";' ).
+    lo_buf->add( '  source.className = "source-viewer-source";' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  overlay.appendChild(heading);' ).
+    lo_buf->add( '  heading.appendChild(close);' ).
+    lo_buf->add( '  overlay.appendChild(tabs);' ).
+    lo_buf->add( '  sourceContainer.appendChild(lineNumbers);' ).
+    lo_buf->add( '  sourceContainer.appendChild(source);' ).
+    lo_buf->add( '  overlay.appendChild(sourceContainer);' ).
+    lo_buf->add( '  document.body.appendChild(overlay);' ).
+    lo_buf->add( '  this.overlay = overlay;' ).
+    lo_buf->add( '  this.source = source;' ).
+    lo_buf->add( '  this.lineNumbers = lineNumbers;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  source.onscroll = function() {' ).
+    lo_buf->add( '    lineNumbers.scrollTop = source.scrollTop;' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.sources.forEach(function(sourceDefinition) {' ).
+    lo_buf->add( '    var tab = document.createElement("button");' ).
+    lo_buf->add( '    tab.type = "button";' ).
+    lo_buf->add( '    tab.appendChild(document.createTextNode(sourceDefinition.title));' ).
+    lo_buf->add( '    tab.className = "source-viewer-tab";' ).
+    lo_buf->add( '    tab.onclick = function() {' ).
+    lo_buf->add( '      sourceViewer.selectSource(sourceDefinition);' ).
+    lo_buf->add( '    };' ).
+    lo_buf->add( '    sourceDefinition.tab = tab;' ).
+    lo_buf->add( '    tabs.appendChild(tab);' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function stopEvent(event) {' ).
+    lo_buf->add( '    event.preventDefault();' ).
+    lo_buf->add( '    event.stopPropagation();' ).
+    lo_buf->add( '    if (event.stopImmediatePropagation) event.stopImmediatePropagation();' ).
+    lo_buf->add( '    event.returnValue = false;' ).
+    lo_buf->add( '    event.cancelBubble = true;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function removeKeyboardHandler() {' ).
+    lo_buf->add( '    document.removeEventListener("keydown", handleViewerKey, true);' ).
+    lo_buf->add( '    document.removeEventListener("keypress", handleViewerKey, true);' ).
+    lo_buf->add( '    document.removeEventListener("keyup", handleViewerKey, true);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function closeViewer(event) {' ).
+    lo_buf->add( '    if (event) stopEvent(event);' ).
+    lo_buf->add( '    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);' ).
+    lo_buf->add( '    sourceViewer.overlay = null;' ).
+    lo_buf->add( '    sourceViewer.source = null;' ).
+    lo_buf->add( '    sourceViewer.lineNumbers = null;' ).
+    lo_buf->add( '    sourceViewer.activeSource = null;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function isCloseKey(event) {' ).
+    lo_buf->add( '    return event.key === "x" || event.key === "X" || event.keyCode === 88 ||' ).
+    lo_buf->add( '      (!sourceViewer.isInternetExplorer() && (event.key === "Escape" || event.keyCode === 27));' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function getTabIndex(event) {' ).
+    lo_buf->add( '    if (event.key >= "1" && event.key <= "5") return Number(event.key) - 1;' ).
+    lo_buf->add( '    if (event.keyCode >= 49 && event.keyCode <= 53) return event.keyCode - 49;' ).
+    lo_buf->add( '    return -1;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function handleViewerKey(event) {' ).
+    lo_buf->add( '    var tabIndex;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    if (event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    if (isCloseKey(event)) {' ).
+    lo_buf->add( '      stopEvent(event);' ).
+    lo_buf->add( '      if (event.type === "keydown") closeViewer();' ).
+    lo_buf->add( '      if (event.type === "keyup") removeKeyboardHandler();' ).
+    lo_buf->add( '      return;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    tabIndex = getTabIndex(event);' ).
+    lo_buf->add( '    if (tabIndex < 0 || tabIndex >= sourceViewer.sources.length) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    stopEvent(event);' ).
+    lo_buf->add( '    if (event.type === "keydown") sourceViewer.selectSource(sourceViewer.sources[tabIndex]);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  close.onclick = function(event) {' ).
+    lo_buf->add( '    closeViewer(event);' ).
+    lo_buf->add( '    removeKeyboardHandler();' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '  document.addEventListener("keydown", handleViewerKey, true);' ).
+    lo_buf->add( '  document.addEventListener("keypress", handleViewerKey, true);' ).
+    lo_buf->add( '  document.addEventListener("keyup", handleViewerKey, true);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.selectSource(this.sources[0]);' ).
+    lo_buf->add( '  return overlay;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'SourceViewer.prototype.selectSource = function(sourceDefinition) {' ).
+    lo_buf->add( '  var sourceViewer = this;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.activeSource = sourceDefinition;' ).
+    lo_buf->add( '  this.sources.forEach(function(item) {' ).
+    lo_buf->add( '    item.tab.className = "source-viewer-tab" +' ).
+    lo_buf->add( '      (item === sourceDefinition ? " source-viewer-tab-active" : "");' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '  this.source.value = "Loading...";' ).
+    lo_buf->add( '  this.updateLineNumbers(this.source.value);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function display(content) {' ).
+    lo_buf->add( '    if (sourceViewer.activeSource !== sourceDefinition || !sourceViewer.source) return;' ).
+    lo_buf->add( '    sourceViewer.source.value = content;' ).
+    lo_buf->add( '    sourceViewer.updateLineNumbers(content);' ).
+    lo_buf->add( '    sourceViewer.source.focus();' ).
+    lo_buf->add( '    sourceViewer.source.setSelectionRange(0, 0);' ).
+    lo_buf->add( '    sourceViewer.source.scrollTop = 0;' ).
+    lo_buf->add( '    sourceViewer.source.scrollLeft = 0;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (sourceDefinition.content !== undefined) {' ).
+    lo_buf->add( '    display(sourceDefinition.content);' ).
+    lo_buf->add( '  } else if (sourceDefinition.getContent) {' ).
+    lo_buf->add( '    sourceDefinition.content = sourceDefinition.getContent(sourceDefinition.url);' ).
+    lo_buf->add( '    display(sourceDefinition.content);' ).
+    lo_buf->add( '  } else if (this.isInternetExplorer() && sourceDefinition.url.indexOf("css/") === 0) {' ).
+    lo_buf->add( '    sourceDefinition.content = this.getStylesheetSource(sourceDefinition.url);' ).
+    lo_buf->add( '    display(sourceDefinition.content);' ).
+    lo_buf->add( '  } else if (this.isInternetExplorer()) {' ).
+    lo_buf->add( '    display("Internet Explorer cannot display cached JavaScript source.\n" +' ).
+    lo_buf->add( '      "Use the Edge WebView2 browser control for this source view.");' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    this.getAssetSource(sourceDefinition.url, function(content) {' ).
+    lo_buf->add( '      sourceDefinition.content = content;' ).
+    lo_buf->add( '      display(content);' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'SourceViewer.prototype.handleKeydown = function(event) {' ).
+    lo_buf->add( '  if (!event.ctrlKey || !event.shiftKey || event.altKey ||' ).
+    lo_buf->add( '      (event.key !== "?" && event.keyCode !== 191)) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  event.preventDefault();' ).
+    lo_buf->add( '  event.stopPropagation();' ).
+    lo_buf->add( '  if (event.stopImmediatePropagation) event.stopImmediatePropagation();' ).
+    lo_buf->add( '  this.log("shortcut Ctrl+Shift+? requested source viewer");' ).
+    lo_buf->add( '  if (!this.overlay) this.show();' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function registerSourceViewerShortcuts() {' ).
+    lo_buf->add( '  var sourceViewer = new SourceViewer();' ).
+    lo_buf->add( '  document.addEventListener("keydown", sourceViewer.handleKeydown.bind(sourceViewer));' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'registerSourceViewerShortcuts();' ).
     li_asset_man->register_asset(
       iv_url       = 'js/common.js'
       iv_type      = 'text/javascript'
@@ -38574,6 +38941,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
 ****************************************************
 * abapmerge Pragma [include] - ZABAPGIT_ICON_FONT_CSS.W3MI.DATA.CSS
 ****************************************************
+    lo_buf->add( '/*' ).
+    lo_buf->add( ' * ABAPGIT ICON SET' ).
+    lo_buf->add( ' */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '@font-face {' ).
     lo_buf->add( '    font-family: "ag-icons";' ).
     lo_buf->add( '    font-weight: normal;' ).
@@ -154648,8 +155019,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-23T16:22:42.010Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-23T16:22:42.010Z`.
+* abapmerge 0.16.10 - 2026-08-25T15:21:12.424Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-25T15:21:12.424Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
