@@ -80607,7 +80607,7 @@ CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
       lt_abap = mo_files->read_abap( iv_extra = lv_extra ).
       LOOP AT lt_abap INTO ls_abap.
         " Start of method
-        FIND REGEX '\s*method\s+(.*)\s*\.' IN ls_abap-line IGNORING CASE SUBMATCHES lv_cmpname ##REGEX_POSIX.
+        FIND REGEX '^\s*method\s+([\w~/]+)' IN ls_abap-line IGNORING CASE SUBMATCHES lv_cmpname ##REGEX_POSIX.
         IF sy-subrc = 0.
           lv_line = 1.
         ENDIF.
@@ -155165,8 +155165,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-25T16:05:01.474Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-25T16:05:01.474Z`.
+* abapmerge 0.16.10 - 2026-08-26T05:49:35.394Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-26T05:49:35.394Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
