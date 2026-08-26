@@ -144,6 +144,7 @@ CLASS zcl_abapgit_xml_input DEFINITION DEFERRED.
 CLASS zcl_abapgit_xml DEFINITION DEFERRED.
 CLASS zcl_abapgit_utils DEFINITION DEFERRED.
 CLASS zcl_abapgit_timer DEFINITION DEFERRED.
+CLASS zcl_abapgit_time_date DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_map DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_buffer DEFINITION DEFERRED.
 CLASS zcl_abapgit_path DEFINITION DEFERRED.
@@ -1777,11 +1778,16 @@ INTERFACE zif_abapgit_git_definitions .
       name  TYPE string,
       email TYPE string,
     END OF ty_git_user .
+* seconds since the unix epoch plus timezone indicator, eg '1740000000 +0000'
+  TYPES:
+    ty_unixtime TYPE c LENGTH 16 .
+* TIME is optional, if it is initial the current time is used when committing
   TYPES:
     BEGIN OF ty_comment,
       committer TYPE ty_git_user,
       author    TYPE ty_git_user,
       comment   TYPE string,
+      time      TYPE ty_unixtime,
     END OF ty_comment .
 
   TYPES:
@@ -9622,7 +9628,7 @@ CLASS zcl_abapgit_git_time DEFINITION
   PUBLIC SECTION.
 
     TYPES:
-      ty_unixtime TYPE c LENGTH 16 .
+      ty_unixtime TYPE zif_abapgit_git_definitions=>ty_unixtime .
 
     CLASS-METHODS get_unix
       RETURNING
@@ -9635,6 +9641,15 @@ CLASS zcl_abapgit_git_time DEFINITION
         !iv_days       TYPE i
       RETURNING
         VALUE(rv_time) TYPE i
+      RAISING
+        zcx_abapgit_exception .
+
+    CLASS-METHODS get_unix_from_local
+      IMPORTING
+        !iv_date       TYPE d
+        !iv_time       TYPE t
+      RETURNING
+        VALUE(rv_time) TYPE ty_unixtime
       RAISING
         zcx_abapgit_exception .
 
@@ -30294,6 +30309,18 @@ CLASS zcl_abapgit_string_map DEFINITION
     DATA mv_case_insensitive TYPE abap_bool.
 
 ENDCLASS.
+CLASS zcl_abapgit_time_date DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS get_system_timezone
+      RETURNING
+        VALUE(rv_timezone) TYPE timezone .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
 CLASS zcl_abapgit_timer DEFINITION
   FINAL
   CREATE PRIVATE.
@@ -31321,6 +31348,33 @@ CLASS zcl_abapgit_timer IMPLEMENTATION.
   METHOD start.
     GET TIME STAMP FIELD mv_timer.
     ro_timer = me.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_time_date IMPLEMENTATION.
+  METHOD get_system_timezone.
+* returns the time zone of the application server,
+* CL_ABAP_TSTMP=>GET_SYSTEM_TIMEZONE does not exist in lower releases,
+* and the function module is not released for ABAP Cloud, so call both dynamically
+
+    DATA lv_fm TYPE string.
+
+    lv_fm = 'GET_SYSTEM_TIMEZONE'.
+
+    TRY.
+        CALL METHOD ('CL_ABAP_TSTMP')=>get_system_timezone
+          RECEIVING
+            system_timezone = rv_timezone.
+      CATCH cx_sy_dyn_call_illegal_method.
+        CALL FUNCTION lv_fm
+          IMPORTING
+            timezone            = rv_timezone
+          EXCEPTIONS
+            customizing_missing = 1
+            OTHERS              = 2.
+        ASSERT sy-subrc = 0.
+    ENDTRY.
+
   ENDMETHOD.
 ENDCLASS.
 
@@ -61306,21 +61360,7 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
   METHOD class_constructor.
 
-    DATA lv_fm TYPE string.
-    lv_fm = 'GET_SYSTEM_TIMEZONE'.
-
-    TRY.
-        CALL METHOD ('CL_ABAP_TSTMP')=>get_system_timezone
-          RECEIVING
-            system_timezone = gv_time_zone.
-      CATCH cx_sy_dyn_call_illegal_method.
-        CALL FUNCTION lv_fm
-          IMPORTING
-            timezone            = gv_time_zone
-          EXCEPTIONS
-            customizing_missing = 1
-            OTHERS              = 2 ##FM_SUBRC_OK.
-    ENDTRY.
+    gv_time_zone = zcl_abapgit_time_date=>get_system_timezone( ).
 
   ENDMETHOD.
   METHOD get_item_icon.
@@ -145357,6 +145397,44 @@ CLASS zcl_abapgit_git_time IMPLEMENTATION.
     rv_time+11 = '+0000'.
 
   ENDMETHOD.
+  METHOD get_unix_from_local.
+* returns seconds since Unix epoch, including timezone indicator
+* the input is expected to be in the time zone of the application server,
+* like SY-DATUM and SY-UZEIT and like most date and time fields on the
+* database, eg E070-AS4DATE and E070-AS4TIME, it is converted to UTC, so
+* the timezone indicator is always '+0000', same layout as GET_UNIX returns
+* note SY-ZONLO is the personal time zone of the user, it can be empty,
+* eg in background jobs, so it cannot be used here
+
+    CONSTANTS lc_epoch TYPE timestamp VALUE '19700101000000'.
+
+    DATA lv_seconds   TYPE i.
+    DATA lv_timestamp TYPE timestamp.
+    DATA lv_timezone  TYPE timezone.
+
+    IF iv_date IS INITIAL.
+      zcx_abapgit_exception=>raise( 'Cannot determine unix time, date is initial' ).
+    ENDIF.
+
+    lv_timezone = zcl_abapgit_time_date=>get_system_timezone( ).
+
+    CONVERT DATE iv_date TIME iv_time
+      INTO TIME STAMP lv_timestamp TIME ZONE lv_timezone.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Unknown time zone "{ lv_timezone }"| ).
+    ENDIF.
+
+    IF lv_timestamp < lc_epoch.
+      zcx_abapgit_exception=>raise( |Date { iv_date } is before the unix epoch| ).
+    ENDIF.
+
+    lv_seconds = cl_abap_tstmp=>subtract(
+      tstmp1 = lv_timestamp
+      tstmp2 = lc_epoch ).
+
+    rv_time = |{ lv_seconds } +0000|.
+
+  ENDMETHOD.
   METHOD get_utc.
 
     CONSTANTS lc_epoch TYPE d VALUE '19700101'.
@@ -145836,7 +145914,12 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_tree> LIKE LINE OF it_trees,
                    <ls_blob> LIKE LINE OF it_blobs.
-    lv_time = zcl_abapgit_git_time=>get_unix( ).
+* the caller can supply a timestamp, eg when replaying historic changes,
+* it is used for both the committer and the author
+    lv_time = is_comment-time.
+    IF lv_time IS INITIAL.
+      lv_time = zcl_abapgit_git_time=>get_unix( ).
+    ENDIF.
 
     READ TABLE it_trees ASSIGNING <ls_tree> WITH KEY path = '/'.
     ASSERT sy-subrc = 0.
@@ -155165,8 +155248,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-26T05:49:35.394Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-26T05:49:35.394Z`.
+* abapmerge 0.16.10 - 2026-08-26T07:23:22.964Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-26T07:23:22.964Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
