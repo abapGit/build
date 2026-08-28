@@ -24903,6 +24903,11 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
         !ii_html TYPE REF TO zif_abapgit_html
       RAISING
         zcx_abapgit_exception .
+    CLASS-METHODS render_environment
+      IMPORTING
+        !ii_html TYPE REF TO zif_abapgit_html
+      RAISING
+        zcx_abapgit_exception .
     METHODS render_hotkey_overview
       RETURNING
         VALUE(ro_html) TYPE REF TO zif_abapgit_html
@@ -24924,6 +24929,11 @@ CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
     METHODS is_edge_control_warning_needed
       RETURNING
         VALUE(rv_result) TYPE abap_bool.
+    CLASS-METHODS js_bool
+      IMPORTING
+        !iv_value    TYPE abap_bool
+      RETURNING
+        VALUE(rv_js) TYPE string.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_hoc DEFINITION
   INHERITING FROM zcl_abapgit_gui_page
@@ -35921,6 +35931,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/* exported confirmInitialized' ).
     lo_buf->add( '   -- zcl_abapgit_gui_page->zif_abapgit_gui_renderable~render */' ).
     lo_buf->add( '' ).
+    lo_buf->add( '/* exported setEnvironment' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_page->render_environment */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/* exported toggleBrowserControlWarning, displayBrowserControlFooter,' ).
     lo_buf->add( '            redirectBrowserBackToSapEvent, addHotkey' ).
     lo_buf->add( '   -- zcl_abapgit_gui_page->scripts */' ).
@@ -36032,6 +36045,65 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Environment' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// What kind of GUI is abapGit displayed in? None of this changes while a page' ).
+    lo_buf->add( '// is up, so every fact is established once and read from here afterwards.' ).
+    lo_buf->add( '//' ).
+    lo_buf->add( '// The backend seeds what it knows from SAP''s own APIs: render_environment is' ).
+    lo_buf->add( '// the first thing zcl_abapgit_gui_page->scripts writes, so these values are in' ).
+    lo_buf->add( '// place before any other script on the page runs. Everything a browser can' ).
+    lo_buf->add( '// establish for itself is probed here instead of being asked for.' ).
+    lo_buf->add( 'var gEnv = {' ).
+    lo_buf->add( '  isWebGui          : false, // SAP GUI for HTML' ).
+    lo_buf->add( '  isSapGuiForWindows: false  // neither of the two: SAP GUI for Java' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Every fact seeded here has to be declared in gEnv above. An unknown key' ).
+    lo_buf->add( '// would otherwise be added silently while the one it was meant to set keeps' ).
+    lo_buf->add( '// its default - putting back, unnoticed, the guesswork this replaces.' ).
+    lo_buf->add( 'function setEnvironment(env) {' ).
+    lo_buf->add( '  for (var key in env) {' ).
+    lo_buf->add( '    if (Object.prototype.hasOwnProperty.call(gEnv, key)) {' ).
+    lo_buf->add( '      gEnv[key] = env[key];' ).
+    lo_buf->add( '    } else if (window.console && window.console.log) {' ).
+    lo_buf->add( '      window.console.log("abapGit: unknown environment key ''" + key + "''");' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// The prefix a sapevent URL needs for the browser control in use. Probed from' ).
+    lo_buf->add( '// the links the backend rendered, because the user agent does not distinguish' ).
+    lo_buf->add( '// the control versions - and kept, because the control cannot change under a' ).
+    lo_buf->add( '// page that is already displayed.' ).
+    lo_buf->add( 'var gSapeventPrefix; // undefined until first probed' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function getSapeventPrefix() {' ).
+    lo_buf->add( '  if (gSapeventPrefix === undefined) {' ).
+    lo_buf->add( '    // Depending on the used browser control and its version, different URL schemes' ).
+    lo_buf->add( '    // are used which we distinguish here' ).
+    lo_buf->add( '    if (document.querySelector(''a[href*="file:///SAPEVENT:"]'')) {' ).
+    lo_buf->add( '      // Prefix for old (SAPGUI <= 8.00 PL3) chromium based browser control' ).
+    lo_buf->add( '      gSapeventPrefix = "file:///";' ).
+    lo_buf->add( '    } else if (document.querySelector(''a[href^="sap-cust"]'')) {' ).
+    lo_buf->add( '      // Prefix for new (SAPGUI >= 8.00 PL3 Hotfix 1) chromium based browser control' ).
+    lo_buf->add( '      gSapeventPrefix = "sap-cust://sap-place-holder/";' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      gSapeventPrefix = ""; // No prefix for old IE control' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  return gSapeventPrefix;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Is the embedded browser control the Edge (Chromium) one rather than the old' ).
+    lo_buf->add( '// IE one? Only meaningful inside SAP GUI for Windows - the HTML GUI runs in the' ).
+    lo_buf->add( '// browser of the user, whose user agent describes no browser control at all.' ).
+    lo_buf->add( 'function isEdgeControl() {' ).
+    lo_buf->add( '  return navigator.userAgent.includes("Edg");' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
     lo_buf->add( ' * Common functions' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
@@ -36078,20 +36150,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// Use a supplied form, a pre-created form or create a hidden form' ).
     lo_buf->add( '// and submit with sapevent' ).
     lo_buf->add( 'function submitSapeventForm(params, action, method, form) {' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  function getSapeventPrefix() {' ).
-    lo_buf->add( '    // Depending on the used browser control and its version, different URL schemes' ).
-    lo_buf->add( '    // are used which we distinguish here' ).
-    lo_buf->add( '    if (document.querySelector(''a[href*="file:///SAPEVENT:"]'')) {' ).
-    lo_buf->add( '      // Prefix for old (SAPGUI <= 8.00 PL3) chromium based browser control' ).
-    lo_buf->add( '      return "file:///";' ).
-    lo_buf->add( '    } else if (document.querySelector(''a[href^="sap-cust"]'')) {' ).
-    lo_buf->add( '      // Prefix for new (SAPGUI >= 8.00 PL3 Hotfix 1) chromium based browser control' ).
-    lo_buf->add( '      return "sap-cust://sap-place-holder/";' ).
-    lo_buf->add( '    } else {' ).
-    lo_buf->add( '      return ""; // No prefix for old IE control' ).
-    lo_buf->add( '    }' ).
-    lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // A GET submit replaces the action URL''s query string with the form fields.' ).
     lo_buf->add( '  // On WebGUI that would wipe the ITS routing parameters the wired-up form' ).
@@ -36140,9 +36198,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // ~control=116&~event=OnSAPEvent&ALINK=1&frameName=&PARAMS=stage_commit' ).
     lo_buf->add( '  // The event to raise sits in PARAMS, the rest of the routing has to be kept' ).
     lo_buf->add( '  // exactly as ITS set it up.' ).
-    lo_buf->add( '  var itsParams = form.querySelectorAll("input[name=''PARAMS'']");' ).
-    lo_buf->add( '  var isItsForm = itsParams.length > 0 || /~control=/i.test(form_action);' ).
+    lo_buf->add( '  //' ).
+    lo_buf->add( '  // Nothing wires up a form anywhere else, so outside the HTML GUI there is' ).
+    lo_buf->add( '  // nothing to look for.' ).
+    lo_buf->add( '  var itsParams = [];' ).
+    lo_buf->add( '  var isItsForm = false;' ).
     lo_buf->add( '  var i;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (gEnv.isWebGui) {' ).
+    lo_buf->add( '    itsParams = form.querySelectorAll("input[name=''PARAMS'']");' ).
+    lo_buf->add( '    isItsForm = itsParams.length > 0 || /~control=/i.test(form_action);' ).
+    lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  if (itsParams.length > 0) {' ).
     lo_buf->add( '    // A form can carry several of them, one per element ITS wired up (e.g. the' ).
@@ -36152,7 +36218,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    for (i = 0; i < itsParams.length; i++) {' ).
     lo_buf->add( '      itsParams[i].value = action;' ).
     lo_buf->add( '    }' ).
-    lo_buf->add( '  } else if (/~control=/i.test(form_action)) {' ).
+    lo_buf->add( '  } else if (isItsForm) {' ).
+    lo_buf->add( '    // The other ITS variant: no PARAMS fields, the routing sits in the action' ).
     lo_buf->add( '    form.setAttribute("action", form_action.replace(/PARAMS=.*$/, "PARAMS=" + encodeItsParams(action)));' ).
     lo_buf->add( '  } else if (/sapevent/i.test(action)) {' ).
     lo_buf->add( '    form.setAttribute("action", action);' ).
@@ -38549,7 +38616,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// Toggle display of warning message when using Edge (based on Chromium) browser control' ).
     lo_buf->add( '// Todo: Remove once https://github.com/abapGit/abapGit/issues/4841 is fixed' ).
     lo_buf->add( 'function toggleBrowserControlWarning() {' ).
-    lo_buf->add( '  if (!navigator.userAgent.includes("Edg")){' ).
+    lo_buf->add( '  // The warning is about the Edge control, so hide it wherever that is not what' ).
+    lo_buf->add( '  // we run in: on the old IE control, and on a GUI that embeds no browser' ).
+    lo_buf->add( '  // control at all, whose user agent describes the browser of the user and can' ).
+    lo_buf->add( '  // report "Edg" for reasons the warning has nothing to do with.' ).
+    lo_buf->add( '  if (!isEdgeControl() || !gEnv.isSapGuiForWindows) {' ).
     lo_buf->add( '    var elBrowserControlWarning = document.getElementById("browser-control-warning");' ).
     lo_buf->add( '    if (elBrowserControlWarning) {' ).
     lo_buf->add( '      elBrowserControlWarning.style.display = "none";' ).
@@ -38559,11 +38630,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '// Output type of HTML control in the abapGit footer' ).
     lo_buf->add( 'function displayBrowserControlFooter() {' ).
+    lo_buf->add( '  // Only report a control where there is one. The HTML GUI runs in the browser' ).
+    lo_buf->add( '  // of the user, whose user agent describes no browser control at all - reading' ).
+    lo_buf->add( '  // it there once reported "IE" for a user on Chrome.' ).
     lo_buf->add( '  var out = document.getElementById("browser-control-footer");' ).
-    lo_buf->add( '  // Only rendered where there is a browser control to report on, i.e. not on' ).
-    lo_buf->add( '  // the HTML GUI, which runs in the browser of the user' ).
-    lo_buf->add( '  if (!out) return;' ).
-    lo_buf->add( '  out.innerHTML = " - " + ( navigator.userAgent.includes("Edg") ? "Edge" : "IE"  );' ).
+    lo_buf->add( '  if (!out || !gEnv.isSapGuiForWindows) return;' ).
+    lo_buf->add( '  out.innerHTML = " - " + (isEdgeControl() ? "Edge" : "IE");' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Redirect browser "Back" navigation to the SAPGUI back sapevent (action "go_back").' ).
@@ -60890,6 +60962,15 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD js_bool.
+
+    IF iv_value = abap_true.
+      rv_js = 'true'.
+    ELSE.
+      rv_js = 'false'.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD render_back_navigation.
 
     ii_html->add( 'addHotkey({' ).
@@ -60934,6 +61015,27 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     LOOP AT lt_parts INTO li_part.
       ii_html->add( li_part ).
     ENDLOOP.
+
+  ENDMETHOD.
+  METHOD render_environment.
+
+    DATA li_frontend_services TYPE REF TO zif_abapgit_frontend_services.
+
+    li_frontend_services = zcl_abapgit_ui_factory=>get_frontend_services( ).
+
+    " Tell the frontend which GUI it is rendered into. JS can only infer that
+    " from the DOM and the user agent and has inferred it wrongly before (the
+    " footer reported "IE" for a user on Chrome), while we know it from SAP's
+    " own APIs. Whatever a browser can establish for itself - which browser
+    " control is embedded, which URL scheme its sapevents need - it still finds
+    " out on its own, see gEnv in common.js.
+    "
+    " Only the facts common.js reads are passed; extending this means extending
+    " gEnv as well.
+    ii_html->add( 'setEnvironment({' ).
+    ii_html->add( |  isWebGui: { js_bool( li_frontend_services->is_webgui( ) ) },| ).
+    ii_html->add( |  isSapGuiForWindows: { js_bool( li_frontend_services->is_sapgui_for_windows( ) ) }| ).
+    ii_html->add( '});' ).
 
   ENDMETHOD.
   METHOD render_error_message_box.
@@ -60989,6 +61091,9 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
   METHOD scripts.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    " First, so everything rendered below already runs in a known environment
+    render_environment( ri_html ).
 
     render_link_hints( ri_html ).
     render_command_palettes( ri_html ).
@@ -155248,8 +155353,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-26T07:23:22.964Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-26T07:23:22.964Z`.
+* abapmerge 0.16.10 - 2026-08-28T06:34:39.549Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-28T06:34:39.549Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
