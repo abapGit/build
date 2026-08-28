@@ -3698,7 +3698,10 @@ INTERFACE zif_abapgit_gui_event .
   DATA mv_getdata  TYPE string READ-ONLY.
   DATA mt_postdata TYPE zif_abapgit_html_viewer=>ty_post_data READ-ONLY.
   DATA mi_gui_services TYPE REF TO zif_abapgit_gui_services READ-ONLY.
-  DATA mv_current_page_name TYPE string.
+
+  METHODS current_page_name
+    RETURNING
+      VALUE(rv_page_name) TYPE string.
 
   METHODS query
     RETURNING
@@ -23450,6 +23453,7 @@ CLASS zcl_abapgit_gui_event DEFINITION
   PRIVATE SECTION.
     DATA mo_query TYPE REF TO zcl_abapgit_string_map.
     DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
+    DATA mv_current_page_name TYPE string.
 
     CLASS-DATA gv_non_breaking_space TYPE string .
 
@@ -32027,7 +32031,6 @@ CLASS kHGwldKtJfHZXmphMQgfeIQhGnfrcH DEFINITION CREATE PRIVATE.
              text       TYPE string,
            END OF ty_language_mapping,
            ty_language_mappings TYPE STANDARD TABLE OF ty_language_mapping WITH DEFAULT KEY.
-    CLASS-DATA gt_language_mappings TYPE ty_language_mappings.
     CLASS-METHODS:
       sap1_to_text
         IMPORTING
@@ -32064,6 +32067,8 @@ CLASS kHGwldKtJfHZXmphMQgfeIQhGnfrcH DEFINITION CREATE PRIVATE.
           zcx_abapgit_exception.
   PROTECTED SECTION.
   PRIVATE SECTION.
+    CLASS-DATA gt_language_mappings TYPE ty_language_mappings.
+
     CLASS-METHODS fill_language_mappings.
     CLASS-METHODS
       fill_language_mapping
@@ -43268,7 +43273,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD get_state_diff.
 
     " Bookmark current page before jumping to diff page
-    IF ii_event->mv_current_page_name CP 'ZCL_ABAPGIT_GUI_PAGE_DIFF'.
+    IF ii_event->current_page_name( ) CP 'ZCL_ABAPGIT_GUI_PAGE_DIFF'.
       rv_state = zcl_abapgit_gui=>c_event_state-new_page.
     ELSE.
       rv_state = zcl_abapgit_gui=>c_event_state-new_page_w_bookmark.
@@ -43278,7 +43283,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
   METHOD get_state_settings.
 
     " Bookmark current page before jumping to any settings page
-    IF ii_event->mv_current_page_name CP 'ZCL_ABAPGIT_GUI_PAGE_SETT_*'.
+    IF ii_event->current_page_name( ) CP 'ZCL_ABAPGIT_GUI_PAGE_SETT_*'.
       rv_state = zcl_abapgit_gui=>c_event_state-new_page_replacing.
     ELSE.
       rv_state = zcl_abapgit_gui=>c_event_state-new_page_w_bookmark.
@@ -43718,7 +43723,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         li_repo->set_files_remote( zcl_abapgit_zip=>load( lv_xstr ) ).
         zcl_abapgit_services_repo=>refresh( lv_key ).
 
-        CASE ii_event->mv_current_page_name.
+        CASE ii_event->current_page_name( ).
           WHEN lc_page-repo_view.
             rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
           WHEN lc_page-main_view.
@@ -66585,7 +66590,7 @@ CLASS zcl_abapgit_gui_event IMPLEMENTATION.
     zif_abapgit_gui_event~mt_postdata     = it_postdata.
 
     IF ii_gui_services IS BOUND.
-      zif_abapgit_gui_event~mv_current_page_name = ii_gui_services->get_current_page_name( ).
+      mv_current_page_name = ii_gui_services->get_current_page_name( ).
     ENDIF.
 
   ENDMETHOD.
@@ -66712,6 +66717,9 @@ CLASS zcl_abapgit_gui_event IMPLEMENTATION.
     REPLACE ALL OCCURRENCES OF '%26' IN rv_string WITH '&' IGNORING CASE.
     REPLACE ALL OCCURRENCES OF gv_non_breaking_space IN rv_string WITH ` `.
 
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event~current_page_name.
+    rv_page_name = mv_current_page_name.
   ENDMETHOD.
   METHOD zif_abapgit_gui_event~form_data.
 
@@ -155357,8 +155365,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-28T06:36:34.729Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-28T06:36:34.729Z`.
+* abapmerge 0.16.10 - 2026-08-28T07:06:24.192Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-28T07:06:24.192Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
