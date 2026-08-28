@@ -7127,6 +7127,7 @@ ENDINTERFACE.
 
 INTERFACE zif_abapgit_gui_diff_extra.
 * only diff rendering, not page related stuff
+  TYPES ty_char1 TYPE c LENGTH 1.
 
   METHODS insert_nav
     RETURNING
@@ -7151,7 +7152,7 @@ INTERFACE zif_abapgit_gui_diff_extra.
       !iv_filename  TYPE string
       !is_diff_line TYPE zif_abapgit_definitions=>ty_diff
       !iv_index     TYPE sy-tabix
-      !iv_fstate    TYPE char1
+      !iv_fstate    TYPE ty_char1
       !iv_new       TYPE string
       !iv_old       TYPE string
     RAISING
@@ -14492,8 +14493,9 @@ CLASS zcl_abapgit_objects_generic DEFINITION
   PROTECTED SECTION.
 
     TYPES:
+      ty_numc3 TYPE n LENGTH 3,
       BEGIN OF ty_s_objkey,
-        num   TYPE n LENGTH 3,
+        num   TYPE ty_numc3,
         value TYPE c LENGTH 128,
       END OF ty_s_objkey .
     TYPES:
@@ -14527,7 +14529,7 @@ CLASS zcl_abapgit_objects_generic DEFINITION
       CHANGING
         !ct_objkey        TYPE ty_t_objkey
         !cs_objkey        TYPE ty_s_objkey
-        !cv_non_value_pos TYPE numc3 .
+        !cv_non_value_pos TYPE ty_numc3.
     METHODS get_key_fields
       IMPORTING
         !iv_table      TYPE objsl-tobj_name
@@ -14558,7 +14560,7 @@ CLASS zcl_abapgit_objects_generic DEFINITION
       CHANGING
         !ct_objkey        TYPE ty_t_objkey
         !cs_objkey        TYPE ty_s_objkey
-        !cv_non_value_pos TYPE numc3 .
+        !cv_non_value_pos TYPE ty_numc3.
     METHODS validate
       IMPORTING
         !io_xml TYPE REF TO zif_abapgit_xml_input
@@ -24160,6 +24162,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
   PUBLIC SECTION.
 
     TYPES:
+      ty_char1 TYPE c LENGTH 1,
       BEGIN OF ty_col_spec,
         tech_name      TYPE string,
         display_name   TYPE string,
@@ -24201,8 +24204,8 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS render_item_state
       IMPORTING
-        !iv_lstate     TYPE char1
-        !iv_rstate     TYPE char1
+        !iv_lstate     TYPE ty_char1
+        !iv_rstate     TYPE ty_char1
       RETURNING
         VALUE(rv_html) TYPE string .
     CLASS-METHODS render_js_error_banner
@@ -24366,7 +24369,6 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
           PREFERRED PARAMETER is_item
       RETURNING
         VALUE(rv_html) TYPE string.
-
   PROTECTED SECTION.
 
     CLASS-METHODS render_repo_top_commit_hash
@@ -26437,6 +26439,7 @@ CLASS zcl_abapgit_gui_page_diff_base DEFINITION
 
   PRIVATE SECTION.
     TYPES:
+      ty_char1 TYPE c LENGTH 1,
       BEGIN OF ty_view,
         hide_diffs      TYPE abap_bool,
         hidden_chars    TYPE abap_bool,
@@ -26454,7 +26457,7 @@ CLASS zcl_abapgit_gui_page_diff_base DEFINITION
     METHODS render_line_split_row
       IMPORTING
         !ii_html   TYPE REF TO zif_abapgit_html
-        !iv_fstate TYPE char1
+        !iv_fstate TYPE ty_char1
         !iv_new    TYPE string
         !iv_old    TYPE string
       RAISING
@@ -26502,7 +26505,7 @@ CLASS zcl_abapgit_gui_page_diff_base DEFINITION
       IMPORTING
         !is_diff_line  TYPE zif_abapgit_definitions=>ty_diff
         !iv_filename   TYPE string
-        !iv_fstate     TYPE char1
+        !iv_fstate     TYPE ty_char1
         !iv_index      TYPE sy-tabix
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html
@@ -28334,12 +28337,13 @@ CLASS zcl_abapgit_gui_page_merge_res DEFINITION
   PRIVATE SECTION.
 
     TYPES:
+      ty_char1 TYPE c LENGTH 1,
       BEGIN OF ty_file_diff,
         path       TYPE string,
         filename   TYPE string,
-        lstate     TYPE char1,
-        rstate     TYPE char1,
-        fstate     TYPE char1, " FILE state - Abstraction for shorter ifs
+        lstate     TYPE ty_char1,
+        rstate     TYPE ty_char1,
+        fstate     TYPE ty_char1, " FILE state - Abstraction for shorter ifs
         o_diff     TYPE REF TO zif_abapgit_diff,
         changed_by TYPE syuname,
         type       TYPE string,
@@ -61806,7 +61810,7 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
 
     DATA: lv_system TYPE string.
 
-    FIELD-SYMBOLS <lv_state> TYPE char1.
+    FIELD-SYMBOLS <lv_state> TYPE ty_char1.
     rv_html = '<span class="state-block">'.
 
     DO 2 TIMES.
@@ -77806,7 +77810,7 @@ CLASS zcl_abapgit_objects_generic IMPLEMENTATION.
           lv_objkey_length   TYPE i,
           lt_objkey          TYPE ty_t_objkey,
           ls_objkey          LIKE LINE OF lt_objkey,
-          lv_non_value_pos   TYPE numc3,
+          lv_non_value_pos   TYPE ty_numc3,
           lt_key_fields      TYPE ddfields.
 
     DATA: lv_is_asterix      TYPE abap_bool,
@@ -84408,7 +84412,7 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
 
     DATA ls_docu LIKE LINE OF it_docu.
     DATA lv_objname TYPE lxeobjname.
-    DATA lv_change_flag TYPE char1.
+    DATA lv_change_flag TYPE c LENGTH 1.
     DATA lv_error_status  TYPE lxestatprc.
 
     LOOP AT it_docu INTO ls_docu.
@@ -88211,7 +88215,7 @@ CLASS zcl_abapgit_object_susc IMPLEMENTATION.
   METHOD put_delete_to_transport.
 
     DATA: lv_tr_object_name TYPE e071-obj_name,
-          lv_tr_return      TYPE char1,
+          lv_tr_return      TYPE c LENGTH 1,
           ls_package_info   TYPE tdevc.
     lv_tr_object_name = ms_item-obj_name.
 
@@ -115756,8 +115760,8 @@ CLASS zcl_abapgit_object_ddls IMPLEMENTATION.
 
     DATA:
       lv_len       TYPE i,
-      lv_lastchar1 TYPE c,
-      lv_lastchar2 TYPE c.
+      lv_lastchar1 TYPE c LENGTH 1,
+      lv_lastchar2 TYPE c LENGTH 1.
 
     " New line included in 751+ by CL_DD_DDL_HANDLER=>ADD_BASEOBJS_INFO_TO_DDLS
     " Change for 750-
@@ -154987,7 +154991,7 @@ CLASS lcl_startup IMPLEMENTATION.
       lc_hide_sapgui_hint TYPE string VALUE '2'.
 
     DATA:
-      lv_answer           TYPE char1,
+      lv_answer           TYPE c LENGTH 1,
       ls_settings         TYPE zif_abapgit_persist_user=>ty_s_user_settings,
       li_user_persistence TYPE REF TO zif_abapgit_persist_user.
 
@@ -155353,8 +155357,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-28T06:34:39.549Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-28T06:34:39.549Z`.
+* abapmerge 0.16.10 - 2026-08-28T06:36:34.729Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-28T06:36:34.729Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
