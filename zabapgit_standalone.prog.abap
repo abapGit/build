@@ -148120,6 +148120,7 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
       TRY.
           gi_exit->deserialize_postprocess(
             EXPORTING
+              iv_package       = iv_package
               it_remote        = it_remote
               is_step          = is_step
               ii_log           = ii_log
@@ -155365,8 +155366,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-28T10:17:39.003Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-28T10:17:39.003Z`.
+* abapmerge 0.16.10 - 2026-08-30T20:00:43.440Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-30T20:00:43.440Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
