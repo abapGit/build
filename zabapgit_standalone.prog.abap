@@ -6399,7 +6399,6 @@ INTERFACE zif_abapgit_persist_user .
       parallel_proc_disabled TYPE abap_bool,
       icon_scaling           TYPE c LENGTH 1,
       ui_theme               TYPE string,
-      hide_sapgui_hint       TYPE abap_bool,
       activate_wo_popup      TYPE abap_bool,
       label_colors           TYPE string,
       default_git_uname      TYPE string,
@@ -27361,7 +27360,6 @@ CLASS zcl_abapgit_gui_page_sett_pers DEFINITION
         hotkeys                TYPE string VALUE 'hotkeys',
         resources              TYPE string VALUE 'resources',
         parallel_proc_disabled TYPE string VALUE 'parallel_proc_disabled',
-        hide_sapgui_hint       TYPE string VALUE 'hide_sapgui_hint',
         activate_wo_popup      TYPE string VALUE 'activate_wo_popup',
         label_colors           TYPE string VALUE 'label_colors',
         git_default_values     TYPE string VALUE 'git_default_values',
@@ -52038,9 +52036,7 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
       iv_label         = 'Back'
       iv_action        = zif_abapgit_definitions=>c_action-go_back ).
 
-    " Not available via this form:
-    " - User-specific hotkey settings have been discontinued
-    " - hide_sapgui_hint is set via ZCL_ABAPGIT_SERVICES_ABAPGIT-CHECK_SAPGUI
+    " User-specific hotkey settings have been discontinued and are not available via this form
 
   ENDMETHOD.
   METHOD read_settings.
@@ -155027,57 +155023,14 @@ CLASS lcl_startup DEFINITION FINAL.
       RETURNING
         VALUE(rv_package) TYPE devclass.
 
-    CLASS-METHODS check_sapgui
-      RAISING
-        zcx_abapgit_exception.
 ENDCLASS.
 
 CLASS lcl_startup IMPLEMENTATION.
-
-  METHOD check_sapgui.
-
-    CONSTANTS:
-      lc_hide_sapgui_hint TYPE string VALUE '2'.
-
-    DATA:
-      lv_answer           TYPE c LENGTH 1,
-      ls_settings         TYPE zif_abapgit_persist_user=>ty_s_user_settings,
-      li_user_persistence TYPE REF TO zif_abapgit_persist_user.
-
-    li_user_persistence = zcl_abapgit_persist_factory=>get_user( ).
-
-    ls_settings = li_user_persistence->get_settings( ).
-
-    IF ls_settings-hide_sapgui_hint = abap_true.
-      RETURN.
-    ENDIF.
-
-    IF zcl_abapgit_ui_factory=>get_frontend_services( )->is_sapgui_for_java( ) = abap_false.
-      RETURN.
-    ENDIF.
-
-    lv_answer = zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
-                    iv_titlebar              = 'Not supported SAPGUI'
-                    iv_text_question         = 'SAPGUI for Java is not supported! There might be some issues.'
-                    iv_text_button_1         = 'Got it'
-                    iv_icon_button_1         = |{ icon_okay }|
-                    iv_text_button_2         = 'Hide'
-                    iv_icon_button_2         = |{ icon_set_state }|
-                    iv_display_cancel_button = abap_false ).
-
-    IF lv_answer = lc_hide_sapgui_hint.
-      ls_settings-hide_sapgui_hint = abap_true.
-      li_user_persistence->set_settings( ls_settings ).
-    ENDIF.
-
-  ENDMETHOD.
 
   METHOD prepare_gui_startup.
     DATA: lv_repo_key    TYPE zif_abapgit_persistence=>ty_value,
           lv_package     TYPE devclass,
           lv_package_adt TYPE devclass.
-
-    check_sapgui( ).
 
     IF zcl_abapgit_persist_factory=>get_settings( )->read( )->get_show_default_repo( ) = abap_false.
       " Don't show the last seen repo at startup
@@ -155406,8 +155359,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-08-30T20:50:44.348Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-08-30T20:50:44.348Z`.
+* abapmerge 0.16.10 - 2026-09-01T10:33:03.804Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-01T10:33:03.804Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
