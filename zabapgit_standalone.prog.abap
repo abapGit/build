@@ -86926,11 +86926,6 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
     io_xml->read( EXPORTING iv_name = 'OBJM'
                   CHANGING  cg_data = lt_objm ).
 
-    ASSIGN COMPONENT 'ABAP_LANGUAGE_VERSION' OF STRUCTURE ls_objh TO <lv_abap_language_version>.
-    IF sy-subrc = 0.
-      set_abap_language_version( CHANGING cv_abap_language_version = <lv_abap_language_version> ).
-    ENDIF.
-
     CALL FUNCTION 'OBJ_GENERATE'
       EXPORTING
         iv_korrnum            = iv_transport
@@ -86978,6 +86973,17 @@ CLASS zcl_abapgit_object_tobj IMPLEMENTATION.
     UPDATE objh SET objtransp = ls_objh-objtransp
       WHERE objectname = ls_objh-objectname
       AND objecttype = ls_objh-objecttype.
+
+* fm OBJ_GENERATE does not respect ABAP language version so we set it here directly
+* update must be dynamic since field does not exist in lower releases
+    ASSIGN COMPONENT 'ABAP_LANGUAGE_VERSION' OF STRUCTURE ls_objh TO <lv_abap_language_version>.
+    IF sy-subrc = 0.
+      set_abap_language_version( CHANGING cv_abap_language_version = <lv_abap_language_version> ).
+
+      UPDATE ('OBJH') SET abap_language_version = <lv_abap_language_version>
+        WHERE objectname = ls_objh-objectname
+        AND objecttype = ls_objh-objecttype.
+    ENDIF.
 
 * fm OBJ_GENERATE ignores several fields like primary table flag
 * for Individual Transaction Objects
@@ -155353,8 +155359,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-02T20:04:26.300Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-02T20:04:26.300Z`.
+* abapmerge 0.16.10 - 2026-09-03T13:54:29.070Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-03T13:54:29.070Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
