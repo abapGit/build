@@ -102129,7 +102129,15 @@ CLASS zcl_abapgit_object_msag IMPLEMENTATION.
       AND sprsl <> mv_language
       ORDER BY langu.                    "#EC CI_BYPASS "#EC CI_GENBUFF
 
+    SELECT DISTINCT sprsl AS langu APPENDING TABLE lt_i18n_langs
+      FROM t100
+      WHERE arbgb = lv_msg_id
+      AND sprsl IN lt_language_filter
+      AND sprsl <> mv_language
+      ORDER BY langu.                    "#EC CI_BYPASS "#EC CI_GENBUFF
+
     SORT lt_i18n_langs ASCENDING.
+    DELETE ADJACENT DUPLICATES FROM lt_i18n_langs.
 
     IF lines( lt_i18n_langs ) > 0.
 
@@ -155359,8 +155367,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-03T13:54:29.070Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-03T13:54:29.070Z`.
+* abapmerge 0.16.10 - 2026-09-05T10:49:08.562Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-05T10:49:08.562Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
