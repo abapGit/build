@@ -5142,6 +5142,7 @@ INTERFACE zif_abapgit_sap_package .
            parentcl  TYPE devclass,
            pdevclass TYPE c LENGTH 4,
            as4user   TYPE usnam,
+           packkind  TYPE uccheck,
          END OF ty_create.
 
   METHODS get
@@ -5158,6 +5159,8 @@ INTERFACE zif_abapgit_sap_package .
     RAISING
       zcx_abapgit_exception .
   METHODS create_local
+    IMPORTING
+      iv_abap_language_version TYPE uccheck
     RAISING
       zcx_abapgit_exception .
   METHODS list_subpackages
@@ -8538,10 +8541,17 @@ CLASS zcl_abapgit_abap_language_vers DEFINITION
       c_any_abap_language_version TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version VALUE '*',
       c_no_abap_language_version  TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version VALUE '-'.
 
+    CLASS-METHODS create
+      IMPORTING
+        !io_dot_abapgit  TYPE REF TO zcl_abapgit_dot_abapgit
+      RETURNING
+        VALUE(ro_result) TYPE REF TO zcl_abapgit_abap_language_vers.
+
     METHODS constructor
       IMPORTING
         !io_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit.
 
+    "! Return the allowed ABAP language version for an object type and package
     METHODS get_abap_language_vers_by_objt
       IMPORTING
         !iv_object_type                      TYPE trobjtype
@@ -8549,16 +8559,24 @@ CLASS zcl_abapgit_abap_language_vers DEFINITION
       RETURNING
         VALUE(rv_allowed_abap_langu_version) TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version.
 
+    "! Returns ABAP language version (char 1) for repo objects based on .abapGit.xml setting
     METHODS get_repo_abap_language_version
       RETURNING
         VALUE(rv_abap_language_version) TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version.
 
+    "! Returns ABAP language version (char 1) for repo packages based on .abapGit.xml setting
+    METHODS get_package_abap_language_vers
+      RETURNING
+        VALUE(rv_abap_language_version) TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version.
+
+    "! Check if importing a package is allowed based on the ABAP language settings in .abapGit.xml
     METHODS is_import_allowed
       IMPORTING
         !iv_package       TYPE devclass
       RETURNING
         VALUE(rv_allowed) TYPE abap_bool.
 
+    "! Check if the expected ABAP language version matches the ABAP language version of an object
     CLASS-METHODS check_abap_language_version
       IMPORTING
         !iv_abap_language_version TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version
@@ -126194,11 +126212,13 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
   METHOD zif_abapgit_sap_package~create_local.
 
     DATA: ls_package TYPE zif_abapgit_sap_package=>ty_create.
-    ls_package-devclass  = mv_package.
-    ls_package-ctext     = mv_package.
-    ls_package-parentcl  = '$TMP'.
-    ls_package-dlvunit   = 'LOCAL'.
-    ls_package-as4user   = sy-uname.
+
+    ls_package-devclass = mv_package.
+    ls_package-ctext    = mv_package.
+    ls_package-parentcl = '$TMP'.
+    ls_package-dlvunit  = 'LOCAL'.
+    ls_package-as4user  = sy-uname.
+    ls_package-packkind = iv_abap_language_version.
 
     zif_abapgit_sap_package~create( ls_package ).
 
@@ -134478,6 +134498,7 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
           lv_absolute_name        TYPE string,
           lv_folder_logic         TYPE string,
           lt_unique_package_names TYPE HASHED TABLE OF devclass WITH UNIQUE KEY table_line.
+    DATA lv_abap_language_version TYPE uccheck.
 
     lv_length = strlen( io_dot->get_starting_folder( ) ).
     IF lv_length > strlen( iv_path ).
@@ -134500,12 +134521,14 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
     " Automatically create package using minimal properties
     " Details will be updated during deserialization
     IF iv_create_if_not_exists = abap_true.
+      lv_abap_language_version = zcl_abapgit_abap_language_vers=>create( io_dot )->get_package_abap_language_vers( ).
       IF iv_top(1) = '$'.
-        zcl_abapgit_factory=>get_sap_package( iv_top )->create_local( ).
+        zcl_abapgit_factory=>get_sap_package( iv_top )->create_local( lv_abap_language_version ).
       ELSE.
         ls_package-devclass = iv_top.
-        ls_package-ctext = iv_top.
-        ls_package-as4user = sy-uname.
+        ls_package-ctext    = iv_top.
+        ls_package-as4user  = sy-uname.
+        ls_package-packkind = lv_abap_language_version.
         zcl_abapgit_factory=>get_sap_package( iv_top )->create( ls_package ).
       ENDIF.
     ENDIF.
@@ -149094,6 +149117,13 @@ CLASS zcl_abapgit_abap_language_vers IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD create.
+
+    CREATE OBJECT ro_result
+      EXPORTING
+        io_dot_abapgit = io_dot_abapgit.
+
+  ENDMETHOD.
   METHOD get_abap_language_vers_by_devc.
 
     DATA lv_class TYPE string.
@@ -149206,6 +149236,26 @@ CLASS zcl_abapgit_abap_language_vers IMPLEMENTATION.
     ENDCASE.
 
     rv_description = |ABAP language version "{ rv_description }"|.
+
+  ENDMETHOD.
+  METHOD get_package_abap_language_vers.
+
+    DATA lv_abap_language_version TYPE string.
+
+    IF mv_has_abap_language_vers <> abap_undefined. " abap_true or abap_false
+      lv_abap_language_version = mo_dot_abapgit->get_abap_language_version( ).
+    ENDIF.
+
+    CASE lv_abap_language_version.
+      WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-standard.
+        rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version-standard.
+      WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-key_user.
+        rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version-key_user.
+      WHEN zif_abapgit_dot_abapgit=>c_abap_language_version-cloud_development.
+        rv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version-cloud_development.
+      WHEN OTHERS.
+        rv_abap_language_version = ''.
+    ENDCASE.
 
   ENDMETHOD.
   METHOD get_repo_abap_language_version.
@@ -155367,8 +155417,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-05T10:49:08.562Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-05T10:49:08.562Z`.
+* abapmerge 0.16.10 - 2026-09-07T14:18:44.084Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-07T14:18:44.084Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
