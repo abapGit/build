@@ -98,13 +98,17 @@ INTERFACE zif_abapgit_ecatt_download DEFERRED.
 INTERFACE zif_abapgit_ecatt DEFERRED.
 INTERFACE zif_abapgit_tadir DEFERRED.
 INTERFACE zif_abapgit_aff_types_v1 DEFERRED.
+INTERFACE zif_abapgit_aff_tabl_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_smtg_v1 DEFERRED.
+INTERFACE zif_abapgit_aff_prog_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_oo_types_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_intf_v1 DEFERRED.
+INTERFACE zif_abapgit_aff_fugr_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_dtel_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_doma_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_docu_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_ddic_types_v1 DEFERRED.
+INTERFACE zif_abapgit_aff_clas_v1 DEFERRED.
 INTERFACE zif_abapgit_aff_type_mapping DEFERRED.
 INTERFACE zif_abapgit_aff_registry DEFERRED.
 INTERFACE zif_abapgit_ajson_types DEFERRED.
@@ -2912,6 +2916,38 @@ INTERFACE zif_abapgit_aff_dtel_v1.
 
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_aff_fugr_v1.
+
+  TYPES ty_status TYPE c LENGTH 1.
+
+  CONSTANTS:
+    BEGIN OF co_status,
+      not_classified   TYPE ty_status VALUE space,
+      sap_program      TYPE ty_status VALUE 'P',
+      customer_program TYPE ty_status VALUE 'K',
+      system_program   TYPE ty_status VALUE 'S',
+      test_program     TYPE ty_status VALUE 'T',
+    END OF co_status.
+
+  TYPES ty_description TYPE c LENGTH 40.
+
+  TYPES:
+    BEGIN OF ty_header,
+      description           TYPE ty_description,
+      original_language     TYPE zif_abapgit_aff_types_v1=>ty_original_language,
+      abap_language_version TYPE zif_abapgit_aff_types_v1=>ty_abap_language_version_src,
+    END OF ty_header.
+
+  TYPES:
+    BEGIN OF ty_main,
+      format_version       TYPE zif_abapgit_aff_types_v1=>ty_format_version,
+      header               TYPE ty_header,
+      fix_point_arithmetic TYPE abap_bool,
+      status               TYPE ty_status,
+    END OF ty_main.
+
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_aff_oo_types_v1.
 
   TYPES:
@@ -2948,6 +2984,42 @@ INTERFACE zif_abapgit_aff_oo_types_v1.
 
 ENDINTERFACE.
 
+INTERFACE zif_abapgit_aff_clas_v1.
+
+  TYPES ty_category TYPE n LENGTH 2.
+
+  CONSTANTS:
+    BEGIN OF co_category,
+      general_object_type            TYPE ty_category VALUE '00',
+      exit_class                     TYPE ty_category VALUE '01',
+      testclass_abap_unit            TYPE ty_category VALUE '05',
+      behavior_class                 TYPE ty_category VALUE '06',
+      entity_event_handler           TYPE ty_category VALUE '07',
+      persistent_class               TYPE ty_category VALUE '10',
+      factory_for_persistent_class   TYPE ty_category VALUE '11',
+      status_class_for_persist_class TYPE ty_category VALUE '12',
+      rfc_proxy_class                TYPE ty_category VALUE '35',
+      communication_connection_class TYPE ty_category VALUE '36',
+      exception_class                TYPE ty_category VALUE '40',
+      area_class_shared_objects      TYPE ty_category VALUE '45',
+      business_class                 TYPE ty_category VALUE '50',
+      bsp_application_class          TYPE ty_category VALUE '60',
+      basis_class_bsp_element_hdlr   TYPE ty_category VALUE '70',
+      web_dynpro_runtime_object      TYPE ty_category VALUE '80',
+    END OF co_category.
+
+  TYPES:
+    BEGIN OF ty_main,
+      format_version       TYPE zif_abapgit_aff_types_v1=>ty_format_version,
+      header               TYPE zif_abapgit_aff_types_v1=>ty_header_60_src,
+      category             TYPE ty_category,
+      fix_point_arithmetic TYPE abap_bool,
+      message_class        TYPE c LENGTH 20,
+      descriptions         TYPE zif_abapgit_aff_oo_types_v1=>ty_descriptions,
+    END OF ty_main.
+
+ENDINTERFACE.
+
 INTERFACE zif_abapgit_aff_intf_v1.
 
   TYPES ty_category TYPE n LENGTH 2.
@@ -2970,6 +3042,56 @@ INTERFACE zif_abapgit_aff_intf_v1.
       category       TYPE ty_category,
       proxy          TYPE abap_bool,
       descriptions   TYPE zif_abapgit_aff_oo_types_v1=>ty_descriptions,
+    END OF ty_main.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_aff_prog_v1.
+
+  TYPES ty_program_type TYPE c LENGTH 1.
+
+  CONSTANTS:
+    BEGIN OF co_program_type,
+      executable_program TYPE ty_program_type VALUE '1',
+      module_pool        TYPE ty_program_type VALUE 'M',
+      subroutine_pool    TYPE ty_program_type VALUE 'S',
+      include            TYPE ty_program_type VALUE 'I',
+    END OF co_program_type.
+
+  TYPES ty_program_status TYPE c LENGTH 1.
+
+  CONSTANTS:
+    BEGIN OF co_program_status,
+      sap_production_program      TYPE ty_program_status VALUE 'P',
+      customer_production_program TYPE ty_program_status VALUE 'K',
+      system_program              TYPE ty_program_status VALUE 'S',
+      test_program                TYPE ty_program_status VALUE 'T',
+      unknown                     TYPE ty_program_status VALUE '',
+    END OF co_program_status.
+
+  TYPES:
+    BEGIN OF ty_logical_database,
+      name             TYPE c LENGTH 20,
+      selection_screen TYPE c LENGTH 3,
+    END OF ty_logical_database.
+
+  TYPES:
+    BEGIN OF ty_general_information,
+      program_type         TYPE ty_program_type,
+      program_status       TYPE ty_program_status,
+      fix_point_arithmetic TYPE abap_bool,
+      edit_locked          TYPE abap_bool,
+      starts_using_variant TYPE abap_bool,
+      authorization_group  TYPE c LENGTH 8,
+      application          TYPE c LENGTH 1,
+    END OF ty_general_information.
+
+  TYPES:
+    BEGIN OF ty_main,
+      format_version      TYPE zif_abapgit_aff_types_v1=>ty_format_version,
+      header              TYPE zif_abapgit_aff_types_v1=>ty_header_70_no_abap_lv,
+      general_information TYPE ty_general_information,
+      logical_database    TYPE ty_logical_database,
     END OF ty_main.
 
 ENDINTERFACE.
@@ -2999,6 +3121,16 @@ INTERFACE zif_abapgit_aff_smtg_v1.
       header              TYPE zif_abapgit_aff_types_v1=>ty_header_60,
       general_information TYPE ty_general_information,
       template_content    TYPE ty_template_contents,
+    END OF ty_main.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_aff_tabl_v1.
+
+  TYPES:
+    BEGIN OF ty_main,
+      format_version TYPE zif_abapgit_aff_types_v1=>ty_format_version,
+      header         TYPE zif_abapgit_aff_types_v1=>ty_header_60,
     END OF ty_main.
 
 ENDINTERFACE.
@@ -155460,8 +155592,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-08T17:18:54.012Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-08T17:18:54.012Z`.
+* abapmerge 0.16.10 - 2026-09-08T19:30:41.859Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-08T19:30:41.859Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
