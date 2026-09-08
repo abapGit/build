@@ -18462,6 +18462,19 @@ CLASS zcl_abapgit_object_sicf DEFINITION
         !is_icfservice      TYPE icfservice
       RETURNING
         VALUE(rv_icfaltnme) TYPE icfservice-icfaltnme.
+
+    CLASS-METHODS get_length_of_obj_name
+      IMPORTING
+        iv_filename   TYPE string
+      RETURNING
+        VALUE(rv_len) TYPE i.
+
+    CLASS-METHODS get_length_of_obj_name_esc
+      IMPORTING
+        iv_filename   TYPE string
+      RETURNING
+        VALUE(rv_len) TYPE i.
+
 ENDCLASS.
 CLASS zcl_abapgit_object_sktd DEFINITION
   INHERITING FROM zcl_abapgit_objects_super
@@ -94443,6 +94456,22 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD get_length_of_obj_name.
+
+    " Regular lenght is 15 but dots that had been escaped before made it shorter (. -> %2e)
+    rv_len = 15 - 2 * count(
+      val = iv_filename
+      sub = '.' ).
+
+  ENDMETHOD.
+  METHOD get_length_of_obj_name_esc.
+
+    " Regular lenght is 15 but escaping dots makes it longer (%2e)
+    rv_len = 15 + 2 * count(
+      val = iv_filename
+      sub = '%2e' ).
+
+  ENDMETHOD.
   METHOD insert_sicf.
 
     DATA: lt_icfhndlist TYPE icfhndlist,
@@ -94777,12 +94806,14 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
     DATA:
       lt_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt,
       lv_hash     TYPE ty_hash,
+      lv_len      TYPE i,
       lv_obj_name TYPE tadir-obj_name.
 
     FIELD-SYMBOLS <ls_tadir> LIKE LINE OF lt_tadir.
 
-    lv_obj_name = to_upper( iv_item_part_of_filename(15) ) && '%'.
-    lv_hash     = iv_item_part_of_filename+15(25).
+    lv_len      = get_length_of_obj_name( iv_item_part_of_filename ).
+    lv_obj_name = to_upper( iv_item_part_of_filename(lv_len) ) && '%'.
+    lv_hash     = iv_item_part_of_filename+lv_len(*).
 
     SELECT * FROM tadir INTO CORRESPONDING FIELDS OF TABLE lt_tadir
       WHERE pgmid = 'R3TR'
@@ -94800,7 +94831,10 @@ CLASS zcl_abapgit_object_sicf IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_object~map_object_to_filename.
 
-    cv_item_part_of_filename = |{ cv_item_part_of_filename(15) }{ get_hash_from_object( is_item-obj_name ) }|.
+    DATA lv_len TYPE i.
+
+    lv_len = get_length_of_obj_name_esc( cv_item_part_of_filename ).
+    cv_item_part_of_filename = |{ cv_item_part_of_filename(lv_len) }{ get_hash_from_object( is_item-obj_name ) }|.
 
   ENDMETHOD.
   METHOD zif_abapgit_object~serialize.
@@ -155426,8 +155460,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-08T15:33:52.066Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-08T15:33:52.066Z`.
+* abapmerge 0.16.10 - 2026-09-08T17:18:54.012Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-08T17:18:54.012Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
