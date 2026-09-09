@@ -36438,10 +36438,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  // Mark that the popstate the browser control may emit while handling this' ).
-    lo_buf->add( '  // sapevent navigation is self-initiated, not a user Back press' ).
-    lo_buf->add( '  gSapeventNavPending = true;' ).
-    lo_buf->add( '  form.submit();' ).
+    lo_buf->add( '  submitForm(form);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Trigger a server-rendered sapevent element (anchor / submit input) the way a' ).
@@ -36452,8 +36449,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// arm the flag - it would never be consumed and the next genuine Back press' ).
     lo_buf->add( '// would be swallowed.' ).
     lo_buf->add( 'function clickSapEvent(element) {' ).
+    lo_buf->add( '  // Main submit inputs inherit the event from their form rather than carrying' ).
+    lo_buf->add( '  // a formaction of their own.' ).
+    lo_buf->add( '  var formAction = element.type === "submit" && element.form' ).
+    lo_buf->add( '    ? element.form.getAttribute("action") : "";' ).
     lo_buf->add( '  var isSapEvent = element.getAttribute("data-sapevent")' ).
-    lo_buf->add( '    || /sapevent/i.test(element.hrefsav || element.href || element.getAttribute("formaction") || "");' ).
+    lo_buf->add( '    || /sapevent/i.test(element.hrefsav || element.href || element.getAttribute("formaction") || formAction || "");' ).
     lo_buf->add( '  if (isSapEvent) gSapeventNavPending = true;' ).
     lo_buf->add( '  element.click();' ).
     lo_buf->add( '}' ).
@@ -36485,9 +36486,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// popstate as a user Back press and fires go_back, which supersedes the submit:' ).
     lo_buf->add( '// the page returns without saving on the Edge control, while the IE control -' ).
     lo_buf->add( '// where the trap never arms - is unaffected.' ).
-    lo_buf->add( 'function submitFormById(id) {' ).
+    lo_buf->add( 'function submitForm(form) {' ).
     lo_buf->add( '  gSapeventNavPending = true;' ).
-    lo_buf->add( '  document.getElementById(id).submit();' ).
+    lo_buf->add( '  form.submit();' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function submitFormById(id) {' ).
+    lo_buf->add( '  submitForm(document.getElementById(id));' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Confirm JS initialization' ).
@@ -37884,12 +37889,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    this.toggleCheckbox(hint);' ).
     lo_buf->add( '  } else if (hint.parent.type === "radio") {' ).
     lo_buf->add( '    this.toggleRadioButton(hint);' ).
-    lo_buf->add( '  } else if (hint.parent.type === "submit") {' ).
-    lo_buf->add( '    hint.parent.click();' ).
+    lo_buf->add( '  } else if (hint.parent.type === "submit" || hint.parent.type === "button") {' ).
+    lo_buf->add( '    clickSapEvent(hint.parent);' ).
     lo_buf->add( '  } else if (hint.parent.nodeName === "INPUT" || hint.parent.nodeName === "TEXTAREA") {' ).
     lo_buf->add( '    hint.parent.focus();' ).
     lo_buf->add( '  } else {' ).
-    lo_buf->add( '    hint.parent.click();' ).
+    lo_buf->add( '    clickSapEvent(hint.parent);' ).
     lo_buf->add( '    if (this.activatedDropdown) this.closeActivatedDropdown();' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
@@ -38664,12 +38669,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  });' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // forms' ).
-    lo_buf->add( '  [].slice.call(document.querySelectorAll("input[type=''submit'']"))' ).
+    lo_buf->add( '  [].slice.call(document.querySelectorAll("input[type=''submit''], input[type=''button''][data-sapevent]"))' ).
     lo_buf->add( '    .forEach(function(input) {' ).
     lo_buf->add( '      items.push({' ).
     lo_buf->add( '        action: function() {' ).
-    lo_buf->add( '          if (input.form.action.includes(input.formAction) || input.classList.contains("main")) {' ).
-    lo_buf->add( '            input.form.submit();' ).
+    lo_buf->add( '          if (input.type === "button") {' ).
+    lo_buf->add( '            clickSapEvent(input);' ).
+    lo_buf->add( '          } else if (input.form.action.includes(input.formAction) || input.classList.contains("main")) {' ).
+    lo_buf->add( '            submitForm(input.form);' ).
     lo_buf->add( '          } else {' ).
     lo_buf->add( '            submitSapeventForm({}, input.formAction, "post", input.form);' ).
     lo_buf->add( '          }' ).
@@ -38872,7 +38879,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // pattern (\b still assumes word-shaped action names, which all current are)' ).
     lo_buf->add( '  var re = new RegExp("\\b" + action.replace(/[.*+?^${}()|[\]\\]/g, "\\$$") + "\\b");' ).
     lo_buf->add( '  return [].slice' ).
-    lo_buf->add( '    .call(document.querySelectorAll("a, input[type=''submit'']"))' ).
+    lo_buf->add( '    .call(document.querySelectorAll("a, input[type=''submit''], input[type=''button''][data-sapevent]"))' ).
     lo_buf->add( '    .filter(function(el) {' ).
     lo_buf->add( '      var target = el.getAttribute("data-sapevent");' ).
     lo_buf->add( '      if (!target) {' ).
@@ -60099,13 +60106,11 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
     IF mv_webgui = abap_true AND is_cmd-cmd_type <> zif_abapgit_html_form=>c_cmd_type-link.
       lv_action = escape( val    = is_cmd-action
                           format = cl_abap_format=>e_html_attr ).
-      lv_js = |submitSapeventForm(\{ \}, '{ lv_action }', 'post', |
+      lv_js = |submitSapeventForm(\{ \}, this.getAttribute('data-sapevent'), 'post', |
            && |document.getElementById('{ mv_form_id }'))|.
-      ii_html->add_a(
-        iv_txt   = is_cmd-label
-        iv_act   = lv_js
-        iv_typ   = zif_abapgit_html=>c_action_type-onclick
-        iv_class = lv_class ).
+      " Keep the action discoverable by hotkeys even though the link uses onclick
+      ii_html->add( |<a href="#" data-sapevent="{ lv_action }" onclick="{ lv_js }"|
+                 && | class="{ lv_class }">{ is_cmd-label }</a>| ).
       RETURN.
     ENDIF.
 
@@ -60489,7 +60494,8 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
         lv_side_action = escape( val    = is_field-side_action
                                  format = cl_abap_format=>e_html_attr ).
         ii_html->add( |<input type="button" value="&#x2026;" title="{ is_field-label }"|
-                   && | onclick="submitSapeventForm(\{ \}, '{ lv_side_action }', 'post', |
+                   && | data-sapevent="{ lv_side_action }"|
+                   && | onclick="submitSapeventForm(\{ \}, this.getAttribute('data-sapevent'), 'post', |
                    && |document.getElementById('{ mv_form_id }'))">| ).
       ELSE.
         ii_html->add( |<input type="submit" value="&#x2026;" formaction="sapevent:{ is_field-side_action }"|
@@ -155592,8 +155598,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-08T19:30:41.859Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-08T19:30:41.859Z`.
+* abapmerge 0.16.10 - 2026-09-09T04:18:34.928Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-09T04:18:34.928Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
