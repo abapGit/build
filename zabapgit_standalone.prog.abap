@@ -36637,14 +36637,16 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.openSelectedRepo = function() {' ).
-    lo_buf->add( '  this.selectedRepoKey = document.querySelector(".repo-overview tr.selected").dataset.key;' ).
+    lo_buf->add( '  var selectedRow = document.querySelector(".repo-overview tr.selected");' ).
+    lo_buf->add( '  if (!selectedRow) return;' ).
+    lo_buf->add( '  this.selectedRepoKey = selectedRow.dataset.key;' ).
     lo_buf->add( '  this.saveLocalStorage();' ).
     lo_buf->add( '  document.querySelector(".repo-overview tr.selected td.ro-go a").click();' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.selectRowByIndex = function(index) {' ).
     lo_buf->add( '  var rows = this.getVisibleRows();' ).
-    lo_buf->add( '  if (rows.length >= index) {' ).
+    lo_buf->add( '  if (index >= 0 && index < rows.length) {' ).
     lo_buf->add( '    var selectedRow = rows[index];' ).
     lo_buf->add( '    if (selectedRow.classList.contains("selected")) {' ).
     lo_buf->add( '      return;' ).
@@ -36661,6 +36663,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'RepoOverViewHelper.prototype.selectRowByRepoKey = function(key) {' ).
     lo_buf->add( '  var attributeQuery = "[data-key=''" + key + "'']";' ).
     lo_buf->add( '  var row            = document.querySelector(".repo-overview tbody tr" + attributeQuery);' ).
+    lo_buf->add( '  if (!row) return;' ).
     lo_buf->add( '  // navigation to already selected repo' ).
     lo_buf->add( '  if (row.dataset.key === key && row.classList.contains("selected")) {' ).
     lo_buf->add( '    return;' ).
@@ -38362,6 +38365,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// return non empty marked string in case it fits the filter' ).
     lo_buf->add( '// abc + b = a<mark>b</mark>c' ).
     lo_buf->add( 'function fuzzyMatchAndMark(str, filter) {' ).
+    lo_buf->add( '  function escapeText(text) {' ).
+    lo_buf->add( '    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  var markedStr   = "";' ).
     lo_buf->add( '  var filterLower = filter.toLowerCase();' ).
     lo_buf->add( '  var strLower    = str.toLowerCase();' ).
@@ -38369,15 +38376,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '  for (var i = 0; i < filter.length; i++) {' ).
     lo_buf->add( '    while (filterLower[i] !== strLower[cur] && cur < str.length) {' ).
-    lo_buf->add( '      markedStr += str[cur++];' ).
+    lo_buf->add( '      markedStr += escapeText(str[cur++]);' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '    if (cur === str.length) break;' ).
-    lo_buf->add( '    markedStr += "<mark>" + str[cur++] + "</mark>";' ).
+    lo_buf->add( '    markedStr += "<mark>" + escapeText(str[cur++]) + "</mark>";' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var matched = i === filter.length;' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if (matched && cur < str.length) markedStr += str.substring(cur);' ).
+    lo_buf->add( '  if (matched && cur < str.length) markedStr += escapeText(str.substring(cur));' ).
     lo_buf->add( '  return matched ? markedStr: null;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -155506,8 +155513,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-10T06:41:44.708Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-10T06:41:44.708Z`.
+* abapmerge 0.16.10 - 2026-09-10T10:39:30.145Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-10T10:39:30.145Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
