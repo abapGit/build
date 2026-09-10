@@ -2521,6 +2521,13 @@ INTERFACE zif_abapgit_aff_registry .
       IMPORTING
         iv_obj_type      TYPE tadir-object
       RETURNING
+        VALUE(rv_result) TYPE abap_bool,
+    "! Returns TRUE if the object type is known to abapGit but is still experimental,
+    "! ie. it is only supported if the experimental feature AFF is enabled in the settings.
+    is_experimental_object_type
+      IMPORTING
+        iv_obj_type      TYPE tadir-object
+      RETURNING
         VALUE(rv_result) TYPE abap_bool.
 ENDINTERFACE.
 
@@ -14592,6 +14599,16 @@ CLASS zcl_abapgit_objects DEFINITION
         !iv_obj_name   TYPE tadir-obj_name
       RETURNING
         VALUE(rv_bool) TYPE abap_bool.
+
+    CLASS-METHODS read_metadata
+      IMPORTING
+        !is_item     TYPE zif_abapgit_definitions=>ty_item
+        !io_files    TYPE REF TO zcl_abapgit_objects_files
+      EXPORTING
+        !eo_xml      TYPE REF TO zif_abapgit_xml_input
+        !es_metadata TYPE zif_abapgit_definitions=>ty_metadata
+      RAISING
+        zcx_abapgit_exception.
 
 ENDCLASS.
 CLASS zcl_abapgit_objects_factory DEFINITION
@@ -78949,14 +78966,13 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
 
           lo_files->set_files( lt_remote ).
 
-          IF lo_files->is_json_metadata( ) = abap_false.
-            "analyze XML in order to instantiate the proper serializer
-            lo_xml = lo_files->read_xml( ).
-            ls_metadata = lo_xml->get_metadata( ).
-          ELSE.
-            " there's no XML and metadata for JSON format
-            CLEAR: lo_xml, ls_metadata.
-          ENDIF.
+          read_metadata(
+            EXPORTING
+              is_item     = ls_item
+              io_files    = lo_files
+            IMPORTING
+              eo_xml      = lo_xml
+              es_metadata = ls_metadata ).
 
           li_obj = create_object(
             is_item        = ls_item
@@ -79427,6 +79443,32 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
       INSERT ls_item INTO TABLE rt_items.
 
     ENDLOOP.
+
+  ENDMETHOD.
+  METHOD read_metadata.
+
+    DATA li_registry TYPE REF TO zif_abapgit_aff_registry.
+
+    CLEAR: eo_xml, es_metadata.
+
+    IF io_files->is_json_metadata( ) = abap_true.
+      " There's no XML and metadata for JSON (AFF) format
+      li_registry = zcl_abapgit_aff_factory=>get_registry( ).
+      IF li_registry->is_supported_object_type( is_item-obj_type ) = abap_false.
+        IF li_registry->is_experimental_object_type( is_item-obj_type ) = abap_true.
+          zcx_abapgit_exception=>raise( |Object is serialized in AFF format. Enable experimental | &&
+            |feature { zcl_abapgit_aff_registry=>c_aff_feature } in global settings| ).
+        ELSE.
+          zcx_abapgit_exception=>raise( |Object is serialized in AFF format| &&
+            |, which is not supported for object type { is_item-obj_type }| ).
+        ENDIF.
+      ENDIF.
+      RETURN.
+    ENDIF.
+
+    " Analyze XML in order to instantiate the proper serializer
+    eo_xml = io_files->read_xml( ).
+    es_metadata = eo_xml->get_metadata( ).
 
   ENDMETHOD.
   METHOD serialize.
@@ -113348,13 +113390,19 @@ CLASS kHGwllSxIcaRTGzWEpvFvDDGtKNvAd DEFINITION.
       map_data_type_to_aff
         IMPORTING
           iv_ddic_type       TYPE dd01v-datatype
+          iv_length          TYPE dd01v-leng
         RETURNING
           VALUE(rv_aff_type) TYPE zif_abapgit_aff_ddic_types_v1=>ty_data_type,
       map_data_type_to_ddic
         IMPORTING
           iv_aff_type         TYPE zif_abapgit_aff_ddic_types_v1=>ty_data_type
         RETURNING
-          VALUE(rv_ddic_type) TYPE dd01v-datatype.
+          VALUE(rv_ddic_type) TYPE dd01v-datatype,
+      is_supported_data_type
+        IMPORTING
+          iv_data_type        TYPE zif_abapgit_aff_ddic_types_v1=>ty_data_type
+        RETURNING
+          VALUE(rv_supported) TYPE abap_bool.
 ENDCLASS.
 
 CLASS kHGwllSxIcaRTGzWEpvFvDDGtKNvAd IMPLEMENTATION.
@@ -113385,7 +113433,9 @@ CLASS kHGwllSxIcaRTGzWEpvFvDDGtKNvAd IMPLEMENTATION.
     ls_data_aff-header-abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version-standard.
 
     " Map format
-    ls_data_aff-format-data_type = map_data_type_to_aff( lo_doma_data->ms_dd01v-datatype ).
+    ls_data_aff-format-data_type = map_data_type_to_aff(
+      iv_ddic_type = lo_doma_data->ms_dd01v-datatype
+      iv_length    = lo_doma_data->ms_dd01v-leng ).
     ls_data_aff-format-length = lo_doma_data->ms_dd01v-leng.
     IF lo_doma_data->ms_dd01v-decimals IS NOT INITIAL.
       ls_data_aff-format-decimals = lo_doma_data->ms_dd01v-decimals.
@@ -113411,8 +113461,8 @@ CLASS kHGwllSxIcaRTGzWEpvFvDDGtKNvAd IMPLEMENTATION.
     ENDIF.
 
     LOOP AT lo_doma_data->ms_dd07v ASSIGNING <ls_dd07v>.
-      IF <ls_dd07v>-domvalue_l = <ls_dd07v>-domvalue_h.
-        " Single value
+      IF <ls_dd07v>-domvalue_h IS INITIAL OR <ls_dd07v>-domvalue_h = <ls_dd07v>-domvalue_l.
+        " Single value, DDIC leaves the upper limit empty
         ls_single_value-fixed_value = <ls_dd07v>-domvalue_l.
         ls_single_value-description = <ls_dd07v>-ddtext.
         APPEND ls_single_value TO ls_data_aff-fixed_values.
@@ -113477,7 +113527,7 @@ CLASS kHGwllSxIcaRTGzWEpvFvDDGtKNvAd IMPLEMENTATION.
       ls_dd07v-domname = lo_doma_data->ms_dd01v-domname.
       ls_dd07v-valpos = lv_valpos.
       ls_dd07v-domvalue_l = <ls_single_value>-fixed_value.
-      ls_dd07v-domvalue_h = <ls_single_value>-fixed_value.
+      " Upper limit stays empty, else DDIC issues a warning
       ls_dd07v-ddtext = <ls_single_value>-description.
       ls_dd07v-ddlanguage = lo_doma_data->ms_dd01v-ddlanguage.
       APPEND ls_dd07v TO lo_doma_data->ms_dd07v.
@@ -113507,164 +113557,52 @@ CLASS kHGwllSxIcaRTGzWEpvFvDDGtKNvAd IMPLEMENTATION.
 
   METHOD map_data_type_to_aff.
     CASE iv_ddic_type.
-      WHEN 'ACCP'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-accp.
-      WHEN 'CHAR'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-char.
-      WHEN 'CLNT'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-clnt.
-      WHEN 'CUKY'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-cuky.
-      WHEN 'CURR'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-curr.
-      WHEN 'DF16_DEC'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-df16_dec.
-      WHEN 'DF16_RAW'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-df16_raw.
-      WHEN 'DF16_SCL'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-df16_scl.
-      WHEN 'DECFLOAT16'.
+      WHEN 'DF16'.
         rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-decfloat16.
-      WHEN 'DF34_DEC'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-df34_dec.
-      WHEN 'DF34_RAW'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-df34_raw.
-      WHEN 'DF34_SCL'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-df34_scl.
-      WHEN 'DECFLOAT34'.
+      WHEN 'DF34'.
         rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-decfloat34.
-      WHEN 'DATS'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-dats.
-      WHEN 'DATN'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-datn.
-      WHEN 'DEC'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-dec.
-      WHEN 'FLTP'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-fltp.
-      WHEN 'GEOM_EWKB'.
+      WHEN 'DECF'.
+        IF iv_length <= 16.
+          rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-decfloat16.
+        ELSE.
+          rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-decfloat34.
+        ENDIF.
+      WHEN 'GEOM'.
         rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-geom_ewkb.
-      WHEN 'INT1'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-int1.
-      WHEN 'INT2'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-int2.
-      WHEN 'INT4'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-int4.
-      WHEN 'INT8'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-int8.
-      WHEN 'LANG'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-lang.
-      WHEN 'LCHR'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-lchr.
-      WHEN 'LRAW'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-lraw.
-      WHEN 'NUMC'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-numc.
-      WHEN 'PREC'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-prec.
-      WHEN 'QUAN'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-quan.
-      WHEN 'RAW'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-raw.
-      WHEN 'RAWSTRING'.
+      WHEN 'RAWS'.
         rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-rawstring.
-      WHEN 'SSTRING'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-sstring.
-      WHEN 'STRING' OR 'STRG'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-string.
-      WHEN 'TIMS'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-tims.
-      WHEN 'TIMN'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-timn.
-      WHEN 'UNIT'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-unit.
-      WHEN 'UTCLONG'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-utclong.
-      WHEN 'VARC'.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-varc.
       WHEN OTHERS.
-        rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-char.
+        rv_aff_type = iv_ddic_type.
     ENDCASE.
+
+    IF is_supported_data_type( rv_aff_type ) = abap_false.
+      rv_aff_type = zif_abapgit_aff_ddic_types_v1=>co_data_type-char.
+    ENDIF.
   ENDMETHOD.
 
   METHOD map_data_type_to_ddic.
-    CASE iv_aff_type.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-accp.
-        rv_ddic_type = 'ACCP'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-char.
-        rv_ddic_type = 'CHAR'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-clnt.
-        rv_ddic_type = 'CLNT'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-cuky.
-        rv_ddic_type = 'CUKY'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-curr.
-        rv_ddic_type = 'CURR'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-df16_dec.
-        rv_ddic_type = 'DF16'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-df16_raw.
-        rv_ddic_type = 'DF16'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-df16_scl.
-        rv_ddic_type = 'DF16'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-decfloat16.
-        rv_ddic_type = 'DECF'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-df34_dec.
-        rv_ddic_type = 'DF34'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-df34_raw.
-        rv_ddic_type = 'DF34'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-df34_scl.
-        rv_ddic_type = 'DF34'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-decfloat34.
-        rv_ddic_type = 'DECF'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-dats.
-        rv_ddic_type = 'DATS'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-datn.
-        rv_ddic_type = 'DATN'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-dec.
-        rv_ddic_type = 'DEC'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-fltp.
-        rv_ddic_type = 'FLTP'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-geom_ewkb.
-        rv_ddic_type = 'GEOM'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-int1.
-        rv_ddic_type = 'INT1'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-int2.
-        rv_ddic_type = 'INT2'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-int4.
-        rv_ddic_type = 'INT4'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-int8.
-        rv_ddic_type = 'INT8'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-lang.
-        rv_ddic_type = 'LANG'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-lchr.
-        rv_ddic_type = 'LCHR'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-lraw.
-        rv_ddic_type = 'LRAW'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-numc.
-        rv_ddic_type = 'NUMC'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-prec.
-        rv_ddic_type = 'PREC'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-quan.
-        rv_ddic_type = 'QUAN'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-raw.
-        rv_ddic_type = 'RAW'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-rawstring.
-        rv_ddic_type = 'RAWS'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-sstring.
-        rv_ddic_type = 'SSTR'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-string.
-        rv_ddic_type = 'STRG'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-tims.
-        rv_ddic_type = 'TIMS'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-timn.
-        rv_ddic_type = 'TIMN'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-unit.
-        rv_ddic_type = 'UNIT'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-utclong.
-        rv_ddic_type = 'UTCL'.
-      WHEN zif_abapgit_aff_ddic_types_v1=>co_data_type-varc.
-        rv_ddic_type = 'VARC'.
-      WHEN OTHERS.
-        rv_ddic_type = 'CHAR'.
-    ENDCASE.
+    IF is_supported_data_type( iv_aff_type ) = abap_true.
+      rv_ddic_type = iv_aff_type.
+    ELSE.
+      rv_ddic_type = 'CHAR'.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD is_supported_data_type.
+    DATA ls_data_types LIKE zif_abapgit_aff_ddic_types_v1=>co_data_type.
+
+    FIELD-SYMBOLS <lv_data_type> TYPE any.
+
+    ls_data_types = zif_abapgit_aff_ddic_types_v1=>co_data_type.
+    DO.
+      ASSIGN COMPONENT sy-index OF STRUCTURE ls_data_types TO <lv_data_type>.
+      IF sy-subrc <> 0.
+        RETURN.
+      ELSEIF <lv_data_type> = iv_data_type.
+        rv_supported = abap_true.
+        RETURN.
+      ENDIF.
+    ENDDO.
   ENDMETHOD.
 
 ENDCLASS.
@@ -113692,6 +113630,8 @@ CLASS kHGwllSxIcaRTGzWEpvFrsxFJiznPf DEFINITION.
   PRIVATE SECTION.
     CLASS-METHODS:
       get_enum_mappings
+        IMPORTING
+          iv_snake_case    TYPE abap_bool DEFAULT abap_false
         RETURNING
           VALUE(rt_result) TYPE zcl_abapgit_json_handler=>ty_enum_mappings.
 ENDCLASS.
@@ -113750,7 +113690,7 @@ CLASS kHGwllSxIcaRTGzWEpvFrsxFJiznPf IMPLEMENTATION.
     DATA lv_json_string TYPE string.
     DATA lx_exception TYPE REF TO cx_root.
 
-    lt_enum_mappings = get_enum_mappings( ).
+    lt_enum_mappings = get_enum_mappings( abap_true ).
 
     lv_json_string = zcl_abapgit_convert=>xstring_to_string_utf8( iv_json ).
 
@@ -113783,90 +113723,34 @@ CLASS kHGwllSxIcaRTGzWEpvFrsxFJiznPf IMPLEMENTATION.
   METHOD get_enum_mappings.
     DATA ls_mapping TYPE zcl_abapgit_json_handler=>ty_enum_mapping.
     DATA ls_json_abap_mapping TYPE zcl_abapgit_json_handler=>ty_json_abap_mapping.
+    DATA lt_identity_values TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    DATA lt_enum_pairs TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    DATA lv_identity_value TYPE string.
+    DATA lv_enum_pair TYPE string.
 
-    " Map data types - all types map to themselves in uppercase
-    ls_mapping-path = '/format/dataType'.
-    CLEAR ls_mapping-mappings.
+    IF iv_snake_case = abap_true.
+      ls_mapping-path = '/format/data_type'.
+    ELSE.
+      ls_mapping-path = '/format/dataType'.
+    ENDIF.
 
-    ls_json_abap_mapping-abap = 'ACCP'.
-    ls_json_abap_mapping-json = 'ACCP'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
+    SPLIT `ACCP CHAR CLNT CUKY CURR DATS DATN DEC FLTP INT1 INT2 INT4 INT8 LANG ` &&
+      `LCHR LRAW NUMC PREC QUAN RAW TIMS TIMN UNIT VARC`
+      AT space INTO TABLE lt_identity_values.
+    LOOP AT lt_identity_values INTO lv_identity_value.
+      ls_json_abap_mapping-abap = lv_identity_value.
+      ls_json_abap_mapping-json = lv_identity_value.
+      APPEND ls_json_abap_mapping TO ls_mapping-mappings.
+    ENDLOOP.
 
-    ls_json_abap_mapping-abap = 'CHAR'.
-    ls_json_abap_mapping-json = 'CHAR'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'CLNT'.
-    ls_json_abap_mapping-json = 'CLNT'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'CUKY'.
-    ls_json_abap_mapping-json = 'CUKY'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'CURR'.
-    ls_json_abap_mapping-json = 'CURR'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'DATS'.
-    ls_json_abap_mapping-json = 'DATS'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'DEC'.
-    ls_json_abap_mapping-json = 'DEC'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'FLTP'.
-    ls_json_abap_mapping-json = 'FLTP'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'INT1'.
-    ls_json_abap_mapping-json = 'INT1'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'INT2'.
-    ls_json_abap_mapping-json = 'INT2'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'INT4'.
-    ls_json_abap_mapping-json = 'INT4'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'INT8'.
-    ls_json_abap_mapping-json = 'INT8'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'LANG'.
-    ls_json_abap_mapping-json = 'LANG'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'NUMC'.
-    ls_json_abap_mapping-json = 'NUMC'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'QUAN'.
-    ls_json_abap_mapping-json = 'QUAN'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'RAW'.
-    ls_json_abap_mapping-json = 'RAW'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'RAWSTRING'.
-    ls_json_abap_mapping-json = 'RAWSTRING'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'STRING'.
-    ls_json_abap_mapping-json = 'STRING'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'TIMS'.
-    ls_json_abap_mapping-json = 'TIMS'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
-
-    ls_json_abap_mapping-abap = 'UNIT'.
-    ls_json_abap_mapping-json = 'UNIT'.
-    APPEND ls_json_abap_mapping TO ls_mapping-mappings.
+    SPLIT `D16D=DF16_DEC D16R=DF16_RAW D16S=DF16_SCL D16N=DECFLOAT16 ` &&
+      `D34D=DF34_DEC D34R=DF34_RAW D34S=DF34_SCL D34N=DECFLOAT34 ` &&
+      `GGM1=GEOM_EWKB RSTR=RAWSTRING SSTR=SSTRING STRG=STRING UTCL=UTCLONG`
+      AT space INTO TABLE lt_enum_pairs.
+    LOOP AT lt_enum_pairs INTO lv_enum_pair.
+      SPLIT lv_enum_pair AT '=' INTO ls_json_abap_mapping-abap ls_json_abap_mapping-json.
+      APPEND ls_json_abap_mapping TO ls_mapping-mappings.
+    ENDLOOP.
 
     APPEND ls_mapping TO rt_result.
 
@@ -114170,9 +114054,9 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
     ELSE.
       " If JSON file not found, fall back to XML
       io_xml->read( EXPORTING iv_name = 'DD01V'
-                        CHANGING  cg_data = ls_dd01v ).
+                    CHANGING  cg_data = ls_dd01v ).
       io_xml->read( EXPORTING iv_name = 'DD07V_TAB'
-                        CHANGING  cg_data = lt_dd07v ).
+                    CHANGING  cg_data = lt_dd07v ).
     ENDIF.
 
     handle_dependencies(
@@ -114213,7 +114097,12 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
 
-    IF mv_aff_enabled = abap_false.
+    IF lv_json IS NOT INITIAL.
+      deserialize_longtexts_aff( c_longtext_id_doma ).
+
+      " Note: Translation handling for AFF format not yet implemented
+      " Translation files would be handled similar to INTF deserialization
+    ELSE.
       io_xml->read( EXPORTING iv_name = 'DD01L_EXTRA'
                     CHANGING  cg_data = ls_extra ).
 
@@ -114223,14 +114112,7 @@ CLASS zcl_abapgit_object_doma IMPLEMENTATION.
           UPDATE ('DD01L') SET abap_language_version = ls_extra-abap_language_version WHERE domname = lv_name.
         CATCH cx_sy_dynamic_osql_semantics ##NO_HANDLER.
       ENDTRY.
-    ENDIF.
 
-    IF mv_aff_enabled = abap_true.
-      deserialize_longtexts_aff( c_longtext_id_doma ).
-
-      " Note: Translation handling for AFF format not yet implemented
-      " Translation files would be handled similar to INTF deserialization
-    ELSE.
       IF mo_i18n_params->is_lxe_applicable( ) = abap_false.
         deserialize_texts(
           ii_xml   = io_xml
@@ -138004,6 +137886,19 @@ CLASS ZCL_ABAPGIT_AFF_REGISTRY IMPLEMENTATION.
     ls_registry_entry-experimental = iv_experimental.
     INSERT ls_registry_entry INTO TABLE gt_registry.
   ENDMETHOD.
+  METHOD zif_abapgit_aff_registry~is_experimental_object_type.
+
+    DATA ls_registry_entry TYPE ty_registry_entry.
+
+    IF gt_registry IS INITIAL.
+      initialize_registry_table( ).
+    ENDIF.
+
+    READ TABLE gt_registry WITH TABLE KEY obj_type = iv_obj_type INTO ls_registry_entry.
+    IF sy-subrc = 0.
+      rv_result = ls_registry_entry-experimental.
+    ENDIF.
+  ENDMETHOD.
   METHOD zif_abapgit_aff_registry~is_supported_object_type.
 
     DATA ls_registry_entry TYPE ty_registry_entry.
@@ -155611,8 +155506,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-10T01:23:24.349Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-10T01:23:24.349Z`.
+* abapmerge 0.16.10 - 2026-09-10T06:41:44.708Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-10T06:41:44.708Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
