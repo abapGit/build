@@ -38493,9 +38493,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  if (newIndex !== this.selectIndex) {' ).
     lo_buf->add( '    if (this.selectIndex >= 0) this.commands[this.selectIndex].element.classList.remove("selected");' ).
     lo_buf->add( '    var newCmd = this.commands[newIndex];' ).
-    lo_buf->add( '    newCmd.element.classList.add("selected");' ).
     lo_buf->add( '    this.selectIndex = newIndex;' ).
-    lo_buf->add( '    this.adjustScrollPosition(newCmd.element);' ).
+    lo_buf->add( '    if (newCmd) {' ).
+    lo_buf->add( '      newCmd.element.classList.add("selected");' ).
+    lo_buf->add( '      this.adjustScrollPosition(newCmd.element);' ).
+    lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
@@ -38503,8 +38505,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  for (var i = 0; i < this.commands.length; i++) {' ).
     lo_buf->add( '    if (this.commands[i].element.style.display === "none") continue; // skip hidden' ).
     lo_buf->add( '    this.applySelectIndex(i);' ).
-    lo_buf->add( '    break;' ).
+    lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
+    lo_buf->add( '  this.applySelectIndex(-1);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'CommandPalette.prototype.selectNext = function() {' ).
@@ -38562,6 +38565,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      if (cmd.getTitle) cmd.title = cmd.getTitle();' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '    this.elements.input.value = "";' ).
+    lo_buf->add( '    this.filter = "";' ).
     lo_buf->add( '    this.elements.input.focus();' ).
     lo_buf->add( '    this.applyFilter();' ).
     lo_buf->add( '    this.selectFirst();' ).
@@ -155607,8 +155611,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-10T01:20:14.747Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-10T01:20:14.747Z`.
+* abapmerge 0.16.10 - 2026-09-10T01:23:24.349Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-10T01:23:24.349Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
