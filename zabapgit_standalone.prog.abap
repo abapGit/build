@@ -67243,10 +67243,19 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
   ENDMETHOD.
   METHOD cache_html.
 
-    rv_url = zif_abapgit_gui_services~cache_asset(
-      iv_text    = iv_text
-      iv_type    = 'text'
-      iv_subtype = 'html' ).
+    IF zcl_abapgit_ui_factory=>get_frontend_services( )->is_sapgui_for_java( ) = abap_true.
+      "Java GUI needs the UTF-8 payload length in bytes for non-ASCII HTML.
+      rv_url = zif_abapgit_gui_services~cache_asset(
+        iv_xdata   = zcl_abapgit_convert=>string_to_xstring_utf8( iv_text )
+        iv_type    = 'text'
+        iv_subtype = 'html' ).
+    ELSE.
+      "Keep the character-based HTML processing for WebGUI and Windows.
+      rv_url = zif_abapgit_gui_services~cache_asset(
+        iv_text    = iv_text
+        iv_type    = 'text'
+        iv_subtype = 'html' ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD call_page.
@@ -155598,8 +155607,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-09T04:18:34.928Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-09T04:18:34.928Z`.
+* abapmerge 0.16.10 - 2026-09-10T01:20:14.747Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-10T01:20:14.747Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
