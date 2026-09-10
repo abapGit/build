@@ -34835,8 +34835,16 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border-radius: 2px;' ).
     lo_buf->add( '  display: inline-block;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '.dialog .radio-container.with-border input[type="radio"] + label {' ).
+    lo_buf->add( '  border: 1px solid rgba(0, 0, 0, 0.3);' ).
+    lo_buf->add( '  border-radius: 3px;' ).
+    lo_buf->add( '  margin-bottom: 2px;' ).
+    lo_buf->add( '}' ).
     lo_buf->add( '.dialog .radio-container input[type="radio"]:checked + label {' ).
     lo_buf->add( '  border: 1px solid transparent;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '.dialog .radio-container label:hover {' ).
+    lo_buf->add( '  background-color: rgba(0, 0, 0, 0.1);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '.dialog table {' ).
     lo_buf->add( '  width: 100%;' ).
@@ -34989,16 +34997,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    width: 100%;' ).
     lo_buf->add( '    height: 100%;' ).
     lo_buf->add( '    background: rgba(0, 0, 0, 0.3);' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '.modal .radio-container label {' ).
-    lo_buf->add( '  /* hacky, improve later, get rid of !important, hook it to a named style instead */' ).
-    lo_buf->add( '  border-radius: 3px !important;' ).
-    lo_buf->add( '  border: 1px solid rgba(0, 0, 0, 0.3) !important;' ).
-    lo_buf->add( '  margin-bottom: 2px !important;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '.modal .radio-container label:hover {' ).
-    lo_buf->add( '  background-color: rgba(0, 0, 0, 0.1);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* WHERE USED PAGE */' ).
@@ -60366,7 +60364,11 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
       ii_html->add( is_attr-error ).
     ENDIF.
 
-    ii_html->add( |<div class="radio-container">| ).
+    IF is_field-condense = abap_true.
+      ii_html->add( |<div class="radio-container">| ).
+    ELSE.
+      ii_html->add( |<div class="radio-container with-border">| ).
+    ENDIF.
 
     LOOP AT is_field-subitems ASSIGNING <ls_opt>.
 
@@ -60845,11 +60847,13 @@ CLASS zcl_abapgit_gui_picklist IMPLEMENTATION.
 
     ro_form = zcl_abapgit_html_form=>create( ).
 
+    ASSIGN mr_list->* TO <lt_list>.
+
     ro_form->radio(
       iv_name     = c_radio_name
-      iv_label    = mv_title ).
+      iv_label    = mv_title
+      iv_condense = boolc( lines( <lt_list> ) <= 15 ) ).
 
-    ASSIGN mr_list->* TO <lt_list>.
     LOOP AT <lt_list> ASSIGNING <ls_row>.
       lv_index = sy-tabix.
 
@@ -155522,8 +155526,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-10T15:21:17.336Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-10T15:21:17.336Z`.
+* abapmerge 0.16.10 - 2026-09-10T17:45:32.441Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-10T17:45:32.441Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
