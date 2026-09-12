@@ -176,6 +176,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_run_bckg DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_repo_view DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_repo_over DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_ref_sel DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_pull DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge_sel DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_merge_res DEFINITION DEFERRED.
@@ -7377,20 +7378,11 @@ INTERFACE zif_abapgit_popups .
       !iv_url                 TYPE string
       !iv_default_branch      TYPE string OPTIONAL
       !iv_show_new_option     TYPE abap_bool OPTIONAL
-      !iv_hide_branch         TYPE zif_abapgit_persistence=>ty_repo-branch_name OPTIONAL
-      !iv_hide_head           TYPE abap_bool OPTIONAL
       !iv_title               TYPE csequence DEFAULT 'Select Branch'
       !iv_text                TYPE csequence DEFAULT 'Select a branch'
       !iv_show_switch_message TYPE abap_bool DEFAULT abap_true
     RETURNING
       VALUE(rs_branch)        TYPE zif_abapgit_git_definitions=>ty_git_branch
-    RAISING
-      zcx_abapgit_exception .
-  METHODS tag_list_popup
-    IMPORTING
-      !iv_url       TYPE string
-    RETURNING
-      VALUE(rs_tag) TYPE zif_abapgit_git_definitions=>ty_git_tag
     RAISING
       zcx_abapgit_exception .
   METHODS commit_list_popup
@@ -28730,6 +28722,49 @@ CLASS zcl_abapgit_gui_page_pull DEFINITION
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
+CLASS zcl_abapgit_gui_page_ref_sel DEFINITION
+  INHERITING FROM zcl_abapgit_gui_component
+  FINAL
+  CREATE PRIVATE.
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
+    INTERFACES zif_abapgit_gui_page_title.
+
+    CLASS-METHODS create
+      IMPORTING
+        !iv_key        TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_action     TYPE string
+      RETURNING
+        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS constructor
+      IMPORTING
+        !iv_key    TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_action TYPE string
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA mv_key TYPE zif_abapgit_persistence=>ty_repo-key.
+    DATA mv_action TYPE string.
+    DATA mo_picklist TYPE REF TO zcl_abapgit_gui_picklist.
+
+    METHODS create_picklist
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS execute_selection
+      RAISING
+        zcx_abapgit_exception.
+
+ENDCLASS.
 CLASS zcl_abapgit_gui_page_repo_over DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
   FINAL
@@ -29190,6 +29225,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
     DATA mv_filter_value TYPE string .
     DATA mv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result.
     DATA mi_obj_filter TYPE REF TO zif_abapgit_object_filter.
+    DATA mo_popup_picklist TYPE REF TO zcl_abapgit_gui_picklist.
 
     METHODS find_changed_by
       IMPORTING
@@ -29253,6 +29289,14 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
       RAISING
         zcx_abapgit_exception .
     METHODS init_files
+      RAISING
+        zcx_abapgit_exception .
+    METHODS switch_branch
+      IMPORTING
+        !io_picklist TYPE REF TO zcl_abapgit_gui_picklist OPTIONAL
+      RAISING
+        zcx_abapgit_exception .
+    METHODS handle_picklist_state
       RAISING
         zcx_abapgit_exception .
 ENDCLASS.
@@ -29389,6 +29433,8 @@ CLASS zcl_abapgit_popup_branch_list DEFINITION
         !iv_url             TYPE string
         !iv_default_branch  TYPE string OPTIONAL
         !iv_show_new_option TYPE abap_bool DEFAULT abap_false
+        !iv_hide_branch     TYPE zif_abapgit_git_definitions=>ty_git_branch-name OPTIONAL
+        !iv_hide_head       TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(ri_popup)     TYPE REF TO zif_abapgit_html_popup.
 
@@ -29396,7 +29442,9 @@ CLASS zcl_abapgit_popup_branch_list DEFINITION
       IMPORTING
         !iv_url             TYPE string
         !iv_default_branch  TYPE string OPTIONAL
-        !iv_show_new_option TYPE abap_bool DEFAULT abap_false.
+        !iv_show_new_option TYPE abap_bool DEFAULT abap_false
+        !iv_hide_branch     TYPE zif_abapgit_git_definitions=>ty_git_branch-name OPTIONAL
+        !iv_hide_head       TYPE abap_bool DEFAULT abap_false.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -29404,6 +29452,8 @@ CLASS zcl_abapgit_popup_branch_list DEFINITION
     DATA mv_repo_url TYPE string.
     DATA mv_default_branch TYPE string.
     DATA mv_show_new_option TYPE abap_bool.
+    DATA mv_hide_branch TYPE zif_abapgit_git_definitions=>ty_git_branch-name.
+    DATA mv_hide_head TYPE abap_bool.
 
     METHODS fetch_branch_list
       RETURNING
@@ -29834,22 +29884,26 @@ CLASS zcl_abapgit_services_git DEFINITION
         zcx_abapgit_exception.
     CLASS-METHODS switch_branch
       IMPORTING
-        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_key    TYPE zif_abapgit_persistence=>ty_repo-key
+        !is_branch TYPE zif_abapgit_git_definitions=>ty_git_branch
       RAISING
         zcx_abapgit_exception.
     CLASS-METHODS delete_branch
       IMPORTING
-        !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_key    TYPE zif_abapgit_persistence=>ty_repo-key
+        !is_branch TYPE zif_abapgit_git_definitions=>ty_git_branch
       RAISING
         zcx_abapgit_exception.
     CLASS-METHODS delete_tag
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+        !is_tag TYPE zif_abapgit_git_definitions=>ty_git_tag
       RAISING
         zcx_abapgit_exception.
     CLASS-METHODS switch_tag
       IMPORTING
         !iv_key TYPE zif_abapgit_persistence=>ty_repo-key
+        !is_tag TYPE zif_abapgit_git_definitions=>ty_git_tag
       RAISING
         zcx_abapgit_exception.
     CLASS-METHODS commit
@@ -40565,33 +40619,8 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     lv_head_suffix = | ({ zif_abapgit_git_definitions=>c_head_name })|.
     lv_head_symref = lo_branches->get_head_symref( ).
 
-    IF iv_hide_branch IS NOT INITIAL.
-      DELETE lt_branches WHERE name = iv_hide_branch.
-    ENDIF.
-
-    IF iv_hide_head IS NOT INITIAL.
-      DELETE lt_branches WHERE name    = zif_abapgit_git_definitions=>c_head_name
-                            OR is_head = abap_true.
-    ENDIF.
-
     IF lt_branches IS INITIAL.
-      IF iv_hide_head IS NOT INITIAL.
-        lv_text = 'main'.
-      ENDIF.
-      IF iv_hide_branch IS NOT INITIAL AND iv_hide_branch <> zif_abapgit_git_definitions=>c_git_branch-main.
-        IF lv_text IS INITIAL.
-          lv_text = iv_hide_branch && ' is'.
-        ELSE.
-          CONCATENATE lv_text 'and' iv_hide_branch 'are' INTO lv_text SEPARATED BY space.
-        ENDIF.
-      ELSE.
-        lv_text = lv_text && ' is'.
-      ENDIF.
-      IF lv_text IS NOT INITIAL.
-        zcx_abapgit_exception=>raise( 'No branches available to select (' && lv_text && ' hidden)' ).
-      ELSE.
-        zcx_abapgit_exception=>raise( 'No branches are available to select' ).
-      ENDIF.
+      zcx_abapgit_exception=>raise( 'No branches are available to select' ).
     ENDIF.
 
     LOOP AT lt_branches ASSIGNING <ls_branch>.
@@ -41168,75 +41197,6 @@ CLASS zcl_abapgit_popups IMPLEMENTATION.
     ELSEIF sy-subrc > 1.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
-
-  ENDMETHOD.
-  METHOD zif_abapgit_popups~tag_list_popup.
-
-    DATA: lo_branches  TYPE REF TO zif_abapgit_git_branch_list,
-          lt_tags      TYPE zif_abapgit_git_definitions=>ty_git_branch_list_tt,
-          ls_branch    TYPE zif_abapgit_git_definitions=>ty_git_branch,
-          lv_answer    TYPE c LENGTH 1,
-          lv_default   TYPE i,
-          lv_tag       TYPE string,
-          lt_selection TYPE TABLE OF spopli.
-
-    FIELD-SYMBOLS: <ls_sel> LIKE LINE OF lt_selection,
-                   <ls_tag> LIKE LINE OF lt_tags.
-    lo_branches = zcl_abapgit_git_factory=>get_git_transport( )->branches( iv_url ).
-    lt_tags     = lo_branches->get_tags_only( ).
-
-    LOOP AT lt_tags ASSIGNING <ls_tag> WHERE name NP '*' && zif_abapgit_git_definitions=>c_git_branch-peel.
-
-      APPEND INITIAL LINE TO lt_selection ASSIGNING <ls_sel>.
-      <ls_sel>-varoption = zcl_abapgit_git_tag=>remove_tag_prefix( <ls_tag>-name ).
-
-    ENDLOOP.
-
-    IF lt_selection IS INITIAL.
-      zcx_abapgit_exception=>raise( 'No tags are available to select' ).
-    ENDIF.
-
-    ms_position = center(
-      iv_width  = 30
-      iv_height = lines( lt_selection ) ).
-
-    CALL FUNCTION 'POPUP_TO_DECIDE_LIST'
-      EXPORTING
-        titel      = 'Select Tag'
-        textline1  = 'Select a tag'
-        start_col  = ms_position-start_column
-        start_row  = ms_position-start_row
-        cursorline = lv_default
-      IMPORTING
-        answer     = lv_answer
-      TABLES
-        t_spopli   = lt_selection
-      EXCEPTIONS
-        OTHERS     = 1.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Error from POPUP_TO_DECIDE_LIST' ).
-    ENDIF.
-
-    IF lv_answer = c_answer_cancel.
-      RETURN.
-    ENDIF.
-
-    READ TABLE lt_selection ASSIGNING <ls_sel> WITH KEY selflag = abap_true.
-    ASSERT sy-subrc = 0.
-
-    lv_tag = zcl_abapgit_git_tag=>add_tag_prefix( <ls_sel>-varoption ).
-
-    READ TABLE lt_tags WITH KEY name_key COMPONENTS name = lv_tag ASSIGNING <ls_tag>.
-    IF sy-subrc <> 0.
-      " tag name longer than 65 characters
-      LOOP AT lt_tags ASSIGNING <ls_tag> WHERE name CS lv_tag.
-        EXIT.
-      ENDLOOP.
-    ENDIF.
-    ASSERT <ls_tag> IS ASSIGNED.
-
-    ls_branch = lo_branches->find_by_name( <ls_tag>-name ).
-    MOVE-CORRESPONDING ls_branch TO rs_tag.
 
   ENDMETHOD.
   METHOD _popup_3_get_values.
@@ -43053,45 +43013,29 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
   METHOD delete_branch.
 
     DATA: li_repo_online TYPE REF TO zif_abapgit_repo_online,
-          ls_branch      TYPE zif_abapgit_git_definitions=>ty_git_branch,
-          lv_msg         TYPE string,
-          li_popups      TYPE REF TO zif_abapgit_popups.
+          lv_msg         TYPE string.
     li_repo_online ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    li_popups = zcl_abapgit_ui_factory=>get_popups( ).
-    ls_branch = li_popups->branch_list_popup( iv_url         = li_repo_online->get_url( )
-                                              iv_hide_branch = li_repo_online->get_selected_branch( )
-                                              iv_hide_head   = abap_true ).
-    IF ls_branch IS INITIAL.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
 
     zcl_abapgit_git_porcelain=>delete_branch(
       iv_url    = li_repo_online->get_url( )
-      is_branch = ls_branch ).
+      is_branch = is_branch ).
 
-    lv_msg = |Branch { ls_branch-display_name } deleted|.
+    lv_msg = |Branch { is_branch-display_name } deleted|.
     MESSAGE lv_msg TYPE 'S'.
 
   ENDMETHOD.
   METHOD delete_tag.
 
     DATA: li_repo_online TYPE REF TO zif_abapgit_repo_online,
-          ls_tag         TYPE zif_abapgit_git_definitions=>ty_git_tag,
           lv_text        TYPE string.
 
     li_repo_online ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    ls_tag = zcl_abapgit_ui_factory=>get_popups( )->tag_list_popup( li_repo_online->get_url( ) ).
-    IF ls_tag IS INITIAL.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
     zcl_abapgit_git_porcelain=>delete_tag(
       iv_url = li_repo_online->get_url( )
-      is_tag = ls_tag ).
+      is_tag = is_tag ).
 
-    lv_text = |Tag { ls_tag-display_name } deleted|.
+    lv_text = |Tag { is_tag-display_name } deleted|.
 
     MESSAGE lv_text TYPE 'S'.
 
@@ -43109,24 +43053,15 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
   ENDMETHOD.
   METHOD switch_branch.
 
-    DATA: li_repo_online TYPE REF TO zif_abapgit_repo_online,
-          ls_branch      TYPE zif_abapgit_git_definitions=>ty_git_branch.
+    DATA li_repo_online TYPE REF TO zif_abapgit_repo_online.
     li_repo_online ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
 
-    ls_branch = zcl_abapgit_ui_factory=>get_popups( )->branch_list_popup(
-      iv_url             = li_repo_online->get_url( )
-      iv_default_branch  = li_repo_online->get_selected_branch( )
-      iv_show_new_option = abap_true ).
-    IF ls_branch IS INITIAL.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
-
-    IF ls_branch-name = zif_abapgit_popups=>c_new_branch_label.
+    IF is_branch-name = zif_abapgit_popups=>c_new_branch_label.
       create_branch( iv_key ).
       RETURN.
     ENDIF.
 
-    IF ls_branch-name = zif_abapgit_popups=>c_new_branch_from_label.
+    IF is_branch-name = zif_abapgit_popups=>c_new_branch_from_label.
       create_branch_from( iv_key ).
       RETURN.
     ENDIF.
@@ -43135,32 +43070,26 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
     li_repo_online->select_commit( '' ).
     li_repo_online->switch_origin( '' ).
 
-    li_repo_online->select_branch( ls_branch-name ).
+    li_repo_online->select_branch( is_branch-name ).
     COMMIT WORK AND WAIT.
 
   ENDMETHOD.
   METHOD switch_tag.
 
     DATA: li_repo_online TYPE REF TO zif_abapgit_repo_online,
-          ls_tag         TYPE zif_abapgit_git_definitions=>ty_git_tag,
           lv_text        TYPE string.
 
     li_repo_online ?= zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
-
-    ls_tag = zcl_abapgit_ui_factory=>get_popups( )->tag_list_popup( li_repo_online->get_url( ) ).
-    IF ls_tag IS INITIAL.
-      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
-    ENDIF.
 
     " Reset commit and pull request
     li_repo_online->select_commit( '' ).
     li_repo_online->switch_origin( '' ).
 
-    li_repo_online->select_branch( zcl_abapgit_git_tag=>remove_peel( ls_tag-name ) ).
+    li_repo_online->select_branch( zcl_abapgit_git_tag=>remove_peel( is_tag-name ) ).
 
     COMMIT WORK AND WAIT.
 
-    lv_text = |Tag switched to { ls_tag-display_name } |.
+    lv_text = |Tag switched to { is_tag-display_name } |.
 
     MESSAGE lv_text TYPE 'S'.
 
@@ -43520,25 +43449,20 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-git_branch_create_from.        " GIT Create new branch from source branch
         zcl_abapgit_services_git=>create_branch_from( lv_key ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN zif_abapgit_definitions=>c_action-git_branch_delete.             " GIT Delete remote branch
-        zcl_abapgit_services_git=>delete_branch( lv_key ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN zif_abapgit_definitions=>c_action-git_branch_switch.             " GIT Switch branch
-        zcl_abapgit_services_git=>switch_branch( lv_key ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      WHEN zif_abapgit_definitions=>c_action-git_branch_delete             " GIT Delete remote branch
+        OR zif_abapgit_definitions=>c_action-git_branch_switch             " GIT Switch branch
+        OR zif_abapgit_definitions=>c_action-git_tag_delete                " GIT Tag delete
+        OR zif_abapgit_definitions=>c_action-git_tag_switch.               " GIT Switch tag
+        rs_handled-page  = zcl_abapgit_gui_page_ref_sel=>create(
+          iv_key    = lv_key
+          iv_action = ii_event->mv_action ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-git_branch_merge.              " GIT Merge branch
         rs_handled-page  = zcl_abapgit_gui_page_merge_sel=>create( li_repo ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-git_tag_create.                " GIT Tag create
         rs_handled-page  = zcl_abapgit_gui_page_tags=>create( li_repo ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-      WHEN zif_abapgit_definitions=>c_action-git_tag_delete.                " GIT Tag delete
-        zcl_abapgit_services_git=>delete_tag( lv_key ).
-        zcl_abapgit_services_repo=>refresh( lv_key ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN zif_abapgit_definitions=>c_action-git_tag_switch.                " GIT Switch Tag
-        zcl_abapgit_services_git=>switch_tag( lv_key ).
-        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
     ENDCASE.
 
   ENDMETHOD.
@@ -44311,18 +44235,23 @@ CLASS zcl_abapgit_popup_branch_list IMPLEMENTATION.
     mv_repo_url        = iv_url.
     mv_default_branch  = zif_abapgit_git_definitions=>c_git_branch-heads_prefix && iv_default_branch.
     mv_show_new_option = iv_show_new_option.
+    mv_hide_branch     = iv_hide_branch.
+    mv_hide_head       = iv_hide_head.
   ENDMETHOD.
   METHOD create.
     CREATE OBJECT ri_popup TYPE zcl_abapgit_popup_branch_list
       EXPORTING
         iv_url             = iv_url
         iv_default_branch  = iv_default_branch
-        iv_show_new_option = iv_show_new_option.
+        iv_show_new_option = iv_show_new_option
+        iv_hide_branch     = iv_hide_branch
+        iv_hide_head       = iv_hide_head.
   ENDMETHOD.
   METHOD fetch_branch_list.
 
     DATA lo_branches    TYPE REF TO zif_abapgit_git_branch_list.
     DATA lv_head_symref TYPE string.
+    DATA lv_text        TYPE string.
 
     FIELD-SYMBOLS <ls_branch> LIKE LINE OF rt_branches.
 
@@ -44330,8 +44259,33 @@ CLASS zcl_abapgit_popup_branch_list IMPLEMENTATION.
     rt_branches    = lo_branches->get_branches_only( ).
     lv_head_symref = lo_branches->get_head_symref( ).
 
+    IF mv_hide_branch IS NOT INITIAL.
+      DELETE rt_branches WHERE name = mv_hide_branch.
+    ENDIF.
+
+    IF mv_hide_head = abap_true.
+      DELETE rt_branches WHERE name    = zif_abapgit_git_definitions=>c_head_name
+                            OR is_head = abap_true.
+    ENDIF.
+
     IF rt_branches IS INITIAL.
-      zcx_abapgit_exception=>raise( 'No branches are available to select' ).
+      IF mv_hide_head = abap_true.
+        lv_text = 'main'.
+      ENDIF.
+      IF mv_hide_branch IS NOT INITIAL AND mv_hide_branch <> zif_abapgit_git_definitions=>c_git_branch-main.
+        IF lv_text IS INITIAL.
+          lv_text = mv_hide_branch && ' is'.
+        ELSE.
+          CONCATENATE lv_text 'and' mv_hide_branch 'are' INTO lv_text SEPARATED BY space.
+        ENDIF.
+      ELSE.
+        lv_text = lv_text && ' is'.
+      ENDIF.
+      IF lv_text <> ' is'.
+        zcx_abapgit_exception=>raise( 'No branches available to select (' && lv_text && ' hidden)' ).
+      ELSE.
+        zcx_abapgit_exception=>raise( 'No branches are available to select' ).
+      ENDIF.
     ENDIF.
 
     " Clean up branches: HEAD duplicates, empty names
@@ -44349,6 +44303,10 @@ CLASS zcl_abapgit_popup_branch_list IMPLEMENTATION.
       APPEND INITIAL LINE TO rt_branches ASSIGNING <ls_branch>.
       <ls_branch>-name = zif_abapgit_popups=>c_new_branch_label.
       <ls_branch>-display_name = zif_abapgit_popups=>c_new_branch_label.
+
+      APPEND INITIAL LINE TO rt_branches ASSIGNING <ls_branch>.
+      <ls_branch>-name = zif_abapgit_popups=>c_new_branch_from_label.
+      <ls_branch>-display_name = zif_abapgit_popups=>c_new_branch_from_label.
     ENDIF.
 
   ENDMETHOD.
@@ -45137,6 +45095,29 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
       iv_sci_result = mv_sci_result ).
 
   ENDMETHOD.
+  METHOD handle_picklist_state.
+
+    DATA lo_picklist TYPE REF TO zcl_abapgit_gui_picklist.
+
+    IF mo_popup_picklist IS BOUND AND
+      ( mo_popup_picklist->is_fulfilled( ) = abap_true OR mo_popup_picklist->is_in_page( ) = abap_false ).
+      " Picklist is either fulfilled OR
+      " it was on its own page and user went back from it via F3/ESC and the picklist had no "graceful back" handler
+      " Consume the picklist before dispatching. The handlers below run during
+      " rendering and may fail or be cancelled, and the GUI re-renders the page
+      " to display the error - the action must not be replayed then
+      lo_picklist = mo_popup_picklist.
+      CLEAR mo_popup_picklist.
+
+      CASE lo_picklist->id( ).
+        WHEN zif_abapgit_definitions=>c_action-git_branch_switch.
+          switch_branch( lo_picklist ).
+        WHEN OTHERS.
+          zcx_abapgit_exception=>raise( |Unexpected picklist id { lo_picklist->id( ) }| ).
+      ENDCASE.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD init_files.
     ms_files = zcl_abapgit_stage_logic=>get_stage_logic( )->get( ii_repo_online = mi_repo_online
                                                                  ii_obj_filter  = mi_obj_filter ).
@@ -45435,6 +45416,35 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
                      it_local  = ms_files-local ).
 
   ENDMETHOD.
+  METHOD switch_branch.
+
+    DATA ls_branch TYPE zif_abapgit_git_definitions=>ty_git_branch.
+
+    IF io_picklist IS NOT BOUND.
+
+      mo_popup_picklist = zcl_abapgit_popup_branch_list=>create(
+        iv_url             = mi_repo_online->get_url( )
+        iv_default_branch  = zcl_abapgit_git_branch_utils=>get_display_name(
+                               mi_repo_online->get_selected_branch( ) )
+        iv_show_new_option = abap_true
+        )->create_picklist(
+        )->set_id( zif_abapgit_definitions=>c_action-git_branch_switch
+        )->set_in_page( ).
+
+    ELSEIF io_picklist->was_cancelled( ) = abap_false.
+
+      io_picklist->get_result_item( CHANGING cs_selected = ls_branch ).
+      IF ls_branch IS NOT INITIAL.
+        zcl_abapgit_services_git=>switch_branch(
+          iv_key    = mi_repo->get_key( )
+          is_branch = ls_branch ).
+        mi_repo->refresh( abap_true ).
+        init_files( ).
+      ENDIF.
+
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
 
     DATA: lo_stage  TYPE REF TO zcl_abapgit_stage.
@@ -45478,11 +45488,23 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
         init_files( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       WHEN zif_abapgit_definitions=>c_action-git_branch_switch.
-        zcl_abapgit_services_git=>switch_branch( |{ ii_event->query( )->get( 'KEY' ) }| ).
-        mi_repo->refresh( abap_true ).
-        init_files( ).
+        switch_branch( ). " Uniformly handle state below
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
     ENDCASE.
+
+    IF mo_popup_picklist IS BOUND. " Uniform popup state handling
+      " This should happen only for a new popup because
+      " on the first re-render main component event handling is blocked
+      " and not called again until the popup destruction
+      IF mo_popup_picklist->is_in_page( ) = abap_true.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+      ELSE.
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
+        rs_handled-page  = zcl_abapgit_gui_page_hoc=>create(
+          ii_child_component = mo_popup_picklist
+          iv_show_as_modal   = abap_true ).
+      ENDIF.
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_hotkeys~get_hotkey_actions.
@@ -45569,7 +45591,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    register_handlers( ).
+    handle_picklist_state( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -45590,6 +45612,13 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     ri_html->add( '</div>' ).
 
     register_deferred_script( render_scripts( ) ).
+
+    IF mo_popup_picklist IS NOT BOUND OR mo_popup_picklist->is_in_page( ) = abap_false.
+      register_handlers( ).
+    ELSEIF mo_popup_picklist->is_in_page( ) = abap_true.
+      " Block usual page events if the popup is an in-page popup
+      ri_html->add( zcl_abapgit_gui_in_page_modal=>create( mo_popup_picklist ) ).
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -47729,6 +47758,142 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ri_html->add( |</div>| ).
 
     register_deferred_script( render_scripts( ) ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_gui_page_ref_sel IMPLEMENTATION.
+  METHOD constructor.
+
+    super->constructor( ).
+
+    mv_key    = iv_key.
+    mv_action = iv_action.
+
+    create_picklist( ).
+
+  ENDMETHOD.
+  METHOD create.
+
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_ref_sel.
+
+    CREATE OBJECT lo_component
+      EXPORTING
+        iv_key    = iv_key
+        iv_action = iv_action.
+
+    ri_page = zcl_abapgit_gui_page_hoc=>create(
+      ii_child_component = lo_component
+      iv_show_as_modal   = abap_true ).
+
+  ENDMETHOD.
+  METHOD create_picklist.
+
+    DATA li_repo_online TYPE REF TO zif_abapgit_repo_online.
+    DATA lv_url TYPE string.
+
+    li_repo_online ?= zcl_abapgit_repo_srv=>get_instance( )->get( mv_key ).
+    lv_url = li_repo_online->get_url( ).
+
+    CASE mv_action.
+      WHEN zif_abapgit_definitions=>c_action-git_branch_switch.
+        mo_picklist = zcl_abapgit_popup_branch_list=>create(
+          iv_url             = lv_url
+          iv_default_branch  = zcl_abapgit_git_branch_utils=>get_display_name(
+                                 li_repo_online->get_selected_branch( ) )
+          iv_show_new_option = abap_true )->create_picklist( ).
+      WHEN zif_abapgit_definitions=>c_action-git_branch_delete.
+        mo_picklist = zcl_abapgit_popup_branch_list=>create(
+          iv_url         = lv_url
+          iv_hide_branch = li_repo_online->get_selected_branch( )
+          iv_hide_head   = abap_true )->create_picklist( ).
+      WHEN zif_abapgit_definitions=>c_action-git_tag_switch
+        OR zif_abapgit_definitions=>c_action-git_tag_delete.
+        mo_picklist = zcl_abapgit_popup_tag_list=>create( lv_url )->create_picklist( ).
+      WHEN OTHERS.
+        zcx_abapgit_exception=>raise( |Unexpected ref selection action { mv_action }| ).
+    ENDCASE.
+
+    mo_picklist->set_id( mv_action ).
+
+  ENDMETHOD.
+  METHOD execute_selection.
+
+    DATA ls_selected TYPE zif_abapgit_git_definitions=>ty_git_branch.
+    DATA ls_tag      TYPE zif_abapgit_git_definitions=>ty_git_tag.
+
+    mo_picklist->get_result_item( CHANGING cs_selected = ls_selected ).
+    IF ls_selected IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    CASE mv_action.
+      WHEN zif_abapgit_definitions=>c_action-git_branch_switch.
+        zcl_abapgit_services_git=>switch_branch(
+          iv_key    = mv_key
+          is_branch = ls_selected ).
+      WHEN zif_abapgit_definitions=>c_action-git_branch_delete.
+        zcl_abapgit_services_git=>delete_branch(
+          iv_key    = mv_key
+          is_branch = ls_selected ).
+      WHEN zif_abapgit_definitions=>c_action-git_tag_switch.
+        MOVE-CORRESPONDING ls_selected TO ls_tag.
+        zcl_abapgit_services_git=>switch_tag(
+          iv_key = mv_key
+          is_tag = ls_tag ).
+      WHEN zif_abapgit_definitions=>c_action-git_tag_delete.
+        MOVE-CORRESPONDING ls_selected TO ls_tag.
+        zcl_abapgit_services_git=>delete_tag(
+          iv_key = mv_key
+          is_tag = ls_tag ).
+        zcl_abapgit_services_repo=>refresh( mv_key ).
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+
+    DATA lv_was_fulfilled TYPE abap_bool.
+
+    " The picklist handles its own events (it is registered after this
+    " component, see render). Delegate explicitly and evaluate the outcome.
+    " Act only on the transition to fulfilled - the flag stays set afterwards,
+    " and if the selection fails the error box is rendered on this very page,
+    " so its events must not run the selection a second time
+    lv_was_fulfilled = mo_picklist->is_fulfilled( ).
+
+    rs_handled = mo_picklist->zif_abapgit_gui_event_handler~on_event( ii_event ).
+
+    IF lv_was_fulfilled = abap_false
+        AND mo_picklist->is_fulfilled( ) = abap_true
+        AND mo_picklist->was_cancelled( ) = abap_false.
+      TRY.
+          execute_selection( ).
+        CATCH zcx_abapgit_cancel ##NO_HANDLER.
+      ENDTRY.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_title~get_page_title.
+
+    CASE mv_action.
+      WHEN zif_abapgit_definitions=>c_action-git_branch_switch.
+        rv_title = 'Switch Branch'.
+      WHEN zif_abapgit_definitions=>c_action-git_branch_delete.
+        rv_title = 'Delete Branch'.
+      WHEN zif_abapgit_definitions=>c_action-git_tag_switch.
+        rv_title = 'Switch Tag'.
+      WHEN zif_abapgit_definitions=>c_action-git_tag_delete.
+        rv_title = 'Delete Tag'.
+    ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    ri_html = mo_picklist->zif_abapgit_gui_renderable~render( ).
+
+    " Register this component after the picklist so that on_event above
+    " is called first and can post-process the picklist result
+    register_handlers( ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -155526,8 +155691,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-10T17:45:32.441Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-10T17:45:32.441Z`.
+* abapmerge 0.16.10 - 2026-09-12T07:54:54.082Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-12T07:54:54.082Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
