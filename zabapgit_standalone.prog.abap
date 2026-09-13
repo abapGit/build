@@ -37287,6 +37287,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  var option   = nodeA.innerText;' ).
     lo_buf->add( '  var oldState = nodeLi.getAttribute("data-check");' ).
     lo_buf->add( '  if (oldState === null) return; // no data-check attribute - non-checkbox' ).
+    lo_buf->add( '  // These links only toggle a filter. Following href="#" would emit a' ).
+    lo_buf->add( '  // popstate which the browser-back trap interprets as a request to go back.' ).
+    lo_buf->add( '  e.preventDefault();' ).
     lo_buf->add( '  var newState = oldState !== "X";' ).
     lo_buf->add( '' ).
     lo_buf->add( '  if (newState) {' ).
@@ -155691,8 +155694,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-12T07:54:54.082Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-12T07:54:54.082Z`.
+* abapmerge 0.16.10 - 2026-09-13T13:32:34.099Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-13T13:32:34.099Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
