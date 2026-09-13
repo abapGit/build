@@ -38895,6 +38895,40 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( ' * Browser Control' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
+    lo_buf->add( '// Local links must not create history entries: their popstate would be' ).
+    lo_buf->add( '// mistaken for browser Back. Run after the link''s own click handler so that' ).
+    lo_buf->add( '// dummy links can still toggle controls or submit forms normally.' ).
+    lo_buf->add( 'function handleLocalFragmentClick(event) {' ).
+    lo_buf->add( '  if (event.defaultPrevented) return;' ).
+    lo_buf->add( '  var anchor = event.target || event.srcElement;' ).
+    lo_buf->add( '  while (anchor && anchor.nodeName !== "A") anchor = anchor.parentNode;' ).
+    lo_buf->add( '  if (!anchor) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var href = anchor.getAttribute("href");' ).
+    lo_buf->add( '  if (!href || href.charAt(0) !== "#") return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // ITS rewrites SAP-event links to #sapeventNN. These must retain their' ).
+    lo_buf->add( '  // routing behavior. A literal "#" is still a dummy, including form links' ).
+    lo_buf->add( '  // whose data-sapevent is consumed by an onclick submit handler.' ).
+    lo_buf->add( '  if (href !== "#" && (anchor.getAttribute("data-sapevent")' ).
+    lo_buf->add( '    || /sapevent/i.test(anchor.hrefsav || "") || /^#sapevent\d+$/i.test(href))) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Explicit new-window/download links are not in-page navigation.' ).
+    lo_buf->add( '  var target = anchor.getAttribute("target");' ).
+    lo_buf->add( '  if (target && target.toLowerCase() !== "_self" || anchor.hasAttribute("download")) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  event.preventDefault();' ).
+    lo_buf->add( '  if (href === "#") return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var id = href.substring(1);' ).
+    lo_buf->add( '  try { id = decodeURIComponent(id) }' ).
+    lo_buf->add( '  catch (error) { /* A literal percent can also occur in an element ID. */ } // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( '  var destination = document.getElementById(id) || document.getElementsByName(id)[0];' ).
+    lo_buf->add( '  if (destination) destination.scrollIntoView();' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'document.addEventListener("click", handleLocalFragmentClick);' ).
+    lo_buf->add( '' ).
     lo_buf->add( '// Toggle display of warning message when using Edge (based on Chromium) browser control' ).
     lo_buf->add( '// Todo: Remove once https://github.com/abapGit/abapGit/issues/4841 is fixed' ).
     lo_buf->add( 'function toggleBrowserControlWarning() {' ).
@@ -155701,8 +155735,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-13T22:04:18.016Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-13T22:04:18.016Z`.
+* abapmerge 0.16.10 - 2026-09-13T22:09:21.003Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-13T22:09:21.003Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
