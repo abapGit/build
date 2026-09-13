@@ -36940,7 +36940,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.dom.patchBtn.onclick        = this.submitPatch.bind(this);' ).
     lo_buf->add( '  this.dom.objectSearch.oninput    = this.onFilter.bind(this);' ).
     lo_buf->add( '  this.dom.objectSearch.onkeypress = this.onFilter.bind(this);' ).
+    lo_buf->add( '  // SAP GUI for HTML renders the page in an ITS-managed iframe and replaces' ).
+    lo_buf->add( '  // that iframe on every navigation instead of navigating it. A frame torn' ).
+    lo_buf->add( '  // down that way gets pagehide, never beforeunload, so listening only for' ).
+    lo_buf->add( '  // beforeunload loses the table state there. The embedded controls of the' ).
+    lo_buf->add( '  // desktop GUIs predate pagehide, so keep both - storing twice is harmless,' ).
+    lo_buf->add( '  // it writes the same state under the same key.' ).
     lo_buf->add( '  window.addEventListener("beforeunload", this.onPageUnload.bind(this));' ).
+    lo_buf->add( '  window.addEventListener("pagehide", this.onPageUnload.bind(this));' ).
     lo_buf->add( '  window.addEventListener("load", this.onPageLoad.bind(this));' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var self = this;' ).
@@ -155694,8 +155701,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-13T13:32:34.099Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-13T13:32:34.099Z`.
+* abapmerge 0.16.10 - 2026-09-13T22:04:18.016Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-13T22:04:18.016Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
