@@ -36636,6 +36636,39 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( '// Browser storage is optional in embedded controls and can contain stale data.' ).
+    lo_buf->add( 'function readStoredState(storageName, key) {' ).
+    lo_buf->add( '  try {' ).
+    lo_buf->add( '    var storage = window[storageName];' ).
+    lo_buf->add( '    var data = storage && JSON.parse(storage.getItem(key));' ).
+    lo_buf->add( '    return data && typeof data === "object" && !Array.isArray(data) ? data : null;' ).
+    lo_buf->add( '  } catch (error) { // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( '    return null;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function readStoredValue(storageName, key) {' ).
+    lo_buf->add( '  try {' ).
+    lo_buf->add( '    var storage = window[storageName];' ).
+    lo_buf->add( '    return storage ? storage.getItem(key) : null;' ).
+    lo_buf->add( '  } catch (error) { // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( '    return null;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function writeStoredState(storageName, key, data) {' ).
+    lo_buf->add( '  try {' ).
+    lo_buf->add( '    var storage = window[storageName];' ).
+    lo_buf->add( '    if (storage) storage.setItem(key, JSON.stringify(data));' ).
+    lo_buf->add( '  } catch (error) { // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( '    // Navigation and selection must still work when persistence is unavailable.' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function escapeHtmlText(text) {' ).
+    lo_buf->add( '  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'function RepoOverViewHelper(opts) {' ).
     lo_buf->add( '  if (opts && opts.focusFilterKey) {' ).
     lo_buf->add( '    this.focusFilterKey = opts.focusFilterKey;' ).
@@ -36657,16 +36690,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.onPageLoad = function() {' ).
-    lo_buf->add( '  var data = window.localStorage && JSON.parse(window.localStorage.getItem(this.pageId));' ).
-    lo_buf->add( '  if (data) {' ).
-    lo_buf->add( '    if (data.isDetailsDisplayed) {' ).
-    lo_buf->add( '      this.toggleItemsDetail(true);' ).
-    lo_buf->add( '    }' ).
-    lo_buf->add( '    if (data.selectedRepoKey) {' ).
-    lo_buf->add( '      this.selectRowByRepoKey(data.selectedRepoKey);' ).
-    lo_buf->add( '    } else {' ).
-    lo_buf->add( '      this.selectRowByIndex(0);' ).
-    lo_buf->add( '    }' ).
+    lo_buf->add( '  var data = readStoredState("localStorage", this.pageId);' ).
+    lo_buf->add( '  if (data && data.isDetailsDisplayed === true) this.toggleItemsDetail(true);' ).
+    lo_buf->add( '  this.selectRowByIndex(0);' ).
+    lo_buf->add( '  if (data && typeof data.selectedRepoKey === "string") {' ).
+    lo_buf->add( '    this.selectRowByRepoKey(data.selectedRepoKey);' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
@@ -36730,8 +36758,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.selectRowByRepoKey = function(key) {' ).
-    lo_buf->add( '  var attributeQuery = "[data-key=''" + key + "'']";' ).
-    lo_buf->add( '  var row            = document.querySelector(".repo-overview tbody tr" + attributeQuery);' ).
+    lo_buf->add( '  var rows = document.querySelectorAll(".repo-overview tbody tr");' ).
+    lo_buf->add( '  var row;' ).
+    lo_buf->add( '  for (var i = 0; i < rows.length; i++) {' ).
+    lo_buf->add( '    if (rows[i].dataset.key === key) { row = rows[i]; break }' ).
+    lo_buf->add( '  }' ).
     lo_buf->add( '  if (!row) return;' ).
     lo_buf->add( '  // navigation to already selected repo' ).
     lo_buf->add( '  if (row.dataset.key === key && row.classList.contains("selected")) {' ).
@@ -36858,13 +36889,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.saveLocalStorage = function() {' ).
-    lo_buf->add( '  if (!window.localStorage) return;' ).
     lo_buf->add( '  var data = {' ).
     lo_buf->add( '    isDetailsDisplayed      : this.isDetailsDisplayed,' ).
     lo_buf->add( '    isOnlyFavoritesDisplayed: this.isOnlyFavoritesDisplayed,' ).
     lo_buf->add( '    selectedRepoKey         : this.selectedRepoKey,' ).
     lo_buf->add( '  };' ).
-    lo_buf->add( '  window.localStorage.setItem(this.pageId, JSON.stringify(data));' ).
+    lo_buf->add( '  writeStoredState("localStorage", this.pageId, data);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -36990,19 +37020,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '// Store table state on leaving the page' ).
     lo_buf->add( 'StageHelper.prototype.onPageUnload = function() {' ).
-    lo_buf->add( '  if (!window.sessionStorage) return;' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  var data = this.collectData();' ).
-    lo_buf->add( '  window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));' ).
+    lo_buf->add( '  writeStoredState("sessionStorage", this.pageSeed, this.collectData());' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Re-store table state on entering the page' ).
     lo_buf->add( 'StageHelper.prototype.onPageLoad = function() {' ).
-    lo_buf->add( '  var data = window.sessionStorage && JSON.parse(window.sessionStorage.getItem(this.pageSeed));' ).
+    lo_buf->add( '  var data = readStoredState("sessionStorage", this.pageSeed);' ).
     lo_buf->add( '' ).
     lo_buf->add( '  this.iterateStageTab(true, function(row) {' ).
     lo_buf->add( '    var status = data && data[this.getPlainText(row.cells[this.colIndex["name"]])];' ).
-    lo_buf->add( '    this.updateRow(row, status || this.STATUS.reset);' ).
+    lo_buf->add( '    if (typeof status !== "string" || status.length !== 1 || this.STATUS.isInvalid(status)) status = this.STATUS.reset;' ).
+    lo_buf->add( '    this.updateRow(row, status);' ).
     lo_buf->add( '  });' ).
     lo_buf->add( '' ).
     lo_buf->add( '  this.updateMenu();' ).
@@ -37064,8 +37092,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'StageHelper.prototype.applyFilterValue = function(sFilterValue) {' ).
+    lo_buf->add( '  var pattern;' ).
+    lo_buf->add( '  try {' ).
+    lo_buf->add( '    pattern = new RegExp(sFilterValue, "gi");' ).
+    lo_buf->add( '  } catch (error) { // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( '    // Keep regex searches, but treat an incomplete expression as literal text.' ).
+    lo_buf->add( '    pattern = new RegExp(sFilterValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$$"), "gi");' ).
+    lo_buf->add( '  }' ).
     lo_buf->add( '  this.lastFilterValue = sFilterValue;' ).
-    lo_buf->add( '  this.filteredCount   = this.iterateStageTab(true, this.applyFilterToRow, sFilterValue);' ).
+    lo_buf->add( '  this.filteredCount   = this.iterateStageTab(true, this.applyFilterToRow, sFilterValue, pattern);' ).
     lo_buf->add( '  this.updateMenu();' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
@@ -37083,7 +37118,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Apply filter to a single stage line - hide or show' ).
-    lo_buf->add( 'StageHelper.prototype.applyFilterToRow = function(row, filter) {' ).
+    lo_buf->add( 'StageHelper.prototype.applyFilterToRow = function(row, filter, pattern) {' ).
     lo_buf->add( '  // Collect data cells' ).
     lo_buf->add( '  var targets = this.filterTargets.map(function(attr) {' ).
     lo_buf->add( '    // Get the innermost tag with the text we want to filter' ).
@@ -37105,14 +37140,23 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // Apply filter to cells, mark filtered text' ).
     lo_buf->add( '  for (var i = targets.length - 1; i >= 0; i--) {' ).
     lo_buf->add( '    var target = targets[i];' ).
-    lo_buf->add( '    // Ignore case of filter' ).
-    lo_buf->add( '    var regFilter = new RegExp("(" + filter + ")", "gi");' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '    target.newHtml = (filter)' ).
-    lo_buf->add( '      ? target.plainText.replace(regFilter, "<mark>$1</mark>")' ).
-    lo_buf->add( '      : target.plainText;' ).
+    lo_buf->add( '    var matched = false;' ).
+    lo_buf->add( '    var end = 0;' ).
+    lo_buf->add( '    var html = "";' ).
+    lo_buf->add( '    if (filter) {' ).
+    lo_buf->add( '      target.plainText.replace(pattern, function(match) {' ).
+    lo_buf->add( '        // Named capture groups add a final groups object in modern browsers.' ).
+    lo_buf->add( '        var offset = arguments[arguments.length - (typeof arguments[arguments.length - 1] === "object" ? 3 : 2)];' ).
+    lo_buf->add( '        matched = true;' ).
+    lo_buf->add( '        html += escapeHtmlText(target.plainText.substring(end, offset)) +' ).
+    lo_buf->add( '          "<mark>" + escapeHtmlText(match) + "</mark>";' ).
+    lo_buf->add( '        end = offset + match.length;' ).
+    lo_buf->add( '        return match;' ).
+    lo_buf->add( '      });' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    target.newHtml = html + escapeHtmlText(target.plainText.substring(end));' ).
     lo_buf->add( '    target.isChanged = target.newHtml !== target.curHtml;' ).
-    lo_buf->add( '    isVisible        = isVisible || !filter || target.newHtml !== target.plainText;' ).
+    lo_buf->add( '    isVisible = isVisible || !filter || matched;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // Update DOM' ).
@@ -37340,7 +37384,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// Diff helper constructor' ).
     lo_buf->add( 'function DiffHelper(params) {' ).
     lo_buf->add( '  this.pageSeed    = params.seed;' ).
-    lo_buf->add( '  this.counter     = 0;' ).
     lo_buf->add( '  this.stageAction = params.stageAction;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // DOM nodes' ).
@@ -37373,7 +37416,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  var text = ((e.target && e.target.text) || e);' ).
     lo_buf->add( '  if (!text) return;' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var elFile = document.querySelector("[data-file*=''" + text + "'']");' ).
+    lo_buf->add( '  // Match the whole path: a file name is not a safe selector, and one path' ).
+    lo_buf->add( '  // can be a substring of another.' ).
+    lo_buf->add( '  var elFile;' ).
+    lo_buf->add( '  this.iterateDiffList(function(div) {' ).
+    lo_buf->add( '    if (!elFile && div.getAttribute("data-file") === text) elFile = div;' ).
+    lo_buf->add( '  });' ).
     lo_buf->add( '  if (!elFile) return;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  setTimeout(function() {' ).
@@ -37384,19 +37432,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// Action on filter click' ).
     lo_buf->add( 'DiffHelper.prototype.onFilter = function(attr, target, state) {' ).
     lo_buf->add( '  this.applyFilter(attr, target, state);' ).
-    lo_buf->add( '  this.highlightButton(state);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'DiffHelper.prototype.onFilterOnlyMyChanges = function(username, state) {' ).
     lo_buf->add( '  this.applyOnlyMyChangesFilter(username, state);' ).
-    lo_buf->add( '  this.counter = 0;' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  if (state) {' ).
-    lo_buf->add( '    this.dom.filterButton.classList.add("bgorange");' ).
-    lo_buf->add( '  } else {' ).
-    lo_buf->add( '    this.dom.filterButton.classList.remove("bgorange");' ).
-    lo_buf->add( '  }' ).
-    lo_buf->add( '' ).
     lo_buf->add( '  // apply logic on Changed By list items' ).
     lo_buf->add( '  var changedByListItems = Array.prototype.slice.call(document.querySelectorAll("[data-aux*=changed-by]"));' ).
     lo_buf->add( '' ).
@@ -37422,48 +37461,42 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'DiffHelper.prototype.applyOnlyMyChangesFilter = function(username, state) {' ).
-    lo_buf->add( '  var jumpListItems = Array.prototype.slice.call(document.querySelectorAll("[id*=li_jump]"));' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  this.iterateDiffList(function(div) {' ).
-    lo_buf->add( '    if (state === true && div.getAttribute("data-changed-by") !== username) {' ).
-    lo_buf->add( '      // switching on "Only my changes" filter -> hide other users' ).
-    lo_buf->add( '      div.style.display = "none";' ).
-    lo_buf->add( '    } else {' ).
-    lo_buf->add( '      // current user when filter on, or all rows when filter off' ).
-    lo_buf->add( '      div.style.display = "";' ).
-    lo_buf->add( '    }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '    // hide the file in the jump list' ).
-    lo_buf->add( '    var dataFile = div.getAttribute("data-file");' ).
-    lo_buf->add( '    jumpListItems' ).
-    lo_buf->add( '      .filter(function(item) { return dataFile.includes(item.text) })' ).
-    lo_buf->add( '      .map(function(item) { item.style.display = div.style.display });' ).
+    lo_buf->add( '  this.onlyMyChangesUser = state ? username : null;' ).
+    lo_buf->add( '  // The Changed By checklist resets when this mode changes.' ).
+    lo_buf->add( '  this.excludedFilters = (this.excludedFilters || []).filter(function(filter) {' ).
+    lo_buf->add( '    return filter.attr !== "changed-by";' ).
     lo_buf->add( '  });' ).
+    lo_buf->add( '  this.refreshFilters();' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( '// Hide/show diff based on params' ).
+    lo_buf->add( '// Hide a diff if any unchecked option excludes it.' ).
     lo_buf->add( 'DiffHelper.prototype.applyFilter = function(attr, target, state) {' ).
-    lo_buf->add( '  var jumpListItems = Array.prototype.slice.call(document.querySelectorAll("[id*=li_jump]"));' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  this.iterateDiffList(function(div) {' ).
-    lo_buf->add( '    if (div.getAttribute("data-" + attr) === target) {' ).
-    lo_buf->add( '      div.style.display = state ? "" : "none";' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '      // hide the file in the jump list' ).
-    lo_buf->add( '      var dataFile = div.getAttribute("data-file");' ).
-    lo_buf->add( '      jumpListItems' ).
-    lo_buf->add( '        .filter(function(item) { return dataFile.includes(item.text) })' ).
-    lo_buf->add( '        .map(function(item) { item.style.display = div.style.display });' ).
-    lo_buf->add( '    }' ).
+    lo_buf->add( '  this.excludedFilters = (this.excludedFilters || []).filter(function(filter) {' ).
+    lo_buf->add( '    return filter.attr !== attr || filter.target !== target;' ).
     lo_buf->add( '  });' ).
+    lo_buf->add( '  if (!state) this.excludedFilters.push({ attr: attr, target: target });' ).
+    lo_buf->add( '  this.refreshFilters();' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'DiffHelper.prototype.refreshFilters = function() {' ).
+    lo_buf->add( '  var jumpListItems = Array.prototype.slice.call(document.querySelectorAll("[id*=li_jump]"));' ).
+    lo_buf->add( '  this.iterateDiffList(function(div) {' ).
+    lo_buf->add( '    var hidden = this.onlyMyChangesUser != null && div.getAttribute("data-changed-by") !== this.onlyMyChangesUser;' ).
+    lo_buf->add( '    hidden = hidden || (this.excludedFilters || []).some(function(filter) {' ).
+    lo_buf->add( '      return div.getAttribute("data-" + filter.attr) === filter.target;' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '    div.style.display = hidden ? "none" : "";' ).
+    lo_buf->add( '    var dataFile = div.getAttribute("data-file");' ).
+    lo_buf->add( '    jumpListItems.forEach(function(item) {' ).
+    lo_buf->add( '      if (dataFile === item.text) item.style.display = div.style.display;' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '  this.highlightButton();' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Action on stage -> save visible diffs as state for stage page' ).
     lo_buf->add( 'DiffHelper.prototype.onStage = function(e) { // eslint-disable-line no-unused-vars' ).
-    lo_buf->add( '  if (window.sessionStorage) {' ).
-    lo_buf->add( '    var data = this.buildStageCache();' ).
-    lo_buf->add( '    window.sessionStorage.setItem(this.pageSeed, JSON.stringify(data));' ).
-    lo_buf->add( '  }' ).
+    lo_buf->add( '  writeStoredState("sessionStorage", this.pageSeed, this.buildStageCache());' ).
     lo_buf->add( '  var getParams = { key: this.repoKey, seed: this.pageSeed };' ).
     lo_buf->add( '  submitSapeventForm(getParams, this.stageAction, "get");' ).
     lo_buf->add( '};' ).
@@ -37494,9 +37527,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Highlight filter button if filter is activated' ).
-    lo_buf->add( 'DiffHelper.prototype.highlightButton = function(state) {' ).
-    lo_buf->add( '  this.counter += state ? -1 : 1;' ).
-    lo_buf->add( '  if (this.counter > 0) {' ).
+    lo_buf->add( 'DiffHelper.prototype.highlightButton = function() {' ).
+    lo_buf->add( '  if (!this.dom.filterButton) return;' ).
+    lo_buf->add( '  var active = this.onlyMyChangesUser != null || (this.excludedFilters || []).length > 0;' ).
+    lo_buf->add( '  if (active) {' ).
     lo_buf->add( '    this.dom.filterButton.classList.add("bgorange");' ).
     lo_buf->add( '  } else {' ).
     lo_buf->add( '    this.dom.filterButton.classList.remove("bgorange");' ).
@@ -38326,7 +38360,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'Patch.prototype.getAllCheckboxesForId = function(sId, sIdPrefix, sNewIdPrefix) {' ).
     lo_buf->add( '  var oRegex = new RegExp("^" + sIdPrefix);' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  sId = sId.replace(oRegex, sNewIdPrefix);' ).
+    lo_buf->add( '  sId = sId.replace(oRegex, sNewIdPrefix) + "_";' ).
     lo_buf->add( '  return document.querySelectorAll(this.buildSelectorInputStartsWithId(this.escape(sId)));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
@@ -38444,10 +38478,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// return non empty marked string in case it fits the filter' ).
     lo_buf->add( '// abc + b = a<mark>b</mark>c' ).
     lo_buf->add( 'function fuzzyMatchAndMark(str, filter) {' ).
-    lo_buf->add( '  function escapeText(text) {' ).
-    lo_buf->add( '    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");' ).
-    lo_buf->add( '  }' ).
-    lo_buf->add( '' ).
     lo_buf->add( '  var markedStr   = "";' ).
     lo_buf->add( '  var filterLower = filter.toLowerCase();' ).
     lo_buf->add( '  var strLower    = str.toLowerCase();' ).
@@ -38455,15 +38485,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '  for (var i = 0; i < filter.length; i++) {' ).
     lo_buf->add( '    while (filterLower[i] !== strLower[cur] && cur < str.length) {' ).
-    lo_buf->add( '      markedStr += escapeText(str[cur++]);' ).
+    lo_buf->add( '      markedStr += escapeHtmlText(str[cur++]);' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '    if (cur === str.length) break;' ).
-    lo_buf->add( '    markedStr += "<mark>" + escapeText(str[cur++]) + "</mark>";' ).
+    lo_buf->add( '    markedStr += "<mark>" + escapeHtmlText(str[cur++]) + "</mark>";' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var matched = i === filter.length;' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if (matched && cur < str.length) markedStr += escapeText(str.substring(cur));' ).
+    lo_buf->add( '  if (matched && cur < str.length) markedStr += escapeHtmlText(str.substring(cur));' ).
     lo_buf->add( '  return matched ? markedStr: null;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -38684,11 +38714,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'CommandPalette.prototype.handleUlClick = function(event) {' ).
     lo_buf->add( '  var element = event.target || event.srcElement;' ).
     lo_buf->add( '  if (!element) return;' ).
-    lo_buf->add( '  if (element.nodeName === "SPAN") element = element.parentNode;' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  if (element.nodeName === "I") element = element.parentNode;' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  if (element.nodeName !== "LI") return;' ).
+    lo_buf->add( '  while (element && element !== this.elements.ul && element.nodeName !== "LI") {' ).
+    lo_buf->add( '    element = element.parentNode;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  if (!element || element === this.elements.ul) return;' ).
     lo_buf->add( '  this.exec(this.getCommandByElement(element));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
@@ -38849,24 +38878,18 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( ' * Save Scroll Position' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
+    lo_buf->add( '// Not supported by Java GUI, and the quota can be exhausted anywhere:' ).
+    lo_buf->add( '// remembering the scroll offset must never abort the action it wraps.' ).
     lo_buf->add( 'function saveScrollPosition() {' ).
-    lo_buf->add( '  // Not supported by Java GUI' ).
-    lo_buf->add( '  try { if (!window.sessionStorage) { return } }' ).
-    lo_buf->add( '  catch (err) { return err }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  window.sessionStorage.setItem("scrollTop", document.querySelector("html").scrollTop);' ).
+    lo_buf->add( '  writeStoredState("sessionStorage", "scrollTop", document.querySelector("html").scrollTop);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function restoreScrollPosition() {' ).
-    lo_buf->add( '  // Not supported by Java GUI' ).
-    lo_buf->add( '  try { if (!window.sessionStorage) { return } }' ).
-    lo_buf->add( '  catch (err) { return err }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  var scrollTop = window.sessionStorage.getItem("scrollTop");' ).
+    lo_buf->add( '  var scrollTop = readStoredValue("sessionStorage", "scrollTop");' ).
     lo_buf->add( '  if (scrollTop) {' ).
     lo_buf->add( '    document.querySelector("html").scrollTop = scrollTop;' ).
     lo_buf->add( '  }' ).
-    lo_buf->add( '  window.sessionStorage.setItem("scrollTop", 0);' ).
+    lo_buf->add( '  writeStoredState("sessionStorage", "scrollTop", 0);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function memorizeScrollPosition(fn) {' ).
@@ -156588,8 +156611,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-16T10:30:01.249Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-16T10:30:01.249Z`.
+* abapmerge 0.16.10 - 2026-09-16T18:05:47.686Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-16T18:05:47.686Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
