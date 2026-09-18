@@ -4244,6 +4244,8 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     ty_files_item_by_file_tt TYPE SORTED TABLE OF ty_file_item WITH UNIQUE KEY file-path file-filename.
   TYPES:
+    ty_files TYPE STANDARD TABLE OF zif_abapgit_git_definitions=>ty_file WITH DEFAULT KEY.
+  TYPES:
     ty_yes_no         TYPE c LENGTH 1,
     ty_yes_no_partial TYPE c LENGTH 1.
   TYPES:
@@ -4285,6 +4287,7 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     BEGIN OF ty_deserialize_checks,
       overwrite             TYPE ty_overwrite_tt,
+      overwrite_files       TYPE ty_files,
       warning_package       TYPE ty_overwrite_tt,
       data_loss             TYPE ty_overwrite_tt,
       delete_tabl_with_data TYPE ty_overwrite_tt,
@@ -12117,6 +12120,12 @@ CLASS zcl_abapgit_objects_check DEFINITION
         !it_results         TYPE zif_abapgit_definitions=>ty_results_tt
       RETURNING
         VALUE(rt_overwrite) TYPE zif_abapgit_definitions=>ty_overwrite_tt.
+
+    CLASS-METHODS warning_overwrite_files
+      IMPORTING
+        !it_results     TYPE zif_abapgit_definitions=>ty_results_tt
+      RETURNING
+        VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files.
 
     CLASS-METHODS warning_package_adjust
       IMPORTING
@@ -42558,7 +42567,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     " find troublesome objects
     ls_checks = ii_repo->deserialize_checks( ).
 
-    IF ls_checks-overwrite IS INITIAL.
+    IF ls_checks-overwrite IS INITIAL AND ls_checks-overwrite_files IS INITIAL.
       zcx_abapgit_exception=>raise(
         'There is nothing to pull. The local state completely matches the remote repository.' ).
     ENDIF.
@@ -136192,6 +136201,8 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
 
     rs_checks-overwrite = warning_overwrite_find( lt_results ).
 
+    rs_checks-overwrite_files = warning_overwrite_files( lt_results ).
+
     rs_checks-warning_package = warning_package_find(
       ii_repo    = ii_repo
       it_results = lt_results ).
@@ -136340,6 +136351,25 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
         it_overwrite_new = lt_overwrite
       CHANGING
         ct_results       = ct_results ).
+
+  ENDMETHOD.
+  METHOD warning_overwrite_files.
+
+    DATA lv_status TYPE c LENGTH 2.
+
+    FIELD-SYMBOLS:
+      <ls_result> LIKE LINE OF it_results,
+      <ls_file>   LIKE LINE OF rt_files.
+
+    " collect changed files that are not assiciated with TADIR objects
+    LOOP AT it_results ASSIGNING <ls_result> WHERE obj_type IS INITIAL AND obj_name IS INITIAL ##PRIMKEY[SEC_KEY].
+      CONCATENATE <ls_result>-lstate <ls_result>-rstate INTO lv_status RESPECTING BLANKS.
+
+      IF lv_status IS NOT INITIAL.
+        APPEND INITIAL LINE TO rt_files ASSIGNING <ls_file>.
+        MOVE-CORRESPONDING <ls_result> TO <ls_file>.
+      ENDIF.
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD warning_overwrite_find.
@@ -158348,8 +158378,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-17T05:54:47.249Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-17T05:54:47.249Z`.
+* abapmerge 0.16.10 - 2026-09-18T07:55:31.723Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-18T07:55:31.723Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
