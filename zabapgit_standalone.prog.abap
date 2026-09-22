@@ -37815,6 +37815,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'function DiffColumnSelection() {' ).
     lo_buf->add( '  this.selectedColumnIdx = -1;' ).
     lo_buf->add( '  this.lineNumColumnIdx  = -1;' ).
+    lo_buf->add( '  this.selectedTable     = null;' ).
     lo_buf->add( '  //https://stackoverflow.com/questions/2749244/javascript-setinterval-and-this-solution' ).
     lo_buf->add( '  document.addEventListener("mousedown", this.mousedownEventListener.bind(this));' ).
     lo_buf->add( '  document.addEventListener("copy", this.copyEventListener.bind(this));' ).
@@ -37837,8 +37838,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '  var td = e.target;' ).
     lo_buf->add( '' ).
+    lo_buf->add( '  this.selectedTable = null;' ).
     lo_buf->add( '  while (td !== null && td !== undefined && td.tagName !== "TD" && td.tagName !== "TBODY") td = td.parentElement;' ).
-    lo_buf->add( '  if (td === null || td === undefined) return;' ).
+    lo_buf->add( '  if (!td || td.tagName !== "TD") return;' ).
     lo_buf->add( '  var table = td.parentElement.parentElement;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var patchColumnCount = 0;' ).
@@ -37891,29 +37893,35 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    this.selectedColumnIdx = -1;' ).
     lo_buf->add( '    this.lineNumColumnIdx  = -1;' ).
     lo_buf->add( '  }' ).
+    lo_buf->add( '  if (this.selectedColumnIdx >= 0) this.selectedTable = table;' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'DiffColumnSelection.prototype.copyEventListener = function(e) {' ).
     lo_buf->add( '  // Select text in a column of an HTML table and copy to clipboard (in DIFF view)' ).
     lo_buf->add( '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)' ).
-    lo_buf->add( '  var td = e.target;' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  while (td !== null && td !== undefined && td.tagName !== "TD" && td.tagName !== "TBODY") td = td.parentElement;' ).
-    lo_buf->add( '  if (td !== null && td !== undefined) {' ).
+    lo_buf->add( '  if (e.defaultPrevented || !this.selectedTable || !this.selectedTable.contains(e.target)) return;' ).
+    lo_buf->add( '  var text = this.getSelectedText();' ).
+    lo_buf->add( '  if (text !== null) {' ).
     lo_buf->add( '    // Use window.clipboardData instead of e.clipboardData' ).
     lo_buf->add( '    // (https://stackoverflow.com/questions/23470958/ie-10-copy-paste-issue)' ).
     lo_buf->add( '    var clipboardData = (e.clipboardData === undefined ? window.clipboardData : e.clipboardData);' ).
-    lo_buf->add( '    var text          = this.getSelectedText();' ).
-    lo_buf->add( '    clipboardData.setData("text", text);' ).
-    lo_buf->add( '    e.preventDefault();' ).
+    lo_buf->add( '    if (!clipboardData || typeof clipboardData.setData !== "function") return;' ).
+    lo_buf->add( '    try {' ).
+    lo_buf->add( '      if (clipboardData.setData("text", text) !== false) e.preventDefault();' ).
+    lo_buf->add( '    } catch (error) { // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( '      // Leave native copying available if the browser denies clipboard access.' ).
+    lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'DiffColumnSelection.prototype.getSelectedText = function() {' ).
     lo_buf->add( '  // Select text in a column of an HTML table and copy to clipboard (in DIFF view)' ).
     lo_buf->add( '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)' ).
+    lo_buf->add( '  if (!this.selectedTable || this.selectedColumnIdx < 0 || !window.getSelection) return null;' ).
     lo_buf->add( '  var sel   = window.getSelection();' ).
+    lo_buf->add( '  if (!sel || !sel.rangeCount || sel.isCollapsed) return null;' ).
     lo_buf->add( '  var range = sel.getRangeAt(0);' ).
+    lo_buf->add( '  if (!this.selectedTable.contains(range.startContainer) || !this.selectedTable.contains(range.endContainer)) return null;' ).
     lo_buf->add( '  var doc   = range.cloneContents();' ).
     lo_buf->add( '  var nodes = doc.querySelectorAll("tr");' ).
     lo_buf->add( '  var text  = "";' ).
@@ -38183,7 +38191,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'LinkHints.prototype.handleKey = function(event) {' ).
-    lo_buf->add( '  if (event.defaultPrevented) {' ).
+    lo_buf->add( '  if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey || !Hotkeys.isHotkeyCallPossible()) {' ).
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
@@ -38390,7 +38398,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.prototype.onkeydown = function(oEvent) {' ).
-    lo_buf->add( '  if (oEvent.defaultPrevented) {' ).
+    lo_buf->add( '  if (oEvent.defaultPrevented || oEvent.ctrlKey || oEvent.altKey || oEvent.metaKey) {' ).
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
@@ -38411,7 +38419,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  var activeElementType     = ((document.activeElement && document.activeElement.nodeName) || "");' ).
     lo_buf->add( '  var activeElementReadOnly = ((document.activeElement && document.activeElement.readOnly) || false);' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  return (activeElementReadOnly || (activeElementType !== "INPUT" && activeElementType !== "TEXTAREA"));' ).
+    lo_buf->add( '  if (document.activeElement && document.activeElement.isContentEditable) return false;' ).
+    lo_buf->add( '  return (activeElementReadOnly || (activeElementType !== "INPUT" && activeElementType !== "TEXTAREA"' ).
+    lo_buf->add( '    && activeElementType !== "SELECT"));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// ctrl-modified keys are denoted with a leading "^" (e.g. "^p"), spell it out for the help sheet' ).
@@ -158378,8 +158388,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-21T07:53:48.191Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-21T07:53:48.191Z`.
+* abapmerge 0.16.10 - 2026-09-22T13:19:55.003Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-22T13:19:55.003Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
