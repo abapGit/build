@@ -53548,6 +53548,7 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
       iv_readonly    = abap_true
     )->command(
       iv_label       = 'Back'
+      iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-link
       iv_action      = zif_abapgit_definitions=>c_action-go_back ).
 
   ENDMETHOD.
@@ -158398,8 +158399,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-22T16:15:36.431Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-22T16:15:36.431Z`.
+* abapmerge 0.16.10 - 2026-09-22T16:20:07.688Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-22T16:20:07.688Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
