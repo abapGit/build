@@ -37972,7 +37972,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'function KeyNavigation() { }' ).
     lo_buf->add( '' ).
     lo_buf->add( 'KeyNavigation.prototype.onkeydown = function(event) {' ).
-    lo_buf->add( '  if (event.defaultPrevented) return;' ).
+    lo_buf->add( '  if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey) return;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // navigate with arrows through list items and support pressing links with enter and space' ).
     lo_buf->add( '  var isHandled = false;' ).
@@ -38112,6 +38112,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  return Math.pow(10, maxHintStringLength - 1);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
+    lo_buf->add( 'LinkHints.prototype.isDisabled = function(element) {' ).
+    lo_buf->add( '  // :disabled also covers controls inside disabled fieldsets.' ).
+    lo_buf->add( '  var matches = element.matches || element.msMatchesSelector;' ).
+    lo_buf->add( '  return element.disabled || (matches && matches.call(element, ":disabled"));' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'LinkHints.prototype.deployHintContainers = function() {' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var hintTargets = document.querySelectorAll("a, input, textarea, i");' ).
@@ -38123,7 +38129,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // </span>' ).
     lo_buf->add( '  for (var i = 0, N = hintTargets.length; i < N; i++) {' ).
     lo_buf->add( '    // skip hidden fields' ).
-    lo_buf->add( '    if (hintTargets[i].type === "hidden") {' ).
+    lo_buf->add( '    if (hintTargets[i].type === "hidden" || this.isDisabled(hintTargets[i])) {' ).
     lo_buf->add( '      continue;' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '' ).
@@ -38236,6 +38242,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      var visibleHints = this.filterHints();' ).
     lo_buf->add( '      if (!visibleHints) {' ).
     lo_buf->add( '        this.displayHints(false);' ).
+    lo_buf->add( '        this.yankModeActive = false;' ).
     lo_buf->add( '        if (this.activatedDropdown) this.closeActivatedDropdown();' ).
     lo_buf->add( '      }' ).
     lo_buf->add( '    }' ).
@@ -38263,6 +38270,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'LinkHints.prototype.hintActivate = function(hint) {' ).
+    lo_buf->add( '  // A control may have become disabled since the hints were deployed.' ).
+    lo_buf->add( '  if (this.isDisabled(hint.parent)) return;' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  if (hint.parent.nodeName === "A"' ).
     lo_buf->add( '    // hint.parent.href doesn`t have a # at the end while accessing dropdowns the first time.' ).
     lo_buf->add( '    // Seems like a idiosyncrasy of SAP GUI`s IE. So let`s ignore the last character.' ).
@@ -158388,8 +158398,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-22T13:19:55.003Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-22T13:19:55.003Z`.
+* abapmerge 0.16.10 - 2026-09-22T16:15:36.431Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-22T16:15:36.431Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
