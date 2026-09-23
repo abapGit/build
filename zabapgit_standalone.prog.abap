@@ -37887,6 +37887,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
+    lo_buf->add( '// IE''s contains() accepts only elements, but selection ranges usually start and end in text nodes.' ).
+    lo_buf->add( 'function containsNode(element, node) {' ).
+    lo_buf->add( '  if (node && node.nodeType !== 1) node = node.parentNode;' ).
+    lo_buf->add( '  return !!node && element.contains(node);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'DiffColumnSelection.prototype.getSelectedText = function() {' ).
     lo_buf->add( '  // Select text in a column of an HTML table and copy to clipboard (in DIFF view)' ).
     lo_buf->add( '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)' ).
@@ -37894,7 +37900,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  var sel   = window.getSelection();' ).
     lo_buf->add( '  if (!sel || !sel.rangeCount || sel.isCollapsed) return null;' ).
     lo_buf->add( '  var range = sel.getRangeAt(0);' ).
-    lo_buf->add( '  if (!this.selectedTable.contains(range.startContainer) || !this.selectedTable.contains(range.endContainer)) return null;' ).
+    lo_buf->add( '  if (!containsNode(this.selectedTable, range.startContainer) || !containsNode(this.selectedTable, range.endContainer)) return null;' ).
     lo_buf->add( '  var doc   = range.cloneContents();' ).
     lo_buf->add( '  var nodes = doc.querySelectorAll("tr");' ).
     lo_buf->add( '  var text  = "";' ).
@@ -158378,8 +158384,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-23T05:03:58.856Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-23T05:03:58.856Z`.
+* abapmerge 0.16.10 - 2026-09-23T05:17:01.156Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-23T05:17:01.156Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
