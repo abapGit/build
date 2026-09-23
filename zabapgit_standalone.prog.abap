@@ -37814,7 +37814,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'function DiffColumnSelection() {' ).
     lo_buf->add( '  this.selectedColumnIdx = -1;' ).
-    lo_buf->add( '  this.lineNumColumnIdx  = -1;' ).
     lo_buf->add( '  this.selectedTable     = null;' ).
     lo_buf->add( '  //https://stackoverflow.com/questions/2749244/javascript-setinterval-and-this-solution' ).
     lo_buf->add( '  document.addEventListener("mousedown", this.mousedownEventListener.bind(this));' ).
@@ -37826,12 +37825,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // (https://stackoverflow.com/questions/6619805/select-text-in-a-column-of-an-html-table)' ).
     lo_buf->add( '  // Process mousedown event for all TD elements -> apply CSS class at TABLE level.' ).
     lo_buf->add( '  // (https://stackoverflow.com/questions/40956717/how-to-addeventlistener-to-multiple-elements-in-a-single-line)' ).
-    lo_buf->add( '  var unifiedLineNumColumnIdx    = 0;' ).
-    lo_buf->add( '  var unifiedCodeColumnIdx       = 3;' ).
-    lo_buf->add( '  var splitLineNumLeftColumnIdx  = 0;' ).
-    lo_buf->add( '  var splitCodeLeftColumnIdx     = 2;' ).
-    lo_buf->add( '  var splitLineNumRightColumnIdx = 3;' ).
-    lo_buf->add( '  var splitCodeRightColumnIdx    = 5;' ).
+    lo_buf->add( '  var unifiedCodeColumnIdx = 3;' ).
     lo_buf->add( '  var range;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  if (e.button !== 0) return; // function is only valid for left button, not right button' ).
@@ -37843,16 +37837,16 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  if (!td || td.tagName !== "TD") return;' ).
     lo_buf->add( '  var table = td.parentElement.parentElement;' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var patchColumnCount = 0;' ).
-    lo_buf->add( '  if (td.parentElement.cells[0].classList.contains("patch")) {' ).
-    lo_buf->add( '    patchColumnCount = 1;' ).
-    lo_buf->add( '  }' ).
+    lo_buf->add( '  if (td.classList.contains("diff_left") || td.classList.contains("diff_right")) {' ).
+    lo_buf->add( '    var isLeft = td.classList.contains("diff_left");' ).
+    lo_buf->add( '    table.classList.remove(isLeft ? "diff_select_right" : "diff_select_left");' ).
+    lo_buf->add( '    table.classList.add(isLeft ? "diff_select_left" : "diff_select_right");' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if (td.classList.contains("diff_left")) {' ).
-    lo_buf->add( '    table.classList.remove("diff_select_right");' ).
-    lo_buf->add( '    table.classList.add("diff_select_left");' ).
-    lo_buf->add( '    if (window.getSelection() && this.selectedColumnIdx !== splitCodeLeftColumnIdx + patchColumnCount) {' ).
-    lo_buf->add( '      // De-select to avoid effect of dragging selection in case the right column was first selected' ).
+    lo_buf->add( '    // Remote-leading diffs swap the old/new cells while retaining their classes.' ).
+    lo_buf->add( '    // Use the actual position, which also accounts for the optional patch column.' ).
+    lo_buf->add( '    var splitCodeColumnIdx = td.cellIndex;' ).
+    lo_buf->add( '    if (window.getSelection() && this.selectedColumnIdx !== splitCodeColumnIdx) {' ).
+    lo_buf->add( '      // De-select to avoid effect of dragging selection in case the other column was first selected' ).
     lo_buf->add( '      if (document.body.createTextRange) { // All IE but Edge' ).
     lo_buf->add( '        // document.getSelection().removeAllRanges() may trigger error' ).
     lo_buf->add( '        // so use this code which is equivalent but does not fail' ).
@@ -37864,34 +37858,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '        document.getSelection().removeAllRanges();' ).
     lo_buf->add( '      }' ).
     lo_buf->add( '    }' ).
-    lo_buf->add( '    this.selectedColumnIdx = splitCodeLeftColumnIdx + patchColumnCount;' ).
-    lo_buf->add( '    this.lineNumColumnIdx  = splitLineNumLeftColumnIdx + patchColumnCount;' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  } else if (td.classList.contains("diff_right")) {' ).
-    lo_buf->add( '    table.classList.remove("diff_select_left");' ).
-    lo_buf->add( '    table.classList.add("diff_select_right");' ).
-    lo_buf->add( '    if (window.getSelection() && this.selectedColumnIdx !== splitCodeRightColumnIdx + patchColumnCount) {' ).
-    lo_buf->add( '      if (document.body.createTextRange) { // All IE but Edge' ).
-    lo_buf->add( '        // document.getSelection().removeAllRanges() may trigger error' ).
-    lo_buf->add( '        // so use this code which is equivalent but does not fail' ).
-    lo_buf->add( '        // (https://stackoverflow.com/questions/22914075/javascript-error-800a025e-using-range-selector)' ).
-    lo_buf->add( '        range = document.body.createTextRange();' ).
-    lo_buf->add( '        range.collapse();' ).
-    lo_buf->add( '        range.select();' ).
-    lo_buf->add( '      } else {' ).
-    lo_buf->add( '        document.getSelection().removeAllRanges();' ).
-    lo_buf->add( '      }' ).
-    lo_buf->add( '    }' ).
-    lo_buf->add( '    this.selectedColumnIdx = splitCodeRightColumnIdx + patchColumnCount;' ).
-    lo_buf->add( '    this.lineNumColumnIdx  = splitLineNumRightColumnIdx + patchColumnCount;' ).
+    lo_buf->add( '    this.selectedColumnIdx = splitCodeColumnIdx;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  } else if (td.classList.contains("diff_unified")) {' ).
     lo_buf->add( '    this.selectedColumnIdx = unifiedCodeColumnIdx;' ).
-    lo_buf->add( '    this.lineNumColumnIdx  = unifiedLineNumColumnIdx;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  } else {' ).
     lo_buf->add( '    this.selectedColumnIdx = -1;' ).
-    lo_buf->add( '    this.lineNumColumnIdx  = -1;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '  if (this.selectedColumnIdx >= 0) this.selectedTable = table;' ).
     lo_buf->add( '};' ).
@@ -158405,8 +158378,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-22T16:21:46.288Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-22T16:21:46.288Z`.
+* abapmerge 0.16.10 - 2026-09-23T05:03:58.856Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-23T05:03:58.856Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
