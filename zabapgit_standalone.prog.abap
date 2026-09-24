@@ -37033,7 +37033,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  var actionLinks = document.querySelectorAll("a.action_link");' ).
     lo_buf->add( '  actionLinks.forEach(function(link) {' ).
     lo_buf->add( '    // adjust repo key in urls' ).
-    lo_buf->add( '    link.href = link.href.replace(reKey, newKey);' ).
+    lo_buf->add( '    // Use the raw attribute: the href property is the browser''s normalized URL, which the' ).
+    lo_buf->add( '    // SAP GUI for Java control turns into "sapevent://go_stage/?key=..." (action "//go_stage/")' ).
+    lo_buf->add( '    var href = link.getAttribute("href");' ).
+    lo_buf->add( '    if (href) link.setAttribute("href", href.replace(reKey, newKey));' ).
     lo_buf->add( '' ).
     lo_buf->add( '    // SAP GUI for HTML rewrites links and saves the original in hrefsav' ).
     lo_buf->add( '    // see /sap/public/icmandir/its/lsgui/js/htmlviewer.js' ).
@@ -158384,8 +158387,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-23T05:17:01.156Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-23T05:17:01.156Z`.
+* abapmerge 0.16.10 - 2026-09-24T21:48:47.231Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-24T21:48:47.231Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
