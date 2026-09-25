@@ -29086,6 +29086,8 @@ CLASS zcl_abapgit_gui_page_repo_over DEFINITION
         refresh_list TYPE string VALUE 'refresh_list',
       END OF c_action,
       c_label_filter_prefix TYPE string VALUE `label:`,
+      " dummy key is replaced in RepoOverViewHelper.prototype.updateActionLinks with actual key
+      c_dummy_key           TYPE zif_abapgit_persistence=>ty_value VALUE `#`,
       c_raw_field_suffix    TYPE string VALUE `_RAW` ##NO_TEXT.
 
     DATA: mt_all_labels   TYPE string_table,
@@ -47516,8 +47518,6 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
   METHOD render_action_toolbar.
 
     CONSTANTS:
-      " dummy key is replaced in RepoOverViewHelper.prototype.updateActionLinks with actual key
-      lc_dummy_key     TYPE zif_abapgit_persistence=>ty_value VALUE `#`,
       lc_offline_class TYPE string VALUE `action_offline_repo`,
       lc_online_class  TYPE string VALUE `action_online_repo`,
       lc_action_class  TYPE string VALUE `action_link`.
@@ -47526,7 +47526,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     DATA lo_toolbar_more_sub TYPE REF TO zcl_abapgit_html_toolbar.
     DATA lv_dummy_key_param TYPE string.
 
-    lv_dummy_key_param = |?key={ lc_dummy_key }|.
+    lv_dummy_key_param = |?key={ c_dummy_key }|.
 
     lo_toolbar = zcl_abapgit_html_toolbar=>create( 'actionbar-repo-list' ).
 
@@ -47574,7 +47574,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     zcl_abapgit_html_toolbar_lib=>render_repo_settings_dropdown(
       io_toolbar  = lo_toolbar
-      iv_key      = lc_dummy_key
+      iv_key      = c_dummy_key
       iv_class    = |{ lc_action_class }|
       iv_li_class = |{ lc_action_class }| ).
 
@@ -47942,6 +47942,11 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     DATA lv_key TYPE zif_abapgit_persistence=>ty_value.
 
     lv_key = ii_event->query( )->get( 'KEY' ).
+
+    " Action links and hotkeys still carry the dummy key while no repository is selected
+    IF lv_key = c_dummy_key.
+      zcx_abapgit_exception=>raise( 'Please select a repository first' ).
+    ENDIF.
 
     CASE ii_event->mv_action.
       WHEN c_action-select.
@@ -158443,8 +158448,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-25T23:26:02.809Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-25T23:26:02.809Z`.
+* abapmerge 0.16.10 - 2026-09-25T23:29:34.488Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-25T23:29:34.488Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
