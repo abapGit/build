@@ -34285,6 +34285,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  margin: 0px;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( 'div.debug_container th {' ).
+    lo_buf->add( '  text-align: left;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/* ACTION LINKS */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'li.action_link.enabled{' ).
@@ -36482,6 +36486,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/* exported setKeyBindings' ).
     lo_buf->add( '   -- zcl_abapgit_gui_hotkey_ctl->render_scripts */' ).
     lo_buf->add( '' ).
+    lo_buf->add( '/* exported describeBrowserStorage' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_page_debuginfo->render_scripts */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/* exported perfOut, perfLog, perfClear' ).
     lo_buf->add( '    -- not called from ABAP, for frontend debugging */' ).
     lo_buf->add( '' ).
@@ -36631,6 +36638,54 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // so render it as HTML rather than escaping it' ).
     lo_buf->add( '  paragraph.innerHTML = text;' ).
     lo_buf->add( '  stdout.appendChild(paragraph);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Debug Info rows telling whether browser storage works in this control, followed by the' ).
+    lo_buf->add( '// stored entries as key, size and a value preview (values can be long, e.g. stage state).' ).
+    lo_buf->add( '// The write test removes its probe again, so the check leaves no data behind.' ).
+    lo_buf->add( 'function describeBrowserStorage() {' ).
+    lo_buf->add( '  var probeKey   = "abapGitStorageProbe";' ).
+    lo_buf->add( '  var previewLen = 200;' ).
+    lo_buf->add( '  var rows       = [["Page URL", escapeHtmlText(String(window.location && window.location.href))]];' ).
+    lo_buf->add( '  var entries    = [];' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  ["localStorage", "sessionStorage"].forEach(function(storageName) {' ).
+    lo_buf->add( '    var status;' ).
+    lo_buf->add( '    try {' ).
+    lo_buf->add( '      var storage = window[storageName];' ).
+    lo_buf->add( '      if (!storage) {' ).
+    lo_buf->add( '        status = "not available";' ).
+    lo_buf->add( '      } else {' ).
+    lo_buf->add( '        var keys = [];' ).
+    lo_buf->add( '        for (var i = 0; i < storage.length; i++) keys.push(storage.key(i));' ).
+    lo_buf->add( '        keys.sort().forEach(function(key) {' ).
+    lo_buf->add( '          var value   = String(storage.getItem(key));' ).
+    lo_buf->add( '          var preview = value.length > previewLen ? value.substr(0, previewLen) + "\u2026" : value;' ).
+    lo_buf->add( '          entries.push([storageName, escapeHtmlText(String(key)), value.length, escapeHtmlText(preview)]);' ).
+    lo_buf->add( '        });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '        storage.setItem(probeKey, "1");' ).
+    lo_buf->add( '        status = storage.getItem(probeKey) === "1" ? "read/write OK" : "write not read back";' ).
+    lo_buf->add( '        storage.removeItem(probeKey);' ).
+    lo_buf->add( '        status += ", " + keys.length + " entries";' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    } catch (error) {' ).
+    lo_buf->add( '      status = "error: " + escapeHtmlText(String(error && (error.name || error.message) || error));' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    rows.push([storageName, status]);' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var html = "<h2>Browser Storage</h2><table>" + rows.map(function(row) {' ).
+    lo_buf->add( '    return "<tr><td>" + row[0] + ":</td><td>" + row[1] + "</td></tr>";' ).
+    lo_buf->add( '  }).join("") + "</table>";' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  if (entries.length) {' ).
+    lo_buf->add( '    html += "<br><table><tr><th>Storage</th><th>Key</th><th>Size</th><th>Value</th></tr>" + entries.map(function(entry) {' ).
+    lo_buf->add( '      return "<tr><td>" + entry[0] + "</td><td>" + entry[1] + "</td><td>" + entry[2]' ).
+    lo_buf->add( '        + "</td><td><code>" + entry[3] + "</code></td></tr>";' ).
+    lo_buf->add( '    }).join("") + "</table>";' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  return html;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Set to true right before we navigate via a sapevent (form submit or a' ).
@@ -49653,6 +49708,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
     ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
     ri_html->add( 'debugOutput("<table><tr><td>Browser:</td><td>" + navigator.userAgent + ' &&
       '"</td></tr><tr><td>Frontend time:</td><td>" + new Date() + "</td></tr></table>", "debug_info");' ).
+    ri_html->add( 'debugOutput(describeBrowserStorage(), "debug_info");' ).
 
   ENDMETHOD.
   METHOD render_supported_object_types.
@@ -158387,8 +158443,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-24T21:48:47.231Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-24T21:48:47.231Z`.
+* abapmerge 0.16.10 - 2026-09-25T23:26:02.809Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-25T23:26:02.809Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
