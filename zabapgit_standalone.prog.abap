@@ -36973,6 +36973,20 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( '// Scroll only when needed, aligning to the nearest edge (IE lacks scrollIntoView options).' ).
+    lo_buf->add( '// At the top, align below the header: once sticky, it covers the top of the viewport.' ).
+    lo_buf->add( 'function scrollRowIntoView(row) {' ).
+    lo_buf->add( '  if (!row.getBoundingClientRect) return;' ).
+    lo_buf->add( '  var rect   = row.getBoundingClientRect();' ).
+    lo_buf->add( '  var header = document.getElementById("header");' ).
+    lo_buf->add( '  var top    = header && header.getBoundingClientRect ? Math.max(0, header.getBoundingClientRect().bottom) : 0;' ).
+    lo_buf->add( '  if (rect.top < top) {' ).
+    lo_buf->add( '    window.scrollBy(0, rect.top - top);' ).
+    lo_buf->add( '  } else if (rect.bottom > (window.innerHeight || document.documentElement.clientHeight)) {' ).
+    lo_buf->add( '    row.scrollIntoView(false);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'function RepoOverViewHelper(opts) {' ).
     lo_buf->add( '  if (opts && opts.focusFilterKey) {' ).
     lo_buf->add( '    this.focusFilterKey = opts.focusFilterKey;' ).
@@ -37015,26 +37029,56 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      return;' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '    var keycode         = event.keyCode;' ).
-    lo_buf->add( '    var rows            = Array.prototype.slice.call(self.getVisibleRows());' ).
-    lo_buf->add( '    var selected        = document.querySelector(".repo-overview tr.selected");' ).
-    lo_buf->add( '    var indexOfSelected = rows.indexOf(selected);' ).
-    lo_buf->add( '    var lastRow         = rows.length - 1;' ).
+    lo_buf->add( '    var keycode = event.keyCode;' ).
     lo_buf->add( '' ).
     lo_buf->add( '    if (keycode === 13 && document.activeElement.tagName.toLowerCase() !== "input") {' ).
     lo_buf->add( '      // "enter" to open, unless command field has focus' ).
     lo_buf->add( '      self.openSelectedRepo();' ).
-    lo_buf->add( '    } else if ((keycode === 52 || keycode === 56) && indexOfSelected > 0) {' ).
+    lo_buf->add( '    } else if (keycode === 52 || keycode === 56) {' ).
     lo_buf->add( '      // "4,8" for previous, digits are the numlock keys' ).
-    lo_buf->add( '      // NB: numpad must be activated, keypress does not detect arrows' ).
-    lo_buf->add( '      //     if we need arrows it will be keydown. But then mind the keycodes, they may change !' ).
-    lo_buf->add( '      //     e.g. 100 is ''d'' with keypress (and conflicts with diff hotkey), and also it is arrow-left keydown' ).
-    lo_buf->add( '      self.selectRowByIndex(indexOfSelected - 1);' ).
-    lo_buf->add( '    } else if ((keycode === 54 || keycode === 50) && indexOfSelected < lastRow) {' ).
+    lo_buf->add( '      // NB: keypress does not detect arrows, they are handled on keydown below' ).
+    lo_buf->add( '      self.selectAdjacentRow(-1);' ).
+    lo_buf->add( '    } else if (keycode === 54 || keycode === 50) {' ).
     lo_buf->add( '      // "6,2" for next' ).
-    lo_buf->add( '      self.selectRowByIndex(indexOfSelected + 1);' ).
+    lo_buf->add( '      self.selectAdjacentRow(1);' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Arrows only fire keydown. Only the arrow keys are handled here: keydown keycodes' ).
+    lo_buf->add( '  // differ from keypress ones (e.g. 100 is "d" on keypress but numpad-4 on keydown).' ).
+    lo_buf->add( '  document.addEventListener("keydown", function(event) {' ).
+    lo_buf->add( '    if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;' ).
+    lo_buf->add( '    if (CommandPalette.isVisible() || !self.isArrowNavigationTarget(document.activeElement)) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    var offset;' ).
+    lo_buf->add( '    if (event.key === "ArrowUp" || event.key === "Up" || event.keyCode === 38) {' ).
+    lo_buf->add( '      offset = -1;' ).
+    lo_buf->add( '    } else if (event.key === "ArrowDown" || event.key === "Down" || event.keyCode === 40) {' ).
+    lo_buf->add( '      offset = 1;' ).
+    lo_buf->add( '    } else {' ).
+    lo_buf->add( '      return;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    self.selectAdjacentRow(offset);' ).
+    lo_buf->add( '    event.preventDefault(); // the selected row is scrolled into view instead' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Leave arrows to form fields and to menus (KeyNavigation moves through dropdown items)' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.isArrowNavigationTarget = function(element) {' ).
+    lo_buf->add( '  for (var el = element; el && el.nodeName; el = el.parentElement) {' ).
+    lo_buf->add( '    if (/^(INPUT|TEXTAREA|SELECT|LI)$/.test(el.nodeName) || el.isContentEditable) return false;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  return true;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'RepoOverViewHelper.prototype.selectAdjacentRow = function(offset) {' ).
+    lo_buf->add( '  var rows     = Array.prototype.slice.call(this.getVisibleRows());' ).
+    lo_buf->add( '  var selected = document.querySelector(".repo-overview tr.selected");' ).
+    lo_buf->add( '  var index    = rows.indexOf(selected);' ).
+    lo_buf->add( '  if (index < 0 || index + offset < 0 || index + offset >= rows.length) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.selectRowByIndex(index + offset);' ).
+    lo_buf->add( '  scrollRowIntoView(rows[index + offset]);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.openSelectedRepo = function() {' ).
@@ -39039,7 +39083,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '// Is any command palette visible?' ).
     lo_buf->add( 'CommandPalette.isVisible = function() {' ).
-    lo_buf->add( '  return CommandPalette.instances.reduce(function(result, instance) { return result || instance.elements.palette.style.display !== "none" }, false);' ).
+    lo_buf->add( '  return (CommandPalette.instances || []).reduce(function(result, instance) { return result || instance.elements.palette.style.display !== "none" }, false);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function addHotkey(opts) {' ).
@@ -158448,8 +158492,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-26T13:27:41.426Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-26T13:27:41.426Z`.
+* abapmerge 0.16.10 - 2026-09-26T15:45:16.235Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-26T15:45:16.235Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
