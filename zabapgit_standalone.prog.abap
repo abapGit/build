@@ -38883,11 +38883,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.hookEvents();' ).
     lo_buf->add( '  Hotkeys.addHotkeyToHelpSheet(opts.toggleKey, opts.hotkeyDescription);' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if (!CommandPalette.instances) {' ).
-    lo_buf->add( '    CommandPalette.instances = [];' ).
-    lo_buf->add( '  }' ).
     lo_buf->add( '  CommandPalette.instances.push(this);' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Declared up front, not on first registration: the stage and repository' ).
+    lo_buf->add( '// overview pages ask isVisible() on every keypress, also when no palette got' ).
+    lo_buf->add( '// registered - e.g. one that had nothing to list (enumerateJumpAllFiles)' ).
+    lo_buf->add( 'CommandPalette.instances = [];' ).
     lo_buf->add( '' ).
     lo_buf->add( 'CommandPalette.prototype.hookEvents = function() {' ).
     lo_buf->add( '  document.addEventListener("keydown", this.handleToggleKey.bind(this));' ).
@@ -158492,8 +158494,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-26T16:05:27.931Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-26T16:05:27.931Z`.
+* abapmerge 0.16.10 - 2026-09-26T16:07:51.059Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-26T16:07:51.059Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
