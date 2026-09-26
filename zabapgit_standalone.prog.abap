@@ -39616,8 +39616,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  overlay.className = "source-viewer";' ).
     lo_buf->add( '  overlay.tabIndex = -1;' ).
     lo_buf->add( '  heading.className = "source-viewer-heading";' ).
-    lo_buf->add( '  heading.appendChild(document.createTextNode("Source Viewer (" +' ).
-    lo_buf->add( '    (this.isInternetExplorer() ? "X" : "Esc or X") + " to close)"));' ).
+    lo_buf->add( '  heading.appendChild(document.createTextNode("Source Viewer (X to close)"));' ).
     lo_buf->add( '  close.type = "button";' ).
     lo_buf->add( '  close.innerHTML = "&times;";' ).
     lo_buf->add( '  close.className = "source-viewer-close";' ).
@@ -39679,9 +39678,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    sourceViewer.activeSource = null;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
+    lo_buf->add( '  // Not Escape: SAP GUI acts on that key whatever the page does with it.' ).
+    lo_buf->add( '  // SAP GUI for Java leaves abapGit, and the Edge control loses the keyboard focus.' ).
     lo_buf->add( '  function isCloseKey(event) {' ).
-    lo_buf->add( '    return event.key === "x" || event.key === "X" || event.keyCode === 88 ||' ).
-    lo_buf->add( '      (!sourceViewer.isInternetExplorer() && (event.key === "Escape" || event.keyCode === 27));' ).
+    lo_buf->add( '    return event.key === "x" || event.key === "X" || event.keyCode === 88;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  function getTabIndex(event) {' ).
@@ -158492,8 +158492,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-26T15:45:16.235Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-26T15:45:16.235Z`.
+* abapmerge 0.16.10 - 2026-09-26T16:05:27.931Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-26T16:05:27.931Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
