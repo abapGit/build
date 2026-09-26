@@ -34299,7 +34299,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  display: block;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'li.action_link:not(enabled){' ).
+    lo_buf->add( 'li.action_link:not(.enabled){' ).
     lo_buf->add( '  visibility: hidden;' ).
     lo_buf->add( '  position: fixed; /* so it does not take up space when hidden */' ).
     lo_buf->add( '  display: none;' ).
@@ -38856,9 +38856,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.commands = commandEnumerator();' ).
     lo_buf->add( '  if (!this.commands) return;' ).
     lo_buf->add( '  // this.commands = [{' ).
-    lo_buf->add( '  //   action:    "sap_event_action_code_with_params"' ).
-    lo_buf->add( '  //   iconClass: "icon icon_x ..."' ).
-    lo_buf->add( '  //   title:     "my command X"' ).
+    lo_buf->add( '  //   action:      "sap_event_action_code_with_params"' ).
+    lo_buf->add( '  //   iconClass:   "icon icon_x ..."' ).
+    lo_buf->add( '  //   title:       "my command X"' ).
+    lo_buf->add( '  //   isAvailable: function, optional - re-checked whenever the list is filtered' ).
     lo_buf->add( '  // }, ...];' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // one or more keys can open the palette, e.g. ["F1", "^p"]' ).
@@ -38959,7 +38960,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'CommandPalette.prototype.applyFilter = function() {' ).
     lo_buf->add( '  for (var i = 0; i < this.commands.length; i++) {' ).
     lo_buf->add( '    var cmd = this.commands[i];' ).
-    lo_buf->add( '    if (!this.filter) {' ).
+    lo_buf->add( '    if (cmd.isAvailable && !cmd.isAvailable()) {' ).
+    lo_buf->add( '      cmd.element.style.display = "none";' ).
+    lo_buf->add( '    } else if (!this.filter) {' ).
     lo_buf->add( '      cmd.element.style.display = "";' ).
     lo_buf->add( '      cmd.titleSpan.innerText   = cmd.title;' ).
     lo_buf->add( '    } else {' ).
@@ -39109,6 +39112,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  };' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( '// The repository overview hides the actions that do not apply to the selected' ).
+    lo_buf->add( '// repository (e.g. Pull for an offline one) by leaving their list item without' ).
+    lo_buf->add( '// the "enabled" class, see RepoOverViewHelper.updateActionLinks. Every other' ).
+    lo_buf->add( '// anchor is always available.' ).
+    lo_buf->add( 'function isActionLinkEnabled(anchor) {' ).
+    lo_buf->add( '  var listItem = anchor.parentElement;' ).
+    lo_buf->add( '  return !listItem || !listItem.classList.contains("action_link") || listItem.classList.contains("enabled");' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'function enumerateUiActions() {' ).
     lo_buf->add( '  var items = [];' ).
     lo_buf->add( '  function processUL(ulNode, prefix) {' ).
@@ -39150,9 +39162,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      // Clicking the wired anchor routes on every browser control (desktop and' ).
     lo_buf->add( '      // WebGUI); no need to reconstruct the sapevent from the href, which ITS' ).
     lo_buf->add( '      // rewrites on WebGUI anyway.' ).
-    lo_buf->add( '      action  : function() { clickSapEvent(anchor) },' ).
-    lo_buf->add( '      getTitle: getTitle,' ).
-    lo_buf->add( '      title   : getTitle()' ).
+    lo_buf->add( '      action     : function() { clickSapEvent(anchor) },' ).
+    lo_buf->add( '      getTitle   : getTitle,' ).
+    lo_buf->add( '      title      : getTitle(),' ).
+    lo_buf->add( '      isAvailable: function() { return isActionLinkEnabled(anchor) }' ).
     lo_buf->add( '    };' ).
     lo_buf->add( '  });' ).
     lo_buf->add( '' ).
@@ -158494,8 +158507,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-26T16:07:51.059Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-26T16:07:51.059Z`.
+* abapmerge 0.16.10 - 2026-09-26T16:11:50.233Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-26T16:11:50.233Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
