@@ -38894,8 +38894,32 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'CommandPalette.prototype.hookEvents = function() {' ).
     lo_buf->add( '  document.addEventListener("keydown", this.handleToggleKey.bind(this));' ).
+    lo_buf->add( '  document.addEventListener("mousedown", this.handleOutsideClick.bind(this));' ).
+    lo_buf->add( '  this.elements.input.addEventListener("keydown", this.handleInputKeydown.bind(this));' ).
     lo_buf->add( '  this.elements.input.addEventListener("keyup", this.handleInputKey.bind(this));' ).
     lo_buf->add( '  this.elements.ul.addEventListener("click", this.handleUlClick.bind(this));' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Moving the selection on keydown lets a held arrow key repeat, and keeps the' ).
+    lo_buf->add( '// caret from jumping to the start or end of the input.' ).
+    lo_buf->add( '// No Escape to close: SAP GUI acts on that key whatever the page does with it.' ).
+    lo_buf->add( '// SAP GUI for Java leaves abapGit, and the Edge control loses the keyboard' ).
+    lo_buf->add( '// focus, so the next toggle key (Ctrl+P) opens the print dialog instead.' ).
+    lo_buf->add( 'CommandPalette.prototype.handleInputKeydown = function(event) {' ).
+    lo_buf->add( '  if (event.key === "ArrowUp" || event.key === "Up") {' ).
+    lo_buf->add( '    this.selectPrev();' ).
+    lo_buf->add( '  } else if (event.key === "ArrowDown" || event.key === "Down") {' ).
+    lo_buf->add( '    this.selectNext();' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    return;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  event.preventDefault();' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'CommandPalette.prototype.handleOutsideClick = function(event) {' ).
+    lo_buf->add( '  var target = event.target || event.srcElement;' ).
+    lo_buf->add( '  if (this.elements.palette.style.display === "none" || this.elements.palette.contains(target)) return;' ).
+    lo_buf->add( '  this.toggleDisplay(false);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'CommandPalette.prototype.renderCommandItem = function(cmd) {' ).
@@ -38941,11 +38965,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'CommandPalette.prototype.handleInputKey = function(event) {' ).
-    lo_buf->add( '  if (event.key === "ArrowUp" || event.key === "Up") {' ).
-    lo_buf->add( '    this.selectPrev();' ).
-    lo_buf->add( '  } else if (event.key === "ArrowDown" || event.key === "Down") {' ).
-    lo_buf->add( '    this.selectNext();' ).
-    lo_buf->add( '  } else if (event.key === "Enter") {' ).
+    lo_buf->add( '  if (event.key === "Enter") {' ).
     lo_buf->add( '    this.exec(this.getSelected());' ).
     lo_buf->add( '  } else if (event.key === "Backspace" && !this.filter) {' ).
     lo_buf->add( '    this.toggleDisplay(false);' ).
@@ -158507,8 +158527,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-26T16:11:50.233Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-26T16:11:50.233Z`.
+* abapmerge 0.16.10 - 2026-09-26T16:16:05.221Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-26T16:16:05.221Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
