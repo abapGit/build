@@ -37460,12 +37460,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// (iterateStageTab change mode), it includes display:none descendants,' ).
     lo_buf->add( '// so the link-hint codes would leak into the file names' ).
     lo_buf->add( 'StageHelper.prototype.getPlainText = function(elem) {' ).
-    lo_buf->add( '  var clone = elem.cloneNode(true);' ).
-    lo_buf->add( '  var hints = clone.querySelectorAll("span.link-hint");' ).
-    lo_buf->add( '  for (var i = hints.length - 1; i >= 0; i--) {' ).
-    lo_buf->add( '    hints[i].parentNode.removeChild(hints[i]);' ).
-    lo_buf->add( '  }' ).
-    lo_buf->add( '  return clone.textContent;' ).
+    lo_buf->add( '  return getTextWithoutLinkHints(elem);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Apply filter to a single stage line - hide or show' ).
@@ -38314,7 +38309,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      this.displayHints(false);' ).
     lo_buf->add( '      event.preventDefault();' ).
     lo_buf->add( '      if (this.yankModeActive) {' ).
-    lo_buf->add( '        submitSapeventForm({ clipboard: hint.parent.firstChild.textContent }, "clipboard");' ).
+    lo_buf->add( '        var yankText = this.getYankText(hint.parent);' ).
+    lo_buf->add( '        // The backend rejects an empty clipboard with an error popup' ).
+    lo_buf->add( '        if (yankText) submitSapeventForm({ clipboard: yankText }, "clipboard");' ).
     lo_buf->add( '        this.yankModeActive = false;' ).
     lo_buf->add( '      } else {' ).
     lo_buf->add( '        this.hintActivate(hint);' ).
@@ -38330,6 +38327,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      }' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// The text a yanked hint copies: what the element shows. A field shows its' ).
+    lo_buf->add( '// value and has no child nodes at all; a link can start with an icon, so its' ).
+    lo_buf->add( '// first child is not necessarily its text; an icon-only element falls back to' ).
+    lo_buf->add( '// its tooltip.' ).
+    lo_buf->add( 'LinkHints.prototype.getYankText = function(element) {' ).
+    lo_buf->add( '  if (element.nodeName === "INPUT" || element.nodeName === "TEXTAREA") {' ).
+    lo_buf->add( '    return element.value || "";' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  return getTextWithoutLinkHints(element).trim() || element.title || "";' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'LinkHints.prototype.closeActivatedDropdown = function() {' ).
@@ -38416,6 +38424,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '  return visibleHints;' ).
     lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Text content of an element without the codes of the link hints injected' ).
+    lo_buf->add( '// into it (deployHintContainers appends them to links, their labels included)' ).
+    lo_buf->add( 'function getTextWithoutLinkHints(element) {' ).
+    lo_buf->add( '  var clone = element.cloneNode(true);' ).
+    lo_buf->add( '  var hints = clone.querySelectorAll("span.link-hint");' ).
+    lo_buf->add( '  for (var i = hints.length - 1; i >= 0; i--) {' ).
+    lo_buf->add( '    hints[i].parentNode.removeChild(hints[i]);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  return clone.textContent;' ).
+    lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'function activateLinkHints(linkHintHotKey) {' ).
     lo_buf->add( '  if (!linkHintHotKey) return;' ).
@@ -158527,8 +158546,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-26T16:16:05.221Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-26T16:16:05.221Z`.
+* abapmerge 0.16.10 - 2026-09-26T18:08:01.517Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-26T18:08:01.517Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
