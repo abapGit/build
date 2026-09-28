@@ -37081,7 +37081,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'RepoOverViewHelper.prototype.registerKeyboardShortcuts = function() {' ).
     lo_buf->add( '  var self = this;' ).
     lo_buf->add( '  document.addEventListener("keypress", function(event) {' ).
-    lo_buf->add( '    if (document.activeElement.id === "filter") {' ).
+    lo_buf->add( '    // Leave keys typed elsewhere alone: in the filter or the command palette,' ).
+    lo_buf->add( '    // or as a link hint code - its digits would otherwise move the selection,' ).
+    lo_buf->add( '    // and the action links with it, before the hint activates one of them' ).
+    lo_buf->add( '    if (event.defaultPrevented || LinkHints.areHintsDisplayed || !Hotkeys.isHotkeyCallPossible()) {' ).
     lo_buf->add( '      return;' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '    if (self.focusFilterKey && event.key === self.focusFilterKey && !CommandPalette.isVisible()) {' ).
@@ -38333,14 +38336,15 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '  } else if (this.areHintsDisplayed) {' ).
     lo_buf->add( '' ).
-    lo_buf->add( '    // the user tries to reach a hint' ).
+    lo_buf->add( '    // the user tries to reach a hint - the key is consumed here, so page' ).
+    lo_buf->add( '    // shortcuts listening after us must not act on it as well' ).
+    lo_buf->add( '    event.preventDefault();' ).
     lo_buf->add( '    this.pendingPath += event.key;' ).
     lo_buf->add( '' ).
     lo_buf->add( '    var hint = this.hintsMap[this.pendingPath];' ).
     lo_buf->add( '' ).
     lo_buf->add( '    if (hint) { // we are there, we have a fully specified tooltip. Let us activate or yank it' ).
     lo_buf->add( '      this.displayHints(false);' ).
-    lo_buf->add( '      event.preventDefault();' ).
     lo_buf->add( '      if (this.yankModeActive) {' ).
     lo_buf->add( '        var yankText = this.getYankText(hint.parent);' ).
     lo_buf->add( '        // The backend rejects an empty clipboard with an error popup' ).
@@ -38379,8 +38383,14 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.activatedDropdown = null;' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
+    lo_buf->add( '// Are hints displayed, i.e. is the user typing a hint code? Page shortcuts' ).
+    lo_buf->add( '// registered before the link hints cannot rely on the key being marked as' ).
+    lo_buf->add( '// consumed. A page has at most one LinkHints instance (activateLinkHints).' ).
+    lo_buf->add( 'LinkHints.areHintsDisplayed = false;' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'LinkHints.prototype.displayHints = function(isActivate) {' ).
-    lo_buf->add( '  this.areHintsDisplayed = isActivate;' ).
+    lo_buf->add( '  this.areHintsDisplayed      = isActivate;' ).
+    lo_buf->add( '  LinkHints.areHintsDisplayed = isActivate;' ).
     lo_buf->add( '  for (var i = this.hintsMap.first; i <= this.hintsMap.last; i++) {' ).
     lo_buf->add( '    var hint = this.hintsMap[i];' ).
     lo_buf->add( '    if (isActivate) {' ).
@@ -39227,9 +39237,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    var anchor = item[0];' ).
     lo_buf->add( '    var prefix = item[1];' ).
     lo_buf->add( '    // title is re-read on each palette open, some labels change dynamically' ).
-    lo_buf->add( '    // (e.g. commit/patch buttons on the stage page)' ).
+    lo_buf->add( '    // (e.g. commit/patch buttons on the stage page). Not from innerText: link' ).
+    lo_buf->add( '    // hints stay in the DOM once deployed, and for a link that is not rendered' ).
+    lo_buf->add( '    // - one in a closed dropdown - innerText includes their hidden codes.' ).
     lo_buf->add( '    var getTitle = function() {' ).
-    lo_buf->add( '      return (prefix ? prefix + ": " : "") + anchor.innerText.trim();' ).
+    lo_buf->add( '      return (prefix ? prefix + ": " : "") + getTextWithoutLinkHints(anchor).replace(/\s+/g, " ").trim();' ).
     lo_buf->add( '    };' ).
     lo_buf->add( '    return {' ).
     lo_buf->add( '      // Clicking the wired anchor routes on every browser control (desktop and' ).
@@ -158654,8 +158666,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-28T21:54:38.209Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-28T21:54:38.209Z`.
+* abapmerge 0.16.10 - 2026-09-28T22:53:01.282Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-28T22:53:01.282Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
