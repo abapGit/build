@@ -39614,7 +39614,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '    try {' ).
     lo_buf->add( '      rules = styleSheets[index].cssRules || styleSheets[index].rules;' ).
-    lo_buf->add( '    } catch (error) {' ).
+    lo_buf->add( '    } catch (error) { // eslint-disable-line no-unused-vars' ).
     lo_buf->add( '      this.reportError("Could not access " + url + " from the document stylesheets.");' ).
     lo_buf->add( '      return "";' ).
     lo_buf->add( '    }' ).
@@ -158654,8 +158654,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-28T21:36:19.091Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-28T21:36:19.091Z`.
+* abapmerge 0.16.10 - 2026-09-28T21:54:38.209Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-28T21:54:38.209Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
