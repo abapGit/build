@@ -13667,12 +13667,33 @@ CLASS zcl_abapgit_object_tabl_compar DEFINITION
 
   PRIVATE SECTION.
 ENDCLASS.
+INTERFACE iUFTsfCKPfJsVxPMWCyiHaSzPCoasw DEFERRED.
+" Maps between DD02V-VIEWREF (the database view name) and the CDS entity
+" name that DDL uses in @AbapCatalog.replacementObject. The lookup depends
+" on the objects present in the system, so unit tests replace it.
+* renamed: zcl_abapgit_object_tabl_ddl :: lif_replacement_mapping
+INTERFACE iUFTsfCKPfJsVxPMWCyiHaSzPCoasw.
+
+  METHODS to_entity
+    IMPORTING
+      !iv_view_name        TYPE ddobjname
+    RETURNING
+      VALUE(rv_entityname) TYPE string.
+  METHODS to_view
+    IMPORTING
+      !iv_entityname      TYPE ddobjname
+    RETURNING
+      VALUE(rv_view_name) TYPE string.
+
+ENDINTERFACE.
+
 CLASS zcl_abapgit_object_tabl_ddl DEFINITION
   FINAL
   CREATE PUBLIC .
 
   PUBLIC SECTION.
 
+    METHODS constructor .
     METHODS read_data
       IMPORTING
         !iv_name       TYPE tadir-obj_name
@@ -13728,6 +13749,7 @@ CLASS zcl_abapgit_object_tabl_ddl DEFINITION
     " serialized, so a table with many amount or quantity fields does not
     " trigger one DDIF_FIELDINFO_GET per field on every serialize call.
     DATA mt_reference TYPE ty_references.
+    DATA mi_replacement_mapping TYPE REF TO iUFTsfCKPfJsVxPMWCyiHaSzPCoasw.
 
     METHODS tokenize
       IMPORTING
@@ -125428,7 +125450,62 @@ CLASS ZCL_ABAPGIT_I18N_PARAMS IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS kHGwlfCKPfJsVxPMWCyiiGUvEGvfIb DEFINITION DEFERRED.
+* renamed: zcl_abapgit_object_tabl_ddl :: lcl_replacement_mapping
+CLASS kHGwlfCKPfJsVxPMWCyiiGUvEGvfIb DEFINITION FINAL.
+
+  PUBLIC SECTION.
+    INTERFACES iUFTsfCKPfJsVxPMWCyiHaSzPCoasw.
+
+ENDCLASS.
+CLASS kHGwlfCKPfJsVxPMWCyiiGUvEGvfIb IMPLEMENTATION.
+
+  METHOD iUFTsfCKPfJsVxPMWCyiHaSzPCoasw~to_entity.
+
+    DATA lv_entityname TYPE ddobjname.
+
+    TRY.
+        CALL METHOD ('CL_SBD_DDLS_UTILITY')=>('MAP_TO_REPLACEMENT_DDLS')
+          EXPORTING
+            i_view_name  = iv_view_name
+          IMPORTING
+            e_entityname = lv_entityname.
+        rv_entityname = lv_entityname.
+      CATCH cx_root.
+        " The utility is not available on older releases and is also absent
+        " from the open-abap test runtime. In that case no annotation is
+        " emitted rather than serializing DD02V-VIEWREF with the wrong
+        " meaning.
+        CLEAR rv_entityname.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD iUFTsfCKPfJsVxPMWCyiHaSzPCoasw~to_view.
+
+    DATA lv_view_name TYPE ddobjname.
+
+    TRY.
+        CALL METHOD ('CL_SBD_DDLS_UTILITY')=>('MAP_TO_REPLACEMENT_VIEW')
+          EXPORTING
+            i_entityname = iv_entityname
+          IMPORTING
+            e_view_name  = lv_view_name.
+        rv_view_name = lv_view_name.
+      CATCH cx_root.
+        " Keep source-only parsing usable on releases without the SAP
+        " utility. A SAP system with the utility returns the resolved view
+        " name, or initial for an entity that cannot be resolved.
+        rv_view_name = iv_entityname.
+    ENDTRY.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
 CLASS ZCL_ABAPGIT_OBJECT_TABL_DDL IMPLEMENTATION.
+  METHOD constructor.
+    CREATE OBJECT mi_replacement_mapping TYPE kHGwlfCKPfJsVxPMWCyiiGUvEGvfIb.
+  ENDMETHOD.
   METHOD deserialize.
 
     DATA lt_tokens TYPE ty_tokens.
@@ -125617,56 +125694,29 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_DDL IMPLEMENTATION.
   METHOD get_replacement_object.
 
     DATA lv_view_name TYPE ddobjname.
-    DATA lv_entityname TYPE ddobjname.
 
     lv_view_name = to_upper( iv_viewref ).
     IF lv_view_name IS INITIAL.
       RETURN.
     ENDIF.
 
-    TRY.
-        " DD02V-VIEWREF contains the database view name. DDL uses the
-        " corresponding CDS entity name instead.
-        CALL METHOD ('CL_SBD_DDLS_UTILITY')=>('MAP_TO_REPLACEMENT_DDLS')
-          EXPORTING
-            i_view_name  = lv_view_name
-          IMPORTING
-            e_entityname = lv_entityname.
-        rv_object = lv_entityname.
-      CATCH cx_root.
-        " The utility is not available on older releases and is also absent
-        " from the open-abap test runtime. In that case no annotation is
-        " emitted rather than serializing DD02V-VIEWREF with the wrong
-        " meaning.
-        CLEAR rv_object.
-    ENDTRY.
+    " DD02V-VIEWREF contains the database view name. DDL uses the
+    " corresponding CDS entity name instead.
+    rv_object = mi_replacement_mapping->to_entity( lv_view_name ).
 
   ENDMETHOD.
   METHOD get_replacement_view.
 
     DATA lv_entityname TYPE ddobjname.
-    DATA lv_view_name TYPE ddobjname.
 
     lv_entityname = to_upper( iv_entityname ).
     IF lv_entityname IS INITIAL.
       RETURN.
     ENDIF.
 
-    TRY.
-        " The reverse mapping is needed when DDL is saved back to TABL:
-        " DD02V-VIEWREF must receive the database view name.
-        CALL METHOD ('CL_SBD_DDLS_UTILITY')=>('MAP_TO_REPLACEMENT_VIEW')
-          EXPORTING
-            i_entityname = lv_entityname
-          IMPORTING
-            e_view_name = lv_view_name.
-        rv_viewname = lv_view_name.
-      CATCH cx_root.
-        " Keep source-only parsing usable on releases without the SAP
-        " utility. A SAP system with the utility returns the resolved view
-        " name, or initial for an entity that cannot be resolved.
-        rv_viewname = lv_entityname.
-    ENDTRY.
+    " The reverse mapping is needed when DDL is saved back to TABL:
+    " DD02V-VIEWREF must receive the database view name.
+    rv_viewname = mi_replacement_mapping->to_view( lv_entityname ).
 
   ENDMETHOD.
   METHOD parse_replacement_object.
@@ -158546,8 +158596,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-26T18:08:01.517Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-26T18:08:01.517Z`.
+* abapmerge 0.16.10 - 2026-09-28T11:47:58.795Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-28T11:47:58.795Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
