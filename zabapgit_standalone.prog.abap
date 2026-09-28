@@ -26922,7 +26922,6 @@ CLASS zcl_abapgit_gui_page_diff_base DEFINITION
       END OF ty_view.
     DATA mt_delayed_lines TYPE zif_abapgit_definitions=>ty_diffs_tt .
     DATA mv_repo_key TYPE zif_abapgit_persistence=>ty_repo-key .
-    DATA mv_seed TYPE string .                    " Unique page id to bind JS sessionStorage
     DATA ms_view TYPE ty_view.
     METHODS render_table_head_non_unified
       IMPORTING
@@ -37797,13 +37796,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '// Diff helper constructor' ).
     lo_buf->add( 'function DiffHelper(params) {' ).
-    lo_buf->add( '  this.pageSeed    = params.seed;' ).
-    lo_buf->add( '  this.stageAction = params.stageAction;' ).
-    lo_buf->add( '' ).
     lo_buf->add( '  // DOM nodes' ).
     lo_buf->add( '  this.dom = {' ).
-    lo_buf->add( '    diffList   : document.getElementById(params.ids.diffList),' ).
-    lo_buf->add( '    stageButton: document.getElementById(params.ids.stageButton)' ).
+    lo_buf->add( '    diffList: document.getElementById(params.ids.diffList)' ).
     lo_buf->add( '  };' ).
     lo_buf->add( '' ).
     lo_buf->add( '  this.repoKey = this.dom.diffList.getAttribute("data-repo-key");' ).
@@ -37816,12 +37811,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  if (document.getElementById(params.ids.filterMenu)) {' ).
     lo_buf->add( '    this.checkList        = new CheckListWrapper(params.ids.filterMenu, this.onFilter.bind(this), this.onFilterOnlyMyChanges.bind(this));' ).
     lo_buf->add( '    this.dom.filterButton = document.getElementById(params.ids.filterMenu).parentNode;' ).
-    lo_buf->add( '  }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  // Hijack stage command' ).
-    lo_buf->add( '  if (this.dom.stageButton) {' ).
-    lo_buf->add( '    this.dom.stageButton.href    = "#";' ).
-    lo_buf->add( '    this.dom.stageButton.onclick = this.onStage.bind(this);' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -37906,25 +37895,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    });' ).
     lo_buf->add( '  });' ).
     lo_buf->add( '  this.highlightButton();' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '// Action on stage -> save visible diffs as state for stage page' ).
-    lo_buf->add( 'DiffHelper.prototype.onStage = function(e) { // eslint-disable-line no-unused-vars' ).
-    lo_buf->add( '  writeStoredState("sessionStorage", this.pageSeed, this.buildStageCache());' ).
-    lo_buf->add( '  var getParams = { key: this.repoKey, seed: this.pageSeed };' ).
-    lo_buf->add( '  submitSapeventForm(getParams, this.stageAction, "get");' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '// Collect visible diffs' ).
-    lo_buf->add( 'DiffHelper.prototype.buildStageCache = function() {' ).
-    lo_buf->add( '  var list = {};' ).
-    lo_buf->add( '  this.iterateDiffList(function(div) {' ).
-    lo_buf->add( '    var filename = div.getAttribute("data-file");' ).
-    lo_buf->add( '    if (!div.style.display && filename) { // No display override - visible !!' ).
-    lo_buf->add( '      list[filename] = "A"; // Add' ).
-    lo_buf->add( '    }' ).
-    lo_buf->add( '  });' ).
-    lo_buf->add( '  return list;' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Table iterator' ).
@@ -38531,8 +38501,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    // the hotkey execution' ).
     lo_buf->add( '    this.oKeyMap[sKey] = function(oEvent) {' ).
     lo_buf->add( '' ).
-    lo_buf->add( '      // gHelper is only valid for diff page' ).
-    lo_buf->add( '      var diffHelper = (window.gHelper || {});' ).
+    lo_buf->add( '      // The helper object of the page, if it has one: the diff, stage and' ).
+    lo_buf->add( '      // repository overview pages create it as gHelper' ).
+    lo_buf->add( '      var pageHelper = (window.gHelper || {});' ).
     lo_buf->add( '' ).
     lo_buf->add( '      // We have either a js function on this' ).
     lo_buf->add( '      if (this[action]) {' ).
@@ -38540,9 +38511,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '        return;' ).
     lo_buf->add( '      }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '      // Or a method of the helper object for the diff page' ).
-    lo_buf->add( '      if (diffHelper[action]) {' ).
-    lo_buf->add( '        diffHelper[action].call(diffHelper);' ).
+    lo_buf->add( '      // Or a method of the page helper (e.g. submitCommit on the stage page)' ).
+    lo_buf->add( '      if (pageHelper[action]) {' ).
+    lo_buf->add( '        pageHelper[action].call(pageHelper);' ).
     lo_buf->add( '        return;' ).
     lo_buf->add( '      }' ).
     lo_buf->add( '' ).
@@ -56259,17 +56230,12 @@ CLASS zcl_abapgit_gui_page_diff_base IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
 
-    DATA: lv_ts TYPE timestamp.
-
     super->constructor( ).
     mv_unified  = zcl_abapgit_persist_factory=>get_user( )->get_diff_unified( ).
     mv_repo_key = iv_key.
     IF iv_key IS NOT INITIAL.
       mi_repo = zcl_abapgit_repo_srv=>get_instance( )->get( iv_key ).
     ENDIF.
-
-    GET TIME STAMP FIELD lv_ts.
-    mv_seed = |diff{ lv_ts }|. " Generate based on time
 
     ASSERT is_file IS INITIAL OR is_object IS INITIAL. " just one passed
 
@@ -56882,7 +56848,6 @@ CLASS zcl_abapgit_gui_page_diff_base IMPLEMENTATION.
 
     ri_html->add( 'restoreScrollPosition();' ).
     ri_html->add( 'var gHelper = new DiffHelper({' ).
-    ri_html->add( |  seed:        "{ mv_seed }",| ).
     ri_html->add( '  ids: {' ).
     ri_html->add( '    jump:        "jump",' ).
     ri_html->add( '    diffList:    "diff-list",' ).
@@ -158695,8 +158660,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-28T20:11:51.887Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-28T20:11:51.887Z`.
+* abapmerge 0.16.10 - 2026-09-28T21:05:21.160Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-28T21:05:21.160Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
