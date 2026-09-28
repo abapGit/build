@@ -36881,11 +36881,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  element.click();' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
-    lo_buf->add( '// Set focus to a control' ).
-    lo_buf->add( 'function setInitialFocus(id) {' ).
-    lo_buf->add( '  document.getElementById(id).focus();' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
     lo_buf->add( '// Set focus to an element with query selector' ).
     lo_buf->add( 'function setInitialFocusWithQuerySelector(sSelector, bFocusParent) {' ).
     lo_buf->add( '  var oSelected = document.querySelector(sSelector);' ).
@@ -39558,10 +39553,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  var firstElement = focusable[0];' ).
     lo_buf->add( '  var lastElement = focusable[focusable.length - 1];' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  // Focus the main button when modal opens, if it exists' ).
-    lo_buf->add( '  if (document.querySelector(".main-button")) {' ).
-    lo_buf->add( '    setInitialFocus("main-button");' ).
-    lo_buf->add( '  }' ).
+    lo_buf->add( '  // No initial focus on the main button: while a button has focus, link hints' ).
+    lo_buf->add( '  // and letter hotkeys are off (Hotkeys.isHotkeyCallPossible), and letting them' ).
+    lo_buf->add( '  // through would make Enter fire both the button and its Enter hotkey.' ).
     lo_buf->add( '' ).
     lo_buf->add( '  modal.onkeydown = function(e) {' ).
     lo_buf->add( '    var keyCode = e.keyCode || e.which;' ).
@@ -158660,8 +158654,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-28T21:05:21.160Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-28T21:05:21.160Z`.
+* abapmerge 0.16.10 - 2026-09-28T21:36:19.091Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-28T21:36:19.091Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
