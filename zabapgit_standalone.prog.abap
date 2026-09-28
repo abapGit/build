@@ -36472,7 +36472,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* exported confirmInitialized' ).
-    lo_buf->add( '   -- zcl_abapgit_gui_page->zif_abapgit_gui_renderable~render */' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_page->zif_abapgit_gui_renderable~render,' ).
+    lo_buf->add( '      which also renders the js-error-banner it hides */' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* exported setEnvironment' ).
     lo_buf->add( '   -- zcl_abapgit_gui_page->render_environment */' ).
@@ -36906,6 +36907,41 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'function submitFormById(id) {' ).
     lo_buf->add( '  submitForm(document.getElementById(id));' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// The error banner only reports a page that failed to initialize: once' ).
+    lo_buf->add( '// confirmInitialized has hidden it, an error in an event handler would go' ).
+    lo_buf->add( '// unnoticed. Show it again with the error, so a user on a browser control we' ).
+    lo_buf->add( '// cannot test ourselves can tell us what broke.' ).
+    lo_buf->add( '//' ).
+    lo_buf->add( '// Only errors of this script and of the inline page scripts count. Others are' ).
+    lo_buf->add( '// not ours to report - on WebGUI, ITS runs scripts of its own - and a script' ).
+    lo_buf->add( '// of another origin reports nothing but "Script error." anyway. The first' ).
+    lo_buf->add( '// error is the one worth reporting, later ones are mostly its consequences.' ).
+    lo_buf->add( 'var gScriptErrorReported = false;' ).
+    lo_buf->add( 'var gCommonJsUrlPattern  = /(^|\/)js\/common\.js(\?|$)/;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function isOwnScript(url) {' ).
+    lo_buf->add( '  var page = String(window.location && window.location.href).replace(/#.*$/, "");' ).
+    lo_buf->add( '  return gCommonJsUrlPattern.test(url) || url.replace(/#.*$/, "") === page;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function reportScriptError(message, url, line) {' ).
+    lo_buf->add( '  var errorBanner = document.getElementById("js-error-banner");' ).
+    lo_buf->add( '  if (gScriptErrorReported || !errorBanner || !url || !isOwnScript(url)) return;' ).
+    lo_buf->add( '  gScriptErrorReported = true;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var icon = errorBanner.querySelector("i");' ).
+    lo_buf->add( '  var file = gCommonJsUrlPattern.test(url) ? "common.js" : "page script";' ).
+    lo_buf->add( '  while (errorBanner.firstChild) errorBanner.removeChild(errorBanner.firstChild);' ).
+    lo_buf->add( '  if (icon) errorBanner.appendChild(icon);' ).
+    lo_buf->add( '  errorBanner.appendChild(document.createTextNode(" JavaScript error: " + message' ).
+    lo_buf->add( '    + " (" + file + (line ? ":" + line : "") + "), please log an issue"));' ).
+    lo_buf->add( '  errorBanner.style.display = "";' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'window.addEventListener("error", function(event) {' ).
+    lo_buf->add( '  reportScriptError(event.message, event.filename, event.lineno);' ).
+    lo_buf->add( '});' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Confirm JS initialization' ).
     lo_buf->add( 'function confirmInitialized() {' ).
@@ -46108,7 +46144,6 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
       iv_show_commit        = abap_false
       iv_interactive_branch = abap_true
       iv_sci_result         = mv_sci_result ) ).
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_js_error_banner( ) ).
     ri_html->add( render_main_language_warning( ) ).
 
     ri_html->add( '<div class="stage-container">' ).
@@ -57019,7 +57054,6 @@ CLASS zcl_abapgit_gui_page_diff_base IMPLEMENTATION.
 
     ri_html->add( |<div id="diff-list" data-repo-key="{ mv_repo_key }">| ).
 
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_js_error_banner( ) ).
     LOOP AT mt_diff_files INTO ls_diff_file.
       li_progress->show(
         iv_current = sy-tabix
@@ -62138,6 +62172,11 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
     ri_html->add( title( ) ).
 
     ri_html->add( '<div class="not_sticky">' ).
+
+    " Visible until the page scripts confirm they initialized, and shown again
+    " by common.js for a later script error - on every page, so a broken
+    " common.js does not go unnoticed where most users start
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_js_error_banner( ) ).
 
     ri_html->add( '<div id="main">' ).
     ri_html->add( render_content( ) ). " TODO -> render child
@@ -158596,8 +158635,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-28T11:47:58.795Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-28T11:47:58.795Z`.
+* abapmerge 0.16.10 - 2026-09-28T19:11:52.692Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-28T19:11:52.692Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
