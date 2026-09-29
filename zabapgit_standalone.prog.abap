@@ -35538,6 +35538,39 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  font-size: 12px;' ).
     lo_buf->add( '  white-space: pre;' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.webgui-busy-lock {' ).
+    lo_buf->add( '  position: fixed;' ).
+    lo_buf->add( '  top: 0;' ).
+    lo_buf->add( '  right: 0;' ).
+    lo_buf->add( '  bottom: 0;' ).
+    lo_buf->add( '  left: 0;' ).
+    lo_buf->add( '  z-index: 2147483647;' ).
+    lo_buf->add( '  cursor: wait;' ).
+    lo_buf->add( '  outline: none;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.webgui-busy-lock[hidden] {' ).
+    lo_buf->add( '  display: none;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '.webgui-busy-lock span {' ).
+    lo_buf->add( '  position: absolute;' ).
+    lo_buf->add( '  top: 50%;' ).
+    lo_buf->add( '  left: 50%;' ).
+    lo_buf->add( '  transform: translate(-50%, -50%);' ).
+    lo_buf->add( '  padding: 1em 2em;' ).
+    lo_buf->add( '  background-color: var(--theme-container-background-color);' ).
+    lo_buf->add( '  color: var(--theme-primary-font-color);' ).
+    lo_buf->add( '  border: 1px solid var(--theme-container-border-color);' ).
+    lo_buf->add( '  border-radius: 4px;' ).
+    lo_buf->add( '  opacity: 0;' ).
+    lo_buf->add( '  animation: webgui-busy-message 0s 500ms forwards;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '@keyframes webgui-busy-message {' ).
+    lo_buf->add( '  to { opacity: 1; }' ).
+    lo_buf->add( '}' ).
     li_asset_man->register_asset(
       iv_url       = 'css/common.css'
       iv_type      = 'text/css'
@@ -36971,7 +37004,123 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    errorBanner.style.display = "none";' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '  debugOutput("js: OK"); // Final final confirmation :)' ).
+    lo_buf->add( '  // Last: an optional feature must not keep the page from confirming its setup' ).
+    lo_buf->add( '  initializeWebGuiBusyLock();' ).
     lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'var gWebGuiBusyLock;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// WebGUI''s Lightspeed shell locks during a round trip, but its event handling' ).
+    lo_buf->add( '// does not cover this HTML-viewer iframe. Follow its lifecycle rather than' ).
+    lo_buf->add( '// guessing completion from page loads: some SAP events leave this page intact.' ).
+    lo_buf->add( 'function initializeWebGuiBusyLock() {' ).
+    lo_buf->add( '  if (!gEnv.isWebGui || gWebGuiBusyLock) return;' ).
+    lo_buf->add( '  var shell;' ).
+    lo_buf->add( '  try {' ).
+    lo_buf->add( '    var sap = window.parent.sap;' ).
+    lo_buf->add( '    // WebGUI deletes sap.g4h.$ after bootstrapping. These aliases survive.' ).
+    lo_buf->add( '    shell = sap && sap.its && sap.its.LS;' ).
+    lo_buf->add( '    if (!shell) shell = window.parent.mysap && window.parent.mysap.LS;' ).
+    lo_buf->add( '    // LS exposes a facade; event subscriptions belong to its internal provider.' ).
+    lo_buf->add( '    if (shell && typeof shell.oGetInternal === "function") shell = shell.oGetInternal(window.parent.UCF_System);' ).
+    lo_buf->add( '  } catch (error) { // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( '    return; // Cross-origin embedding, or a WebGUI release without these hooks' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  if (!shell || !shell.E_EVENTS || !shell.E_EVENTS.Lock || !shell.E_EVENTS.Unlock' ).
+    lo_buf->add( '      || typeof shell.attachEvent !== "function" || typeof shell.detachEvent !== "function"' ).
+    lo_buf->add( '      || typeof shell.bLocked !== "function") return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var overlay = document.createElement("div");' ).
+    lo_buf->add( '  overlay.className = "webgui-busy-lock";' ).
+    lo_buf->add( '  overlay.tabIndex = -1;' ).
+    lo_buf->add( '  overlay.hidden = true;' ).
+    lo_buf->add( '  overlay.setAttribute("role", "status");' ).
+    lo_buf->add( '  overlay.setAttribute("aria-label", "Working...");' ).
+    lo_buf->add( '  var message = document.createElement("span");' ).
+    lo_buf->add( '  message.textContent = "Working...";' ).
+    lo_buf->add( '  overlay.appendChild(message);' ).
+    lo_buf->add( '  document.body.appendChild(overlay);' ).
+    lo_buf->add( '  var previousFocus;' ).
+    lo_buf->add( '  var previousBusy;' ).
+    lo_buf->add( '  var locked = false;' ).
+    lo_buf->add( '  var inputEvents = ["click", "dblclick", "mousedown", "mouseup", "pointerdown", "pointerup",' ).
+    lo_buf->add( '    "touchstart", "touchmove", "touchend", "wheel", "keydown", "keypress", "keyup", "submit", "contextmenu"];' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function isShellLocked() {' ).
+    lo_buf->add( '    try {' ).
+    lo_buf->add( '      return shell.bLocked();' ).
+    lo_buf->add( '    } catch (error) { // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( '      return false;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function blockInput(event) {' ).
+    lo_buf->add( '    if (!locked) return;' ).
+    lo_buf->add( '    // Self-healing: an Unlock notification that never arrived must not leave' ).
+    lo_buf->add( '    // the page blocked for good. The first input after it frees the page.' ).
+    lo_buf->add( '    if (!isShellLocked()) {' ).
+    lo_buf->add( '      listener.unlock();' ).
+    lo_buf->add( '      return;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    event.preventDefault();' ).
+    lo_buf->add( '    event.stopImmediatePropagation();' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var listener = {' ).
+    lo_buf->add( '    lock: function() {' ).
+    lo_buf->add( '      if (locked) return;' ).
+    lo_buf->add( '      locked = true;' ).
+    lo_buf->add( '      previousFocus = document.activeElement;' ).
+    lo_buf->add( '      previousBusy = document.body.getAttribute("aria-busy");' ).
+    lo_buf->add( '      document.body.setAttribute("aria-busy", "true");' ).
+    lo_buf->add( '      overlay.hidden = false;' ).
+    lo_buf->add( '      overlay.focus({ preventScroll: true });' ).
+    lo_buf->add( '    },' ).
+    lo_buf->add( '    unlock: function() {' ).
+    lo_buf->add( '      if (!locked) return;' ).
+    lo_buf->add( '      locked = false;' ).
+    lo_buf->add( '      var restoreFocus = document.activeElement === overlay;' ).
+    lo_buf->add( '      overlay.hidden = true;' ).
+    lo_buf->add( '      if (previousBusy === null) document.body.removeAttribute("aria-busy");' ).
+    lo_buf->add( '      else document.body.setAttribute("aria-busy", previousBusy);' ).
+    lo_buf->add( '      if (restoreFocus && previousFocus && document.body.contains(previousFocus)) {' ).
+    lo_buf->add( '        previousFocus.focus({ preventScroll: true });' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '  function destroy() {' ).
+    lo_buf->add( '    try {' ).
+    lo_buf->add( '      shell.detachEvent(shell.E_EVENTS.Lock, listener, "lock");' ).
+    lo_buf->add( '      shell.detachEvent(shell.E_EVENTS.Unlock, listener, "unlock");' ).
+    lo_buf->add( '    } catch (error) { // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( '      // Nothing left to undo for a subscription the shell never took' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    inputEvents.forEach(function(name) { window.removeEventListener(name, blockInput, true) });' ).
+    lo_buf->add( '    window.removeEventListener("pagehide", destroy);' ).
+    lo_buf->add( '    listener.unlock();' ).
+    lo_buf->add( '    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);' ).
+    lo_buf->add( '    gWebGuiBusyLock = null;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // The shell hooks are internals of Lightspeed, not an API. A release that' ).
+    lo_buf->add( '  // rejects the subscription gets no busy lock - never a half-attached one' ).
+    lo_buf->add( '  // that locks on Lock and misses the Unlock.' ).
+    lo_buf->add( '  try {' ).
+    lo_buf->add( '    shell.attachEvent(shell.E_EVENTS.Lock, listener, "lock");' ).
+    lo_buf->add( '    shell.attachEvent(shell.E_EVENTS.Unlock, listener, "unlock");' ).
+    lo_buf->add( '  } catch (error) { // eslint-disable-line no-unused-vars' ).
+    lo_buf->add( '    destroy();' ).
+    lo_buf->add( '    return;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  inputEvents.forEach(function(name) {' ).
+    lo_buf->add( '    window.addEventListener(name, blockInput, { capture: true, passive: false });' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '  window.addEventListener("pagehide", destroy);' ).
+    lo_buf->add( '  gWebGuiBusyLock = listener;' ).
+    lo_buf->add( '  if (isShellLocked()) listener.lock();' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'window.addEventListener("pageshow", function() { initializeWebGuiBusyLock() });' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
     lo_buf->add( ' * Performance utils (for debugging)' ).
@@ -158680,8 +158829,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-29T17:25:12.630Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-29T17:25:12.630Z`.
+* abapmerge 0.16.10 - 2026-09-29T18:50:36.883Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-29T18:50:36.883Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
