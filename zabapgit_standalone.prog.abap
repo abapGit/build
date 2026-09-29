@@ -33825,6 +33825,22 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  text-align:       center;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( '/* The banner stays visible until the page scripts confirm they initialized,' ).
+    lo_buf->add( '   which takes a moment on every page load. Keep it collapsed for that moment,' ).
+    lo_buf->add( '   so it shows only when initialization failed, not as a flicker on every page' ).
+    lo_buf->add( '   switch. Without CSS animations it simply shows at once, as before. */' ).
+    lo_buf->add( '#js-error-banner {' ).
+    lo_buf->add( '  animation: js-error-banner-delay 2s;' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '@keyframes js-error-banner-delay {' ).
+    lo_buf->add( '  from, to {' ).
+    lo_buf->add( '    visibility:     hidden;' ).
+    lo_buf->add( '    max-height:     0;' ).
+    lo_buf->add( '    padding-top:    0;' ).
+    lo_buf->add( '    padding-bottom: 0;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'a.close-btn {' ).
     lo_buf->add( '  text-decoration: none;' ).
     lo_buf->add( '}' ).
@@ -36940,6 +36956,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  if (icon) errorBanner.appendChild(icon);' ).
     lo_buf->add( '  errorBanner.appendChild(document.createTextNode(" JavaScript error: " + message' ).
     lo_buf->add( '    + " (" + file + (line ? ":" + line : "") + "), please log an issue"));' ).
+    lo_buf->add( '  errorBanner.style.animationName = "none"; // skip the delay in the css, the error is known now' ).
     lo_buf->add( '  errorBanner.style.display = "";' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -158663,8 +158680,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-29T09:16:06.583Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-29T09:16:06.583Z`.
+* abapmerge 0.16.10 - 2026-09-29T17:25:12.630Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-29T17:25:12.630Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
