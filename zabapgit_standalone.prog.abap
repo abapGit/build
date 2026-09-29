@@ -131661,18 +131661,15 @@ CLASS zcl_abapgit_gui_jumper IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_jumper~jump.
 
-    " WebGUI cannot open windows or ADT
-    IF zcl_abapgit_ui_factory=>get_frontend_services( )->is_webgui( ) = abap_true.
-      zcx_abapgit_exception=>raise( |Jump not possible in WebGUI| ).
-    ENDIF.
-
     " Try all generic jump options
 
     " 1) ADT Jump
-    rv_exit = zif_abapgit_gui_jumper~jump_adt(
-      is_item         = is_item
-      iv_sub_obj_name = is_sub_item-obj_name
-      iv_line_number  = iv_line_number ).
+    IF zcl_abapgit_ui_factory=>get_frontend_services( )->is_webgui( ) = abap_false.
+      rv_exit = zif_abapgit_gui_jumper~jump_adt(
+        is_item         = is_item
+        iv_sub_obj_name = is_sub_item-obj_name
+        iv_line_number  = iv_line_number ).
+    ENDIF.
 
     IF rv_exit = abap_true.
       RETURN.
@@ -158666,8 +158663,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-28T22:53:01.282Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-28T22:53:01.282Z`.
+* abapmerge 0.16.10 - 2026-09-29T09:16:06.583Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-29T09:16:06.583Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
