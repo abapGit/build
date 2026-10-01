@@ -36661,8 +36661,22 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// place before any other script on the page runs. Everything a browser can' ).
     lo_buf->add( '// establish for itself is probed here instead of being asked for.' ).
     lo_buf->add( 'var gEnv = {' ).
+    lo_buf->add( '  // Seeded by the backend (setEnvironment)' ).
     lo_buf->add( '  isWebGui          : false, // SAP GUI for HTML' ).
-    lo_buf->add( '  isSapGuiForWindows: false  // neither of the two: SAP GUI for Java' ).
+    lo_buf->add( '  isSapGuiForWindows: false, // neither of the two: SAP GUI for Java' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Derived from the facts above in setEnvironment: the browser control SAP GUI' ).
+    lo_buf->add( '  // for Windows embeds, "Edge" (Chromium) or "IE". Empty on the other GUIs,' ).
+    lo_buf->add( '  // which embed none: the HTML GUI runs in the browser of the user, whose user' ).
+    lo_buf->add( '  // agent describes no browser control at all.' ).
+    lo_buf->add( '  browserControl: "",' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Probed: the page runs on the IE engine, as the IE control does, whatever' ).
+    lo_buf->add( '  // the GUI. document.documentMode exists in no other browser.' ).
+    lo_buf->add( '  isInternetExplorer: !!document.documentMode,' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Probed on first use by getSapeventPrefix, see there' ).
+    lo_buf->add( '  sapeventPrefix: undefined' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Every fact seeded here has to be declared in gEnv above. An unknown key' ).
@@ -36676,36 +36690,34 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '      window.console.log("abapGit: unknown environment key ''" + key + "''");' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
+    lo_buf->add( '  gEnv.browserControl = detectBrowserControl();' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function detectBrowserControl() {' ).
+    lo_buf->add( '  if (!gEnv.isSapGuiForWindows) return "";' ).
+    lo_buf->add( '  return /Edg/.test(window.navigator.userAgent) ? "Edge" : "IE";' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '// The prefix a sapevent URL needs for the browser control in use. Probed from' ).
     lo_buf->add( '// the links the backend rendered, because the user agent does not distinguish' ).
     lo_buf->add( '// the control versions - and kept, because the control cannot change under a' ).
-    lo_buf->add( '// page that is already displayed.' ).
-    lo_buf->add( 'var gSapeventPrefix; // undefined until first probed' ).
-    lo_buf->add( '' ).
+    lo_buf->add( '// page that is already displayed. Not probed up front: common.js runs before' ).
+    lo_buf->add( '// the page body, and with it these links, is there.' ).
     lo_buf->add( 'function getSapeventPrefix() {' ).
-    lo_buf->add( '  if (gSapeventPrefix === undefined) {' ).
+    lo_buf->add( '  if (gEnv.sapeventPrefix === undefined) {' ).
     lo_buf->add( '    // Depending on the used browser control and its version, different URL schemes' ).
     lo_buf->add( '    // are used which we distinguish here' ).
     lo_buf->add( '    if (document.querySelector(''a[href*="file:///SAPEVENT:"]'')) {' ).
     lo_buf->add( '      // Prefix for old (SAPGUI <= 8.00 PL3) chromium based browser control' ).
-    lo_buf->add( '      gSapeventPrefix = "file:///";' ).
+    lo_buf->add( '      gEnv.sapeventPrefix = "file:///";' ).
     lo_buf->add( '    } else if (document.querySelector(''a[href^="sap-cust"]'')) {' ).
     lo_buf->add( '      // Prefix for new (SAPGUI >= 8.00 PL3 Hotfix 1) chromium based browser control' ).
-    lo_buf->add( '      gSapeventPrefix = "sap-cust://sap-place-holder/";' ).
+    lo_buf->add( '      gEnv.sapeventPrefix = "sap-cust://sap-place-holder/";' ).
     lo_buf->add( '    } else {' ).
-    lo_buf->add( '      gSapeventPrefix = ""; // No prefix for old IE control' ).
+    lo_buf->add( '      gEnv.sapeventPrefix = ""; // No prefix for old IE control' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
-    lo_buf->add( '  return gSapeventPrefix;' ).
-    lo_buf->add( '}' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '// Is the embedded browser control the Edge (Chromium) one rather than the old' ).
-    lo_buf->add( '// IE one? Only meaningful inside SAP GUI for Windows - the HTML GUI runs in the' ).
-    lo_buf->add( '// browser of the user, whose user agent describes no browser control at all.' ).
-    lo_buf->add( 'function isEdgeControl() {' ).
-    lo_buf->add( '  return navigator.userAgent.includes("Edg");' ).
+    lo_buf->add( '  return gEnv.sapeventPrefix;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -39587,9 +39599,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'function toggleBrowserControlWarning() {' ).
     lo_buf->add( '  // The warning is about the Edge control, so hide it wherever that is not what' ).
     lo_buf->add( '  // we run in: on the old IE control, and on a GUI that embeds no browser' ).
-    lo_buf->add( '  // control at all, whose user agent describes the browser of the user and can' ).
-    lo_buf->add( '  // report "Edg" for reasons the warning has nothing to do with.' ).
-    lo_buf->add( '  if (!isEdgeControl() || !gEnv.isSapGuiForWindows) {' ).
+    lo_buf->add( '  // control at all (see gEnv.browserControl)' ).
+    lo_buf->add( '  if (gEnv.browserControl !== "Edge") {' ).
     lo_buf->add( '    var elBrowserControlWarning = document.getElementById("browser-control-warning");' ).
     lo_buf->add( '    if (elBrowserControlWarning) {' ).
     lo_buf->add( '      elBrowserControlWarning.style.display = "none";' ).
@@ -39599,12 +39610,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '// Output type of HTML control in the abapGit footer' ).
     lo_buf->add( 'function displayBrowserControlFooter() {' ).
-    lo_buf->add( '  // Only report a control where there is one. The HTML GUI runs in the browser' ).
-    lo_buf->add( '  // of the user, whose user agent describes no browser control at all - reading' ).
-    lo_buf->add( '  // it there once reported "IE" for a user on Chrome.' ).
+    lo_buf->add( '  // Only report a control where there is one (see gEnv.browserControl). Reading' ).
+    lo_buf->add( '  // the user agent on the HTML GUI once reported "IE" for a user on Chrome.' ).
     lo_buf->add( '  var out = document.getElementById("browser-control-footer");' ).
-    lo_buf->add( '  if (!out || !gEnv.isSapGuiForWindows) return;' ).
-    lo_buf->add( '  out.innerHTML = " - " + (isEdgeControl() ? "Edge" : "IE");' ).
+    lo_buf->add( '  if (!out || !gEnv.browserControl) return;' ).
+    lo_buf->add( '  out.innerHTML = " - " + gEnv.browserControl;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Redirect browser "Back" navigation to the SAPGUI back sapevent (action "go_back").' ).
@@ -39818,10 +39828,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  window.alert("abapGit source viewer error:\n" + message);' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
-    lo_buf->add( 'SourceViewer.prototype.isInternetExplorer = function() {' ).
-    lo_buf->add( '  return !!document.documentMode;' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
     lo_buf->add( 'SourceViewer.prototype.updateLineNumbers = function(content) {' ).
     lo_buf->add( '  var lineCount = content ? content.split(/\r\n|\r|\n/).length : 1;' ).
     lo_buf->add( '  var lineNumbers = [];' ).
@@ -40012,10 +40018,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  } else if (sourceDefinition.getContent) {' ).
     lo_buf->add( '    sourceDefinition.content = sourceDefinition.getContent(sourceDefinition.url);' ).
     lo_buf->add( '    display(sourceDefinition.content);' ).
-    lo_buf->add( '  } else if (this.isInternetExplorer() && sourceDefinition.url.indexOf("css/") === 0) {' ).
+    lo_buf->add( '  } else if (gEnv.isInternetExplorer && sourceDefinition.url.indexOf("css/") === 0) {' ).
     lo_buf->add( '    sourceDefinition.content = this.getStylesheetSource(sourceDefinition.url);' ).
     lo_buf->add( '    display(sourceDefinition.content);' ).
-    lo_buf->add( '  } else if (this.isInternetExplorer()) {' ).
+    lo_buf->add( '  } else if (gEnv.isInternetExplorer) {' ).
     lo_buf->add( '    display("Internet Explorer cannot display cached JavaScript source.\n" +' ).
     lo_buf->add( '      "Use the Edge WebView2 browser control for this source view.");' ).
     lo_buf->add( '  } else {' ).
@@ -158849,8 +158855,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-01T12:09:25.418Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-01T12:09:25.418Z`.
+* abapmerge 0.16.10 - 2026-10-01T17:30:45.050Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-01T17:30:45.050Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
