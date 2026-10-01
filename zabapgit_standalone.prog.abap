@@ -5597,6 +5597,15 @@ INTERFACE zif_abapgit_objects.
   TYPES:
     ty_types_tt TYPE SORTED TABLE OF tadir-object WITH UNIQUE KEY table_line.
   TYPES:
+    BEGIN OF ty_type_details,
+      obj_type         TYPE tadir-object,
+      description      TYPE string,
+      aff_supported    TYPE abap_bool,
+      aff_experimental TYPE abap_bool,
+    END OF ty_type_details.
+  TYPES:
+    ty_type_details_tt TYPE SORTED TABLE OF ty_type_details WITH UNIQUE KEY obj_type.
+  TYPES:
     ty_deserialization_step TYPE string.
   TYPES:
     ty_deserialization_step_tt TYPE STANDARD TABLE OF ty_deserialization_step WITH DEFAULT KEY.
@@ -14715,6 +14724,9 @@ CLASS zcl_abapgit_objects DEFINITION
     CLASS-METHODS supported_list
       RETURNING
         VALUE(rt_types) TYPE zif_abapgit_objects=>ty_types_tt.
+    CLASS-METHODS supported_list_details
+      RETURNING
+        VALUE(rt_details) TYPE zif_abapgit_objects=>ty_type_details_tt.
     CLASS-METHODS is_active
       IMPORTING
         !is_item         TYPE zif_abapgit_definitions=>ty_item
@@ -50089,25 +50101,16 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
 
     DATA: lv_list     TYPE string,
           li_html     TYPE REF TO zif_abapgit_html,
-          lt_types    TYPE zif_abapgit_objects=>ty_types_tt,
-          lv_type     LIKE LINE OF lt_types,
-          lt_obj      TYPE STANDARD TABLE OF ko100 WITH DEFAULT KEY,
+          lt_details  TYPE zif_abapgit_objects=>ty_type_details_tt,
+          ls_details  LIKE LINE OF lt_details,
           lv_class    TYPE seoclsname,
           li_object   TYPE REF TO zif_abapgit_object,
           ls_item     TYPE zif_abapgit_definitions=>ty_item,
           ls_metadata TYPE zif_abapgit_definitions=>ty_metadata,
           lv_step     TYPE zif_abapgit_objects=>ty_deserialization_step,
-          lt_steps    TYPE zif_abapgit_objects=>ty_deserialization_step_tt,
-          lt_descr    TYPE zif_abapgit_oo_object_fnc=>ty_seoclasstx_tt,
-          ls_descr    LIKE LINE OF lt_descr.
+          lt_steps    TYPE zif_abapgit_objects=>ty_deserialization_step_tt.
 
-    FIELD-SYMBOLS: <ls_obj> TYPE ko100.
-
-    CALL FUNCTION 'TR_OBJECT_TABLE'
-      TABLES
-        wt_object_text = lt_obj.
-
-    lt_types = zcl_abapgit_objects=>supported_list( ).
+    lt_details = zcl_abapgit_objects=>supported_list_details( ).
 
     CREATE OBJECT li_html TYPE zcl_abapgit_html.
 
@@ -50122,36 +50125,24 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
 
     rv_html = rv_html && |<table border="1px"><thead><tr>|.
     rv_html = rv_html && |<td>Object</td><td>Description</td><td>Class</td><td>Version</td>|.
-    rv_html = rv_html && |<td>Steps</td>|.
+    rv_html = rv_html && |<td>Steps</td><td>AFF</td>|.
     rv_html = rv_html && |</tr></thead><tbody>|.
 
-    LOOP AT lt_types INTO lv_type.
-      lv_class = 'ZCL_ABAPGIT_OBJECT_' && lv_type.
+    LOOP AT lt_details INTO ls_details.
+      lv_class = 'ZCL_ABAPGIT_OBJECT_' && ls_details-obj_type.
 
       rv_html = rv_html && |<tr>|.
 
-      rv_html = rv_html && |<td>{ lv_type }</td>|.
+      rv_html = rv_html && |<td>{ ls_details-obj_type }</td>|.
 
-      READ TABLE lt_obj ASSIGNING <ls_obj> WITH KEY pgmid = 'R3TR' object = lv_type.
-      IF sy-subrc = 0.
-        rv_html = rv_html && |<td>{ <ls_obj>-text }</td>|.
+      IF ls_details-description IS INITIAL.
+        rv_html = rv_html && |<td><span class="warning">No description</span></td>|.
       ELSE.
-        lt_descr = zcl_abapgit_oo_factory=>get_by_type( 'CLAS' )->read_descriptions_class( lv_class ).
-
-        READ TABLE lt_descr INTO ls_descr WITH KEY langu = sy-langu.
-        IF sy-subrc = 0.
-          ls_descr-descript = replace(
-            val  = ls_descr-descript
-            sub  = 'abapGit - '
-            with = '' ).
-        ELSE.
-          ls_descr-descript = '<span class="warning">No description</span>'.
-        ENDIF.
-        rv_html = rv_html && |<td>abapGit Enhancement: { ls_descr-descript }</td>|.
+        rv_html = rv_html && |<td>{ ls_details-description }</td>|.
       ENDIF.
 
       TRY.
-          ls_item-obj_type = lv_type.
+          ls_item-obj_type = ls_details-obj_type.
           ls_item-obj_name = 'TEST'.
 
           CREATE OBJECT li_object TYPE (lv_class)
@@ -50167,7 +50158,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
                 EXPORTING
                   is_item = ls_item.
             CATCH cx_sy_create_object_error zcx_abapgit_exception.
-              rv_html = rv_html && |<td class="error" colspan="5">{ lv_class } - error instantiating class</td>|.
+              rv_html = rv_html && |<td class="error" colspan="4">{ lv_class } - error instantiating class</td>|.
               CONTINUE.
           ENDTRY.
 
@@ -50204,6 +50195,18 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
       ENDLOOP.
 
       rv_html = rv_html && |<td>{ lv_list }</td>|.
+
+      IF ls_details-aff_experimental = abap_true.
+        IF ls_details-aff_supported = abap_true.
+          rv_html = rv_html && |<td>Experimental (enabled)</td>|.
+        ELSE.
+          rv_html = rv_html && |<td>Experimental (disabled)</td>|.
+        ENDIF.
+      ELSEIF ls_details-aff_supported = abap_true.
+        rv_html = rv_html && |<td>Yes</td>|.
+      ELSE.
+        rv_html = rv_html && |<td></td>|.
+      ENDIF.
 
       rv_html = rv_html && |</tr>|.
 
@@ -80563,6 +80566,54 @@ CLASS zcl_abapgit_objects IMPLEMENTATION.
     ENDLOOP.
 
     gv_supported_obj_types_loaded = abap_true.
+
+  ENDMETHOD.
+  METHOD supported_list_details.
+
+    DATA lt_types   TYPE zif_abapgit_objects=>ty_types_tt.
+    DATA lv_type    LIKE LINE OF lt_types.
+    DATA lt_objects TYPE STANDARD TABLE OF ko100 WITH DEFAULT KEY.
+    DATA ls_details LIKE LINE OF rt_details.
+    DATA li_aff     TYPE REF TO zif_abapgit_aff_registry.
+    DATA lt_descr   TYPE zif_abapgit_oo_object_fnc=>ty_seoclasstx_tt.
+    DATA ls_descr   LIKE LINE OF lt_descr.
+
+    FIELD-SYMBOLS <ls_object> LIKE LINE OF lt_objects.
+
+    CALL FUNCTION 'TR_OBJECT_TABLE'
+      TABLES
+        wt_object_text = lt_objects
+      EXCEPTIONS
+        OTHERS         = 1 ##FM_SUBRC_OK.
+
+    lt_types = supported_list( ).
+    li_aff = zcl_abapgit_aff_factory=>get_registry( ).
+
+    LOOP AT lt_types INTO lv_type.
+      CLEAR ls_details.
+      ls_details-obj_type = lv_type.
+
+      READ TABLE lt_objects ASSIGNING <ls_object> WITH KEY pgmid = 'R3TR' object = lv_type.
+      IF sy-subrc = 0.
+        ls_details-description = <ls_object>-text.
+      ELSE.
+        " Object type added via user exit, use description of object handler
+        lt_descr = zcl_abapgit_oo_factory=>get_by_type( 'CLAS' )->read_descriptions_class(
+          |ZCL_ABAPGIT_OBJECT_{ lv_type }| ).
+        READ TABLE lt_descr INTO ls_descr WITH KEY langu = sy-langu.
+        IF sy-subrc = 0.
+          ls_details-description = |abapGit Enhancement: { replace(
+            val  = ls_descr-descript
+            sub  = 'abapGit - '
+            with = '' ) }|.
+        ENDIF.
+      ENDIF.
+
+      ls_details-aff_supported    = li_aff->is_supported_object_type( lv_type ).
+      ls_details-aff_experimental = li_aff->is_experimental_object_type( lv_type ).
+
+      INSERT ls_details INTO TABLE rt_details.
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD update_original_system.
@@ -158904,8 +158955,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-01T22:20:43.563Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-01T22:20:43.563Z`.
+* abapmerge 0.16.10 - 2026-10-01T22:27:07.719Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-01T22:27:07.719Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
