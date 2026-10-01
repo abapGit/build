@@ -46628,12 +46628,15 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       li_log = mi_repo->get_log( ).
       IF li_log IS BOUND AND li_log->count( ) > 0.
         ro_toolbar->add( iv_txt = 'Log'
-                         iv_act = |{ zif_abapgit_definitions=>c_action-repo_log }?key={ mv_key }| ).
+                         iv_act = |{ zif_abapgit_definitions=>c_action-repo_log }?key={ mv_key }|
+                         iv_opt = zif_abapgit_html=>c_html_opt-strong ).
       ENDIF.
       ro_toolbar->add( iv_txt = 'Branch'
-                       io_sub = build_branch_dropdown( ) ).
+                       io_sub = build_branch_dropdown( )
+                       iv_opt = zif_abapgit_html=>c_html_opt-strong ).
       ro_toolbar->add( iv_txt = 'Tag'
-                       io_sub = build_tag_dropdown( ) ).
+                       io_sub = build_tag_dropdown( )
+                       iv_opt = zif_abapgit_html=>c_html_opt-strong ).
 
     ELSE.
       " offline repo
@@ -46660,16 +46663,19 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
       li_log = mi_repo->get_log( ).
       IF li_log IS BOUND AND li_log->count( ) > 0.
         ro_toolbar->add( iv_txt = 'Log'
-                         iv_act = |{ zif_abapgit_definitions=>c_action-repo_log }?key={ mv_key }| ).
+                         iv_act = |{ zif_abapgit_definitions=>c_action-repo_log }?key={ mv_key }|
+                         iv_opt = zif_abapgit_html=>c_html_opt-strong ).
       ENDIF.
 
     ENDIF.
 
     ro_toolbar->add( iv_txt = 'Advanced'
-                     io_sub = build_advanced_dropdown( ) ).
+                     io_sub = build_advanced_dropdown( )
+                     iv_opt = zif_abapgit_html=>c_html_opt-strong ).
 
     ro_toolbar->add( iv_txt = 'View'
-                     io_sub = build_view_dropdown( ) ).
+                     io_sub = build_view_dropdown( )
+                     iv_opt = zif_abapgit_html=>c_html_opt-strong ).
 
     ro_toolbar->add( iv_txt = 'Refresh'
                      iv_act = |{ zif_abapgit_definitions=>c_action-repo_refresh }?key={ mv_key }|
@@ -158829,8 +158835,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-09-29T18:50:36.883Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-09-29T18:50:36.883Z`.
+* abapmerge 0.16.10 - 2026-10-01T08:53:26.948Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-01T08:53:26.948Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
