@@ -5285,7 +5285,7 @@ INTERFACE zif_abapgit_sap_package .
            parentcl  TYPE devclass,
            pdevclass TYPE c LENGTH 4,
            as4user   TYPE usnam,
-           packkind  TYPE uccheck,
+           packkind  TYPE uccheck, " ABAP language version
          END OF ty_create.
 
   METHODS get
@@ -116552,11 +116552,14 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
   METHOD is_local.
 
     DATA lv_dlvunit TYPE tdevc-dlvunit.
+    DATA lv_comp_type TYPE c LENGTH 1.
 
     SELECT SINGLE dlvunit FROM tdevc INTO lv_dlvunit
         WHERE devclass = iv_package_name AND intsys <> 'SAP'.
-    IF sy-subrc = 0 AND lv_dlvunit = 'LOCAL'.
-      rv_is_local = abap_true.
+    IF sy-subrc = 0.
+      " Look up type of software component (typically LOCAL or ZLOCAL but others are possible)
+      SELECT SINGLE comp_type FROM cvers INTO lv_comp_type WHERE component = lv_dlvunit.
+      rv_is_local = boolc( sy-subrc = 0 AND lv_comp_type CA 'LJZ' ).
     ENDIF.
 
   ENDMETHOD.
@@ -116805,7 +116808,7 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
         EXCEPTIONS
           object_not_changeable = 1
           object_invalid        = 2
-*          deletion_not_allowed  = 3 downport, does not exist in 7.30
+*         deletion_not_allowed  = 3 downport, does not exist in 7.30
           intern_err            = 4
           OTHERS                = 5 ).
       IF sy-subrc <> 0.
@@ -117032,8 +117035,8 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
           prefix_in_use              = 13
           unexpected_error           = 14
           intern_err                 = 15
-*          wrong_mainpack_value       = 16  downport, does not exist in 7.30
-*          superpackage_invalid       = 17  downport, does not exist in 7.30
+*         wrong_mainpack_value       = 16  downport, does not exist in 7.30
+*         superpackage_invalid       = 17  downport, does not exist in 7.30
           OTHERS                     = 18 ).
       IF sy-subrc <> 0.
         unlock_and_raise_error( li_package ).
@@ -117065,10 +117068,10 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
           unexpected_error           = 15
           intern_err                 = 16
           no_access                  = 17
-*          invalid_translation_depth  = 18 downport, does not exist in 7.30
-*          wrong_mainpack_value       = 19 downport, does not exist in 7.30
-*          superpackage_invalid       = 20 downport, does not exist in 7.30
-*          error_in_cts_checks        = 21 downport, does not exist in 7.31
+*         invalid_translation_depth  = 18 downport, does not exist in 7.30
+*         wrong_mainpack_value       = 19 downport, does not exist in 7.30
+*         superpackage_invalid       = 20 downport, does not exist in 7.30
+*         error_in_cts_checks        = 21 downport, does not exist in 7.31
           OTHERS                     = 22 ).
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise_t100( ).
@@ -117124,12 +117127,12 @@ CLASS zcl_abapgit_object_devc IMPLEMENTATION.
     ELSE.
       cl_package_helper=>check_package_existence(
         EXPORTING
-          i_package_name          = mv_local_devclass
+          i_package_name   = mv_local_devclass
         IMPORTING
-          e_package_exists        = rv_bool
+          e_package_exists = rv_bool
         EXCEPTIONS
-          intern_err              = 1
-          OTHERS                  = 2 ).
+          intern_err       = 1
+          OTHERS           = 2 ).
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
@@ -129466,10 +129469,15 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
 
     MOVE-CORRESPONDING is_package TO ls_package.
 
-    " Set software component to 'HOME' if none is set at this point.
+    " Set software component to HOME or ZCUSTOM_DEVELOPMENT (ABAP Cloud) if none is set at this point.
     " Otherwise SOFTWARE_COMPONENT_INVALID will be raised.
     IF ls_package-dlvunit IS INITIAL.
-      ls_package-dlvunit = 'HOME'.
+      IF ls_package-packkind = zif_abapgit_aff_types_v1=>co_abap_language_version-cloud_development.
+        ls_package-parentcl = 'ZCUSTOM_DEVELOPMENT'.
+        ls_package-dlvunit  = 'ZCUSTOM_DEVELOPMENT'.
+      ELSE.
+        ls_package-dlvunit = 'HOME'.
+      ENDIF.
     ENDIF.
 
     " For transportable packages, get default transport and layer
@@ -129492,7 +129500,7 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
     cl_package_factory=>create_new_package(
       EXPORTING
         i_reuse_deleted_object     = abap_true
-*        i_suppress_dialog          = abap_true " does not exist in 730
+*       i_suppress_dialog          = abap_true " does not exist in 730
       IMPORTING
         e_package                  = li_package
       CHANGING
@@ -129515,10 +129523,10 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
         unexpected_error           = 15
         intern_err                 = 16
         no_access                  = 17
-*        invalid_translation_depth  = 18
-*        wrong_mainpack_value       = 19
-*        superpackage_invalid       = 20
-*        error_in_cts_checks        = 21
+*       invalid_translation_depth  = 18
+*       wrong_mainpack_value       = 19
+*       superpackage_invalid       = 20
+*       error_in_cts_checks        = 21
         OTHERS                     = 18 ).
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
@@ -129595,8 +129603,13 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
 
     ls_package-devclass = mv_package.
     ls_package-ctext    = mv_package.
-    ls_package-parentcl = '$TMP'.
-    ls_package-dlvunit  = 'LOCAL'.
+    IF iv_abap_language_version = zif_abapgit_aff_types_v1=>co_abap_language_version-cloud_development.
+      ls_package-parentcl = 'ZLOCAL'.
+      ls_package-dlvunit  = 'ZLOCAL'.
+    ELSE.
+      ls_package-parentcl = '$TMP'.
+      ls_package-dlvunit  = 'LOCAL'.
+    ENDIF.
     ls_package-as4user  = sy-uname.
     ls_package-packkind = iv_abap_language_version.
 
@@ -129646,6 +129659,7 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
     rs_package-pdevclass = li_package->transport_layer.
     rs_package-as4user   = li_package->changed_by.
     rs_package-korrflag  = li_package->wbo_korr_flag.
+    rs_package-packkind  = li_package->package_kind. " ABAP language version
 
   ENDMETHOD.
   METHOD zif_abapgit_sap_package~get_default_transport_layer.
@@ -129664,7 +129678,7 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
             cts_initialization_failure = 3
             OTHERS                     = 4.
         IF sy-subrc <> 0.
-      " Return empty layer (i.e. "local workbench request" for the package)
+          " Return empty layer (i.e. "local workbench request" for the package)
           CLEAR rv_transport_layer.
         ENDIF.
       CATCH cx_sy_dyn_call_illegal_func.
@@ -129786,6 +129800,11 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
 
     rv_description = li_package->short_text.
   ENDMETHOD.
+  METHOD zif_abapgit_sap_package~read_namespace.
+    SELECT SINGLE namespace FROM tdevc
+      INTO rv_namespace
+      WHERE devclass = mv_package ##SUBRC_OK.           "#EC CI_GENBUFF
+  ENDMETHOD.
   METHOD zif_abapgit_sap_package~read_parent.
 
     SELECT SINGLE parentcl FROM tdevc INTO rv_parentcl
@@ -129798,11 +129817,6 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
   METHOD zif_abapgit_sap_package~read_responsible.
     SELECT SINGLE as4user FROM tdevc
       INTO rv_responsible
-      WHERE devclass = mv_package ##SUBRC_OK.           "#EC CI_GENBUFF
-  ENDMETHOD.
-  METHOD zif_abapgit_sap_package~read_namespace.
-    SELECT SINGLE namespace FROM tdevc
-      INTO rv_namespace
       WHERE devclass = mv_package ##SUBRC_OK.           "#EC CI_GENBUFF
   ENDMETHOD.
   METHOD zif_abapgit_sap_package~update_tree.
@@ -158835,8 +158849,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-01T08:53:26.948Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-01T08:53:26.948Z`.
+* abapmerge 0.16.10 - 2026-10-01T12:09:25.418Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-01T12:09:25.418Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
