@@ -29034,18 +29034,33 @@ CLASS zcl_abapgit_gui_page_ref_sel DEFINITION
       RAISING
         zcx_abapgit_exception.
 
-    METHODS constructor
+    CLASS-METHODS create_in_page
       IMPORTING
-        !iv_key    TYPE zif_abapgit_persistence=>ty_repo-key
-        !iv_action TYPE string
+        !iv_key             TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_action          TYPE string
+      RETURNING
+        VALUE(ro_component) TYPE REF TO zcl_abapgit_gui_page_ref_sel
       RAISING
         zcx_abapgit_exception.
+
+    METHODS constructor
+      IMPORTING
+        !iv_key     TYPE zif_abapgit_persistence=>ty_repo-key
+        !iv_action  TYPE string
+        !iv_in_page TYPE abap_bool DEFAULT abap_false
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS is_fulfilled
+      RETURNING
+        VALUE(rv_yes) TYPE abap_bool.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA mv_key TYPE zif_abapgit_persistence=>ty_repo-key.
     DATA mv_action TYPE string.
+    DATA mv_in_page TYPE abap_bool.
     DATA mo_picklist TYPE REF TO zcl_abapgit_gui_picklist.
 
     METHODS create_picklist
@@ -29288,6 +29303,7 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
     DATA mv_diff_first TYPE abap_bool .
     DATA mv_key TYPE zif_abapgit_persistence=>ty_value .
     DATA mv_are_changes_recorded_in_tr TYPE abap_bool .
+    DATA mo_ref_selection TYPE REF TO zcl_abapgit_gui_page_ref_sel.
 
     METHODS render_head_line
       RETURNING
@@ -47283,6 +47299,15 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
         open_in_main_language( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
 
+      WHEN zif_abapgit_definitions=>c_action-git_branch_delete
+        OR zif_abapgit_definitions=>c_action-git_branch_switch
+        OR zif_abapgit_definitions=>c_action-git_tag_delete
+        OR zif_abapgit_definitions=>c_action-git_tag_switch.
+        mo_ref_selection = zcl_abapgit_gui_page_ref_sel=>create_in_page(
+          iv_key    = mv_key
+          iv_action = ii_event->mv_action ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+
       WHEN zif_abapgit_definitions=>c_action-go_back.
         IF zcl_abapgit_ui_factory=>get_gui( )->back( ) = abap_true. " end of stack
           " shutdown
@@ -47398,7 +47423,9 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_item> LIKE LINE OF lt_repo_items.
 
-    register_handlers( ).
+    IF mo_ref_selection IS BOUND AND mo_ref_selection->is_fulfilled( ) = abap_true.
+      CLEAR mo_ref_selection.
+    ENDIF.
 
     CREATE OBJECT mo_repo_aggregated_state.
 
@@ -47549,6 +47576,13 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ENDTRY.
 
     register_deferred_script( render_scripts( ) ).
+
+    IF mo_ref_selection IS NOT BOUND.
+      register_handlers( ).
+    ELSE.
+      " Block the repository page while the ref selection modal is open
+      ri_html->add( zcl_abapgit_gui_in_page_modal=>create( mo_ref_selection ) ).
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -48477,10 +48511,20 @@ CLASS zcl_abapgit_gui_page_ref_sel IMPLEMENTATION.
 
     super->constructor( ).
 
-    mv_key    = iv_key.
-    mv_action = iv_action.
+    mv_key     = iv_key.
+    mv_action  = iv_action.
+    mv_in_page = iv_in_page.
 
     create_picklist( ).
+
+  ENDMETHOD.
+  METHOD create_in_page.
+
+    CREATE OBJECT ro_component
+      EXPORTING
+        iv_key     = iv_key
+        iv_action  = iv_action
+        iv_in_page = abap_true.
 
   ENDMETHOD.
   METHOD create.
@@ -48524,7 +48568,12 @@ CLASS zcl_abapgit_gui_page_ref_sel IMPLEMENTATION.
         zcx_abapgit_exception=>raise( |Unexpected ref selection action { mv_action }| ).
     ENDCASE.
 
-    mo_picklist->set_id( mv_action ).
+    mo_picklist->set_id( mv_action )->set_in_page( mv_in_page ).
+
+  ENDMETHOD.
+  METHOD is_fulfilled.
+
+    rv_yes = mo_picklist->is_fulfilled( ).
 
   ENDMETHOD.
   METHOD execute_selection.
@@ -158855,8 +158904,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-01T17:30:45.050Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-01T17:30:45.050Z`.
+* abapmerge 0.16.10 - 2026-10-01T22:20:43.563Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-01T22:20:43.563Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
