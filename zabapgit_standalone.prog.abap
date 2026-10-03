@@ -37201,6 +37201,86 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
+    lo_buf->add( ' * Keyboard' ).
+    lo_buf->add( ' **********************************************************/' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// The page-wide key handlers all register here, and one document listener per' ).
+    lo_buf->add( '// event type calls them in a fixed order. Who sees a key first matters: link' ).
+    lo_buf->add( '// hints must consume a hint code before the repository overview reads its digits' ).
+    lo_buf->add( '// as row moves, and later handlers skip a key an earlier one consumed' ).
+    lo_buf->add( '// (event.defaultPrevented). Registering them directly left that order to the' ).
+    lo_buf->add( '// order in which the ABAP pages happen to render their scripts.' ).
+    lo_buf->add( '//' ).
+    lo_buf->add( '// keypress and keydown stay separate events: keypress carries the typed' ).
+    lo_buf->add( '// character (the one reliable source of it on the IE control), keydown the keys' ).
+    lo_buf->add( '// that type none, like the arrows and F1.' ).
+    lo_buf->add( '// Not in here, on purpose: listeners of single elements (inputs, popups) and' ).
+    lo_buf->add( '// the source viewer''s capturing listeners while it is open.' ).
+    lo_buf->add( 'var gKeyboard = {' ).
+    lo_buf->add( '  order: {' ).
+    lo_buf->add( '    sourceViewer: 10, // Ctrl+Shift+?, a troubleshooting key that no page shortcut may take' ).
+    lo_buf->add( '    linkHints   : 20,' ).
+    lo_buf->add( '    menus       : 30, // arrow keys through dropdown menus (KeyNavigation)' ).
+    lo_buf->add( '    palette     : 40, // the toggle keys of the command palettes' ).
+    lo_buf->add( '    page        : 50, // shortcuts of the page helpers (repository overview, stage)' ).
+    lo_buf->add( '    hotkeys     : 60' ).
+    lo_buf->add( '  },' ).
+    lo_buf->add( '  handlers: {}' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'gKeyboard.on = function(type, order, handler) {' ).
+    lo_buf->add( '  var handlers = gKeyboard.handlers[type];' ).
+    lo_buf->add( '  if (!handlers) {' ).
+    lo_buf->add( '    handlers = gKeyboard.handlers[type] = [];' ).
+    lo_buf->add( '    document.addEventListener(type, function(event) { gKeyboard.dispatch(type, event) });' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  // after all handlers of the same order, so these keep their registration order' ).
+    lo_buf->add( '  // (Array.prototype.sort is not stable on the IE control)' ).
+    lo_buf->add( '  var i = handlers.length;' ).
+    lo_buf->add( '  while (i > 0 && handlers[i - 1].order > order) i--;' ).
+    lo_buf->add( '  handlers.splice(i, 0, { order: order, handler: handler });' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// A failing handler must not take the later ones down with it, as it did not' ).
+    lo_buf->add( '// while each had a listener of its own. Its error is rethrown afterwards, for' ).
+    lo_buf->add( '// the error banner (see confirmInitialized).' ).
+    lo_buf->add( 'gKeyboard.dispatch = function(type, event) {' ).
+    lo_buf->add( '  var handlers = gKeyboard.handlers[type].slice(); // a handler may register another one' ).
+    lo_buf->add( '  var firstError;' ).
+    lo_buf->add( '  for (var i = 0; i < handlers.length; i++) {' ).
+    lo_buf->add( '    try {' ).
+    lo_buf->add( '      handlers[i].handler(event);' ).
+    lo_buf->add( '    } catch (error) {' ).
+    lo_buf->add( '      if (firstError === undefined) firstError = error;' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  if (firstError !== undefined) throw firstError;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Does the element take this key itself, as text or to move its caret? Then' ).
+    lo_buf->add( '// it is no shortcut. A read-only field takes no text, so letter and digit' ).
+    lo_buf->add( '// shortcuts stay on there, but it still moves its caret with the arrow keys.' ).
+    lo_buf->add( 'gKeyboard.isTakenByField = function(element, isArrowKey) {' ).
+    lo_buf->add( '  if (!element) return false;' ).
+    lo_buf->add( '  if (element.isContentEditable) return true;' ).
+    lo_buf->add( '  if (!/^(INPUT|TEXTAREA|SELECT)$/.test(element.nodeName || "")) return false;' ).
+    lo_buf->add( '  return isArrowKey || !element.readOnly;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Is the user typing? Then letter and digit shortcuts must leave the key alone' ).
+    lo_buf->add( 'gKeyboard.isTyping = function() {' ).
+    lo_buf->add( '  return gKeyboard.isTakenByField(document.activeElement, false);' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// For keydown: -1 for arrow up, 1 for arrow down, 0 for any other key.' ).
+    lo_buf->add( '// IE and old Edge name them "Up" and "Down", older controls only give the key code.' ).
+    lo_buf->add( 'gKeyboard.getVerticalArrow = function(event) {' ).
+    lo_buf->add( '  if (event.key === "ArrowUp" || event.key === "Up" || event.keyCode === 38) return -1;' ).
+    lo_buf->add( '  if (event.key === "ArrowDown" || event.key === "Down" || event.keyCode === 40) return 1;' ).
+    lo_buf->add( '  return 0;' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '/**********************************************************' ).
     lo_buf->add( ' * Repo Overview Logic' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
@@ -37292,11 +37372,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.registerKeyboardShortcuts = function() {' ).
     lo_buf->add( '  var self = this;' ).
-    lo_buf->add( '  document.addEventListener("keypress", function(event) {' ).
+    lo_buf->add( '  gKeyboard.on("keypress", gKeyboard.order.page, function(event) {' ).
     lo_buf->add( '    // Leave keys typed elsewhere alone: in the filter or the command palette,' ).
     lo_buf->add( '    // or as a link hint code - its digits would otherwise move the selection,' ).
     lo_buf->add( '    // and the action links with it, before the hint activates one of them' ).
-    lo_buf->add( '    if (event.defaultPrevented || LinkHints.areHintsDisplayed || !Hotkeys.isHotkeyCallPossible()) {' ).
+    lo_buf->add( '    if (event.defaultPrevented || LinkHints.areHintsDisplayed || gKeyboard.isTyping()) {' ).
     lo_buf->add( '      return;' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '    if (self.focusFilterKey && event.key === self.focusFilterKey && !CommandPalette.isVisible()) {' ).
@@ -37323,18 +37403,12 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '  // Arrows only fire keydown. Only the arrow keys are handled here: keydown keycodes' ).
     lo_buf->add( '  // differ from keypress ones (e.g. 100 is "d" on keypress but numpad-4 on keydown).' ).
-    lo_buf->add( '  document.addEventListener("keydown", function(event) {' ).
+    lo_buf->add( '  gKeyboard.on("keydown", gKeyboard.order.page, function(event) {' ).
     lo_buf->add( '    if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;' ).
     lo_buf->add( '    if (CommandPalette.isVisible() || !self.isArrowNavigationTarget(document.activeElement)) return;' ).
     lo_buf->add( '' ).
-    lo_buf->add( '    var offset;' ).
-    lo_buf->add( '    if (event.key === "ArrowUp" || event.key === "Up" || event.keyCode === 38) {' ).
-    lo_buf->add( '      offset = -1;' ).
-    lo_buf->add( '    } else if (event.key === "ArrowDown" || event.key === "Down" || event.keyCode === 40) {' ).
-    lo_buf->add( '      offset = 1;' ).
-    lo_buf->add( '    } else {' ).
-    lo_buf->add( '      return;' ).
-    lo_buf->add( '    }' ).
+    lo_buf->add( '    var offset = gKeyboard.getVerticalArrow(event);' ).
+    lo_buf->add( '    if (!offset) return;' ).
     lo_buf->add( '    self.selectAdjacentRow(offset);' ).
     lo_buf->add( '    event.preventDefault(); // the selected row is scrolled into view instead' ).
     lo_buf->add( '  });' ).
@@ -37342,8 +37416,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '// Leave arrows to form fields and to menus (KeyNavigation moves through dropdown items)' ).
     lo_buf->add( 'RepoOverViewHelper.prototype.isArrowNavigationTarget = function(element) {' ).
+    lo_buf->add( '  if (gKeyboard.isTakenByField(element, true)) return false;' ).
     lo_buf->add( '  for (var el = element; el && el.nodeName; el = el.parentElement) {' ).
-    lo_buf->add( '    if (/^(INPUT|TEXTAREA|SELECT|LI)$/.test(el.nodeName) || el.isContentEditable) return false;' ).
+    lo_buf->add( '    if (el.nodeName === "LI") return false;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '  return true;' ).
     lo_buf->add( '};' ).
@@ -37606,7 +37681,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '// Hook global click listener on table, load/unload actions' ).
     lo_buf->add( 'StageHelper.prototype.setHooks = function() {' ).
-    lo_buf->add( '  window.addEventListener("keypress", this.onCtrlEnter.bind(this));' ).
+    lo_buf->add( '  gKeyboard.on("keypress", gKeyboard.order.page, this.onCtrlEnter.bind(this));' ).
     lo_buf->add( '  this.dom.stageTab.onclick        = this.onTableClick.bind(this);' ).
     lo_buf->add( '  this.dom.commitBtn.onclick       = this.submitCommit.bind(this);' ).
     lo_buf->add( '  this.dom.patchBtn.onclick        = this.submitPatch.bind(this);' ).
@@ -37623,10 +37698,11 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  window.addEventListener("load", this.onPageLoad.bind(this));' ).
     lo_buf->add( '' ).
     lo_buf->add( '  var self = this;' ).
-    lo_buf->add( '  document.addEventListener("keypress", function(event) {' ).
-    lo_buf->add( '    if (document.activeElement.id !== self.ids.objectSearch' ).
-    lo_buf->add( '      && self.focusFilterKey && event.key === self.focusFilterKey' ).
-    lo_buf->add( '      && !CommandPalette.isVisible()) {' ).
+    lo_buf->add( '  gKeyboard.on("keypress", gKeyboard.order.page, function(event) {' ).
+    lo_buf->add( '    // the same guard as on the repository overview, where typing in the' ).
+    lo_buf->add( '    // filter itself is covered by gKeyboard.isTyping as well' ).
+    lo_buf->add( '    if (event.defaultPrevented || LinkHints.areHintsDisplayed || gKeyboard.isTyping()) return;' ).
+    lo_buf->add( '    if (self.focusFilterKey && event.key === self.focusFilterKey && !CommandPalette.isVisible()) {' ).
     lo_buf->add( '' ).
     lo_buf->add( '      self.dom.objectSearch.focus();' ).
     lo_buf->add( '      event.preventDefault();' ).
@@ -38304,9 +38380,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  var isHandled = false;' ).
     lo_buf->add( '  if (event.key === "Enter" || event.key === " ") {' ).
     lo_buf->add( '    isHandled = this.onEnterOrSpace();' ).
-    lo_buf->add( '  } else if (/Down$/.test(event.key)) {' ).
+    lo_buf->add( '  } else if (gKeyboard.getVerticalArrow(event) === 1) {' ).
     lo_buf->add( '    isHandled = this.onArrowDown();' ).
-    lo_buf->add( '  } else if (/Up$/.test(event.key)) {' ).
+    lo_buf->add( '  } else if (gKeyboard.getVerticalArrow(event) === -1) {' ).
     lo_buf->add( '    isHandled = this.onArrowUp();' ).
     lo_buf->add( '  } else if (event.key === "Backspace") {' ).
     lo_buf->add( '    isHandled = this.onBackspace();' ).
@@ -38412,7 +38488,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// this function enables the navigation with arrows through list items (li)' ).
     lo_buf->add( '// e.g. in dropdown menus' ).
     lo_buf->add( 'function enableArrowListNavigation() {' ).
-    lo_buf->add( '  document.addEventListener("keydown", new KeyNavigation().getHandler());' ).
+    lo_buf->add( '  gKeyboard.on("keydown", gKeyboard.order.menus, new KeyNavigation().getHandler());' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -38523,7 +38599,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'LinkHints.prototype.handleKey = function(event) {' ).
-    lo_buf->add( '  if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey || !Hotkeys.isHotkeyCallPossible()) {' ).
+    lo_buf->add( '  if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey || gKeyboard.isTyping()) {' ).
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
@@ -38531,7 +38607,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    this.yankModeActive = !this.yankModeActive;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if (event.key === this.linkHintHotKey && Hotkeys.isHotkeyCallPossible()) {' ).
+    lo_buf->add( '  if (event.key === this.linkHintHotKey) {' ).
     lo_buf->add( '' ).
     lo_buf->add( '    // on user hide hints, close an opened dropdown too' ).
     lo_buf->add( '    if (this.areHintsDisplayed && this.activatedDropdown) this.closeActivatedDropdown();' ).
@@ -38694,7 +38770,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'function activateLinkHints(linkHintHotKey) {' ).
     lo_buf->add( '  if (!linkHintHotKey) return;' ).
     lo_buf->add( '  var oLinkHint = new LinkHints(linkHintHotKey);' ).
-    lo_buf->add( '  document.addEventListener("keypress", oLinkHint.getHandler());' ).
+    lo_buf->add( '  gKeyboard.on("keypress", gKeyboard.order.linkHints, oLinkHint.getHandler());' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -38770,7 +38846,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  if (!Hotkeys.isHotkeyCallPossible()) {' ).
+    lo_buf->add( '  if (gKeyboard.isTyping()) {' ).
     lo_buf->add( '    return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
@@ -38781,15 +38857,6 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  if (fnHotkey) {' ).
     lo_buf->add( '    fnHotkey.call(this, oEvent);' ).
     lo_buf->add( '  }' ).
-    lo_buf->add( '};' ).
-    lo_buf->add( '' ).
-    lo_buf->add( 'Hotkeys.isHotkeyCallPossible = function() {' ).
-    lo_buf->add( '  var activeElementType     = ((document.activeElement && document.activeElement.nodeName) || "");' ).
-    lo_buf->add( '  var activeElementReadOnly = ((document.activeElement && document.activeElement.readOnly) || false);' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  if (document.activeElement && document.activeElement.isContentEditable) return false;' ).
-    lo_buf->add( '  return (activeElementReadOnly || (activeElementType !== "INPUT" && activeElementType !== "TEXTAREA"' ).
-    lo_buf->add( '    && activeElementType !== "SELECT"));' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( '// ctrl-modified keys are denoted with a leading "^" (e.g. "^p"), spell it out for the help sheet' ).
@@ -38822,7 +38889,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'function setKeyBindings(oKeyMap) {' ).
     lo_buf->add( '  var oHotkeys = new Hotkeys(oKeyMap);' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  document.addEventListener("keypress", oHotkeys.onkeydown.bind(oHotkeys));' ).
+    lo_buf->add( '  gKeyboard.on("keypress", gKeyboard.order.hotkeys, oHotkeys.onkeydown.bind(oHotkeys));' ).
     lo_buf->add( '  setTimeout(function() {' ).
     lo_buf->add( '    var div                     = document.getElementById("hotkeys-hint");' ).
     lo_buf->add( '    if  (div) div.style.opacity = 0.2;' ).
@@ -39168,7 +39235,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'CommandPalette.instances = [];' ).
     lo_buf->add( '' ).
     lo_buf->add( 'CommandPalette.prototype.hookEvents = function() {' ).
-    lo_buf->add( '  document.addEventListener("keydown", this.handleToggleKey.bind(this));' ).
+    lo_buf->add( '  gKeyboard.on("keydown", gKeyboard.order.palette, this.handleToggleKey.bind(this));' ).
     lo_buf->add( '  document.addEventListener("mousedown", this.handleOutsideClick.bind(this));' ).
     lo_buf->add( '  this.elements.input.addEventListener("keydown", this.handleInputKeydown.bind(this));' ).
     lo_buf->add( '  this.elements.input.addEventListener("keyup", this.handleInputKey.bind(this));' ).
@@ -39181,9 +39248,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// SAP GUI for Java leaves abapGit, and the Edge control loses the keyboard' ).
     lo_buf->add( '// focus, so the next toggle key (Ctrl+P) opens the print dialog instead.' ).
     lo_buf->add( 'CommandPalette.prototype.handleInputKeydown = function(event) {' ).
-    lo_buf->add( '  if (event.key === "ArrowUp" || event.key === "Up") {' ).
+    lo_buf->add( '  var arrow = gKeyboard.getVerticalArrow(event);' ).
+    lo_buf->add( '  if (arrow === -1) {' ).
     lo_buf->add( '    this.selectPrev();' ).
-    lo_buf->add( '  } else if (event.key === "ArrowDown" || event.key === "Down") {' ).
+    lo_buf->add( '  } else if (arrow === 1) {' ).
     lo_buf->add( '    this.selectNext();' ).
     lo_buf->add( '  } else {' ).
     lo_buf->add( '    return;' ).
@@ -39776,7 +39844,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  var lastElement = focusable[focusable.length - 1];' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // No initial focus on the main button: while a button has focus, link hints' ).
-    lo_buf->add( '  // and letter hotkeys are off (Hotkeys.isHotkeyCallPossible), and letting them' ).
+    lo_buf->add( '  // and letter hotkeys are off (gKeyboard.isTyping), and letting them' ).
     lo_buf->add( '  // through would make Enter fire both the button and its Enter hotkey.' ).
     lo_buf->add( '' ).
     lo_buf->add( '  modal.onkeydown = function(e) {' ).
@@ -40079,7 +40147,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'function registerSourceViewerShortcuts() {' ).
     lo_buf->add( '  var sourceViewer = new SourceViewer();' ).
-    lo_buf->add( '  document.addEventListener("keydown", sourceViewer.handleKeydown.bind(sourceViewer));' ).
+    lo_buf->add( '  gKeyboard.on("keydown", gKeyboard.order.sourceViewer, sourceViewer.handleKeydown.bind(sourceViewer));' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'registerSourceViewerShortcuts();' ).
@@ -158982,8 +159050,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-03T01:59:52.332Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-03T01:59:52.332Z`.
+* abapmerge 0.16.10 - 2026-10-03T13:10:03.908Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-03T13:10:03.908Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
