@@ -148738,17 +148738,20 @@ CLASS zcl_abapgit_git_utils IMPLEMENTATION.
   ENDMETHOD.
   METHOD pkt_string.
 
-    DATA: lv_x   TYPE x,
-          lv_len TYPE i.
-    lv_len = strlen( iv_string ).
+    " the length prefix counts the bytes sent, which are UTF-8, plus its own 4
+    CONSTANTS lc_max_data TYPE i VALUE 65516.
 
-    IF lv_len >= 255.
-      zcx_abapgit_exception=>raise( 'PKT, todo' ).
+    DATA: lv_x   TYPE x LENGTH 2,
+          lv_len TYPE i.
+    lv_len = xstrlen( zcl_abapgit_convert=>string_to_xstring_utf8( iv_string ) ).
+
+    IF lv_len > lc_max_data.
+      zcx_abapgit_exception=>raise( |PKT, line too long ({ lv_len } bytes)| ).
     ENDIF.
 
     lv_x = lv_len + 4.
 
-    rv_pkt = '00' && lv_x && iv_string.
+    rv_pkt = lv_x && iv_string.
 
   ENDMETHOD.
 ENDCLASS.
@@ -158979,8 +158982,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-03T01:56:09.061Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-03T01:56:09.061Z`.
+* abapmerge 0.16.10 - 2026-10-03T01:59:52.332Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-03T01:59:52.332Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
