@@ -150898,7 +150898,9 @@ ENDCLASS.
 CLASS zcl_abapgit_git_branch_utils IMPLEMENTATION.
 
   METHOD complete_heads_branch_name.
-    IF iv_branch_name CP zif_abapgit_git_definitions=>c_git_branch-heads.
+    " refs are case-sensitive, CP is not
+    IF find( val = iv_branch_name
+             sub = zif_abapgit_git_definitions=>c_git_branch-heads_prefix ) = 0.
       rv_name = iv_branch_name.
     ELSE.
       rv_name = zif_abapgit_git_definitions=>c_git_branch-heads_prefix && iv_branch_name.
@@ -158974,8 +158976,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-02T11:15:06.511Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-02T11:15:06.511Z`.
+* abapmerge 0.16.10 - 2026-10-03T01:49:45.548Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-03T01:49:45.548Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
