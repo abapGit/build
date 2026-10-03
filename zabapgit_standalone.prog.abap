@@ -71255,7 +71255,10 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
 
     DATA: lv_sha1 TYPE zif_abapgit_git_definitions=>ty_sha1.
 
-    ASSERT iv_name CP zif_abapgit_git_definitions=>c_git_branch-heads.
+    IF iv_name NP zif_abapgit_git_definitions=>c_git_branch-heads.
+      zcx_abapgit_exception=>raise( |Branch name must start with {
+        zif_abapgit_git_definitions=>c_git_branch-heads_prefix }: { iv_name }| ).
+    ENDIF.
 
     IF iv_from IS INITIAL.
       lv_sha1 = get_current_remote( ).
@@ -158976,8 +158979,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-03T01:49:45.548Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-03T01:49:45.548Z`.
+* abapmerge 0.16.10 - 2026-10-03T01:56:09.061Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-03T01:56:09.061Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
