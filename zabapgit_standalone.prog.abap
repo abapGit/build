@@ -39898,6 +39898,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  this.source = null;' ).
     lo_buf->add( '  this.lineNumbers = null;' ).
     lo_buf->add( '  this.activeSource = null;' ).
+    lo_buf->add( '  this.validationUnlock = null;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'SourceViewer.prototype.getHtmlSource = function() {' ).
@@ -39989,16 +39990,90 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  }' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
+    lo_buf->add( 'SourceViewer.prototype.lockValidation = function() {' ).
+    lo_buf->add( '  var busy = document.createElement("div");' ).
+    lo_buf->add( '  var previousFocus = document.activeElement;' ).
+    lo_buf->add( '  var sourceViewer = this;' ).
+    lo_buf->add( '  var inputEvents = ["click", "dblclick", "mousedown", "mouseup", "pointerdown", "pointerup",' ).
+    lo_buf->add( '    "touchstart", "touchend", "keydown", "keypress", "keyup", "submit", "contextmenu"];' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  busy.className = "source-viewer-busy";' ).
+    lo_buf->add( '  busy.tabIndex = -1;' ).
+    lo_buf->add( '  busy.setAttribute("role", "status");' ).
+    lo_buf->add( '  busy.setAttribute("aria-busy", "true");' ).
+    lo_buf->add( '  busy.textContent = "Validating HTML...";' ).
+    lo_buf->add( '  busy.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;" +' ).
+    lo_buf->add( '    "z-index:2147483647;cursor:wait;background:rgba(0,0,0,0.5);color:#fff;" +' ).
+    lo_buf->add( '    "display:flex;align-items:center;justify-content:center;font:16px sans-serif;";' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function blockInput(event) {' ).
+    lo_buf->add( '    event.preventDefault();' ).
+    lo_buf->add( '    event.stopImmediatePropagation();' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  this.validationUnlock = function() {' ).
+    lo_buf->add( '    inputEvents.forEach(function(name) { window.removeEventListener(name, blockInput, true) });' ).
+    lo_buf->add( '    window.removeEventListener("pageshow", sourceViewer.validationUnlock);' ).
+    lo_buf->add( '    if (busy.parentNode) busy.parentNode.removeChild(busy);' ).
+    lo_buf->add( '    sourceViewer.validationUnlock = null;' ).
+    lo_buf->add( '    if (previousFocus && document.body.contains(previousFocus)) previousFocus.focus();' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '  inputEvents.forEach(function(name) { window.addEventListener(name, blockInput, true) });' ).
+    lo_buf->add( '  window.addEventListener("pageshow", this.validationUnlock);' ).
+    lo_buf->add( '  document.body.appendChild(busy);' ).
+    lo_buf->add( '  busy.focus();' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'SourceViewer.prototype.validateHtml = function() {' ).
+    lo_buf->add( '  if (this.validationUnlock) return;' ).
+    lo_buf->add( '  var form = document.createElement("form");' ).
+    lo_buf->add( '  var fields = {' ).
+    lo_buf->add( '    fragment: this.activeSource === this.sources[0] ? this.source.value : this.sources[0].content,' ).
+    lo_buf->add( '    prefill: "0",' ).
+    lo_buf->add( '    doctype: "Inline",' ).
+    lo_buf->add( '    group: "1",' ).
+    lo_buf->add( '    ss: "1",' ).
+    lo_buf->add( '    outline: "1"' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  form.method = "post";' ).
+    lo_buf->add( '  form.action = "https://validator.w3.org/check";' ).
+    lo_buf->add( '  form.enctype = "multipart/form-data";' ).
+    lo_buf->add( '  form.acceptCharset = "UTF-8";' ).
+    lo_buf->add( '  // Desktop SAP GUI opens _blank externally with only the URL, losing POST data.' ).
+    lo_buf->add( '  form.target = gEnv.isWebGui ? "_blank" : "_self";' ).
+    lo_buf->add( '  form.style.display = "none";' ).
+    lo_buf->add( '  Object.keys(fields).forEach(function(name) {' ).
+    lo_buf->add( '    var input = document.createElement("input");' ).
+    lo_buf->add( '    input.type = "hidden";' ).
+    lo_buf->add( '    input.name = name;' ).
+    lo_buf->add( '    input.value = fields[name];' ).
+    lo_buf->add( '    form.appendChild(input);' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '  document.body.appendChild(form);' ).
+    lo_buf->add( '  try {' ).
+    lo_buf->add( '    if (!gEnv.isWebGui) this.lockValidation();' ).
+    lo_buf->add( '    form.submit();' ).
+    lo_buf->add( '  } catch (error) {' ).
+    lo_buf->add( '    if (this.validationUnlock) this.validationUnlock();' ).
+    lo_buf->add( '    this.reportError("Could not submit HTML to the W3C validator: " + error.message);' ).
+    lo_buf->add( '  } finally {' ).
+    lo_buf->add( '    document.body.removeChild(form);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '};' ).
+    lo_buf->add( '' ).
     lo_buf->add( 'SourceViewer.prototype.show = function() {' ).
     lo_buf->add( '  var overlay = document.createElement("div");' ).
     lo_buf->add( '  var heading = document.createElement("div");' ).
     lo_buf->add( '  var close = document.createElement("button");' ).
     lo_buf->add( '  var tabs = document.createElement("div");' ).
+    lo_buf->add( '  var validate = document.createElement("button");' ).
     lo_buf->add( '  var sourceContainer = document.createElement("div");' ).
     lo_buf->add( '  var lineNumbers = document.createElement("pre");' ).
     lo_buf->add( '  var source = document.createElement("textarea");' ).
     lo_buf->add( '  var sourceViewer = this;' ).
     lo_buf->add( '' ).
+    lo_buf->add( '  this.sources[0].content = this.getHtmlSource();' ).
     lo_buf->add( '  overlay.className = "source-viewer";' ).
     lo_buf->add( '  overlay.tabIndex = -1;' ).
     lo_buf->add( '  heading.className = "source-viewer-heading";' ).
@@ -40040,6 +40115,16 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    sourceDefinition.tab = tab;' ).
     lo_buf->add( '    tabs.appendChild(tab);' ).
     lo_buf->add( '  });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  validate.type = "button";' ).
+    lo_buf->add( '  validate.className = "source-viewer-tab";' ).
+    lo_buf->add( '  validate.appendChild(document.createTextNode("Validate HTML"));' ).
+    lo_buf->add( '  validate.title = "Send HTML source to the W3C validator" +' ).
+    lo_buf->add( '    (gEnv.isWebGui ? " (opens in a new tab)" : " (opens in the SAP GUI browser control)");' ).
+    lo_buf->add( '  validate.onclick = function() {' ).
+    lo_buf->add( '    sourceViewer.validateHtml();' ).
+    lo_buf->add( '  };' ).
+    lo_buf->add( '  tabs.appendChild(validate);' ).
     lo_buf->add( '' ).
     lo_buf->add( '  function stopEvent(event) {' ).
     lo_buf->add( '    event.preventDefault();' ).
@@ -159287,8 +159372,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-05T14:29:29.911Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-05T14:29:29.911Z`.
+* abapmerge 0.16.10 - 2026-10-05T14:34:56.554Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-05T14:34:56.554Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
