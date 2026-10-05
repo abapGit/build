@@ -35581,6 +35581,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  box-sizing: border-box;' ).
     lo_buf->add( '  resize: none;' ).
     lo_buf->add( '  font-size: 12px;' ).
+    lo_buf->add( '  overflow-x: auto;' ).
+    lo_buf->add( '  overflow-y: auto;' ).
     lo_buf->add( '  white-space: pre;' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
@@ -40009,7 +40011,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  sourceContainer.className = "source-viewer-content";' ).
     lo_buf->add( '  lineNumbers.setAttribute("aria-hidden", "true");' ).
     lo_buf->add( '  lineNumbers.className = "source-viewer-line-numbers";' ).
-    lo_buf->add( '  source.wrap = "off";' ).
+    lo_buf->add( '  source.wrap = "soft";' ).
     lo_buf->add( '  source.className = "source-viewer-source";' ).
     lo_buf->add( '' ).
     lo_buf->add( '  overlay.appendChild(heading);' ).
@@ -159285,8 +159287,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-05T14:24:02.569Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-05T14:24:02.569Z`.
+* abapmerge 0.16.10 - 2026-10-05T14:29:29.911Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-05T14:29:29.911Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
