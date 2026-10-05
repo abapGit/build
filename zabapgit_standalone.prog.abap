@@ -34301,7 +34301,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( 'table.diff_tab td.num::before {' ).
-    lo_buf->add( '  content: attr(line-num);' ).
+    lo_buf->add( '  content: attr(data-num);' ).
     lo_buf->add( '}' ).
     lo_buf->add( 'table.diff_tab code {' ).
     lo_buf->add( '  font-family: inherit;' ).
@@ -35914,10 +35914,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  color: #eee;' ).
     lo_buf->add( '  background-color: var(--theme-greyscale-medium);' ).
     lo_buf->add( '}' ).
-    lo_buf->add( 'table.diff_tab thead.nav_line {' ).
+    lo_buf->add( 'table.diff_tab tr.nav_line {' ).
     lo_buf->add( '  background-color: #edf2f9;' ).
     lo_buf->add( '}' ).
-    lo_buf->add( 'table.diff_tab thead.nav_line th {' ).
+    lo_buf->add( 'table.diff_tab tr.nav_line th {' ).
     lo_buf->add( '  color: var(--theme-greyscale-medium);' ).
     lo_buf->add( '}' ).
     lo_buf->add( 'table.diff_tab td.num, th.num {' ).
@@ -36396,7 +36396,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '/* DIFF TABLE */' ).
     lo_buf->add( '' ).
     lo_buf->add( 'table.diff_tab td,th { color: #fff; }' ).
-    lo_buf->add( 'table.diff_tab thead.nav_line { background-color: var(--theme-container-background-color); }' ).
+    lo_buf->add( 'table.diff_tab tr.nav_line { background-color: var(--theme-container-background-color); }' ).
     lo_buf->add( '' ).
     lo_buf->add( '/* STYLES FOR SYNTAX HIGHLIGHTING */' ).
     lo_buf->add( '' ).
@@ -46054,7 +46054,8 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     " Local changes
     LOOP AT ms_files-local ASSIGNING <ls_local>.
       AT FIRST.
-        ri_html->add( '<thead><tr class="local">' ).
+        ri_html->add( '<thead>' ).
+        ri_html->add( '<tr class="local">' ).
         ri_html->add( '<th class="stage-status"></th>' ). " Diff state
         ri_html->add( '<th class="stage-objtype">Type</th>' ).
         ri_html->add( '<th title="Click filename to see diff">File</th>' ).
@@ -46064,7 +46065,8 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
         ri_html->add( '<th class="cmd">' ).
         ri_html->add( '<a>add</a>&#x2193; <a>reset</a>&#x2193;' ).
         ri_html->add( '</th>' ).
-        ri_html->add( '</tr></thead>' ).
+        ri_html->add( '</tr>' ).
+        ri_html->add( '</thead>' ).
         ri_html->add( '<tbody>' ).
       ENDAT.
 
@@ -46102,7 +46104,8 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     " Remote changes
     LOOP AT ms_files-remote ASSIGNING <ls_remote>.
       AT FIRST.
-        ri_html->add( '<thead><tr class="remote">' ).
+        ri_html->add( '<thead>' ).
+        ri_html->add( '<tr class="remote">' ).
         ri_html->add( '<th></th>' ). " Diff state
         ri_html->add( '<th></th>' ). " Type
         ri_html->add( '<th colspan="3">Files to remove or non-code</th>' ).
@@ -46110,7 +46113,8 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
         ri_html->add( '<th class="cmd">' ).
         ri_html->add( '<a>ignore</a>&#x2193; <a>remove</a>&#x2193; <a>reset</a>&#x2193;' ).
         ri_html->add( '</th>' ).
-        ri_html->add( '</tr></thead>' ).
+        ri_html->add( '</tr>' ).
+        ri_html->add( '</thead>' ).
         ri_html->add( '<tbody>' ).
       ENDAT.
 
@@ -48113,8 +48117,9 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ri_html->add( |<form class="inline" method="post" action="sapevent:{ c_action-apply_filter }">| ).
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_text_input(
       iv_name      = |filter|
-      iv_label     = |Filter: { render_filter_help_hint( ) }|
+      iv_label     = |Filter:|
       iv_value     = ms_list_settings-filter ) ).
+    ri_html->add( render_filter_help_hint( ) ).
     ri_html->add( |<input type="submit" class="hidden-submit" title="Filter">| ).
     ri_html->add( |</form>| ).
 
@@ -49154,14 +49159,12 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
       lv_beacon = '---'.
     ENDIF.
 
-    ri_html->add( '<thead class="nav_line">' ).
-    ri_html->add( '<tr>' ).
+    ri_html->add( '<tr class="nav_line">' ).
 
     ri_html->add( '<th class="num"></th>' ).
     ri_html->add( |<th colspan="3">@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
 
     ri_html->add( '</tr>' ).
-    ri_html->add( '</thead>' ).
 
   ENDMETHOD.
   METHOD render_diff.
@@ -49322,7 +49325,7 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
       lv_bg = ' diff_ins'.
       lv_mark = `+`.
     ENDIF.
-    lv_new = |<td class="num" line-num="{ is_diff_line-new_num }"></td>|
+    lv_new = |<td class="num" data-num="{ is_diff_line-new_num }"></td>|
           && |<td class="code{ lv_bg }">{ lv_mark }{ is_diff_line-new }</td>|.
 
     " Old line
@@ -49335,7 +49338,7 @@ CLASS zcl_abapgit_gui_page_merge_res IMPLEMENTATION.
       lv_bg = ' diff_del'.
       lv_mark = `-`.
     ENDIF.
-    lv_old = |<td class="num" line-num="{ is_diff_line-old_num }"></td>|
+    lv_old = |<td class="num" data-num="{ is_diff_line-old_num }"></td>|
           && |<td class="code{ lv_bg }">{ lv_mark }{ is_diff_line-old }</td>|.
 
     " render line, inverse sides if remote is newer
@@ -50391,8 +50394,9 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
     ri_html->add( render_supported_object_types( ) ).
     ri_html->add( '</div>' ).
 
-    mv_html = '<!DOCTYPE html><html lang="en"><title>abapGit Debug Info</title></head>'.
-    mv_html = |<body>{ ri_html->render( ) }</body></html>|.
+    mv_html = |<!DOCTYPE html>\n<html lang="en">\n|
+      && |<head>\n<title>abapGit Debug Info</title>\n</head>\n|
+      && |<body>\n{ ri_html->render( ) }\n</body>\n</html>\n|.
 
     register_deferred_script( render_scripts( ) ).
 
@@ -56777,6 +56781,7 @@ CLASS zcl_abapgit_gui_page_diff_base IMPLEMENTATION.
   METHOD render_beacon.
 
     DATA: lv_beacon  TYPE string,
+          lv_colspan TYPE i,
           lt_beacons TYPE zif_abapgit_definitions=>ty_string_tt.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
@@ -56788,16 +56793,17 @@ CLASS zcl_abapgit_gui_page_diff_base IMPLEMENTATION.
       lv_beacon = '---'.
     ENDIF.
 
-    ri_html->add( '<thead class="nav_line">' ).
-    ri_html->add( '<tr>' ).
+    ri_html->add( '<tr class="nav_line">' ).
 
     IF mi_extra IS BOUND.
       " Extra interface for rendering the beacon row
       mi_extra->render_beacon_begin_of_row(
         ii_html = ri_html
         is_diff = is_diff ).
+      lv_colspan = 6.
     ELSE.
       render_beacon_begin_of_row( ri_html ).
+      lv_colspan = 5.
     ENDIF.
 
     IF mv_unified = abap_true.
@@ -56805,11 +56811,10 @@ CLASS zcl_abapgit_gui_page_diff_base IMPLEMENTATION.
       ri_html->add( '<th class="mark"></th>' ).
       ri_html->add( |<th>@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
     ELSE.
-      ri_html->add( |<th colspan="6">@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
+      ri_html->add( |<th colspan="{ lv_colspan }">@@ { is_diff_line-new_num } @@ { lv_beacon }</th>| ).
     ENDIF.
 
     ri_html->add( '</tr>' ).
-    ri_html->add( '</thead>' ).
 
   ENDMETHOD.
   METHOD render_beacon_begin_of_row.
@@ -57071,7 +57076,7 @@ CLASS zcl_abapgit_gui_page_diff_base IMPLEMENTATION.
         lv_mark = `+`.
       ENDIF.
     ENDIF.
-    lv_new = |<td class="num diff_others" line-num="{ is_diff_line-new_num }"></td>|
+    lv_new = |<td class="num diff_others" data-num="{ is_diff_line-new_num }"></td>|
           && |<td class="mark diff_others">{ lv_mark }</td>|
           && |<td class="code{ lv_bg } diff_left new">{ is_diff_line-new }</td>|.
 
@@ -57087,7 +57092,7 @@ CLASS zcl_abapgit_gui_page_diff_base IMPLEMENTATION.
         lv_mark = `-`.
       ENDIF.
     ENDIF.
-    lv_old = |<td class="num diff_others" line-num="{ is_diff_line-old_num }"></td>|
+    lv_old = |<td class="num diff_others" data-num="{ is_diff_line-old_num }"></td>|
           && |<td class="mark diff_others">{ lv_mark }</td>|
           && |<td class="code{ lv_bg } diff_right old">{ is_diff_line-old }</td>|.
 
@@ -57137,16 +57142,16 @@ CLASS zcl_abapgit_gui_page_diff_base IMPLEMENTATION.
     IF is_diff_line-result <> zif_abapgit_definitions=>c_diff-update.
       LOOP AT mt_delayed_lines ASSIGNING <ls_diff_line>.
         ri_html->add( '<tr class="diff_line">' ).
-        ri_html->add( |<td class="num diff_others" line-num="{ <ls_diff_line>-old_num }"></td>|
-                   && |<td class="num diff_others" line-num=""></td>|
+        ri_html->add( |<td class="num diff_others" data-num="{ <ls_diff_line>-old_num }"></td>|
+                   && |<td class="num diff_others" data-num=""></td>|
                    && |<td class="mark diff_others">-</td>|
                    && |<td class="code diff_del diff_unified old">{ <ls_diff_line>-old }</td>| ).
         ri_html->add( '</tr>' ).
       ENDLOOP.
       LOOP AT mt_delayed_lines ASSIGNING <ls_diff_line>.
         ri_html->add( '<tr class="diff_line">' ).
-        ri_html->add( |<td class="num diff_others" line-num=""></td>|
-                   && |<td class="num diff_others" line-num="{ <ls_diff_line>-new_num }"></td>|
+        ri_html->add( |<td class="num diff_others" data-num=""></td>|
+                   && |<td class="num diff_others" data-num="{ <ls_diff_line>-new_num }"></td>|
                    && |<td class="mark diff_others">+</td>|
                    && |<td class="code diff_ins diff_unified new">{ <ls_diff_line>-new }</td>| ).
         ri_html->add( '</tr>' ).
@@ -57157,20 +57162,21 @@ CLASS zcl_abapgit_gui_page_diff_base IMPLEMENTATION.
     ri_html->add( '<tr class="diff_line">' ).
     CASE is_diff_line-result.
       WHEN zif_abapgit_definitions=>c_diff-update.
+        ri_html->add( |<td class="num diff_others" colspan="4"></td>| ).
         APPEND is_diff_line TO mt_delayed_lines. " Delay output of subsequent updates
       WHEN zif_abapgit_definitions=>c_diff-insert.
-        ri_html->add( |<td class="num diff_others" line-num=""></td>|
-                   && |<td class="num diff_others" line-num="{ is_diff_line-new_num }"></td>|
+        ri_html->add( |<td class="num diff_others" data-num=""></td>|
+                   && |<td class="num diff_others" data-num="{ is_diff_line-new_num }"></td>|
                    && |<td class="mark diff_others">+</td>|
                    && |<td class="code diff_ins diff_unified new">{ is_diff_line-new }</td>| ).
       WHEN zif_abapgit_definitions=>c_diff-delete.
-        ri_html->add( |<td class="num diff_others" line-num="{ is_diff_line-old_num }"></td>|
-                   && |<td class="num diff_others" line-num=""></td>|
+        ri_html->add( |<td class="num diff_others" data-num="{ is_diff_line-old_num }"></td>|
+                   && |<td class="num diff_others" data-num=""></td>|
                    && |<td class="mark diff_others">-</td>|
                    && |<td class="code diff_del diff_unified old">{ is_diff_line-old }</td>| ).
       WHEN OTHERS. "none
-        ri_html->add( |<td class="num diff_others" line-num="{ is_diff_line-old_num }"></td>|
-                   && |<td class="num diff_others" line-num="{ is_diff_line-new_num }"></td>|
+        ri_html->add( |<td class="num diff_others" data-num="{ is_diff_line-old_num }"></td>|
+                   && |<td class="num diff_others" data-num="{ is_diff_line-new_num }"></td>|
                    && |<td class="mark diff_others">&nbsp;</td>|
                    && |<td class="code diff_unified">{ is_diff_line-old }</td>| ).
     ENDCASE.
@@ -58208,7 +58214,7 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
         rs_render-css_class = 'data'.
       WHEN 'cmd'.
         lv_action  = zcl_abapgit_html_action_utils=>dbkey_encode( is_row ).
-        lo_toolbar = zcl_abapgit_html_toolbar=>create( 'actionbar-database-utility'
+        lo_toolbar = zcl_abapgit_html_toolbar=>create( |actionbar-database-utility-{ iv_row_index }|
           )->add(
             iv_txt = 'Display'
             iv_act = |{ zif_abapgit_definitions=>c_action-db_display }?{ lv_action }|
@@ -159279,8 +159285,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-05T13:03:53.755Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-05T13:03:53.755Z`.
+* abapmerge 0.16.10 - 2026-10-05T14:24:02.569Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-05T14:24:02.569Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
