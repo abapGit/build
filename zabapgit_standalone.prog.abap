@@ -29966,12 +29966,6 @@ CLASS zcl_abapgit_popup_to_confirm DEFINITION
       RAISING
         zcx_abapgit_exception.
 
-    METHODS render_scripts
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html
-      RAISING
-        zcx_abapgit_exception.
-
 ENDCLASS.
 CLASS zcl_abapgit_progress DEFINITION
   FINAL
@@ -39877,52 +39871,54 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( ' * Popup Control' ).
     lo_buf->add( ' **********************************************************/' ).
     lo_buf->add( '' ).
-    lo_buf->add( '// Prevents keyboard navigation to elements outside the modal popup' ).
+    lo_buf->add( '// Keeps Tab and Shift+Tab inside the in-page popup (zcl_abapgit_gui_in_page_modal)' ).
+    lo_buf->add( '// while it is open. On the document, not the popup: right after rendering the' ).
+    lo_buf->add( '// focus is still on the page behind it, where a listener of the popup never' ).
+    lo_buf->add( '// hears the key.' ).
     lo_buf->add( '// eslint-disable-next-line no-unused-vars' ).
     lo_buf->add( 'function trapFocus() {' ).
     lo_buf->add( '  var modal = document.getElementById("modal");' ).
     lo_buf->add( '  if (!modal) return;' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var focusableSelectors = "button, [href], input, select, textarea, [tabindex]";' ).
-    lo_buf->add( '  var focusableElements = modal.querySelectorAll(focusableSelectors);' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  // Filter out elements with tabindex="-1"' ).
-    lo_buf->add( '  var focusable = [];' ).
-    lo_buf->add( '  for (var i = 0; i < focusableElements.length; i++) {' ).
-    lo_buf->add( '    if (focusableElements[i].getAttribute("tabindex") !== "-1") {' ).
-    lo_buf->add( '      focusable.push(focusableElements[i]);' ).
+    lo_buf->add( '  // Read on every key, the popup can change. Hidden controls (e.g. the radio' ).
+    lo_buf->add( '  // buttons behind the labels of a picklist) and tabindex="-1" (the hidden' ).
+    lo_buf->add( '  // submit button) are no tab stops.' ).
+    lo_buf->add( '  function getTabStops() {' ).
+    lo_buf->add( '    var candidates = modal.querySelectorAll("button, [href], input, select, textarea, [tabindex]");' ).
+    lo_buf->add( '    var tabStops = [];' ).
+    lo_buf->add( '    for (var i = 0; i < candidates.length; i++) {' ).
+    lo_buf->add( '      var candidate = candidates[i];' ).
+    lo_buf->add( '      if (candidate.disabled || candidate.getAttribute("tabindex") === "-1") continue;' ).
+    lo_buf->add( '      if (!candidate.offsetWidth && !candidate.offsetHeight && !candidate.getClientRects().length) continue;' ).
+    lo_buf->add( '      tabStops.push(candidate);' ).
     lo_buf->add( '    }' ).
+    lo_buf->add( '    return tabStops;' ).
     lo_buf->add( '  }' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  if (focusable.length === 0) return;' ).
-    lo_buf->add( '' ).
-    lo_buf->add( '  var firstElement = focusable[0];' ).
-    lo_buf->add( '  var lastElement = focusable[focusable.length - 1];' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // No initial focus on the main button: while a button has focus, link hints' ).
     lo_buf->add( '  // and letter hotkeys are off (gKeyboard.isTyping), and letting them' ).
     lo_buf->add( '  // through would make Enter fire both the button and its Enter hotkey.' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  modal.onkeydown = function(e) {' ).
-    lo_buf->add( '    var keyCode = e.keyCode || e.which;' ).
+    lo_buf->add( '  document.addEventListener("keydown", function(event) {' ).
+    lo_buf->add( '    if ((event.keyCode || event.which) !== 9 || event.ctrlKey || event.altKey || event.metaKey) return;' ).
     lo_buf->add( '' ).
-    lo_buf->add( '    // Tab key' ).
-    lo_buf->add( '    if (keyCode === 9) {' ).
-    lo_buf->add( '      if (e.shiftKey) {' ).
-    lo_buf->add( '        // Shift + Tab' ).
-    lo_buf->add( '        if (document.activeElement === firstElement) {' ).
-    lo_buf->add( '          e.preventDefault();' ).
-    lo_buf->add( '          lastElement.focus();' ).
-    lo_buf->add( '        }' ).
-    lo_buf->add( '      } else {' ).
-    lo_buf->add( '        // Tab only' ).
-    lo_buf->add( '        if (document.activeElement === lastElement) {' ).
-    lo_buf->add( '          e.preventDefault();' ).
-    lo_buf->add( '          firstElement.focus();' ).
-    lo_buf->add( '        }' ).
-    lo_buf->add( '      }' ).
+    lo_buf->add( '    var tabStops = getTabStops();' ).
+    lo_buf->add( '    if (tabStops.length === 0) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    var current = tabStops.indexOf(document.activeElement);' ).
+    lo_buf->add( '    var target;' ).
+    lo_buf->add( '    if (current === -1) {' ).
+    lo_buf->add( '      target = event.shiftKey ? tabStops[tabStops.length - 1] : tabStops[0];' ).
+    lo_buf->add( '    } else if (event.shiftKey && current === 0) {' ).
+    lo_buf->add( '      target = tabStops[tabStops.length - 1];' ).
+    lo_buf->add( '    } else if (!event.shiftKey && current === tabStops.length - 1) {' ).
+    lo_buf->add( '      target = tabStops[0];' ).
     lo_buf->add( '    }' ).
-    lo_buf->add( '  };' ).
+    lo_buf->add( '    if (!target) return; // inside the popup, the browser moves on itself' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    event.preventDefault();' ).
+    lo_buf->add( '    target.focus();' ).
+    lo_buf->add( '  }, true);' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -45047,10 +45043,6 @@ CLASS zcl_abapgit_popup_to_confirm IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD render_scripts.
-    " Prevent keyboard navigation to elements outside the modal popup
-    ri_html = zcl_abapgit_html=>create( )->set_title( 'popup_to_confirm' )->add( 'trapFocus();' ).
-  ENDMETHOD.
   METHOD was_closed.
     rv_yes = mv_closed.
   ENDMETHOD.
@@ -45069,8 +45061,6 @@ CLASS zcl_abapgit_popup_to_confirm IMPLEMENTATION.
     register_handlers( ).
 
     ri_html = zcl_abapgit_html=>create( mo_form->render( mo_form_data ) ).
-
-    register_deferred_script( render_scripts( ) ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -62828,6 +62818,11 @@ CLASS zcl_abapgit_gui_in_page_modal IMPLEMENTATION.
     ri_html->add( |</div>| ).
     ri_html->add( |</div>| ).
     ri_html->add( |<div class="modal-overlay"></div>| ).
+
+    " Keep Tab inside the popup
+    zcl_abapgit_ui_factory=>get_gui_services( )->get_html_parts( )->add_part(
+      iv_collection = zcl_abapgit_gui_component=>c_html_parts-scripts
+      ii_part       = zcl_abapgit_html=>create( )->set_title( 'in_page_modal' )->add( 'trapFocus();' ) ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -159443,8 +159438,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-06T17:36:53.647Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-06T17:36:53.647Z`.
+* abapmerge 0.16.10 - 2026-10-06T19:12:25.276Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-06T19:12:25.276Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
