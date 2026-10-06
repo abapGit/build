@@ -33825,6 +33825,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '.w800px       { width: 800px }' ).
     lo_buf->add( '.w1000px      { width: 1000px }' ).
     lo_buf->add( '.wmax600px    { max-width: 600px }' ).
+    lo_buf->add( '.borders      { border: 1px solid }' ).
     lo_buf->add( '.auto-center  { /* use with max-width */' ).
     lo_buf->add( '  width: 100%;' ).
     lo_buf->add( '  margin-left: auto;' ).
@@ -36774,7 +36775,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// Output text to the debug div' ).
     lo_buf->add( 'function debugOutput(text, dstID) {' ).
     lo_buf->add( '  var stdout    = document.getElementById(dstID || "debug-output");' ).
-    lo_buf->add( '  var paragraph = document.createElement("p");' ).
+    lo_buf->add( '  var paragraph = document.createElement("div");' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // text is trusted, server-generated debug markup (e.g. the Debug Info table),' ).
     lo_buf->add( '  // so render it as HTML rather than escaping it' ).
@@ -50121,7 +50122,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
     IF zcl_abapgit_factory=>get_environment( )->is_merged( ) = abap_true.
-      ri_html->add( '<h2>abapGit - Standalone Version</h2>' ).
+      ri_html->add( '<h1>abapGit - Standalone Version</h1>' ).
       ri_html->add( '<div>To keep abapGit up-to-date (or also to contribute) you need to' ).
       ri_html->add( |install it as a repository ({ ri_html->a(
         iv_txt = 'Developer Version'
@@ -50131,7 +50132,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
       lv_devclass = zcl_abapgit_factory=>get_tadir( )->get_object_package(
         iv_object   = 'CLAS'
         iv_obj_name = 'ZCX_ABAPGIT_EXCEPTION' ).
-      ri_html->add( '<h2>abapGit - Developer Version</h2>' ).
+      ri_html->add( '<h1>abapGit - Developer Version</h1>' ).
       ri_html->add( |<div>abapGit is installed in package { lv_devclass }</div>| ).
     ENDIF.
 
@@ -50236,7 +50237,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
-    ri_html->add( '<table border="1px"><thead><tr>' ).
+    ri_html->add( '<table class="borders"><thead><tr>' ).
     ri_html->add( '<td>Exit</td><td class="center">Implemented?</td>' ).
     ri_html->add( '</tr></thead><tbody>' ).
 
@@ -50314,7 +50315,7 @@ CLASS zcl_abapgit_gui_page_debuginfo IMPLEMENTATION.
 
     rv_html = rv_html && |<br><br>Supported object types in <strong>this</strong> system:<br><br>|.
 
-    rv_html = rv_html && |<table border="1px"><thead><tr>|.
+    rv_html = rv_html && |<table class="borders"><thead><tr>|.
     rv_html = rv_html && |<td>Object</td><td>Description</td><td>Class</td><td>Version</td>|.
     rv_html = rv_html && |<td>Steps</td><td>AFF</td>|.
     rv_html = rv_html && |</tr></thead><tbody>|.
@@ -159372,8 +159373,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-05T14:34:56.554Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-05T14:34:56.554Z`.
+* abapmerge 0.16.10 - 2026-10-06T10:33:15.654Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-06T10:33:15.654Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
