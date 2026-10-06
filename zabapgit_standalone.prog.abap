@@ -36608,6 +36608,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '   -- zcl_abapgit_gui_page_diff_base->render_scripts,' ).
     lo_buf->add( '      which also does new CommandPalette( enumerateJumpAllFiles ) */' ).
     lo_buf->add( '' ).
+    lo_buf->add( '/* exported rememberScrollPosition' ).
+    lo_buf->add( '   -- zcl_abapgit_gui_page_repo_over, zcl_abapgit_gui_page_repo_view,' ).
+    lo_buf->add( '      zcl_abapgit_gui_page_db */' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/* exported onDiffCollapse' ).
     lo_buf->add( '   -- zcl_abapgit_gui_page_diff_base->render_diff_head */' ).
     lo_buf->add( '' ).
@@ -39641,6 +39645,43 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    saveScrollPosition();' ).
     lo_buf->add( '    return fn.apply(this, arguments);' ).
     lo_buf->add( '  };' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Keep list pages independent of the one-shot scroll position used by diffs.' ).
+    lo_buf->add( 'function rememberScrollPosition(pageId) {' ).
+    lo_buf->add( '  var storage;' ).
+    lo_buf->add( '  var key = "scrollTop:" + pageId;' ).
+    lo_buf->add( '  try {' ).
+    lo_buf->add( '    storage = window.sessionStorage;' ).
+    lo_buf->add( '    if (!storage) return;' ).
+    lo_buf->add( '    // Storage can be present but inaccessible in embedded browser controls.' ).
+    lo_buf->add( '    storage.getItem(key);' ).
+    lo_buf->add( '  } catch (err) { return err }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function save() {' ).
+    lo_buf->add( '    var root = document.scrollingElement || document.documentElement;' ).
+    lo_buf->add( '    try {' ).
+    lo_buf->add( '      storage.setItem(key, window.pageYOffset || root.scrollTop);' ).
+    lo_buf->add( '    } catch (err) { return err }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function restore() {' ).
+    lo_buf->add( '    try {' ).
+    lo_buf->add( '      var position = Number(storage.getItem(key));' ).
+    lo_buf->add( '      if (isFinite(position) && position >= 0) window.scrollTo(0, position);' ).
+    lo_buf->add( '    } catch (err) { return err }' ).
+    lo_buf->add( '    window.addEventListener("scroll", save);' ).
+    lo_buf->add( '    // Capture the final position before links, hotkeys or forms navigate away.' ).
+    lo_buf->add( '    document.addEventListener("click", save, true);' ).
+    lo_buf->add( '    document.addEventListener("submit", save, true);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // Wait for layout and the overview''s saved display settings to be restored.' ).
+    lo_buf->add( '  if (document.readyState === "complete") {' ).
+    lo_buf->add( '    restore();' ).
+    lo_buf->add( '  } else {' ).
+    lo_buf->add( '    window.addEventListener("load", restore);' ).
+    lo_buf->add( '  }' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -47378,6 +47419,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_palette( zif_abapgit_definitions=>c_action-go_repo ) ).
+    ri_html->add( |rememberScrollPosition("repo-view-{ mv_key }");| ).
 
   ENDMETHOD.
   METHOD render_table_footer.
@@ -48294,6 +48336,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     ri_html->set_title( cl_abap_typedescr=>describe_by_object_ref( me )->get_relative_name( ) ).
     ri_html->add( 'var gHelper = new RepoOverViewHelper({ focusFilterKey: "f" });' ).
+    ri_html->add( 'rememberScrollPosition("repo-overview");' ).
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_palette( c_action-select ) ).
 
   ENDMETHOD.
@@ -58269,6 +58312,7 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
   METHOD zif_abapgit_gui_renderable~render.
 
     DATA lt_db_entries TYPE zif_abapgit_persistence=>ty_contents.
+    DATA lo_script TYPE REF TO zif_abapgit_html.
 
     register_handlers( ).
 
@@ -58285,6 +58329,10 @@ CLASS zcl_abapgit_gui_page_db IMPLEMENTATION.
     ri_html->add( '</div>' ).
 
     ri_html->add( kHGwlxICmvGxodeMYPnggWiyFgrAiM=>render( ) ).
+
+    lo_script = zcl_abapgit_html=>create( ).
+    lo_script->add( 'rememberScrollPosition("db-list");' ).
+    register_deferred_script( lo_script ).
 
   ENDMETHOD.
   METHOD zif_abapgit_html_table~get_row_attrs.
@@ -159373,8 +159421,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-06T10:33:15.654Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-06T10:33:15.654Z`.
+* abapmerge 0.16.10 - 2026-10-06T13:09:58.362Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-06T13:09:58.362Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
