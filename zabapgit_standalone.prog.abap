@@ -37232,6 +37232,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'var gKeyboard = {' ).
     lo_buf->add( '  order: {' ).
     lo_buf->add( '    sourceViewer: 10, // Ctrl+Shift+?, a troubleshooting key that no page shortcut may take' ).
+    lo_buf->add( '    browserBack : 15, // Alt+Left where the browser does not go back itself (SAP GUI for Java)' ).
     lo_buf->add( '    linkHints   : 20,' ).
     lo_buf->add( '    menus       : 30, // arrow keys through dropdown menus (KeyNavigation)' ).
     lo_buf->add( '    palette     : 40, // the toggle keys of the command palettes' ).
@@ -39789,6 +39790,19 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '  // Arm the trap: this sentinel entry absorbs the first Back press' ).
     lo_buf->add( '  window.history.pushState({ abapGitBackTrap: true }, "");' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // The browser SAP GUI for Java embeds has no key for Back (nor an entry in' ).
+    lo_buf->add( '  // its context menu), so Alt+Left is taken here. Everywhere else the browser' ).
+    lo_buf->add( '  // goes back itself and the popstate below handles it; a second go_back would' ).
+    lo_buf->add( '  // follow if it were taken there too. Also in input fields, as browsers do.' ).
+    lo_buf->add( '  if (!gEnv.isWebGui && !gEnv.isSapGuiForWindows) {' ).
+    lo_buf->add( '    gKeyboard.on("keydown", gKeyboard.order.browserBack, function(event) {' ).
+    lo_buf->add( '      if (event.defaultPrevented || !event.altKey || event.ctrlKey || event.shiftKey || event.metaKey) return;' ).
+    lo_buf->add( '      if (event.key !== "ArrowLeft" && event.keyCode !== 37) return;' ).
+    lo_buf->add( '      event.preventDefault();' ).
+    lo_buf->add( '      triggerSapEventBack(backAction);' ).
+    lo_buf->add( '    });' ).
+    lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  window.addEventListener("popstate", function() {' ).
     lo_buf->add( '    // Re-arm so subsequent Back presses are also captured' ).
@@ -159438,8 +159452,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-06T19:12:25.276Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-06T19:12:25.276Z`.
+* abapmerge 0.16.10 - 2026-10-07T05:56:34.081Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-07T05:56:34.081Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
