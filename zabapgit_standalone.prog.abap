@@ -39816,6 +39816,18 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '    triggerSapEventBack(backAction);' ).
     lo_buf->add( '  });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // A sapevent that leaves the page in place (no_more_act, e.g. stage_filter or' ).
+    lo_buf->add( '  // clipboard) is not followed by a popstate on WebGUI, so the flag would stay' ).
+    lo_buf->add( '  // set and swallow the next genuine Back press. A genuine Back press always' ).
+    lo_buf->add( '  // starts with user input, while the control emits its popstate right after' ).
+    lo_buf->add( '  // the submit - so the next input ends the wait. Not keyup: Enter submits on' ).
+    lo_buf->add( '  // keypress, and its keyup can come before the control''s popstate.' ).
+    lo_buf->add( '  // On the document, not the window: the WebGUI busy lock stops input during a' ).
+    lo_buf->add( '  // round trip on the window, so that input never gets here.' ).
+    lo_buf->add( '  ["keydown", "mousedown", "contextmenu"].forEach(function(name) {' ).
+    lo_buf->add( '    document.addEventListener(name, function() { gSapeventNavPending = false }, true);' ).
+    lo_buf->add( '  });' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Find the server-rendered elements (anchors / submit inputs) the backend' ).
@@ -159452,8 +159464,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-07T05:56:34.081Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-07T05:56:34.081Z`.
+* abapmerge 0.16.10 - 2026-10-07T06:16:30.308Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-07T06:16:30.308Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
