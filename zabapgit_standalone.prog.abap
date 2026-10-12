@@ -76288,6 +76288,7 @@ CLASS zcl_abapgit_persistence_user IMPLEMENTATION.
     rv_folders = ms_user-show_folders.
   ENDMETHOD.
 ENDCLASS.
+
 CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
   METHOD constructor.
 
@@ -159563,8 +159564,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-12T10:20:04.491Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-12T10:20:04.491Z`.
+* abapmerge 0.16.10 - 2026-10-12T10:31:49.453Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-12T10:31:49.453Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
