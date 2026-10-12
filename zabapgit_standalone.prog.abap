@@ -59,6 +59,7 @@ INTERFACE zif_abapgit_gui_event DEFERRED.
 INTERFACE zif_abapgit_gui_error_handler DEFERRED.
 INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
 INTERFACE zif_abapgit_repo_srv DEFERRED.
+INTERFACE zif_abapgit_repo_pull DEFERRED.
 INTERFACE zif_abapgit_repo_online DEFERRED.
 INTERFACE zif_abapgit_repo_listener DEFERRED.
 INTERFACE zif_abapgit_repo_checksums DEFERRED.
@@ -256,6 +257,7 @@ CLASS zcl_abapgit_syntax_css DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_abap DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_status DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_srv DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_pull DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_online DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_offline DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_cs_migration DEFINITION DEFERRED.
@@ -7031,6 +7033,26 @@ INTERFACE zif_abapgit_repo_online.
       VALUE(rs_settings) TYPE zif_abapgit_persistence=>ty_remote_settings
     RAISING
       zcx_abapgit_exception.
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_repo_pull .
+
+  " The steps of a pull, without any UI. The caller gets the checks,
+  " fills in the decisions (popups, form, or "yes to all") and pulls.
+  METHODS checks
+    RETURNING
+      VALUE(rs_checks) TYPE zif_abapgit_definitions=>ty_deserialize_checks
+    RAISING
+      zcx_abapgit_exception .
+  METHODS pull
+    IMPORTING
+      !is_checks    TYPE zif_abapgit_definitions=>ty_deserialize_checks
+      !ii_log       TYPE REF TO zif_abapgit_log OPTIONAL
+    RETURNING
+      VALUE(ri_log) TYPE REF TO zif_abapgit_log
+    RAISING
+      zcx_abapgit_exception .
 
 ENDINTERFACE.
 
@@ -23185,6 +23207,43 @@ CLASS zcl_abapgit_repo_online DEFINITION
       RAISING
         zcx_abapgit_exception.
 ENDCLASS.
+CLASS zcl_abapgit_repo_pull DEFINITION
+  CREATE PRIVATE
+  FRIENDS ZCL_abapgit_factory .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_repo_pull .
+
+    METHODS constructor
+      IMPORTING
+        !ii_repo TYPE REF TO zif_abapgit_repo .
+  PROTECTED SECTION.
+
+    " Allows testing the pull sequence without deleting SAP objects
+    METHODS delete_tadir
+      IMPORTING
+        !it_tadir  TYPE zif_abapgit_definitions=>ty_tadir_tt
+        !is_checks TYPE zif_abapgit_definitions=>ty_delete_checks
+        !ii_log    TYPE REF TO zif_abapgit_log
+      RAISING
+        zcx_abapgit_exception .
+  PRIVATE SECTION.
+
+    DATA mi_repo TYPE REF TO zif_abapgit_repo .
+
+    METHODS delete_objects
+      IMPORTING
+        !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
+        !ii_log    TYPE REF TO zif_abapgit_log
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS get_objects_to_delete
+      IMPORTING
+        !is_checks      TYPE zif_abapgit_definitions=>ty_deserialize_checks
+      RETURNING
+        VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt .
+ENDCLASS.
 CLASS zcl_abapgit_repo_srv DEFINITION
   FINAL
   CREATE PRIVATE .
@@ -30332,13 +30391,6 @@ CLASS zcl_abapgit_services_repo DEFINITION
         VALUE(ri_log) TYPE REF TO zif_abapgit_log
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS delete_unnecessary_objects
-      IMPORTING
-        !ii_repo   TYPE REF TO zif_abapgit_repo
-        !ii_log    TYPE REF TO zif_abapgit_log
-        !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks
-      RAISING
-        zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -30388,11 +30440,6 @@ CLASS zcl_abapgit_services_repo DEFINITION
     CLASS-METHODS check_for_restart
       IMPORTING
         !ii_repo TYPE REF TO zif_abapgit_repo .
-    CLASS-METHODS get_objects_to_delete
-      IMPORTING
-        !is_checks      TYPE zif_abapgit_definitions=>ty_deserialize_checks
-      RETURNING
-        VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt .
 ENDCLASS.
 CLASS zcl_abapgit_frontend_no_gui DEFINITION
   CREATE PRIVATE
@@ -31123,6 +31170,11 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-METHODS get_function_module
       RETURNING
         VALUE(ri_function_module) TYPE REF TO zif_abapgit_function_module.
+    CLASS-METHODS get_repo_pull
+      IMPORTING
+        !ii_repo            TYPE REF TO zif_abapgit_repo
+      RETURNING
+        VALUE(ri_repo_pull) TYPE REF TO zif_abapgit_repo_pull.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -31144,6 +31196,7 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-DATA gi_sap_namespace TYPE REF TO zif_abapgit_sap_namespace .
     CLASS-DATA gi_sap_report TYPE REF TO zif_abapgit_sap_report.
     CLASS-DATA gi_function_module TYPE REF TO zif_abapgit_function_module.
+    CLASS-DATA gi_repo_pull TYPE REF TO zif_abapgit_repo_pull.
     CLASS-DATA gi_default_transport TYPE REF TO zif_abapgit_default_transport .
 ENDCLASS.
 CLASS zcl_abapgit_injector DEFINITION
@@ -31186,6 +31239,9 @@ CLASS zcl_abapgit_injector DEFINITION
     CLASS-METHODS set_default_transport
       IMPORTING
         ii_default_transport TYPE REF TO zif_abapgit_default_transport.
+    CLASS-METHODS set_repo_pull
+      IMPORTING
+        ii_repo_pull TYPE REF TO zif_abapgit_repo_pull.
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -31212,6 +31268,9 @@ CLASS zcl_abapgit_injector IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_lxe_texts.
     zcl_abapgit_factory=>gi_lxe_texts = ii_lxe_texts.
+  ENDMETHOD.
+  METHOD set_repo_pull.
+    zcl_abapgit_factory=>gi_repo_pull = ii_repo_pull.
   ENDMETHOD.
   METHOD set_sap_namespace.
     zcl_abapgit_factory=>gi_sap_namespace = ii_namespace.
@@ -31295,6 +31354,18 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
       CREATE OBJECT gi_lxe_texts TYPE zcl_abapgit_lxe_texts.
     ENDIF.
     ri_lxe_texts = gi_lxe_texts.
+
+  ENDMETHOD.
+  METHOD get_repo_pull.
+
+    " bound to one repository, so a new instance unless a test double is injected
+    IF gi_repo_pull IS BOUND.
+      ri_repo_pull = gi_repo_pull.
+    ELSE.
+      CREATE OBJECT ri_repo_pull TYPE zcl_abapgit_repo_pull
+        EXPORTING
+          ii_repo = ii_repo.
+    ENDIF.
 
   ENDMETHOD.
   METHOD get_sap_namespace.
@@ -43162,65 +43233,15 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-  METHOD delete_unnecessary_objects.
-
-    DATA:
-      ls_checks TYPE zif_abapgit_definitions=>ty_delete_checks,
-      lt_tadir  TYPE zif_abapgit_definitions=>ty_tadir_tt.
-
-    lt_tadir = get_objects_to_delete( is_checks ).
-
-    " todo, check if object type supports deletion of parts to avoid deleting complete object
-
-    " delete objects
-    IF lines( lt_tadir ) > 0.
-      ls_checks-transport = is_checks-transport.
-
-      zcl_abapgit_objects=>delete( it_tadir  = lt_tadir
-                                   is_checks = ls_checks
-                                   ii_log    = ii_log ).
-
-      ii_repo->refresh( iv_drop_log = abap_false ).
-    ENDIF.
-
-  ENDMETHOD.
-  METHOD get_objects_to_delete.
-
-    DATA ls_tadir TYPE zif_abapgit_definitions=>ty_tadir.
-
-    FIELD-SYMBOLS <ls_overwrite> LIKE LINE OF is_checks-overwrite.
-    FIELD-SYMBOLS <ls_tabl_data> LIKE LINE OF is_checks-delete_tabl_with_data.
-
-    " get confirmed deletions
-    LOOP AT is_checks-overwrite ASSIGNING <ls_overwrite>
-      WHERE ( action = zif_abapgit_objects=>c_deserialize_action-delete
-      OR action = zif_abapgit_objects=>c_deserialize_action-delete_add )
-      AND decision = zif_abapgit_definitions=>c_yes.
-
-      " a table that contains data needs its own confirmation
-      READ TABLE is_checks-delete_tabl_with_data ASSIGNING <ls_tabl_data>
-        WITH KEY object_type_and_name COMPONENTS
-          obj_type = <ls_overwrite>-obj_type
-          obj_name = <ls_overwrite>-obj_name.
-      IF sy-subrc = 0 AND <ls_tabl_data>-decision = zif_abapgit_definitions=>c_no.
-        CONTINUE.
-      ENDIF.
-
-      ls_tadir-pgmid    = 'R3TR'.
-      ls_tadir-object   = <ls_overwrite>-obj_type.
-      ls_tadir-obj_name = <ls_overwrite>-obj_name.
-      ls_tadir-devclass = <ls_overwrite>-devclass.
-      INSERT ls_tadir INTO TABLE rt_tadir.
-
-    ENDLOOP.
-
-  ENDMETHOD.
   METHOD gui_deserialize.
 
+    DATA li_pull TYPE REF TO zif_abapgit_repo_pull.
     DATA ls_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks.
 
     " find troublesome objects
-    ls_checks = ii_repo->deserialize_checks( ).
+    li_pull = zcl_abapgit_factory=>get_repo_pull( ii_repo ).
+
+    ls_checks = li_pull->checks( ).
 
     IF ls_checks-overwrite IS INITIAL AND ls_checks-overwrite_files IS INITIAL.
       zcx_abapgit_exception=>raise(
@@ -43717,21 +43738,13 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
   ENDMETHOD.
   METHOD real_deserialize.
 
+    DATA li_pull TYPE REF TO zif_abapgit_repo_pull.
     DATA li_log TYPE REF TO zif_abapgit_log.
     DATA lv_msg TYPE string.
 
-    li_log = ii_repo->create_new_log( 'Pull Log' ).
+    li_pull = zcl_abapgit_factory=>get_repo_pull( ii_repo ).
 
-    " pass decisions to delete
-    delete_unnecessary_objects(
-      ii_repo   = ii_repo
-      is_checks = is_checks
-      ii_log    = li_log ).
-
-    " pass decisions to deserialize
-    ii_repo->deserialize(
-      is_checks = is_checks
-      ii_log    = li_log ).
+    li_log = li_pull->pull( is_checks ).
 
     IF li_log->get_status( ) = zif_abapgit_log=>c_status-ok.
       lv_msg = |Repository { ii_repo->get_name( ) } successfully pulled for package { ii_repo->get_package( ) }|.
@@ -71590,6 +71603,97 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
         zcx_abapgit_exception=>raise( lv_reason ).
       ENDIF.
     ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_repo_pull IMPLEMENTATION.
+  METHOD constructor.
+
+    mi_repo = ii_repo.
+
+  ENDMETHOD.
+  METHOD delete_objects.
+
+    DATA:
+      ls_checks TYPE zif_abapgit_definitions=>ty_delete_checks,
+      lt_tadir  TYPE zif_abapgit_definitions=>ty_tadir_tt.
+
+    lt_tadir = get_objects_to_delete( is_checks ).
+
+    " todo, check if object type supports deletion of parts to avoid deleting complete object
+
+    IF lines( lt_tadir ) > 0.
+      ls_checks-transport = is_checks-transport.
+
+      delete_tadir( it_tadir  = lt_tadir
+                    is_checks = ls_checks
+                    ii_log    = ii_log ).
+
+      mi_repo->refresh( iv_drop_log = abap_false ).
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD delete_tadir.
+
+    zcl_abapgit_objects=>delete( it_tadir  = it_tadir
+                                 is_checks = is_checks
+                                 ii_log    = ii_log ).
+
+  ENDMETHOD.
+  METHOD get_objects_to_delete.
+
+    DATA ls_tadir TYPE zif_abapgit_definitions=>ty_tadir.
+
+    FIELD-SYMBOLS <ls_overwrite> LIKE LINE OF is_checks-overwrite.
+    FIELD-SYMBOLS <ls_tabl_data> LIKE LINE OF is_checks-delete_tabl_with_data.
+
+    " get confirmed deletions
+    LOOP AT is_checks-overwrite ASSIGNING <ls_overwrite>
+      WHERE ( action = zif_abapgit_objects=>c_deserialize_action-delete
+      OR action = zif_abapgit_objects=>c_deserialize_action-delete_add )
+      AND decision = zif_abapgit_definitions=>c_yes.
+
+      " a table that contains data needs its own confirmation
+      READ TABLE is_checks-delete_tabl_with_data ASSIGNING <ls_tabl_data>
+        WITH KEY object_type_and_name COMPONENTS
+          obj_type = <ls_overwrite>-obj_type
+          obj_name = <ls_overwrite>-obj_name.
+      IF sy-subrc = 0 AND <ls_tabl_data>-decision = zif_abapgit_definitions=>c_no.
+        CONTINUE.
+      ENDIF.
+
+      ls_tadir-pgmid    = 'R3TR'.
+      ls_tadir-object   = <ls_overwrite>-obj_type.
+      ls_tadir-obj_name = <ls_overwrite>-obj_name.
+      ls_tadir-devclass = <ls_overwrite>-devclass.
+      INSERT ls_tadir INTO TABLE rt_tadir.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_pull~checks.
+
+    rs_checks = mi_repo->deserialize_checks( ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_pull~pull.
+
+    IF ii_log IS BOUND.
+      ri_log = ii_log.
+    ELSE.
+      ri_log = mi_repo->create_new_log( 'Pull Log' ).
+    ENDIF.
+
+    " pass decisions to delete
+    delete_objects(
+      is_checks = is_checks
+      ii_log    = ri_log ).
+
+    " pass decisions to deserialize
+    mi_repo->deserialize(
+      is_checks = is_checks
+      ii_log    = ri_log ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -157949,14 +158053,14 @@ CLASS zcl_abapgit_background_pull IMPLEMENTATION.
 
     DATA: ls_checks             TYPE zif_abapgit_definitions=>ty_deserialize_checks,
           lo_settings           TYPE REF TO zcl_abapgit_settings,
-          li_repo               TYPE REF TO zif_abapgit_repo,
+          li_pull               TYPE REF TO zif_abapgit_repo_pull,
           lv_activation_setting TYPE zif_abapgit_persist_user=>ty_s_user_settings-activate_wo_popup.
 
     FIELD-SYMBOLS: <ls_overwrite> LIKE LINE OF ls_checks-overwrite.
 
-    li_repo = ii_repo_online.
+    li_pull = zcl_abapgit_factory=>get_repo_pull( ii_repo_online ).
 
-    ls_checks = li_repo->deserialize_checks( ).
+    ls_checks = li_pull->checks( ).
 
     LOOP AT ls_checks-overwrite ASSIGNING <ls_overwrite>.
       <ls_overwrite>-decision = zif_abapgit_definitions=>c_yes.
@@ -157966,14 +158070,9 @@ CLASS zcl_abapgit_background_pull IMPLEMENTATION.
     lv_activation_setting = lo_settings->get_activate_wo_popup( ).
 
     lo_settings->set_activate_wo_popup( abap_true ).
-    " pass decisions to delete
-    zcl_abapgit_services_repo=>delete_unnecessary_objects(
-      ii_repo   = li_repo
-      is_checks = ls_checks
-      ii_log    = ii_log ).
 
-    li_repo->deserialize( is_checks = ls_checks
-                          ii_log    = ii_log ).
+    li_pull->pull( is_checks = ls_checks
+                   ii_log    = ii_log ).
 
     lo_settings->set_activate_wo_popup( lv_activation_setting ).
 
@@ -159464,8 +159563,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-10T07:02:39.106Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-10T07:02:39.106Z`.
+* abapmerge 0.16.10 - 2026-10-12T10:20:04.491Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-12T10:20:04.491Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
