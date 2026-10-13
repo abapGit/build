@@ -38607,7 +38607,10 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'LinkHints.prototype.deployHintContainers = function() {' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var hintTargets = document.querySelectorAll("a, input, textarea, i");' ).
+    lo_buf->add( '  // The page behind an open modal is not interactive. Scope hint discovery' ).
+    lo_buf->add( '  // to the modal, including numbering and copy-mode targets.' ).
+    lo_buf->add( '  var root        = document.getElementById("modal") || document;' ).
+    lo_buf->add( '  var hintTargets = root.querySelectorAll("a, input, textarea, i");' ).
     lo_buf->add( '  var codeCounter = this.getHintStartValue(hintTargets.length);' ).
     lo_buf->add( '  var hintsMap    = { first: codeCounter };' ).
     lo_buf->add( '' ).
@@ -159567,8 +159570,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-13T16:18:15.013Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-13T16:18:15.013Z`.
+* abapmerge 0.16.10 - 2026-10-13T16:20:19.123Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-13T16:20:19.123Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
