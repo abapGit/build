@@ -49097,12 +49097,15 @@ CLASS zcl_abapgit_gui_page_pull IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
+    DATA li_pull TYPE REF TO zif_abapgit_repo_pull.
+
     register_handlers( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     ri_html->add( '<div class="repo-overview">' ).
 
-    ms_checks = mi_repo->deserialize_checks( ).
+    li_pull = zcl_abapgit_factory=>get_repo_pull( mi_repo ).
+    ms_checks = li_pull->checks( ).
 
     IF lines( ms_checks-overwrite ) = 0.
       zcx_abapgit_exception=>raise(
@@ -159564,8 +159567,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-12T14:13:26.059Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-12T14:13:26.059Z`.
+* abapmerge 0.16.10 - 2026-10-13T16:18:15.013Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-13T16:18:15.013Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
