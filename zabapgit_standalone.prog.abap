@@ -38576,6 +38576,86 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  gKeyboard.on("keydown", gKeyboard.order.menus, new KeyNavigation().getHandler());' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
+    lo_buf->add( '// Picklists hide their radio buttons behind labels, so native radio keyboard' ).
+    lo_buf->add( '// navigation cannot reach them. Move the checked state without clicking: a' ).
+    lo_buf->add( '// selection must never submit the form until the user chooses it.' ).
+    lo_buf->add( '// eslint-disable-next-line no-unused-vars' ).
+    lo_buf->add( 'function enablePicklistNavigation() {' ).
+    lo_buf->add( '  var picklist = document.querySelector(".picklist");' ).
+    lo_buf->add( '  if (!picklist) return;' ).
+    lo_buf->add( '  var radios = picklist.querySelectorAll(''input[type="radio"]'');' ).
+    lo_buf->add( '  if (!radios.length) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  // The list is one Tab stop. Arrows move within it; Tab goes to Choose' ).
+    lo_buf->add( '  // and Back instead of visiting every entry.' ).
+    lo_buf->add( '  function updateTabStop(selected) {' ).
+    lo_buf->add( '    for (var i = 0; i < radios.length; i++) {' ).
+    lo_buf->add( '      radios[i].nextElementSibling.setAttribute("tabindex", radios[i] === selected ? "0" : "-1");' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  var initial;' ).
+    lo_buf->add( '  for (var i = 0; i < radios.length; i++) {' ).
+    lo_buf->add( '    if (!radios[i].disabled && (!initial || radios[i].checked)) initial = radios[i];' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '  updateTabStop(initial);' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  picklist.addEventListener("click", function(event) {' ).
+    lo_buf->add( '    for (var i = 0; i < radios.length; i++) {' ).
+    lo_buf->add( '      var label = radios[i].nextElementSibling;' ).
+    lo_buf->add( '      if (!radios[i].disabled && (event.target === radios[i] || label.contains(event.target))) {' ).
+    lo_buf->add( '        updateTabStop(radios[i]);' ).
+    lo_buf->add( '        return;' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  gKeyboard.on("keydown", gKeyboard.order.page, function(event) {' ).
+    lo_buf->add( '    if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey' ).
+    lo_buf->add( '      || CommandPalette.isVisible()) return;' ).
+    lo_buf->add( '    var active = document.activeElement;' ).
+    lo_buf->add( '    var modal = document.getElementById("modal");' ).
+    lo_buf->add( '    if (modal && !modal.contains(picklist)) return;' ).
+    lo_buf->add( '    // In-page picklists may open while the focus is still on the page behind' ).
+    lo_buf->add( '    // them. Editing fields and other controls keep their own keys.' ).
+    lo_buf->add( '    if (gKeyboard.isTakenByField(active, true) || active && active.nodeName === "BUTTON") return;' ).
+    lo_buf->add( '    if (active && active.nodeName !== "BODY" && !picklist.contains(active) && !modal) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    var offset = gKeyboard.getVerticalArrow(event);' ).
+    lo_buf->add( '    if (offset) {' ).
+    lo_buf->add( '      var enabled = [], selected = -1;' ).
+    lo_buf->add( '      for (var j = 0; j < radios.length; j++) {' ).
+    lo_buf->add( '        if (radios[j].disabled) continue;' ).
+    lo_buf->add( '        if (radios[j].checked) selected = enabled.length;' ).
+    lo_buf->add( '        enabled.push(radios[j]);' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '      if (!enabled.length) return;' ).
+    lo_buf->add( '      var index = selected < 0 ? (offset > 0 ? 0 : enabled.length - 1)' ).
+    lo_buf->add( '        : Math.max(0, Math.min(enabled.length - 1, selected + offset));' ).
+    lo_buf->add( '      var radio = enabled[index];' ).
+    lo_buf->add( '      radio.checked = true;' ).
+    lo_buf->add( '      updateTabStop(radio);' ).
+    lo_buf->add( '      var label = radio.nextElementSibling;' ).
+    lo_buf->add( '      label.focus();' ).
+    lo_buf->add( '      scrollRowIntoView(label);' ).
+    lo_buf->add( '      event.preventDefault();' ).
+    lo_buf->add( '    } else if (event.key === "Enter" && active && active.nodeName === "LABEL") {' ).
+    lo_buf->add( '      // Tab can focus a label without selecting its radio first.' ).
+    lo_buf->add( '      var focusedRadio = document.getElementById(active.getAttribute("for"));' ).
+    lo_buf->add( '      if (!focusedRadio || focusedRadio.disabled) return;' ).
+    lo_buf->add( '      focusedRadio.checked = true;' ).
+    lo_buf->add( '      updateTabStop(focusedRadio);' ).
+    lo_buf->add( '      event.preventDefault();' ).
+    lo_buf->add( '      // WebGUI renders Choose as a link that submits the form payload;' ).
+    lo_buf->add( '      // desktop controls render it as a submit input. Click the rendered' ).
+    lo_buf->add( '      // command so both use the same routing as a mouse click.' ).
+    lo_buf->add( '      if (!event.repeat) picklist.querySelector(".main").click();' ).
+    lo_buf->add( '    } else if (event.key === " " && active && active.nodeName === "LABEL") {' ).
+    lo_buf->add( '      event.preventDefault();' ).
+    lo_buf->add( '      active.click();' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  });' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
     lo_buf->add( ' * Link Hints (Vimium-like)' ).
     lo_buf->add( ' **********************************************************/' ).
@@ -62051,9 +62131,10 @@ CLASS zcl_abapgit_gui_picklist IMPLEMENTATION.
     ASSIGN mr_list->* TO <lt_list>.
 
     ro_form->radio(
-      iv_name     = c_radio_name
-      iv_label    = mv_title
-      iv_condense = boolc( lines( <lt_list> ) <= 15 ) ).
+      iv_name          = c_radio_name
+      iv_label         = mv_title
+      iv_default_value = '1'
+      iv_condense      = boolc( lines( <lt_list> ) <= 15 ) ).
 
     LOOP AT <lt_list> ASSIGNING <ls_row>.
       lv_index = sy-tabix.
@@ -62158,9 +62239,13 @@ CLASS zcl_abapgit_gui_picklist IMPLEMENTATION.
 
     register_handlers( ).
 
-    ri_html = zcl_abapgit_html=>create( mo_form->render(
+    ri_html = zcl_abapgit_html=>create( '<div class="picklist">' ).
+    ri_html->add( mo_form->render(
       io_values         = mo_form_data
       io_validation_log = mo_validation_log ) ).
+    ri_html->add( '</div>' ).
+
+    register_deferred_script( zcl_abapgit_html=>create( 'enablePicklistNavigation();' ) ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -159570,8 +159655,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-13T16:20:19.123Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-13T16:20:19.123Z`.
+* abapmerge 0.16.10 - 2026-10-14T10:52:33.789Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-14T10:52:33.789Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
