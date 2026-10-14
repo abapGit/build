@@ -59,6 +59,7 @@ INTERFACE zif_abapgit_gui_event DEFERRED.
 INTERFACE zif_abapgit_gui_error_handler DEFERRED.
 INTERFACE zif_abapgit_gui_asset_manager DEFERRED.
 INTERFACE zif_abapgit_repo_srv DEFERRED.
+INTERFACE zif_abapgit_repo_push DEFERRED.
 INTERFACE zif_abapgit_repo_pull DEFERRED.
 INTERFACE zif_abapgit_repo_online DEFERRED.
 INTERFACE zif_abapgit_repo_listener DEFERRED.
@@ -257,9 +258,11 @@ CLASS zcl_abapgit_syntax_css DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_abap DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_status DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_srv DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_push DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_pull DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_online DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_offline DEFINITION DEFERRED.
+CLASS zcl_abapgit_repo_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_cs_migration DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_content_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_checksums DEFINITION DEFERRED.
@@ -3421,6 +3424,19 @@ INTERFACE zif_abapgit_persist_settings.
   METHODS read
     RETURNING
       VALUE(ro_settings) TYPE REF TO zcl_abapgit_settings .
+
+ENDINTERFACE.
+
+INTERFACE zif_abapgit_repo_push .
+
+  " The steps of a push, without any UI: the push exits, the push
+  " and the commit. The caller builds the stage and the comment.
+  METHODS push
+    IMPORTING
+      !is_comment TYPE zif_abapgit_git_definitions=>ty_comment
+      !io_stage   TYPE REF TO zcl_abapgit_stage
+    RAISING
+      zcx_abapgit_exception .
 
 ENDINTERFACE.
 
@@ -23132,6 +23148,27 @@ CLASS zcl_abapgit_repo_cs_migration DEFINITION
         zcx_abapgit_not_found.
 
 ENDCLASS.
+CLASS zcl_abapgit_repo_factory DEFINITION
+  FINAL
+  CREATE PRIVATE
+  .
+
+  PUBLIC SECTION.
+    CLASS-METHODS get_repo_pull
+      IMPORTING
+        !ii_repo            TYPE REF TO zif_abapgit_repo
+      RETURNING
+        VALUE(ri_repo_pull) TYPE REF TO zif_abapgit_repo_pull.
+    CLASS-METHODS get_repo_push
+      IMPORTING
+        !ii_repo_online     TYPE REF TO zif_abapgit_repo_online
+      RETURNING
+        VALUE(ri_repo_push) TYPE REF TO zif_abapgit_repo_push.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    CLASS-DATA gi_repo_pull TYPE REF TO zif_abapgit_repo_pull.
+    CLASS-DATA gi_repo_push TYPE REF TO zif_abapgit_repo_push.
+ENDCLASS.
 CLASS zcl_abapgit_repo_offline DEFINITION
   INHERITING FROM zcl_abapgit_repo
   FINAL
@@ -23209,7 +23246,7 @@ CLASS zcl_abapgit_repo_online DEFINITION
 ENDCLASS.
 CLASS zcl_abapgit_repo_pull DEFINITION
   CREATE PRIVATE
-  FRIENDS ZCL_abapgit_factory .
+  FRIENDS ZCL_abapgit_repo_factory .
 
   PUBLIC SECTION.
 
@@ -23243,6 +23280,23 @@ CLASS zcl_abapgit_repo_pull DEFINITION
         !is_checks      TYPE zif_abapgit_definitions=>ty_deserialize_checks
       RETURNING
         VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt .
+ENDCLASS.
+CLASS zcl_abapgit_repo_push DEFINITION
+  FINAL
+  CREATE PRIVATE
+  FRIENDS ZCL_abapgit_repo_factory .
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_repo_push .
+
+    METHODS constructor
+      IMPORTING
+        !ii_repo_online TYPE REF TO zif_abapgit_repo_online .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA mi_repo_online TYPE REF TO zif_abapgit_repo_online .
 ENDCLASS.
 CLASS zcl_abapgit_repo_srv DEFINITION
   FINAL
@@ -31170,11 +31224,6 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-METHODS get_function_module
       RETURNING
         VALUE(ri_function_module) TYPE REF TO zif_abapgit_function_module.
-    CLASS-METHODS get_repo_pull
-      IMPORTING
-        !ii_repo            TYPE REF TO zif_abapgit_repo
-      RETURNING
-        VALUE(ri_repo_pull) TYPE REF TO zif_abapgit_repo_pull.
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -31196,7 +31245,6 @@ CLASS zcl_abapgit_factory DEFINITION
     CLASS-DATA gi_sap_namespace TYPE REF TO zif_abapgit_sap_namespace .
     CLASS-DATA gi_sap_report TYPE REF TO zif_abapgit_sap_report.
     CLASS-DATA gi_function_module TYPE REF TO zif_abapgit_function_module.
-    CLASS-DATA gi_repo_pull TYPE REF TO zif_abapgit_repo_pull.
     CLASS-DATA gi_default_transport TYPE REF TO zif_abapgit_default_transport .
 ENDCLASS.
 CLASS zcl_abapgit_injector DEFINITION
@@ -31239,9 +31287,6 @@ CLASS zcl_abapgit_injector DEFINITION
     CLASS-METHODS set_default_transport
       IMPORTING
         ii_default_transport TYPE REF TO zif_abapgit_default_transport.
-    CLASS-METHODS set_repo_pull
-      IMPORTING
-        ii_repo_pull TYPE REF TO zif_abapgit_repo_pull.
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -31268,9 +31313,6 @@ CLASS zcl_abapgit_injector IMPLEMENTATION.
   ENDMETHOD.
   METHOD set_lxe_texts.
     zcl_abapgit_factory=>gi_lxe_texts = ii_lxe_texts.
-  ENDMETHOD.
-  METHOD set_repo_pull.
-    zcl_abapgit_factory=>gi_repo_pull = ii_repo_pull.
   ENDMETHOD.
   METHOD set_sap_namespace.
     zcl_abapgit_factory=>gi_sap_namespace = ii_namespace.
@@ -31354,18 +31396,6 @@ CLASS zcl_abapgit_factory IMPLEMENTATION.
       CREATE OBJECT gi_lxe_texts TYPE zcl_abapgit_lxe_texts.
     ENDIF.
     ri_lxe_texts = gi_lxe_texts.
-
-  ENDMETHOD.
-  METHOD get_repo_pull.
-
-    " bound to one repository, so a new instance unless a test double is injected
-    IF gi_repo_pull IS BOUND.
-      ri_repo_pull = gi_repo_pull.
-    ELSE.
-      CREATE OBJECT ri_repo_pull TYPE zcl_abapgit_repo_pull
-        EXPORTING
-          ii_repo = ii_repo.
-    ENDIF.
 
   ENDMETHOD.
   METHOD get_sap_namespace.
@@ -43322,7 +43352,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     DATA ls_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks.
 
     " find troublesome objects
-    li_pull = zcl_abapgit_factory=>get_repo_pull( ii_repo ).
+    li_pull = zcl_abapgit_repo_factory=>get_repo_pull( ii_repo ).
 
     ls_checks = li_pull->checks( ).
 
@@ -43825,7 +43855,7 @@ CLASS zcl_abapgit_services_repo IMPLEMENTATION.
     DATA li_log TYPE REF TO zif_abapgit_log.
     DATA lv_msg TYPE string.
 
-    li_pull = zcl_abapgit_factory=>get_repo_pull( ii_repo ).
+    li_pull = zcl_abapgit_repo_factory=>get_repo_pull( ii_repo ).
 
     li_log = li_pull->pull( is_checks ).
 
@@ -43991,17 +44021,9 @@ CLASS ZCL_ABAPGIT_SERVICES_GIT IMPLEMENTATION.
         INTO ls_comment-comment SEPARATED BY cl_abap_char_utilities=>newline.
     ENDIF.
 
-    zcl_abapgit_exit=>get_instance( )->validate_before_push(
-      is_comment     = ls_comment
-      io_stage       = io_stage
-      ii_repo_online = ii_repo_online ).
-
-    ii_repo_online->push( is_comment = ls_comment
-                          io_stage   = io_stage ).
-
-    COMMIT WORK.
-
-    zcl_abapgit_exit=>get_instance( )->validate_after_push( ii_repo_online ).
+    zcl_abapgit_repo_factory=>get_repo_push( ii_repo_online )->push(
+      is_comment = ls_comment
+      io_stage   = io_stage ).
 
   ENDMETHOD.
   METHOD create_branch.
@@ -49187,7 +49209,7 @@ CLASS zcl_abapgit_gui_page_pull IMPLEMENTATION.
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
     ri_html->add( '<div class="repo-overview">' ).
 
-    li_pull = zcl_abapgit_factory=>get_repo_pull( mi_repo ).
+    li_pull = zcl_abapgit_repo_factory=>get_repo_pull( mi_repo ).
     ms_checks = li_pull->checks( ).
 
     IF lines( ms_checks-overwrite ) = 0.
@@ -71698,6 +71720,29 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_repo_push IMPLEMENTATION.
+  METHOD constructor.
+
+    mi_repo_online = ii_repo_online.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_repo_push~push.
+
+    zcl_abapgit_exit=>get_instance( )->validate_before_push(
+      is_comment     = is_comment
+      io_stage       = io_stage
+      ii_repo_online = mi_repo_online ).
+
+    mi_repo_online->push( is_comment = is_comment
+                          io_stage   = io_stage ).
+
+    COMMIT WORK.
+
+    zcl_abapgit_exit=>get_instance( )->validate_after_push( mi_repo_online ).
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_repo_pull IMPLEMENTATION.
   METHOD constructor.
 
@@ -72133,6 +72178,34 @@ CLASS zcl_abapgit_repo_offline IMPLEMENTATION.
     lt_backup = mt_remote.
     super->reset_remote( ).
     set_files_remote( lt_backup ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_repo_factory IMPLEMENTATION.
+
+  METHOD get_repo_pull.
+
+    " bound to one repository, so a new instance unless a test double is injected
+    IF gi_repo_pull IS BOUND.
+      ri_repo_pull = gi_repo_pull.
+    ELSE.
+      CREATE OBJECT ri_repo_pull TYPE zcl_abapgit_repo_pull
+        EXPORTING
+          ii_repo = ii_repo.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD get_repo_push.
+
+    " bound to one repository, so a new instance unless a test double is injected
+    IF gi_repo_push IS BOUND.
+      ri_repo_push = gi_repo_push.
+    ELSE.
+      CREATE OBJECT ri_repo_push TYPE zcl_abapgit_repo_push
+        EXPORTING
+          ii_repo_online = ii_repo_online.
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -156593,8 +156666,9 @@ CLASS zcl_abapgit_transport_2_branch IMPLEMENTATION.
 
     ls_comment = generate_commit_message( is_transport_to_branch ).
 
-    ii_repo_online->push( is_comment = ls_comment
-                          io_stage   = lo_stage ).
+    zcl_abapgit_repo_factory=>get_repo_push( ii_repo_online )->push(
+      is_comment = ls_comment
+      io_stage   = lo_stage ).
   ENDMETHOD.
   METHOD generate_commit_message.
     rs_comment-committer-name  = sy-uname.
@@ -157880,8 +157954,9 @@ CLASS zcl_abapgit_background_push_fi IMPLEMENTATION.
     ls_comment-committer-email = iv_email.
     ls_comment-comment         = build_comment( ls_files ).
 
-    ii_repo_online->push( is_comment = ls_comment
-                          io_stage   = lo_stage ).
+    zcl_abapgit_repo_factory=>get_repo_push( ii_repo_online )->push(
+      is_comment = ls_comment
+      io_stage   = lo_stage ).
 
   ENDMETHOD.
   METHOD zif_abapgit_background~get_description.
@@ -158063,8 +158138,9 @@ CLASS zcl_abapgit_background_push_au IMPLEMENTATION.
 
       ls_comment-comment = build_comment( ls_user_files ).
 
-      ii_repo_online->push( is_comment = ls_comment
-                            io_stage   = lo_stage ).
+      zcl_abapgit_repo_factory=>get_repo_push( ii_repo_online )->push(
+        is_comment = ls_comment
+        io_stage   = lo_stage ).
     ENDLOOP.
 
     IF lines( ls_files-remote ) > 0.
@@ -158101,8 +158177,9 @@ CLASS zcl_abapgit_background_push_au IMPLEMENTATION.
     ls_comment-committer-name  = 'Deletion'.
     ls_comment-committer-email = 'deletion@localhost'.
 
-    ii_repo_online->push( is_comment = ls_comment
-                          io_stage   = lo_stage ).
+    zcl_abapgit_repo_factory=>get_repo_push( ii_repo_online )->push(
+      is_comment = ls_comment
+      io_stage   = lo_stage ).
 
   ENDMETHOD.
   METHOD zif_abapgit_background~get_description.
@@ -158150,7 +158227,7 @@ CLASS zcl_abapgit_background_pull IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_overwrite> LIKE LINE OF ls_checks-overwrite.
 
-    li_pull = zcl_abapgit_factory=>get_repo_pull( ii_repo_online ).
+    li_pull = zcl_abapgit_repo_factory=>get_repo_pull( ii_repo_online ).
 
     ls_checks = li_pull->checks( ).
 
@@ -159655,8 +159732,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-14T10:52:33.789Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-14T10:52:33.789Z`.
+* abapmerge 0.16.10 - 2026-10-14T16:41:00.244Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-14T16:41:00.244Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
