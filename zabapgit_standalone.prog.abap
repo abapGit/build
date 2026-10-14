@@ -27246,6 +27246,14 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
       RAISING
         zcx_abapgit_exception.
 
+    METHODS continue_patching
+      IMPORTING
+        !is_commit            TYPE zif_abapgit_services_git=>ty_commit_fields
+      RETURNING
+        VALUE(rv_has_changes) TYPE abap_bool
+      RAISING
+        zcx_abapgit_exception.
+
     CLASS-METHODS get_patch_data
       IMPORTING
         !iv_patch      TYPE string
@@ -27283,7 +27291,9 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
       END OF c_patch_action .
     DATA mo_stage TYPE REF TO zcl_abapgit_stage .
     DATA mv_section_count TYPE i .
-    DATA mv_pushed TYPE abap_bool .
+    DATA ms_object TYPE zif_abapgit_definitions=>ty_item.
+    DATA mt_files TYPE zif_abapgit_definitions=>ty_stage_tt.
+    DATA ms_commit TYPE zif_abapgit_services_git=>ty_commit_fields.
     DATA mi_repo_online TYPE REF TO zif_abapgit_repo_online .
     DATA mv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result .
 
@@ -28412,11 +28422,14 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
 
     INTERFACES zif_abapgit_gui_event_handler.
     INTERFACES zif_abapgit_gui_renderable.
+    INTERFACES zif_abapgit_gui_hotkeys.
 
     CLASS-METHODS create
       IMPORTING
         !ii_repo_online TYPE REF TO zif_abapgit_repo_online
         !io_stage       TYPE REF TO zcl_abapgit_stage
+        !io_patch       TYPE REF TO zcl_abapgit_gui_page_patch OPTIONAL
+        !is_commit      TYPE zif_abapgit_services_git=>ty_commit_fields OPTIONAL
         !iv_sci_result  TYPE zif_abapgit_definitions=>ty_sci_result DEFAULT zif_abapgit_definitions=>c_sci_result-no_run
       RETURNING
         VALUE(ri_page)  TYPE REF TO zif_abapgit_gui_renderable
@@ -28426,6 +28439,8 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
       IMPORTING
         !ii_repo_online TYPE REF TO zif_abapgit_repo_online
         !io_stage       TYPE REF TO zcl_abapgit_stage
+        !io_patch       TYPE REF TO zcl_abapgit_gui_page_patch OPTIONAL
+        !is_commit      TYPE zif_abapgit_services_git=>ty_commit_fields OPTIONAL
         !iv_sci_result  TYPE zif_abapgit_definitions=>ty_sci_result
       RAISING
         zcx_abapgit_exception.
@@ -28450,6 +28465,7 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
     CONSTANTS:
       BEGIN OF c_event,
         commit         TYPE string VALUE 'commit',
+        commit_patch   TYPE string VALUE 'commit_patch',
         adjust_message TYPE string VALUE 'adjust_message',
       END OF c_event.
 
@@ -28460,6 +28476,7 @@ CLASS zcl_abapgit_gui_page_commit DEFINITION
     DATA mo_settings TYPE REF TO zcl_abapgit_settings.
     DATA mi_repo_online TYPE REF TO zif_abapgit_repo_online.
     DATA mo_stage TYPE REF TO zcl_abapgit_stage.
+    DATA mo_patch TYPE REF TO zcl_abapgit_gui_page_patch.
     DATA mt_stage TYPE zif_abapgit_definitions=>ty_stage_tt.
     DATA ms_commit TYPE zif_abapgit_services_git=>ty_commit_fields.
     DATA mv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result.
@@ -34806,7 +34823,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  border: 1px solid;' ).
     lo_buf->add( '  border-radius: 3px;' ).
     lo_buf->add( '  padding: 1px 7px;' ).
-    lo_buf->add( '  width: 5em;' ).
+    lo_buf->add( '  min-width: 9em;' ).
+    lo_buf->add( '  white-space: nowrap;' ).
     lo_buf->add( '  display: inline-block;' ).
     lo_buf->add( '  text-align: center;' ).
     lo_buf->add( '  margin-top: 0.2em;' ).
@@ -38985,7 +39003,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '    // add a tooltip/title with the hotkey, currently only sapevents are supported' ).
     lo_buf->add( '    findSapEventElements(action).forEach(function(elAnchor) {' ).
-    lo_buf->add( '      elAnchor.title = elAnchor.title + " [" + sKey + "]";' ).
+    lo_buf->add( '      elAnchor.title = elAnchor.title + " [" + Hotkeys.formatKeyForDisplay(sKey) + "]";' ).
     lo_buf->add( '    });' ).
     lo_buf->add( '' ).
     lo_buf->add( '    // We replace the actions with callback functions to unify' ).
@@ -39040,17 +39058,25 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.prototype.onkeydown = function(oEvent) {' ).
-    lo_buf->add( '  if (oEvent.defaultPrevented || oEvent.ctrlKey || oEvent.altKey || oEvent.metaKey) {' ).
+    lo_buf->add( '  if (oEvent.defaultPrevented || oEvent.altKey || oEvent.metaKey) {' ).
     lo_buf->add( '    return;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var sKey = oEvent.key || String.fromCharCode(oEvent.keyCode);' ).
+    lo_buf->add( '  // Ctrl+Shift+Enter submits a patch even while editing its comment or body. Handle' ).
+    lo_buf->add( '  // it on keydown only: some controls also emit keypress, causing two submits.' ).
+    lo_buf->add( '  if (oEvent.ctrlKey) {' ).
+    lo_buf->add( '    if (sKey !== "Enter" || !oEvent.shiftKey || oEvent.type !== "keydown" || oEvent.repeat) return;' ).
+    lo_buf->add( '    if (CommandPalette.isVisible()) return;' ).
+    lo_buf->add( '    sKey = "^Shift+" + sKey;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
     lo_buf->add( '  if (gKeyboard.isTyping()) {' ).
-    lo_buf->add( '    return;' ).
+    lo_buf->add( '    var activeForm = document.activeElement.form;' ).
+    lo_buf->add( '    if (sKey !== "^Shift+Enter" || !activeForm || activeForm.id !== "commit-form") return;' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  var' ).
-    lo_buf->add( '    sKey     = oEvent.key || String.fromCharCode(oEvent.keyCode),' ).
-    lo_buf->add( '    fnHotkey = this.oKeyMap[sKey];' ).
+    lo_buf->add( '  var fnHotkey = this.oKeyMap[sKey];' ).
     lo_buf->add( '' ).
     lo_buf->add( '  if (fnHotkey) {' ).
     lo_buf->add( '    fnHotkey.call(this, oEvent);' ).
@@ -39063,7 +39089,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  if (Array.isArray(key)) {' ).
     lo_buf->add( '    return key.map(function(singleKey) { return Hotkeys.formatKeyForDisplay(singleKey) }).join(" / ");' ).
     lo_buf->add( '  }' ).
-    lo_buf->add( '  return (key[0] === "^") ? "ctrl+" + key.substring(1) : key;' ).
+    lo_buf->add( '  return (key[0] === "^") ? "Ctrl+" + key.substring(1) : key;' ).
     lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'Hotkeys.addHotkeyToHelpSheet = function(key, description) {' ).
@@ -39088,6 +39114,9 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  var oHotkeys = new Hotkeys(oKeyMap);' ).
     lo_buf->add( '' ).
     lo_buf->add( '  gKeyboard.on("keypress", gKeyboard.order.hotkeys, oHotkeys.onkeydown.bind(oHotkeys));' ).
+    lo_buf->add( '  gKeyboard.on("keydown", gKeyboard.order.hotkeys, function(event) {' ).
+    lo_buf->add( '    if (event.ctrlKey) oHotkeys.onkeydown(event);' ).
+    lo_buf->add( '  });' ).
     lo_buf->add( '  setTimeout(function() {' ).
     lo_buf->add( '    var div                     = document.getElementById("hotkeys-hint");' ).
     lo_buf->add( '    if  (div) div.style.opacity = 0.2;' ).
@@ -42565,8 +42594,12 @@ CLASS zcl_abapgit_gui_hotkey_ctl IMPLEMENTATION.
     " Render hotkeys
     ri_html->add( '<ul class="hotkeys">' ).
     LOOP AT lt_registered_hotkeys ASSIGNING <ls_hotkey>.
+      lv_hotkey = <ls_hotkey>-hotkey.
+      IF lv_hotkey CP '^*'.
+        lv_hotkey = |Ctrl+{ lv_hotkey+1 }|.
+      ENDIF.
       ri_html->add( |<li>|
-        && |<span class="key-id">{ <ls_hotkey>-hotkey }</span>|
+        && |<span class="key-id">{ lv_hotkey }</span>|
         && |<span class="key-descr">{ <ls_hotkey>-description }</span>|
         && |</li>| ).
     ENDLOOP.
@@ -51242,6 +51275,8 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
 
     mi_repo_online = ii_repo_online.
     mo_stage       = io_stage.
+    mo_patch       = io_patch.
+    ms_commit      = is_commit.
     mt_stage       = mo_stage->get_all( ).
     mv_sci_result  = iv_sci_result.
 
@@ -51262,6 +51297,8 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
       EXPORTING
         ii_repo_online = ii_repo_online
         io_stage       = io_stage
+        io_patch       = io_patch
+        is_commit      = is_commit
         iv_sci_result  = iv_sci_result.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
@@ -51368,9 +51405,13 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
 
     DATA li_exit TYPE REF TO zif_abapgit_exit.
 
-    ms_commit-committer_name  = get_committer_name( ).
-    ms_commit-committer_email = get_committer_email( ).
-    ms_commit-comment         = get_comment_default( ).
+    IF ms_commit-committer_name IS INITIAL.
+      ms_commit-committer_name = get_committer_name( ).
+    ENDIF.
+    IF ms_commit-committer_email IS INITIAL.
+      ms_commit-committer_email = get_committer_email( ).
+    ENDIF.
+    ms_commit-comment = get_comment_default( ).
 
     li_exit = zcl_abapgit_exit=>get_instance( ).
     li_exit->change_committer_info(
@@ -51387,6 +51428,13 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
     mo_form_data->set(
       iv_key = c_id-committer_email
       iv_val = ms_commit-committer_email ).
+
+    mo_form_data->set(
+      iv_key = c_id-author_name
+      iv_val = ms_commit-author_name ).
+    mo_form_data->set(
+      iv_key = c_id-author_email
+      iv_val = ms_commit-author_email ).
 
     " Message
     mo_form_data->set(
@@ -51447,6 +51495,12 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
       iv_label       = 'Commit'
       iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-input_main
       iv_action      = c_event-commit ).
+
+    IF mo_patch IS BOUND.
+      ro_form->command(
+        iv_label  = 'Commit and Continue Patching'
+        iv_action = c_event-commit_patch ).
+    ENDIF.
 
     lv_button_text = zcl_abapgit_exit=>get_instance( )->enable_adjust_commit_message( mi_repo_online ).
     IF lv_button_text IS NOT INITIAL.
@@ -51577,6 +51631,8 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
     DATA lv_comment           TYPE string.
     DATA lv_body              TYPE string.
     DATA li_exit              TYPE REF TO zif_abapgit_exit.
+    DATA lx_error             TYPE REF TO zcx_abapgit_exception.
+    DATA lv_error             TYPE string.
 
     mo_form_data = mo_form_util->normalize( ii_event->form_data( ) ).
 
@@ -51602,7 +51658,10 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
           iv_val = lv_body ).
 
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
-      WHEN c_event-commit.
+      WHEN c_event-commit OR c_event-commit_patch.
+        IF ii_event->mv_action = c_event-commit_patch AND mo_patch IS NOT BOUND.
+          zcx_abapgit_exception=>raise( 'Continue patching is only available when committing a patch' ).
+        ENDIF.
         " Validate form entries before committing
         mo_validation_log = validate_form( mo_form_data ).
 
@@ -51633,12 +51692,36 @@ CLASS zcl_abapgit_gui_page_commit IMPLEMENTATION.
           MESSAGE 'Commit was successful' TYPE 'S'.
 
           rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back_to_bookmark.
+          IF ii_event->mv_action = c_event-commit_patch.
+            " The push is complete: a refresh failure must not leave a retryable commit page
+            TRY.
+                IF mo_patch->continue_patching( ms_commit ) = abap_true.
+                  rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
+                ENDIF.
+              CATCH zcx_abapgit_exception INTO lx_error.
+                lv_error = |Commit was successful, but continuing patching failed: { lx_error->get_text( ) }|.
+                MESSAGE lv_error TYPE 'S' DISPLAY LIKE 'W'.
+            ENDTRY.
+          ENDIF.
         ELSE.
           rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
         ENDIF.
       WHEN OTHERS.
         ASSERT 1 = 1.
     ENDCASE.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_hotkeys~get_hotkey_actions.
+
+    DATA ls_hotkey LIKE LINE OF rt_hotkey_actions.
+
+    IF mo_patch IS BOUND.
+      ls_hotkey-ui_component = 'Commit'.
+      ls_hotkey-description = 'Commit and Continue Patching'.
+      ls_hotkey-action = c_event-commit_patch.
+      ls_hotkey-hotkey = '^Shift+Enter'.
+      INSERT ls_hotkey INTO TABLE rt_hotkey_actions.
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
@@ -56115,6 +56198,8 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
   ENDMETHOD.
   METHOD constructor.
 
+    DATA ls_file LIKE LINE OF mt_files.
+
     super->constructor(
       iv_key    = iv_key
       is_file   = is_file
@@ -56130,10 +56215,53 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
 
     mi_repo_online ?= mi_repo.
     mv_sci_result = iv_sci_result.
+    ms_object = is_object.
+    mt_files = it_files.
+    IF is_file IS NOT INITIAL.
+      " Use the file filter so a fully committed or deleted file disappears from the diff
+      ls_file-file = is_file.
+      INSERT ls_file INTO TABLE mt_files.
+    ENDIF.
 
     " While patching we always want to be in split mode
     CLEAR mv_unified.
     CREATE OBJECT mo_stage.
+
+  ENDMETHOD.
+  METHOD continue_patching.
+
+    DATA ls_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings.
+    DATA li_inspector TYPE REF TO zif_abapgit_code_inspector.
+    DATA lt_results TYPE zif_abapgit_code_inspector=>ty_results.
+
+    " Rebuild against the pushed HEAD; old line numbers and selections are no longer valid
+    CREATE OBJECT mo_stage.
+    ms_commit = is_commit.
+    CLEAR: ms_commit-comment, ms_commit-body.
+    refresh_full( ).
+    calculate_diff(
+      is_object = ms_object
+      it_files  = mt_files ).
+    rv_has_changes = boolc( mt_diff_files IS NOT INITIAL ).
+
+    " The refreshed SAP objects need a fresh inspection before the next commit
+    mv_sci_result = zif_abapgit_definitions=>c_sci_result-no_run.
+    ls_settings = mi_repo->get_local_settings( ).
+    IF rv_has_changes = abap_true AND ls_settings-code_inspector_check_variant IS NOT INITIAL.
+      li_inspector = zcl_abapgit_code_inspector=>get_code_inspector( mi_repo->get_package( ) ).
+      lt_results = li_inspector->run(
+        iv_variant = ls_settings-code_inspector_check_variant
+        iv_save    = abap_true ).
+      mv_sci_result = zif_abapgit_definitions=>c_sci_result-passed.
+      READ TABLE lt_results WITH KEY kind = 'W' TRANSPORTING NO FIELDS.
+      IF sy-subrc = 0.
+        mv_sci_result = zif_abapgit_definitions=>c_sci_result-warning.
+      ENDIF.
+      READ TABLE lt_results WITH KEY kind = 'E' TRANSPORTING NO FIELDS.
+      IF sy-subrc = 0.
+        mv_sci_result = zif_abapgit_definitions=>c_sci_result-failed.
+      ENDIF.
+    ENDIF.
 
   ENDMETHOD.
   METHOD create.
@@ -56379,7 +56507,10 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
 
         rs_handled-page = zcl_abapgit_gui_page_commit=>create(
           ii_repo_online = mi_repo_online
-          io_stage       = mo_stage ).
+          io_stage       = mo_stage
+          io_patch       = me
+          is_commit      = ms_commit
+          iv_sci_result  = mv_sci_result ).
 
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
 
@@ -56427,12 +56558,6 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
     register_handlers( ).
 
     CLEAR mv_section_count.
-
-    IF mv_pushed = abap_true.
-      refresh_full( ).
-      calculate_diff( ).
-      CLEAR mv_pushed.
-    ENDIF.
 
     ri_html = super->zif_abapgit_gui_renderable~render( ).
 
@@ -159732,8 +159857,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-14T16:41:00.244Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-14T16:41:00.244Z`.
+* abapmerge 0.16.10 - 2026-10-14T22:39:51.923Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-14T22:39:51.923Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
