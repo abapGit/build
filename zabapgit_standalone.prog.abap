@@ -155,6 +155,7 @@ CLASS zcl_abapgit_string_map DEFINITION DEFERRED.
 CLASS zcl_abapgit_string_buffer DEFINITION DEFERRED.
 CLASS zcl_abapgit_path DEFINITION DEFERRED.
 CLASS zcl_abapgit_log DEFINITION DEFERRED.
+CLASS zcl_abapgit_convert_language DEFINITION DEFERRED.
 CLASS zcl_abapgit_convert DEFINITION DEFERRED.
 CLASS zcl_abapgit_ui_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_popups DEFINITION DEFERRED.
@@ -30763,11 +30764,6 @@ CLASS zcl_abapgit_convert DEFINITION
         !iv_string      TYPE string
       RETURNING
         VALUE(rt_lines) TYPE string_table .
-    CLASS-METHODS conversion_exit_isola_output
-      IMPORTING
-        !iv_spras       TYPE spras
-      RETURNING
-        VALUE(rv_spras) TYPE laiso .
     CLASS-METHODS string_to_xstring
       IMPORTING
         !iv_str        TYPE string
@@ -30792,54 +30788,6 @@ CLASS zcl_abapgit_convert DEFINITION
       EXPORTING
         !ev_size   TYPE i
         !et_bintab TYPE STANDARD TABLE .
-
-    CLASS-METHODS language_sap1_to_sap2
-      IMPORTING
-        im_lang_sap1        TYPE sy-langu
-      RETURNING
-        VALUE(re_lang_sap2) TYPE string
-      EXCEPTIONS
-        no_assignment.
-
-    CLASS-METHODS language_sap1_to_text
-      IMPORTING
-        im_lang_sap1   TYPE sy-langu
-      RETURNING
-        VALUE(re_text) TYPE string.
-
-    CLASS-METHODS language_sap2_to_sap1
-      IMPORTING
-        im_lang_sap2        TYPE laiso
-      RETURNING
-        VALUE(re_lang_sap1) TYPE sy-langu
-      EXCEPTIONS
-        no_assignment.
-
-    CLASS-METHODS language_sap1_to_bcp47
-      IMPORTING
-        im_lang_sap1         TYPE sy-langu
-      RETURNING
-        VALUE(re_lang_bcp47) TYPE string
-      EXCEPTIONS
-        no_assignment.
-
-    CLASS-METHODS language_bcp47_to_sap1
-      IMPORTING
-        im_lang_bcp47       TYPE string
-      RETURNING
-        VALUE(re_lang_sap1) TYPE sy-langu
-      EXCEPTIONS
-        no_assignment.
-
-    TYPES ty_char02 TYPE c LENGTH 2.
-    CLASS-METHODS uccp
-      IMPORTING
-        iv_uccp        TYPE string
-      RETURNING
-        VALUE(rv_char) TYPE ty_char02
-      EXCEPTIONS
-        no_assignment.
-
   PROTECTED SECTION.
   PRIVATE SECTION.
     CLASS-METHODS xstring_remove_bom
@@ -30847,6 +30795,64 @@ CLASS zcl_abapgit_convert DEFINITION
         iv_xstr        TYPE xsequence
       RETURNING
         VALUE(rv_xstr) TYPE xstring.
+ENDCLASS.
+CLASS zcl_abapgit_convert_language DEFINITION
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    TYPES:
+      ty_char02 TYPE c LENGTH 2.
+
+    CLASS-METHODS conversion_exit_isola_output
+      IMPORTING
+        !iv_spras       TYPE spras
+      RETURNING
+        VALUE(rv_spras) TYPE laiso.
+
+    CLASS-METHODS sap1_to_sap2
+      IMPORTING
+        !im_lang_sap1       TYPE sy-langu
+      RETURNING
+        VALUE(re_lang_sap2) TYPE string
+      EXCEPTIONS
+        no_assignment.
+    CLASS-METHODS sap1_to_text
+      IMPORTING
+        !im_lang_sap1  TYPE sy-langu
+      RETURNING
+        VALUE(re_text) TYPE string.
+
+    CLASS-METHODS sap2_to_sap1
+      IMPORTING
+        !im_lang_sap2       TYPE laiso
+      RETURNING
+        VALUE(re_lang_sap1) TYPE sy-langu
+      EXCEPTIONS
+        no_assignment.
+    CLASS-METHODS sap1_to_bcp47
+      IMPORTING
+        !im_lang_sap1        TYPE sy-langu
+      RETURNING
+        VALUE(re_lang_bcp47) TYPE string
+      EXCEPTIONS
+        no_assignment.
+    CLASS-METHODS bcp47_to_sap1
+      IMPORTING
+        !im_lang_bcp47      TYPE string
+      RETURNING
+        VALUE(re_lang_sap1) TYPE sy-langu
+      EXCEPTIONS
+        no_assignment.
+    CLASS-METHODS uccp
+      IMPORTING
+        !iv_uccp       TYPE string
+      RETURNING
+        VALUE(rv_char) TYPE ty_char02
+      EXCEPTIONS
+        no_assignment.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 ENDCLASS.
 CLASS zcl_abapgit_log DEFINITION
   CREATE PUBLIC .
@@ -32592,135 +32598,9 @@ CLASS zcl_abapgit_log IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS kHGwldKtJfHZXmphMQgfeIQhGnfrcH DEFINITION DEFERRED.
-CLASS kHGwldKtJfHZXmphMQgfcZaQwkuAox DEFINITION DEFERRED.
-CLASS kHGwldKtJfHZXmphMQgfQYNhjRNkGw DEFINITION DEFERRED.
-* renamed: zcl_abapgit_convert :: lcl_in
-CLASS kHGwldKtJfHZXmphMQgfQYNhjRNkGw DEFINITION.
-  PUBLIC SECTION.
-    CLASS-METHODS convert
-      IMPORTING
-        !iv_data         TYPE xsequence
-        !iv_length       TYPE i OPTIONAL
-      RETURNING
-        VALUE(rv_string) TYPE string
-      RAISING
-        zcx_abapgit_exception.
-  PRIVATE SECTION.
-    CLASS-DATA go_conv_new TYPE REF TO object.
-    CLASS-DATA go_conv_old TYPE REF TO object.
-ENDCLASS.
-
-CLASS kHGwldKtJfHZXmphMQgfQYNhjRNkGw IMPLEMENTATION.
-  METHOD convert.
-
-    DATA lv_class TYPE string.
-    DATA lx_error TYPE REF TO cx_root.
-    DATA lv_ignore_cerr TYPE abap_bool.
-    IF go_conv_new IS INITIAL AND go_conv_old IS INITIAL.
-      TRY.
-          CALL METHOD ('CL_ABAP_CONV_CODEPAGE')=>create_in
-            RECEIVING
-              instance = go_conv_new.
-        CATCH cx_sy_dyn_call_illegal_class.
-* ignore conversion errors on non-unicode systems
-          lv_ignore_cerr = boolc( cl_abap_char_utilities=>charsize = 1 ).
-
-          lv_class = 'CL_ABAP_CONV_IN_CE'.
-          CALL METHOD (lv_class)=>create
-            EXPORTING
-              encoding    = 'UTF-8'
-              ignore_cerr = lv_ignore_cerr
-            RECEIVING
-              conv        = go_conv_old.
-      ENDTRY.
-    ENDIF.
-
-    TRY.
-        IF go_conv_new IS NOT INITIAL.
-          CALL METHOD go_conv_new->('IF_ABAP_CONV_IN~CONVERT')
-            EXPORTING
-              source = iv_data
-            RECEIVING
-              result = rv_string.
-        ELSE.
-          CALL METHOD go_conv_old->('CONVERT')
-            EXPORTING
-              input = iv_data
-              n     = iv_length
-            IMPORTING
-              data  = rv_string.
-        ENDIF.
-      CATCH cx_parameter_invalid_range
-        cx_sy_codepage_converter_init
-        cx_sy_conversion_codepage
-        cx_parameter_invalid_type INTO lx_error.
-        zcx_abapgit_exception=>raise_with_text( lx_error ).
-    ENDTRY.
-
-  ENDMETHOD.
-ENDCLASS.
-
-* renamed: zcl_abapgit_convert :: lcl_out
-CLASS kHGwldKtJfHZXmphMQgfcZaQwkuAox DEFINITION.
-  PUBLIC SECTION.
-    CLASS-METHODS convert
-      IMPORTING
-        !iv_string        TYPE string
-      RETURNING
-        VALUE(rv_xstring) TYPE xstring
-      RAISING
-        zcx_abapgit_exception.
-  PRIVATE SECTION.
-    CLASS-DATA go_conv_new TYPE REF TO object.
-    CLASS-DATA go_conv_old TYPE REF TO object.
-ENDCLASS.
-
-CLASS kHGwldKtJfHZXmphMQgfcZaQwkuAox IMPLEMENTATION.
-  METHOD convert.
-    DATA lx_error TYPE REF TO cx_root.
-    DATA lv_class TYPE string.
-
-    IF go_conv_new IS INITIAL AND go_conv_old IS INITIAL.
-      TRY.
-          CALL METHOD ('CL_ABAP_CONV_CODEPAGE')=>create_out
-            RECEIVING
-              instance = go_conv_new.
-        CATCH cx_sy_dyn_call_illegal_class.
-          lv_class = 'CL_ABAP_CONV_OUT_CE'.
-          CALL METHOD (lv_class)=>create
-            EXPORTING
-              encoding = 'UTF-8'
-            RECEIVING
-              conv     = go_conv_old.
-      ENDTRY.
-    ENDIF.
-
-    TRY.
-        IF go_conv_new IS NOT INITIAL.
-          CALL METHOD go_conv_new->('IF_ABAP_CONV_OUT~CONVERT')
-            EXPORTING
-              source = iv_string
-            RECEIVING
-              result = rv_xstring.
-        ELSE.
-          CALL METHOD go_conv_old->('CONVERT')
-            EXPORTING
-              data   = iv_string
-            IMPORTING
-              buffer = rv_xstring.
-        ENDIF.
-      CATCH cx_parameter_invalid_range
-            cx_sy_codepage_converter_init
-            cx_sy_conversion_codepage
-            cx_parameter_invalid_type INTO lx_error.
-        zcx_abapgit_exception=>raise_with_text( lx_error ).
-    ENDTRY.
-  ENDMETHOD.
-ENDCLASS.
-
-* renamed: zcl_abapgit_convert :: lcl_bcp47_language_table
-CLASS kHGwldKtJfHZXmphMQgfeIQhGnfrcH DEFINITION CREATE PRIVATE.
+CLASS kHGwlBBLPuLkmYTcKxvveIQhGnfrcH DEFINITION DEFERRED.
+* renamed: zcl_abapgit_convert_language :: lcl_bcp47_language_table
+CLASS kHGwlBBLPuLkmYTcKxvveIQhGnfrcH DEFINITION CREATE PRIVATE.
 
   PUBLIC SECTION.
     TYPES: BEGIN OF ty_language_mapping,
@@ -32779,7 +32659,7 @@ CLASS kHGwldKtJfHZXmphMQgfeIQhGnfrcH DEFINITION CREATE PRIVATE.
 
 ENDCLASS.
 
-CLASS kHGwldKtJfHZXmphMQgfeIQhGnfrcH IMPLEMENTATION.
+CLASS kHGwlBBLPuLkmYTcKxvveIQhGnfrcH IMPLEMENTATION.
 
   METHOD sap1_to_bcp47.
     DATA lv_language_mapping TYPE ty_language_mapping.
@@ -32868,7 +32748,7 @@ CLASS kHGwldKtJfHZXmphMQgfeIQhGnfrcH IMPLEMENTATION.
 
     IF strlen( im_sap1 ) = 4.
       TRY.
-          lv_sap1 = zcl_abapgit_convert=>uccp( im_sap1 ).
+          lv_sap1 = zcl_abapgit_convert_language=>uccp( im_sap1 ).
         CATCH cx_root.
           " Language is not supported in this system -> ignore it
           " Should someone try to use the language in a repo, it will result in an error (see above)
@@ -33505,36 +33385,8 @@ CLASS kHGwldKtJfHZXmphMQgfeIQhGnfrcH IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_convert IMPLEMENTATION.
-  METHOD base64_to_xstring.
-
-    rv_xstr = cl_http_utility=>decode_x_base64( iv_base64 ).
-
-  ENDMETHOD.
-  METHOD conversion_exit_isola_output.
-
-    language_sap1_to_sap2(
-      EXPORTING
-        im_lang_sap1  = iv_spras
-      RECEIVING
-        re_lang_sap2  = rv_spras
-      EXCEPTIONS
-        no_assignment = 1
-        OTHERS        = 2 ).                              "#EC CI_SUBRC
-
-    TRANSLATE rv_spras TO UPPER CASE.
-
-  ENDMETHOD.
-  METHOD int_to_xstring4.
-* returns xstring of length 4 containing the integer value iv_i
-
-    DATA lv_x TYPE x LENGTH 4.
-
-    lv_x = iv_i.
-    rv_xstring = lv_x.
-
-  ENDMETHOD.
-  METHOD language_bcp47_to_sap1.
+CLASS zcl_abapgit_convert_language IMPLEMENTATION.
+  METHOD bcp47_to_sap1.
     DATA lv_converter_instance TYPE REF TO object.
     DATA lv_converter_class_name TYPE string VALUE `CL_AFF_LANGUAGE_CONVERTER`.
     DATA lv_regex TYPE REF TO cl_abap_regex.
@@ -33560,7 +33412,7 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
 
       CATCH cx_sy_dyn_call_error.
         TRY.
-            re_lang_sap1 = kHGwldKtJfHZXmphMQgfeIQhGnfrcH=>bcp47_to_sap1( im_lang_bcp47 ).
+            re_lang_sap1 = kHGwlBBLPuLkmYTcKxvveIQhGnfrcH=>bcp47_to_sap1( im_lang_bcp47 ).
           CATCH zcx_abapgit_exception.
 
             CREATE OBJECT lv_regex EXPORTING pattern = `[A-Z0-9]{2}` ##REGEX_POSIX.
@@ -33570,7 +33422,7 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
               "Fallback try to convert from SAP language
               lv_sap2_lang_code = im_lang_bcp47.
 
-              language_sap2_to_sap1(
+              sap2_to_sap1(
                 EXPORTING
                   im_lang_sap2  = lv_sap2_lang_code
                 RECEIVING
@@ -33588,7 +33440,21 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
         ENDTRY.
     ENDTRY.
   ENDMETHOD.
-  METHOD language_sap1_to_bcp47.
+  METHOD conversion_exit_isola_output.
+
+    sap1_to_sap2(
+      EXPORTING
+        im_lang_sap1  = iv_spras
+      RECEIVING
+        re_lang_sap2  = rv_spras
+      EXCEPTIONS
+        no_assignment = 1
+        OTHERS        = 2 ).                              "#EC CI_SUBRC
+
+    TRANSLATE rv_spras TO UPPER CASE.
+
+  ENDMETHOD.
+  METHOD sap1_to_bcp47.
     DATA lv_converter_instance TYPE REF TO object.
     DATA lv_converter_class_name TYPE string VALUE `CL_AFF_LANGUAGE_CONVERTER`.
 
@@ -33608,31 +33474,208 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
         ENDTRY.
       CATCH cx_sy_dyn_call_error.
         TRY.
-            re_lang_bcp47 = kHGwldKtJfHZXmphMQgfeIQhGnfrcH=>sap1_to_bcp47( im_lang_sap1 ).
+            re_lang_bcp47 = kHGwlBBLPuLkmYTcKxvveIQhGnfrcH=>sap1_to_bcp47( im_lang_sap1 ).
           CATCH zcx_abapgit_exception.
             RAISE no_assignment.
         ENDTRY.
     ENDTRY.
   ENDMETHOD.
-  METHOD language_sap1_to_sap2.
+  METHOD sap1_to_sap2.
 
     TRY.
-        re_lang_sap2 = kHGwldKtJfHZXmphMQgfeIQhGnfrcH=>sap1_to_sap2( im_lang_sap1 ).
+        re_lang_sap2 = kHGwlBBLPuLkmYTcKxvveIQhGnfrcH=>sap1_to_sap2( im_lang_sap1 ).
       CATCH zcx_abapgit_exception.
         RAISE no_assignment.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD language_sap1_to_text.
-    re_text = kHGwldKtJfHZXmphMQgfeIQhGnfrcH=>sap1_to_text( im_lang_sap1 ).
+  METHOD sap1_to_text.
+    re_text = kHGwlBBLPuLkmYTcKxvveIQhGnfrcH=>sap1_to_text( im_lang_sap1 ).
   ENDMETHOD.
-  METHOD language_sap2_to_sap1.
+  METHOD sap2_to_sap1.
 
     TRY.
-        re_lang_sap1 = kHGwldKtJfHZXmphMQgfeIQhGnfrcH=>sap2_to_sap1( im_lang_sap2 ).
+        re_lang_sap1 = kHGwlBBLPuLkmYTcKxvveIQhGnfrcH=>sap2_to_sap1( im_lang_sap2 ).
       CATCH zcx_abapgit_exception.
         RAISE no_assignment.
     ENDTRY.
+
+  ENDMETHOD.
+  METHOD uccp.
+
+    DATA lv_class    TYPE string.
+    DATA lv_xstr     TYPE xstring.
+    DATA lo_instance TYPE REF TO object.
+
+    lv_class = 'CL_ABAP_CONV_IN_CE'.
+
+    TRY.
+        CALL METHOD (lv_class)=>uccp
+          EXPORTING
+            uccp = iv_uccp
+          RECEIVING
+            char = rv_char.
+      CATCH cx_sy_dyn_call_illegal_class.
+        lv_xstr = iv_uccp.
+
+        CALL METHOD ('CL_ABAP_CONV_CODEPAGE')=>create_in
+          EXPORTING
+            codepage = 'UTF-16'
+          RECEIVING
+            instance = lo_instance.
+
+* convert endianness
+        CONCATENATE lv_xstr+1(1) lv_xstr(1) INTO lv_xstr IN BYTE MODE.
+
+        CALL METHOD lo_instance->('IF_ABAP_CONV_IN~CONVERT')
+          EXPORTING
+            source = lv_xstr
+          RECEIVING
+            result = rv_char.
+    ENDTRY.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS kHGwldKtJfHZXmphMQgfcZaQwkuAox DEFINITION DEFERRED.
+CLASS kHGwldKtJfHZXmphMQgfQYNhjRNkGw DEFINITION DEFERRED.
+* renamed: zcl_abapgit_convert :: lcl_in
+CLASS kHGwldKtJfHZXmphMQgfQYNhjRNkGw DEFINITION.
+  PUBLIC SECTION.
+    CLASS-METHODS convert
+      IMPORTING
+        !iv_data         TYPE xsequence
+        !iv_length       TYPE i OPTIONAL
+      RETURNING
+        VALUE(rv_string) TYPE string
+      RAISING
+        zcx_abapgit_exception.
+  PRIVATE SECTION.
+    CLASS-DATA go_conv_new TYPE REF TO object.
+    CLASS-DATA go_conv_old TYPE REF TO object.
+ENDCLASS.
+
+CLASS kHGwldKtJfHZXmphMQgfQYNhjRNkGw IMPLEMENTATION.
+  METHOD convert.
+
+    DATA lv_class TYPE string.
+    DATA lx_error TYPE REF TO cx_root.
+    DATA lv_ignore_cerr TYPE abap_bool.
+    IF go_conv_new IS INITIAL AND go_conv_old IS INITIAL.
+      TRY.
+          CALL METHOD ('CL_ABAP_CONV_CODEPAGE')=>create_in
+            RECEIVING
+              instance = go_conv_new.
+        CATCH cx_sy_dyn_call_illegal_class.
+* ignore conversion errors on non-unicode systems
+          lv_ignore_cerr = boolc( cl_abap_char_utilities=>charsize = 1 ).
+
+          lv_class = 'CL_ABAP_CONV_IN_CE'.
+          CALL METHOD (lv_class)=>create
+            EXPORTING
+              encoding    = 'UTF-8'
+              ignore_cerr = lv_ignore_cerr
+            RECEIVING
+              conv        = go_conv_old.
+      ENDTRY.
+    ENDIF.
+
+    TRY.
+        IF go_conv_new IS NOT INITIAL.
+          CALL METHOD go_conv_new->('IF_ABAP_CONV_IN~CONVERT')
+            EXPORTING
+              source = iv_data
+            RECEIVING
+              result = rv_string.
+        ELSE.
+          CALL METHOD go_conv_old->('CONVERT')
+            EXPORTING
+              input = iv_data
+              n     = iv_length
+            IMPORTING
+              data  = rv_string.
+        ENDIF.
+      CATCH cx_parameter_invalid_range
+        cx_sy_codepage_converter_init
+        cx_sy_conversion_codepage
+        cx_parameter_invalid_type INTO lx_error.
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
+    ENDTRY.
+
+  ENDMETHOD.
+ENDCLASS.
+
+* renamed: zcl_abapgit_convert :: lcl_out
+CLASS kHGwldKtJfHZXmphMQgfcZaQwkuAox DEFINITION.
+  PUBLIC SECTION.
+    CLASS-METHODS convert
+      IMPORTING
+        !iv_string        TYPE string
+      RETURNING
+        VALUE(rv_xstring) TYPE xstring
+      RAISING
+        zcx_abapgit_exception.
+  PRIVATE SECTION.
+    CLASS-DATA go_conv_new TYPE REF TO object.
+    CLASS-DATA go_conv_old TYPE REF TO object.
+ENDCLASS.
+
+CLASS kHGwldKtJfHZXmphMQgfcZaQwkuAox IMPLEMENTATION.
+  METHOD convert.
+    DATA lx_error TYPE REF TO cx_root.
+    DATA lv_class TYPE string.
+
+    IF go_conv_new IS INITIAL AND go_conv_old IS INITIAL.
+      TRY.
+          CALL METHOD ('CL_ABAP_CONV_CODEPAGE')=>create_out
+            RECEIVING
+              instance = go_conv_new.
+        CATCH cx_sy_dyn_call_illegal_class.
+          lv_class = 'CL_ABAP_CONV_OUT_CE'.
+          CALL METHOD (lv_class)=>create
+            EXPORTING
+              encoding = 'UTF-8'
+            RECEIVING
+              conv     = go_conv_old.
+      ENDTRY.
+    ENDIF.
+
+    TRY.
+        IF go_conv_new IS NOT INITIAL.
+          CALL METHOD go_conv_new->('IF_ABAP_CONV_OUT~CONVERT')
+            EXPORTING
+              source = iv_string
+            RECEIVING
+              result = rv_xstring.
+        ELSE.
+          CALL METHOD go_conv_old->('CONVERT')
+            EXPORTING
+              data   = iv_string
+            IMPORTING
+              buffer = rv_xstring.
+        ENDIF.
+      CATCH cx_parameter_invalid_range
+            cx_sy_codepage_converter_init
+            cx_sy_conversion_codepage
+            cx_parameter_invalid_type INTO lx_error.
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
+    ENDTRY.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_convert IMPLEMENTATION.
+  METHOD base64_to_xstring.
+
+    rv_xstr = cl_http_utility=>decode_x_base64( iv_base64 ).
+
+  ENDMETHOD.
+  METHOD int_to_xstring4.
+* returns xstring of length 4 containing the integer value iv_i
+
+    DATA lv_x TYPE x LENGTH 4.
+
+    lv_x = iv_i.
+    rv_xstring = lv_x.
 
   ENDMETHOD.
   METHOD split_string.
@@ -33691,40 +33734,6 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
     IF xstrlen( rv_xstring ) < 3 OR rv_xstring(3) <> cl_abap_char_utilities=>byte_order_mark_utf8.
       rv_xstring = cl_abap_char_utilities=>byte_order_mark_utf8 && rv_xstring.
     ENDIF.
-
-  ENDMETHOD.
-  METHOD uccp.
-
-    DATA lv_class    TYPE string.
-    DATA lv_xstr     TYPE xstring.
-    DATA lo_instance TYPE REF TO object.
-
-    lv_class = 'CL_ABAP_CONV_IN_CE'.
-
-    TRY.
-        CALL METHOD (lv_class)=>uccp
-          EXPORTING
-            uccp = iv_uccp
-          RECEIVING
-            char = rv_char.
-      CATCH cx_sy_dyn_call_illegal_class.
-        lv_xstr = iv_uccp.
-
-        CALL METHOD ('CL_ABAP_CONV_CODEPAGE')=>create_in
-          EXPORTING
-            codepage = 'UTF-16'
-          RECEIVING
-            instance = lo_instance.
-
-* convert endianness
-        CONCATENATE lv_xstr+1(1) lv_xstr(1) INTO lv_xstr IN BYTE MODE.
-
-        CALL METHOD lo_instance->('IF_ABAP_CONV_IN~CONVERT')
-          EXPORTING
-            source = lv_xstr
-          RECEIVING
-            result = rv_char.
-    ENDTRY.
 
   ENDMETHOD.
   METHOD xstring_remove_bom.
@@ -33803,21 +33812,6 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
       iv_length = lv_length ).
 
   ENDMETHOD.
-
-  METHOD xstring_to_string_utf8_raw.
-
-    DATA lv_length TYPE i.
-
-    lv_length = iv_length.
-    IF lv_length <= 0.
-      lv_length = xstrlen( iv_data ).
-    ENDIF.
-
-    rv_string = kHGwldKtJfHZXmphMQgfQYNhjRNkGw=>convert(
-      iv_data   = iv_data
-      iv_length = lv_length ).
-
-  ENDMETHOD.
   METHOD xstring_to_string_utf8_bom.
 
     DATA lv_xstring TYPE xstring.
@@ -33833,6 +33827,20 @@ CLASS zcl_abapgit_convert IMPLEMENTATION.
     ENDIF.
 
     rv_string = xstring_to_string_utf8( lv_xstring ).
+
+  ENDMETHOD.
+  METHOD xstring_to_string_utf8_raw.
+
+    DATA lv_length TYPE i.
+
+    lv_length = iv_length.
+    IF lv_length <= 0.
+      lv_length = xstrlen( iv_data ).
+    ENDIF.
+
+    rv_string = kHGwldKtJfHZXmphMQgfQYNhjRNkGw=>convert(
+      iv_data   = iv_data
+      iv_length = lv_length ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -52308,7 +52316,7 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
       iv_val = ls_dot-name ).
     ro_form_data->set(
       iv_key = c_id-main_language
-      iv_val = |{ lv_main_lang } ({ zcl_abapgit_convert=>language_sap1_to_text( lv_main_lang ) })| ).
+      iv_val = |{ lv_main_lang } ({ zcl_abapgit_convert_language=>sap1_to_text( lv_main_lang ) })| ).
     ro_form_data->set(
       iv_key = c_id-i18n_langs
       iv_val = zcl_abapgit_lxe_texts=>convert_table_to_lang_string( lo_dot->get_i18n_languages( ) ) ).
@@ -65620,7 +65628,7 @@ CLASS zcl_abapgit_gui_page_flow IMPLEMENTATION.
       lv_filter = |, user filter: { ms_user_settings-username_filter }|.
     ENDIF.
 
-    lv_language = zcl_abapgit_convert=>conversion_exit_isola_output( sy-langu ).
+    lv_language = zcl_abapgit_convert_language=>conversion_exit_isola_output( sy-langu ).
     GET TIME STAMP FIELD lv_timestamp.
 
     ri_html->add( |<small>{ lines( ms_information-features ) } features| &&
@@ -73138,9 +73146,9 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     IF lv_main_language <> sy-langu.
 
       lv_error_message = |Current login language |
-                      && |'{ zcl_abapgit_convert=>conversion_exit_isola_output( sy-langu ) }'|
+                      && |'{ zcl_abapgit_convert_language=>conversion_exit_isola_output( sy-langu ) }'|
                       && | does not match main language |
-                      && |'{ zcl_abapgit_convert=>conversion_exit_isola_output( lv_main_language ) }'.|.
+                      && |'{ zcl_abapgit_convert_language=>conversion_exit_isola_output( lv_main_language ) }'.|.
 
       " Feature open in main language only exists if abapGit tcode is present
       IF zcl_abapgit_services_abapgit=>get_abapgit_tcode( ) IS INITIAL.
@@ -106574,7 +106582,7 @@ CLASS kHGwlUKtFBXjILcBRBJOrsxFJiznPf IMPLEMENTATION.
   METHOD fill_translation.
     DATA: lv_langu_sap1 TYPE sy-langu.
 
-    lv_langu_sap1 = zcl_abapgit_convert=>language_sap2_to_sap1( iv_language ).
+    lv_langu_sap1 = zcl_abapgit_convert_language=>sap2_to_sap1( iv_language ).
 
     rt_result-descriptions = kHGwlUKtFBXjILcBRBJOnvUCODLJDd=>get_descriptions_compo_subco(
       iv_clif_name = iv_name
@@ -106604,7 +106612,7 @@ CLASS kHGwlUKtFBXjILcBRBJOrsxFJiznPf IMPLEMENTATION.
       lo_properties_file ?= li_translation_file.
       lo_properties_file->get_translations( IMPORTING ev_data = ls_aff_data ).
 
-      lv_sap1 = zcl_abapgit_convert=>language_sap2_to_sap1( li_translation_file->lang( ) ).
+      lv_sap1 = zcl_abapgit_convert_language=>sap2_to_sap1( li_translation_file->lang( ) ).
       ls_aff_data-header-original_language = lv_sap1.
       CREATE OBJECT lo_type_mapper TYPE kHGwlUKtFBXjILcBRBJOvDDGtKNvAd.
       lo_type_mapper->to_abapgit(
@@ -106795,7 +106803,7 @@ CLASS zcl_abapgit_object_intf IMPLEMENTATION.
     DELETE ADJACENT DUPLICATES FROM lt_unique_language.
 
     LOOP AT lt_unique_language INTO lv_unique.
-      lv_sap2 = zcl_abapgit_convert=>language_sap1_to_sap2( lv_unique ).
+      lv_sap2 = zcl_abapgit_convert_language=>sap1_to_sap2( lv_unique ).
       APPEND lv_sap2 TO rs_result.
     ENDLOOP.
 
@@ -111142,7 +111150,7 @@ CLASS zcl_abapgit_object_form IMPLEMENTATION.
 
     DATA lv_tdspras TYPE laiso.
 
-    lv_tdspras = zcl_abapgit_convert=>conversion_exit_isola_output( is_header-tdspras ).
+    lv_tdspras = zcl_abapgit_convert_language=>conversion_exit_isola_output( is_header-tdspras ).
 
     " Refuse to serialize inconsistent text-header data. An empty tdspras
     " or a tdspras that ISO conversion cannot map (typically because the
@@ -125000,7 +125008,7 @@ CLASS zcl_abapgit_sotr_handler IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_PROPERTIES_FILE IMPLEMENTATION.
+CLASS zcl_abapgit_properties_file IMPLEMENTATION.
   METHOD constructor.
     mv_lang = to_upper( iv_lang ).
   ENDMETHOD.
@@ -125050,8 +125058,8 @@ CLASS ZCL_ABAPGIT_PROPERTIES_FILE IMPLEMENTATION.
     DATA: lv_langu_sap1 TYPE sy-langu,
           lv_langu_bcp47 TYPE string.
 
-    lv_langu_sap1 = zcl_abapgit_convert=>language_sap2_to_sap1( to_upper( mv_lang ) ).
-    lv_langu_bcp47 = zcl_abapgit_convert=>language_sap1_to_bcp47( lv_langu_sap1 ).
+    lv_langu_sap1 = zcl_abapgit_convert_language=>sap2_to_sap1( to_upper( mv_lang ) ).
+    lv_langu_bcp47 = zcl_abapgit_convert_language=>sap1_to_bcp47( lv_langu_sap1 ).
 
     rv_lang_suffix = lv_langu_bcp47.
 
@@ -125724,7 +125732,7 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
   ENDMETHOD.
   METHOD laiso_to_langu_safe.
 
-    zcl_abapgit_convert=>language_sap2_to_sap1(
+    zcl_abapgit_convert_language=>sap2_to_sap1(
       EXPORTING
         im_lang_sap2  = iv_laiso
       RECEIVING
@@ -125739,7 +125747,7 @@ CLASS zcl_abapgit_lxe_texts IMPLEMENTATION.
   ENDMETHOD.
   METHOD langu_to_laiso_safe.
 
-    zcl_abapgit_convert=>language_sap1_to_sap2(
+    zcl_abapgit_convert_language=>sap1_to_sap2(
       EXPORTING
         im_lang_sap1  = iv_langu
       RECEIVING
@@ -126465,7 +126473,7 @@ CLASS zcl_abapgit_longtexts IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_I18N_PARAMS IMPLEMENTATION.
+CLASS zcl_abapgit_i18n_params IMPLEMENTATION.
   METHOD build_language_filter.
     IF mt_language_filter IS INITIAL.
       " translation_languages are includes, system langs are excludes, so the do not interfere
@@ -126499,7 +126507,7 @@ CLASS ZCL_ABAPGIT_I18N_PARAMS IMPLEMENTATION.
 
     LOOP AT it_iso_filter INTO lv_laiso.
 
-      zcl_abapgit_convert=>language_sap2_to_sap1(
+      zcl_abapgit_convert_language=>sap2_to_sap1(
         EXPORTING
           im_lang_sap2  = lv_laiso
         RECEIVING
@@ -126591,7 +126599,7 @@ CLASS ZCL_ABAPGIT_I18N_PARAMS IMPLEMENTATION.
         CONTINUE. " Just keep it
       ENDIF.
 
-      zcl_abapgit_convert=>language_sap1_to_sap2(
+      zcl_abapgit_convert_language=>sap1_to_sap2(
         EXPORTING
           im_lang_sap1  = <lv_langu>
         RECEIVING
@@ -126625,7 +126633,7 @@ CLASS ZCL_ABAPGIT_I18N_PARAMS IMPLEMENTATION.
     LOOP AT ct_sap_langs INTO lv_langu.
       lv_index = sy-tabix.
 
-      zcl_abapgit_convert=>language_sap1_to_sap2(
+      zcl_abapgit_convert_language=>sap1_to_sap2(
         EXPORTING
           im_lang_sap1  = lv_langu
         RECEIVING
@@ -132927,7 +132935,7 @@ CLASS zcl_abapgit_gui_jumper IMPLEMENTATION.
       WHEN 1.
         lv_msg = |Communication error { lv_msg }|.
       WHEN 2.
-        lv_msg = |Language { iv_language } ({ zcl_abapgit_convert=>language_sap1_to_text( iv_language ) })|
+        lv_msg = |Language { iv_language } ({ zcl_abapgit_convert_language=>sap1_to_text( iv_language ) })|
               && | is not installed|.
       WHEN 3.
         lv_msg = |{ lv_subrc }|.
@@ -139071,8 +139079,8 @@ CLASS zcl_abapgit_filename_logic IMPLEMENTATION.
         IF ev_ext = `po`.
           ev_lang = to_lower( lv_lang_suffix ).
         ELSEIF ev_ext = `properties`.
-          lv_sap1 = zcl_abapgit_convert=>language_bcp47_to_sap1( lv_lang_suffix ).
-          ev_lang = zcl_abapgit_convert=>language_sap1_to_sap2( lv_sap1 ). " actually it is to_upper( ISO-639 )
+          lv_sap1 = zcl_abapgit_convert_language=>bcp47_to_sap1( lv_lang_suffix ).
+          ev_lang = zcl_abapgit_convert_language=>sap1_to_sap2( lv_sap1 ). " actually it is to_upper( ISO-639 )
         ELSE.
           zcx_abapgit_exception=>raise( |Unexpected translation file format { iv_filename }| ).
         ENDIF.
@@ -142027,7 +142035,7 @@ CLASS kHGwlbVxgSjWYXcuzxmbrHxeswZCbe IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_JSON_HANDLER IMPLEMENTATION.
+CLASS zcl_abapgit_json_handler IMPLEMENTATION.
   METHOD deserialize.
     DATA lo_ajson TYPE REF TO zif_abapgit_ajson.
 
@@ -142082,7 +142090,7 @@ CLASS ZCL_ABAPGIT_JSON_HANDLER IMPLEMENTATION.
       lv_original_language TYPE sy-langu.
     lv_bcp47_language = co_ajson->get_string( '/header/original_language' ).
 
-    lv_original_language = zcl_abapgit_convert=>language_bcp47_to_sap1( lv_bcp47_language ).
+    lv_original_language = zcl_abapgit_convert_language=>bcp47_to_sap1( lv_bcp47_language ).
 
     co_ajson->set_string( iv_path = '/header/original_language'
                           iv_val  = lv_original_language ).
@@ -142127,7 +142135,7 @@ CLASS ZCL_ABAPGIT_JSON_HANDLER IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    lv_bcp47_language = zcl_abapgit_convert=>language_sap1_to_bcp47( lv_original_language ).
+    lv_bcp47_language = zcl_abapgit_convert_language=>sap1_to_bcp47( lv_original_language ).
 
     co_ajson->set_string( iv_path = '/header/originalLanguage'
                           iv_val  = lv_bcp47_language ).
@@ -159857,8 +159865,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-14T22:39:51.923Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-14T22:39:51.923Z`.
+* abapmerge 0.16.10 - 2026-10-15T12:34:19.498Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-15T12:34:19.498Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
