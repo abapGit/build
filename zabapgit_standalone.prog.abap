@@ -213,7 +213,6 @@ CLASS zcl_abapgit_gui_page_runit DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_codi_base DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_code_insp DEFINITION DEFERRED.
 CLASS zcl_abapgit_log_viewer DEFINITION DEFERRED.
-CLASS zcl_abapgit_html_toolbar_lib DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_toolbar DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_table DEFINITION DEFERRED.
 CLASS zcl_abapgit_html_form_utils DEFINITION DEFERRED.
@@ -25405,14 +25404,19 @@ CLASS zcl_abapgit_gui_menus DEFINITION
 
     CLASS-METHODS settings
       IMPORTING
-        !iv_act        TYPE string
+        !iv_act        TYPE string OPTIONAL
+        !iv_with_back  TYPE abap_bool DEFAULT abap_false
+        !iv_form_id    TYPE string OPTIONAL
       RETURNING
         VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
 
     CLASS-METHODS repo_settings
       IMPORTING
         !iv_key        TYPE zif_abapgit_persistence=>ty_repo-key
-        !iv_act        TYPE string
+        !iv_act        TYPE string OPTIONAL
+        !iv_class      TYPE string OPTIONAL
+        !iv_with_back  TYPE abap_bool DEFAULT abap_false
+        !iv_form_id    TYPE string OPTIONAL
       RETURNING
         VALUE(ro_menu) TYPE REF TO zcl_abapgit_html_toolbar.
 
@@ -25422,6 +25426,13 @@ CLASS zcl_abapgit_gui_menus DEFINITION
 
   PROTECTED SECTION.
   PRIVATE SECTION.
+
+    CLASS-METHODS add_back
+      IMPORTING
+        io_menu      TYPE REF TO zcl_abapgit_html_toolbar
+        iv_with_back TYPE abap_bool
+        iv_form_id   TYPE string.
+
 ENDCLASS.
 CLASS zcl_abapgit_gui_page DEFINITION ABSTRACT
   INHERITING FROM zcl_abapgit_gui_component
@@ -26236,27 +26247,6 @@ CLASS zcl_abapgit_html_toolbar DEFINITION
         !iv_sort       TYPE abap_bool OPTIONAL
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
-ENDCLASS.
-CLASS zcl_abapgit_html_toolbar_lib DEFINITION
-  FINAL
-  CREATE PUBLIC .
-
-  PUBLIC SECTION.
-    CLASS-METHODS render_repo_settings_dropdown
-      IMPORTING
-        io_toolbar  TYPE REF TO zcl_abapgit_html_toolbar
-        iv_key      TYPE zif_abapgit_persistence=>ty_value
-        iv_opt      TYPE c OPTIONAL
-        iv_class    TYPE string OPTIONAL
-        iv_li_class TYPE string OPTIONAL.
-  PROTECTED SECTION.
-  PRIVATE SECTION.
-    CLASS-METHODS build_repo_settings_dropdown
-      IMPORTING
-        iv_key            TYPE zif_abapgit_persistence=>ty_value
-        iv_class          TYPE string OPTIONAL
-      RETURNING
-        VALUE(ro_toolbar) TYPE REF TO zcl_abapgit_html_toolbar.
 ENDCLASS.
 CLASS zcl_abapgit_log_viewer DEFINITION
   FINAL
@@ -27724,12 +27714,12 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_page_sett_info DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
   FINAL
-  CREATE PRIVATE .
+  CREATE PRIVATE.
 
   PUBLIC SECTION.
 
-    INTERFACES zif_abapgit_gui_event_handler .
-    INTERFACES zif_abapgit_gui_renderable .
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
 
     CLASS-METHODS create
       IMPORTING
@@ -27737,12 +27727,12 @@ CLASS zcl_abapgit_gui_page_sett_info DEFINITION
       RETURNING
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS constructor
       IMPORTING
         !ii_repo TYPE REF TO zif_abapgit_repo
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -27752,13 +27742,13 @@ CLASS zcl_abapgit_gui_page_sett_info DEFINITION
         measure TYPE string,
         local   TYPE i,
         remote  TYPE i,
-      END OF ty_stats .
+      END OF ty_stats.
     TYPES:
       BEGIN OF ty_infos,
         size TYPE p LENGTH 16 DECIMALS 0,
         line TYPE p LENGTH 16 DECIMALS 0,
         sloc TYPE p LENGTH 16 DECIMALS 0,
-      END OF ty_infos .
+      END OF ty_infos.
 
     CONSTANTS:
       BEGIN OF c_id,
@@ -27769,34 +27759,34 @@ CLASS zcl_abapgit_gui_page_sett_info DEFINITION
         deserialized_at TYPE string VALUE 'deserialized_at',
         stats           TYPE string VALUE 'stats',
         stats_table     TYPE string VALUE 'stats_table',
-      END OF c_id .
+      END OF c_id.
 
-    DATA mo_form TYPE REF TO zcl_abapgit_html_form .
-    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map .
-    DATA mi_repo TYPE REF TO zif_abapgit_repo .
+    DATA mo_form TYPE REF TO zcl_abapgit_html_form.
+    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
+    DATA mi_repo TYPE REF TO zif_abapgit_repo.
     DATA:
-      mt_stats TYPE STANDARD TABLE OF ty_stats WITH KEY measure .
+      mt_stats TYPE STANDARD TABLE OF ty_stats WITH KEY measure.
 
     METHODS get_form_schema
       RETURNING
         VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS read_settings
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS read_stats
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS read_stats_files
       EXPORTING
         !et_local  TYPE zif_abapgit_definitions=>ty_files_item_tt
         !et_remote TYPE zif_abapgit_git_definitions=>ty_files_tt
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS read_stats_state
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS read_stats_size_lines_sloc
       IMPORTING
         !it_local        TYPE zif_abapgit_definitions=>ty_files_item_tt
@@ -27805,48 +27795,48 @@ CLASS zcl_abapgit_gui_page_sett_info DEFINITION
         !et_local_items  TYPE zif_abapgit_definitions=>ty_items_tt
         !et_remote_items TYPE zif_abapgit_definitions=>ty_items_tt
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS read_stats_file
       IMPORTING
         !is_file       TYPE zif_abapgit_git_definitions=>ty_file
       RETURNING
-        VALUE(rs_info) TYPE ty_infos .
+        VALUE(rs_info) TYPE ty_infos.
     METHODS read_stats_objects
       CHANGING
         !ct_local_items  TYPE zif_abapgit_definitions=>ty_items_tt
         !ct_remote_items TYPE zif_abapgit_definitions=>ty_items_tt
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS format_user
       IMPORTING
         !iv_username   TYPE syuname
       RETURNING
-        VALUE(rv_user) TYPE string .
+        VALUE(rv_user) TYPE string.
     METHODS format_timestamp
       IMPORTING
         !iv_timestamp       TYPE timestampl
       RETURNING
-        VALUE(rv_timestamp) TYPE string .
+        VALUE(rv_timestamp) TYPE string.
     METHODS format_size
       IMPORTING
         !iv_size       TYPE i
       RETURNING
-        VALUE(rv_size) TYPE string .
+        VALUE(rv_size) TYPE string.
     METHODS get_unsupported_objects_local
       RETURNING
         VALUE(rt_objects) TYPE zif_abapgit_definitions=>ty_items_tt
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
   FINAL
-  CREATE PRIVATE .
+  CREATE PRIVATE.
 
   PUBLIC SECTION.
 
-    INTERFACES zif_abapgit_gui_event_handler .
-    INTERFACES zif_abapgit_gui_renderable .
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
 
     CLASS-METHODS create
       IMPORTING
@@ -27854,12 +27844,12 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
       RETURNING
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS constructor
       IMPORTING
         !ii_repo TYPE REF TO zif_abapgit_repo
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -27883,7 +27873,7 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
         block_commit                 TYPE string VALUE 'block_commit',
         flow                         TYPE string VALUE 'flow',
         exclude_remote_paths         TYPE string VALUE 'exclude_remote_paths',
-      END OF c_id .
+      END OF c_id.
     CONSTANTS:
       BEGIN OF c_event,
         save                       TYPE string VALUE 'save',
@@ -27891,12 +27881,12 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
         choose_customizing_request TYPE string VALUE 'choose_customizing_request',
         choose_labels              TYPE string VALUE 'choose-labels',
         choose_check_variant       TYPE string VALUE 'choose_check_variant',
-      END OF c_event .
-    DATA mo_form TYPE REF TO zcl_abapgit_html_form .
-    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map .
-    DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map .
-    DATA mi_repo TYPE REF TO zif_abapgit_repo .
-    DATA ms_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings .
+      END OF c_event.
+    DATA mo_form TYPE REF TO zcl_abapgit_html_form.
+    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map.
+    DATA mi_repo TYPE REF TO zif_abapgit_repo.
+    DATA ms_settings TYPE zif_abapgit_persistence=>ty_repo-local_settings.
 
     METHODS validate_form
       IMPORTING
@@ -27904,42 +27894,42 @@ CLASS zcl_abapgit_gui_page_sett_locl DEFINITION
       RETURNING
         VALUE(ro_validation_log) TYPE REF TO zcl_abapgit_string_map
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS get_form_schema
       RETURNING
         VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS read_settings
       RETURNING
         VALUE(ro_form_data) TYPE REF TO zcl_abapgit_string_map
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS save_settings
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS choose_labels
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS choose_check_variant
       IMPORTING
         iv_is_return TYPE abap_bool DEFAULT abap_false
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS choose_transport_request
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS choose_customizing_request
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS is_customizing_included
       RETURNING
         VALUE(rv_result) TYPE abap_bool
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS handle_picklist_state
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_sett_pers DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -28021,12 +28011,12 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
   FINAL
-  CREATE PRIVATE .
+  CREATE PRIVATE.
 
   PUBLIC SECTION.
 
-    INTERFACES zif_abapgit_gui_event_handler .
-    INTERFACES zif_abapgit_gui_renderable .
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
     INTERFACES zif_abapgit_gui_hotkeys.
 
     CLASS-METHODS create
@@ -28035,7 +28025,7 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
       RETURNING
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS constructor
       IMPORTING
         !ii_repo TYPE REF TO zif_abapgit_repo
@@ -28074,13 +28064,13 @@ CLASS zcl_abapgit_gui_page_sett_remo DEFINITION
         choose_commit       TYPE string VALUE 'choose_commit',
         choose_pull_request TYPE string VALUE 'choose_pull_request',
         change_head_type    TYPE string VALUE 'change_head_type',
-      END OF c_event .
+      END OF c_event.
 
-    DATA mi_repo TYPE REF TO zif_abapgit_repo .
+    DATA mi_repo TYPE REF TO zif_abapgit_repo.
     DATA ms_settings_snapshot TYPE ty_remote_settings.
-    DATA mo_form TYPE REF TO zcl_abapgit_html_form .
-    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map .
-    DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map .
+    DATA mo_form TYPE REF TO zcl_abapgit_html_form.
+    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map.
     DATA mv_refresh_on_back TYPE abap_bool.
     DATA mv_offline_switch_saved_url TYPE string.
 
@@ -28202,12 +28192,12 @@ ENDCLASS.
 CLASS zcl_abapgit_gui_page_sett_repo DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
   FINAL
-  CREATE PRIVATE .
+  CREATE PRIVATE.
 
   PUBLIC SECTION.
 
-    INTERFACES zif_abapgit_gui_event_handler .
-    INTERFACES zif_abapgit_gui_renderable .
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_renderable.
 
     CLASS-METHODS create
       IMPORTING
@@ -28215,12 +28205,12 @@ CLASS zcl_abapgit_gui_page_sett_repo DEFINITION
       RETURNING
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS constructor
       IMPORTING
         !ii_repo TYPE REF TO zif_abapgit_repo
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -28248,15 +28238,15 @@ CLASS zcl_abapgit_gui_page_sett_repo DEFINITION
     CONSTANTS:
       BEGIN OF c_event,
         save TYPE string VALUE 'save',
-      END OF c_event .
+      END OF c_event.
     CONSTANTS c_empty_rows TYPE i VALUE 2 ##NO_TEXT.
 
-    DATA mo_form TYPE REF TO zcl_abapgit_html_form .
-    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map .
-    DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map .
+    DATA mo_form TYPE REF TO zcl_abapgit_html_form.
+    DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
+    DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map.
 
-    DATA mi_repo TYPE REF TO zif_abapgit_repo .
-    DATA mv_requirements_count TYPE i .
+    DATA mi_repo TYPE REF TO zif_abapgit_repo.
+    DATA mv_requirements_count TYPE i.
 
     METHODS validate_form
       IMPORTING
@@ -28264,25 +28254,25 @@ CLASS zcl_abapgit_gui_page_sett_repo DEFINITION
       RETURNING
         VALUE(ro_validation_log) TYPE REF TO zcl_abapgit_string_map
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS validate_version_constant
       IMPORTING
         !iv_version_constant TYPE string
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS get_form_schema
       RETURNING
         VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS read_settings
       RETURNING
         VALUE(ro_form_data) TYPE REF TO zcl_abapgit_string_map
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
     METHODS save_settings
       RAISING
-        zcx_abapgit_exception .
+        zcx_abapgit_exception.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_chg_pckg DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -36990,6 +36980,8 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// and submit with sapevent' ).
     lo_buf->add( 'function submitSapeventForm(params, action, method, form) {' ).
     lo_buf->add( '' ).
+    lo_buf->add( '  var isSuppliedForm = Boolean(form);' ).
+    lo_buf->add( '' ).
     lo_buf->add( '  // A GET submit replaces the action URL''s query string with the form fields.' ).
     lo_buf->add( '  // On WebGUI that would wipe the ITS routing parameters the wired-up form' ).
     lo_buf->add( '  // action carries (~control / ~event / PARAMS), so the request no longer' ).
@@ -37041,6 +37033,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // Nothing wires up a form anywhere else, so outside the HTML GUI there is' ).
     lo_buf->add( '  // nothing to look for.' ).
     lo_buf->add( '  var itsParams = [];' ).
+    lo_buf->add( '  var originalItsParams = [];' ).
     lo_buf->add( '  var isItsForm = false;' ).
     lo_buf->add( '  var i;' ).
     lo_buf->add( '' ).
@@ -37055,6 +37048,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    // request with conflicting PARAMS would raise whichever event ITS picks.' ).
     lo_buf->add( '    // No escaping here, unlike the action below: the browser encodes the value' ).
     lo_buf->add( '    for (i = 0; i < itsParams.length; i++) {' ).
+    lo_buf->add( '      originalItsParams.push(itsParams[i].value);' ).
     lo_buf->add( '      itsParams[i].value = action;' ).
     lo_buf->add( '    }' ).
     lo_buf->add( '  } else if (isItsForm) {' ).
@@ -37095,7 +37089,20 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    }' ).
     lo_buf->add( '  }' ).
     lo_buf->add( '' ).
-    lo_buf->add( '  submitForm(form);' ).
+    lo_buf->add( '  try {' ).
+    lo_buf->add( '    submitForm(form);' ).
+    lo_buf->add( '  } finally {' ).
+    lo_buf->add( '    // A cancelled Back can leave the same settings DOM on screen. The submit' ).
+    lo_buf->add( '    // has consumed the temporary routing; keep the supplied form''s default' ).
+    lo_buf->add( '    // action and ITS fields ready for its next command (especially Save).' ).
+    lo_buf->add( '    if (isSuppliedForm) {' ).
+    lo_buf->add( '      if (form_action === null) form.removeAttribute("action");' ).
+    lo_buf->add( '      else form.setAttribute("action", form_action);' ).
+    lo_buf->add( '      for (i = 0; i < itsParams.length; i++) {' ).
+    lo_buf->add( '        itsParams[i].value = originalItsParams[i];' ).
+    lo_buf->add( '      }' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '  }' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '// Trigger a server-rendered sapevent element (anchor / submit input) the way a' ).
@@ -47125,10 +47132,11 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
                      iv_act = |{ zif_abapgit_definitions=>c_action-repo_refresh }?key={ mv_key }|
                      iv_opt = zif_abapgit_html=>c_html_opt-strong ).
 
-    zcl_abapgit_html_toolbar_lib=>render_repo_settings_dropdown(
-      io_toolbar = ro_toolbar
-      iv_key     = mv_key
-      iv_opt     = zif_abapgit_html=>c_html_opt-strong ).
+    ro_toolbar->add(
+      iv_txt   = 'Repo Settings'
+      iv_title = 'Repository Settings'
+      io_sub   = zcl_abapgit_gui_menus=>repo_settings( mv_key )
+      iv_opt   = zif_abapgit_html=>c_html_opt-strong ).
 
   ENDMETHOD.
   METHOD build_origlang_code.
@@ -48349,9 +48357,12 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_class    = |{ lc_action_class } { lc_offline_class }|
       iv_li_class = |{ lc_action_class }| ).
 
-    zcl_abapgit_html_toolbar_lib=>render_repo_settings_dropdown(
-      io_toolbar  = lo_toolbar
-      iv_key      = c_dummy_key
+    lo_toolbar->add(
+      iv_txt      = 'Repo Settings'
+      iv_title    = 'Repository Settings'
+      io_sub      = zcl_abapgit_gui_menus=>repo_settings(
+                      iv_key   = c_dummy_key
+                      iv_class = lc_action_class )
       iv_class    = |{ lc_action_class }|
       iv_li_class = |{ lc_action_class }| ).
 
@@ -48883,7 +48894,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_act = zif_abapgit_definitions=>c_action-repo_newoffline
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>settings( )
-      io_sub = zcl_abapgit_gui_menus=>settings( space )
+      io_sub = zcl_abapgit_gui_menus=>settings( )
     )->add(
       iv_txt = zcl_abapgit_gui_buttons=>refresh( )
       iv_act = c_action-refresh_list
@@ -52160,7 +52171,9 @@ CLASS zcl_abapgit_gui_page_sett_repo IMPLEMENTATION.
       iv_page_title      = 'Repository Settings'
       io_page_menu       = zcl_abapgit_gui_menus=>repo_settings(
                              iv_key = ii_repo->get_key( )
-                             iv_act = zif_abapgit_definitions=>c_action-repo_settings )
+                             iv_act = zif_abapgit_definitions=>c_action-repo_settings
+                             iv_with_back = abap_true
+                             iv_form_id   = 'repo-settings-form' )
       ii_child_component = lo_component ).
 
   ENDMETHOD.
@@ -52807,7 +52820,9 @@ CLASS zcl_abapgit_gui_page_sett_remo IMPLEMENTATION.
       iv_page_title      = 'Remote Settings'
       io_page_menu       = zcl_abapgit_gui_menus=>repo_settings(
                              iv_key = ii_repo->get_key( )
-                             iv_act = zif_abapgit_definitions=>c_action-repo_remote_settings )
+                             iv_act = zif_abapgit_definitions=>c_action-repo_remote_settings
+                             iv_with_back = abap_true
+                             iv_form_id   = 'repo-remote-settings-form' )
       ii_child_component = lo_component ).
 
   ENDMETHOD.
@@ -53526,7 +53541,10 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
       iv_page_title      = 'Personal Settings'
-      io_page_menu       = zcl_abapgit_gui_menus=>settings( zif_abapgit_definitions=>c_action-go_settings_personal )
+      io_page_menu       = zcl_abapgit_gui_menus=>settings(
+        iv_act       = zif_abapgit_definitions=>c_action-go_settings_personal
+        iv_with_back = abap_true
+        iv_form_id   = 'personal-setting-form' )
       ii_child_component = lo_component ).
 
   ENDMETHOD.
@@ -53839,7 +53857,7 @@ CLASS zcl_abapgit_gui_page_sett_pers IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
+CLASS zcl_abapgit_gui_page_sett_locl IMPLEMENTATION.
   METHOD choose_check_variant.
 
     DATA ls_variant         TYPE zif_abapgit_code_inspector=>ty_variant.
@@ -53935,7 +53953,9 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
       iv_page_title      = 'Local Settings & Checks'
       io_page_menu       = zcl_abapgit_gui_menus=>repo_settings(
                              iv_key = ii_repo->get_key( )
-                             iv_act = zif_abapgit_definitions=>c_action-repo_local_settings )
+                             iv_act = zif_abapgit_definitions=>c_action-repo_local_settings
+                             iv_with_back = abap_true
+                             iv_form_id   = 'repo-local-settings-form' )
       ii_child_component = lo_component ).
 
   ENDMETHOD.
@@ -54006,10 +54026,10 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
       iv_label    = 'BETA: Enable abapGit flow for this repository (requires transported packages)' ).
 
     ro_form->textarea(
-      iv_name        = c_id-exclude_remote_paths
-      iv_label       = 'Exclude Paths'
-      iv_hint        = 'List of files patterns (CP operator) to exclude from' &&
-                       ' syncronization (e.g. unwanted parts of the package, examples...)' ).
+      iv_name  = c_id-exclude_remote_paths
+      iv_label = 'Exclude Paths'
+      iv_hint  = 'List of files patterns (CP operator) to exclude from' &&
+                 ' syncronization (e.g. unwanted parts of the package, examples...)' ).
 
     ro_form->start_group(
       iv_name        = c_id-checks
@@ -54263,7 +54283,7 @@ CLASS ZCL_ABAPGIT_GUI_PAGE_SETT_LOCL IMPLEMENTATION.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
       ELSE.
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
-        rs_handled-page  = zcl_abapgit_gui_page_hoc=>create(
+        rs_handled-page = zcl_abapgit_gui_page_hoc=>create(
           ii_child_component = mo_popup_picklist
           iv_show_as_modal   = abap_true ).
       ENDIF.
@@ -54320,7 +54340,8 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
       iv_page_title      = 'Repository Stats'
       io_page_menu       = zcl_abapgit_gui_menus=>repo_settings(
                              iv_key = ii_repo->get_key( )
-                             iv_act = zif_abapgit_definitions=>c_action-repo_infos )
+                             iv_act = zif_abapgit_definitions=>c_action-repo_infos
+                             iv_with_back = abap_true )
       ii_child_component = lo_component ).
 
   ENDMETHOD.
@@ -54353,8 +54374,10 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
     ENDIF.
 
     cl_abap_tstmp=>move(
-      EXPORTING tstmp_src = iv_timestamp
-      IMPORTING tstmp_tgt = lv_short ).
+      EXPORTING
+        tstmp_src = iv_timestamp
+      IMPORTING
+        tstmp_tgt = lv_short ).
 
     rv_timestamp = |{ lv_short TIMESTAMP = ISO }|.
 
@@ -54383,8 +54406,8 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
     DATA lv_label TYPE string.
 
     ro_form = zcl_abapgit_html_form=>create(
-                iv_form_id   = 'repo-infos-form'
-                iv_help_page = 'https://docs.abapgit.org/settings-stats.html' ).
+      iv_form_id   = 'repo-infos-form'
+      iv_help_page = 'https://docs.abapgit.org/settings-stats.html' ).
 
     IF mi_repo->is_offline( ) = abap_true.
       lv_label = 'ZIP File'.
@@ -54430,6 +54453,27 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
       iv_label       = 'Back'
       iv_cmd_type    = zif_abapgit_html_form=>c_cmd_type-link
       iv_action      = zif_abapgit_definitions=>c_action-go_back ).
+
+  ENDMETHOD.
+  METHOD get_unsupported_objects_local.
+
+    DATA: lt_tadir           TYPE zif_abapgit_definitions=>ty_tadir_tt,
+          lt_supported_types TYPE zif_abapgit_objects=>ty_types_tt.
+
+    FIELD-SYMBOLS: <ls_tadir>  LIKE LINE OF lt_tadir,
+                   <ls_object> LIKE LINE OF rt_objects.
+
+    lt_tadir = mi_repo->get_tadir_objects( ).
+
+    lt_supported_types = zcl_abapgit_objects=>supported_list( ).
+    LOOP AT lt_tadir ASSIGNING <ls_tadir>.
+      READ TABLE lt_supported_types WITH KEY table_line = <ls_tadir>-object TRANSPORTING NO FIELDS.
+      IF sy-subrc <> 0.
+        APPEND INITIAL LINE TO rt_objects ASSIGNING <ls_object>.
+        MOVE-CORRESPONDING <ls_tadir> TO <ls_object>.
+        <ls_object>-obj_type = <ls_tadir>-object.
+      ENDIF.
+    ENDLOOP.
 
   ENDMETHOD.
   METHOD read_settings.
@@ -54749,27 +54793,6 @@ CLASS zcl_abapgit_gui_page_sett_info IMPLEMENTATION.
     ri_html->add( `</div>` ).
 
   ENDMETHOD.
-  METHOD get_unsupported_objects_local.
-
-    DATA: lt_tadir           TYPE zif_abapgit_definitions=>ty_tadir_tt,
-          lt_supported_types TYPE zif_abapgit_objects=>ty_types_tt.
-
-    FIELD-SYMBOLS: <ls_tadir>  LIKE LINE OF lt_tadir,
-                   <ls_object> LIKE LINE OF rt_objects.
-
-    lt_tadir = mi_repo->get_tadir_objects( ).
-
-    lt_supported_types = zcl_abapgit_objects=>supported_list( ).
-    LOOP AT lt_tadir ASSIGNING <ls_tadir>.
-      READ TABLE lt_supported_types WITH KEY table_line = <ls_tadir>-object TRANSPORTING NO FIELDS.
-      IF sy-subrc <> 0.
-        APPEND INITIAL LINE TO rt_objects ASSIGNING <ls_object>.
-        MOVE-CORRESPONDING <ls_tadir> TO <ls_object>.
-        <ls_object>-obj_type = <ls_tadir>-object.
-      ENDIF.
-    ENDLOOP.
-
-  ENDMETHOD.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
@@ -54790,7 +54813,10 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
       iv_page_title      = 'Global Settings'
-      io_page_menu       = zcl_abapgit_gui_menus=>settings( zif_abapgit_definitions=>c_action-go_settings )
+      io_page_menu       = zcl_abapgit_gui_menus=>settings(
+        iv_act       = zif_abapgit_definitions=>c_action-go_settings
+        iv_with_back = abap_true
+        iv_form_id   = 'global-setting-form' )
       ii_child_component = lo_component ).
 
   ENDMETHOD.
@@ -54905,7 +54931,7 @@ CLASS zcl_abapgit_gui_page_sett_glob IMPLEMENTATION.
       iv_val = boolc( mo_settings->get_proxy_authentication( ) = abap_true ) ) ##TYPE.
 
     read_proxy_bypass(
-      io_settings = mo_settings
+      io_settings  = mo_settings
       io_form_data = ro_form_data ).
 
     " Commit Message
@@ -55071,7 +55097,9 @@ CLASS zcl_abapgit_gui_page_sett_bckg IMPLEMENTATION.
       iv_page_title      = 'Background Mode'
       io_page_menu       = zcl_abapgit_gui_menus=>repo_settings(
                              iv_key = ii_repo->get_key( )
-                             iv_act = zif_abapgit_definitions=>c_action-repo_background )
+                             iv_act = zif_abapgit_definitions=>c_action-repo_background
+                             iv_with_back = abap_true
+                             iv_form_id   = 'repo-background-form' )
       ii_child_component = lo_component ).
 
   ENDMETHOD.
@@ -55085,8 +55113,8 @@ CLASS zcl_abapgit_gui_page_sett_bckg IMPLEMENTATION.
     lt_methods = zcl_abapgit_background=>list_methods( ).
 
     ro_form = zcl_abapgit_html_form=>create(
-                iv_form_id   = 'repo-background-form'
-                iv_help_page = 'https://docs.abapgit.org/settings-background-mode.html' ).
+      iv_form_id   = 'repo-background-form'
+      iv_help_page = 'https://docs.abapgit.org/settings-background-mode.html' ).
 
     ro_form->start_group(
       iv_name          = c_id-mode_selection
@@ -55102,8 +55130,8 @@ CLASS zcl_abapgit_gui_page_sett_bckg IMPLEMENTATION.
 
     LOOP AT lt_methods INTO ls_method.
       ro_form->option(
-        iv_label       = ls_method-description
-        iv_value       = ls_method-class ).
+        iv_label = ls_method-description
+        iv_value = ls_method-class ).
     ENDLOOP.
 
     ro_form->table(
@@ -55223,8 +55251,8 @@ CLASS zcl_abapgit_gui_page_sett_bckg IMPLEMENTATION.
   METHOD save_settings.
 
     DATA:
-      ls_per         TYPE zif_abapgit_persist_background=>ty_background,
-      lt_settings    LIKE ls_per-settings.
+      ls_per      TYPE zif_abapgit_persist_background=>ty_background,
+      lt_settings LIKE ls_per-settings.
 
     FIELD-SYMBOLS:
       <ls_settings> LIKE LINE OF ls_per-settings.
@@ -60394,55 +60422,6 @@ CLASS zcl_abapgit_log_viewer IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS zcl_abapgit_html_toolbar_lib IMPLEMENTATION.
-
-  METHOD render_repo_settings_dropdown.
-
-    ASSERT io_toolbar IS BOUND.
-
-    io_toolbar->add( iv_txt      = 'Repo Settings'
-                     io_sub      = build_repo_settings_dropdown( iv_key   = iv_key
-                                                                 iv_class = iv_class )
-                     iv_opt      = iv_opt
-                     iv_title    = `Repository Settings`
-                     iv_class    = iv_class
-                     iv_li_class = iv_li_class ).
-
-  ENDMETHOD.
-  METHOD build_repo_settings_dropdown.
-
-    CREATE OBJECT ro_toolbar.
-
-    ro_toolbar->add(
-      iv_txt   = 'Repository'
-      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_settings }?key={ iv_key }|
-      iv_class = iv_class
-      iv_title = `Repository Settings`
-    )->add(
-      iv_txt   = 'Local'
-      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_local_settings }?key={ iv_key }|
-      iv_class = iv_class
-      iv_title = `Local Settings`
-    )->add(
-      iv_txt   = 'Remote'
-      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_remote_settings }?key={ iv_key }|
-      iv_class = iv_class
-      iv_title = `Remote Settings`
-    )->add(
-      iv_txt   = 'Background'
-      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_background }?key={ iv_key }|
-      iv_class = iv_class
-      iv_title = `Background Settings`
-    )->add(
-      iv_txt   = 'Stats'
-      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_infos }?key={ iv_key }|
-      iv_class = iv_class
-      iv_title = `Statistics` ).
-
-  ENDMETHOD.
-
-ENDCLASS.
-
 CLASS ZCL_ABAPGIT_HTML_TOOLBAR IMPLEMENTATION.
   METHOD add.
     DATA ls_item TYPE ty_item.
@@ -62951,6 +62930,24 @@ CLASS zcl_abapgit_gui_page IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_menus IMPLEMENTATION.
+  METHOD add_back.
+
+    IF iv_with_back = abap_true.
+      IF iv_form_id IS INITIAL.
+        io_menu->add(
+          iv_txt = 'Back'
+          iv_act = zif_abapgit_definitions=>c_action-go_back ).
+      ELSE.
+        " Submit current fields for the page's dirty check
+        io_menu->add(
+          iv_txt = 'Back'
+          iv_typ = zif_abapgit_html=>c_action_type-onclick
+          iv_act = |submitSapeventForm(\{ \}, '{ zif_abapgit_definitions=>c_action-go_back }', 'post', |
+                && |document.getElementById('{ iv_form_id }'))| ).
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD advanced.
 
     ro_menu = zcl_abapgit_html_toolbar=>create( 'toolbar-advanced' ).
@@ -63022,30 +63019,47 @@ CLASS zcl_abapgit_gui_menus IMPLEMENTATION.
     ro_menu = zcl_abapgit_html_toolbar=>create( 'toolbar-repo-settings' ).
 
     ro_menu->add(
-      iv_txt = 'Repository'
-      iv_act = |{ zif_abapgit_definitions=>c_action-repo_settings }?key={ iv_key }|
-      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_settings )
+      iv_txt   = 'Repository'
+      iv_title = `Repository Settings`
+      iv_class = iv_class
+      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_settings }?key={ iv_key }|
+      iv_cur   = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_settings )
     )->add(
-      iv_txt = 'Local'
-      iv_act = |{ zif_abapgit_definitions=>c_action-repo_local_settings }?key={ iv_key }|
-      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_local_settings )
+      iv_txt   = 'Local'
+      iv_title = `Local Settings`
+      iv_class = iv_class
+      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_local_settings }?key={ iv_key }|
+      iv_cur   = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_local_settings )
     )->add(
-      iv_txt = 'Remote'
-      iv_act = |{ zif_abapgit_definitions=>c_action-repo_remote_settings }?key={ iv_key }|
-      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_remote_settings )
+      iv_txt   = 'Remote'
+      iv_title = `Remote Settings`
+      iv_class = iv_class
+      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_remote_settings }?key={ iv_key }|
+      iv_cur   = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_remote_settings )
     )->add(
-      iv_txt = 'Background'
-      iv_act = |{ zif_abapgit_definitions=>c_action-repo_background }?key={ iv_key }|
-      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_background )
+      iv_txt   = 'Background'
+      iv_title = `Background Settings`
+      iv_class = iv_class
+      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_background }?key={ iv_key }|
+      iv_cur   = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_background )
     )->add(
-      iv_txt = 'Stats'
-      iv_act = |{ zif_abapgit_definitions=>c_action-repo_infos }?key={ iv_key }|
-      iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_infos ) ).
+      iv_txt   = 'Stats'
+      iv_title = `Statistics`
+      iv_class = iv_class
+      iv_act   = |{ zif_abapgit_definitions=>c_action-repo_infos }?key={ iv_key }|
+      iv_cur   = boolc( iv_act = zif_abapgit_definitions=>c_action-repo_infos ) ).
 
-    zcl_abapgit_exit=>get_instance( )->enhance_repo_toolbar(
-      io_menu = ro_menu
-      iv_key  = iv_key
-      iv_act  = iv_act ).
+    IF iv_act IS NOT INITIAL.
+      zcl_abapgit_exit=>get_instance( )->enhance_repo_toolbar(
+        io_menu = ro_menu
+        iv_key  = iv_key
+        iv_act  = iv_act ).
+    ENDIF.
+
+    add_back(
+      io_menu      = ro_menu
+      iv_with_back = iv_with_back
+      iv_form_id   = iv_form_id ).
 
   ENDMETHOD.
   METHOD settings.
@@ -63060,6 +63074,11 @@ CLASS zcl_abapgit_gui_menus IMPLEMENTATION.
       iv_txt = 'Personal'
       iv_act = zif_abapgit_definitions=>c_action-go_settings_personal
       iv_cur = boolc( iv_act = zif_abapgit_definitions=>c_action-go_settings_personal ) ).
+
+    add_back(
+      io_menu      = ro_menu
+      iv_with_back = iv_with_back
+      iv_form_id   = iv_form_id ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -159865,8 +159884,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-15T12:34:19.498Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-15T12:34:19.498Z`.
+* abapmerge 0.16.10 - 2026-10-16T14:23:54.494Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-16T14:23:54.494Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
