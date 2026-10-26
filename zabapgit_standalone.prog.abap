@@ -4519,6 +4519,7 @@ INTERFACE zif_abapgit_definitions .
       go_file_diff                  TYPE string VALUE 'go_file_diff',
       go_home                       TYPE string VALUE 'go_home',
       go_patch                      TYPE string VALUE 'go_patch',
+      go_patch_me                   TYPE string VALUE 'go_patch_me',
       go_repo                       TYPE string VALUE 'go_repo',
       go_repo_diff                  TYPE string VALUE 'go_repo_diff',
       go_repo_diff_me               TYPE string VALUE 'go_repo_diff_me',
@@ -26581,6 +26582,7 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION
         iv_check_variant         TYPE sci_chkv OPTIONAL
         iv_raise_when_no_results TYPE abap_bool DEFAULT abap_false
         iv_followup_action       TYPE string DEFAULT c_actions-stage
+        iv_changed_by            TYPE syuname OPTIONAL
       RETURNING
         VALUE(ri_page)           TYPE REF TO zif_abapgit_gui_renderable
       RAISING
@@ -26593,6 +26595,7 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION
         iv_check_variant         TYPE sci_chkv OPTIONAL
         iv_raise_when_no_results TYPE abap_bool DEFAULT abap_false
         iv_followup_action       TYPE string DEFAULT c_actions-stage
+        iv_changed_by            TYPE syuname OPTIONAL
       RAISING
         zcx_abapgit_exception.
 
@@ -26602,6 +26605,7 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION
     DATA mo_stage         TYPE REF TO zcl_abapgit_stage.
     DATA mv_check_variant    TYPE sci_chkv.
     DATA mv_followup_action  TYPE string.
+    DATA mv_changed_by       TYPE syuname.
 
     METHODS:
       run_code_inspector
@@ -27331,6 +27335,7 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
         !is_file       TYPE zif_abapgit_git_definitions=>ty_file OPTIONAL
         !is_object     TYPE zif_abapgit_definitions=>ty_item OPTIONAL
         !it_files      TYPE zif_abapgit_definitions=>ty_stage_tt OPTIONAL
+        !iv_changed_by TYPE syuname OPTIONAL
         !iv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result DEFAULT zif_abapgit_definitions=>c_sci_result-no_run
       RETURNING
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
@@ -27343,6 +27348,7 @@ CLASS zcl_abapgit_gui_page_patch DEFINITION
         !is_file       TYPE zif_abapgit_git_definitions=>ty_file OPTIONAL
         !is_object     TYPE zif_abapgit_definitions=>ty_item OPTIONAL
         !it_files      TYPE zif_abapgit_definitions=>ty_stage_tt OPTIONAL
+        !iv_changed_by TYPE syuname OPTIONAL
         !iv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result DEFAULT zif_abapgit_definitions=>c_sci_result-no_run
       RAISING
         zcx_abapgit_exception.
@@ -29656,6 +29662,9 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
         VALUE(ro_tag_dropdown) TYPE REF TO zcl_abapgit_html_toolbar
       RAISING
         zcx_abapgit_exception .
+    METHODS build_patch_dropdown
+      RETURNING
+        VALUE(ro_patch_dropdown) TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS build_diff_dropdown
       RETURNING
         VALUE(ro_diff_dropdown) TYPE REF TO zcl_abapgit_html_toolbar .
@@ -30307,9 +30316,10 @@ CLASS zcl_abapgit_gui_router DEFINITION
         zcx_abapgit_exception .
     METHODS get_page_patch
       IMPORTING
-        !ii_event      TYPE REF TO zif_abapgit_gui_event
+        !ii_event         TYPE REF TO zif_abapgit_gui_event
+        !iv_changed_by_me TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+        VALUE(ri_page)    TYPE REF TO zif_abapgit_gui_renderable
       RAISING
         zcx_abapgit_exception .
     METHODS get_page_stage
@@ -44512,6 +44522,10 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-go_patch.                       " Go Patch page
         rs_handled-page  = get_page_patch( ii_event ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_w_bookmark.
+      WHEN zif_abapgit_definitions=>c_action-go_patch_me.                    " Go Patch page, own changes only
+        rs_handled-page  = get_page_patch( ii_event         = ii_event
+                                           iv_changed_by_me = abap_true ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page_w_bookmark.
       WHEN zif_abapgit_definitions=>c_action-go_stage.                        " Go Staging page
         rs_handled-page  = get_page_stage( ii_event ).
         rs_handled-state = get_state_diff( ii_event ).
@@ -44576,6 +44590,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
           ls_object     TYPE zif_abapgit_definitions=>ty_item,
           lv_key        TYPE zif_abapgit_persistence=>ty_repo-key,
           li_repo       TYPE REF TO zif_abapgit_repo,
+          lv_user       TYPE syuname,
           lv_sci_result TYPE zif_abapgit_definitions=>ty_sci_result.
 
     lv_key             = ii_event->query( )->get( 'KEY' ).
@@ -44588,13 +44603,21 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
 
     li_repo = zcl_abapgit_repo_srv=>get_instance( )->get( lv_key ).
 
+    IF iv_changed_by_me = abap_true.
+      IF li_repo->is_offline( ) = abap_true.
+        zcx_abapgit_exception=>raise( |Patching is only possible for online repositories.| ).
+      ENDIF.
+      lv_user = sy-uname.
+    ENDIF.
+
     IF li_repo->get_local_settings( )-code_inspector_check_variant IS NOT INITIAL.
 
       TRY.
           ri_page = zcl_abapgit_gui_page_code_insp=>create(
             ii_repo                  = li_repo
             iv_raise_when_no_results = abap_true
-            iv_followup_action       = zcl_abapgit_gui_page_codi_base=>c_actions-patch ).
+            iv_followup_action       = zcl_abapgit_gui_page_codi_base=>c_actions-patch
+            iv_changed_by            = lv_user ).
 
         CATCH zcx_abapgit_exception.
           lv_sci_result = zif_abapgit_definitions=>c_sci_result-passed.
@@ -44607,6 +44630,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         iv_key        = lv_key
         is_file       = ls_file
         is_object     = ls_object
+        iv_changed_by = lv_user
         iv_sci_result = lv_sci_result ).
     ENDIF.
 
@@ -47079,7 +47103,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
       IF mo_repo_aggregated_state->is_unchanged( ) = abap_false. " Any changes
         ro_toolbar->add( iv_txt = 'Patch'
-                         iv_act = |{ zif_abapgit_definitions=>c_action-go_patch }?key={ mv_key }|
+                         io_sub = build_patch_dropdown( )
                          iv_opt = zif_abapgit_html=>c_html_opt-strong ).
         ro_toolbar->add( iv_txt = 'Diff'
                          io_sub = build_diff_dropdown( )
@@ -47177,6 +47201,17 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ro_diff_dropdown->add( iv_txt   = 'My Changes'
                            iv_title = 'Diff only your own changes'
                            iv_act   = |{ zif_abapgit_definitions=>c_action-go_repo_diff_me }?key={ mv_key }| ).
+
+  ENDMETHOD.
+  METHOD build_patch_dropdown.
+
+    CREATE OBJECT ro_patch_dropdown.
+
+    ro_patch_dropdown->add( iv_txt = 'All Changes'
+                            iv_act = |{ zif_abapgit_definitions=>c_action-go_patch }?key={ mv_key }| ).
+    ro_patch_dropdown->add( iv_txt   = 'My Changes'
+                            iv_title = 'Patch only the objects you changed'
+                            iv_act   = |{ zif_abapgit_definitions=>c_action-go_patch_me }?key={ mv_key }| ).
 
   ENDMETHOD.
   METHOD build_tag_dropdown.
@@ -47807,6 +47842,11 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ls_hotkey_action-hotkey = |a|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
+    ls_hotkey_action-description = |Patch My Changes|.
+    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_patch_me.
+    ls_hotkey_action-hotkey = |m|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
     ls_hotkey_action-description   = |Diff|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_repo_diff.
     ls_hotkey_action-hotkey = |d|.
@@ -48329,6 +48369,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
     DATA lo_toolbar_more_sub TYPE REF TO zcl_abapgit_html_toolbar.
+    DATA lo_toolbar_patch_sub TYPE REF TO zcl_abapgit_html_toolbar.
     DATA lo_toolbar_diff_sub TYPE REF TO zcl_abapgit_html_toolbar.
     DATA lv_dummy_key_param TYPE string.
 
@@ -48348,9 +48389,24 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_class    = |{ lc_action_class } { lc_online_class }|
       iv_li_class = |{ lc_action_class }| ).
 
+    CREATE OBJECT lo_toolbar_patch_sub EXPORTING iv_id = 'toolbar-ovp-patch_sub'.
+
+    lo_toolbar_patch_sub->add(
+      iv_txt      = |All Changes|
+      iv_act      = |{ zif_abapgit_definitions=>c_action-go_patch }{ lv_dummy_key_param }|
+      iv_class    = |{ lc_action_class } { lc_online_class }|
+      iv_li_class = |{ lc_action_class }| ).
+
+    lo_toolbar_patch_sub->add(
+      iv_txt      = |My Changes|
+      iv_title    = |Patch only the objects you changed|
+      iv_act      = |{ zif_abapgit_definitions=>c_action-go_patch_me }{ lv_dummy_key_param }|
+      iv_class    = |{ lc_action_class } { lc_online_class }|
+      iv_li_class = |{ lc_action_class }| ).
+
     lo_toolbar->add(
       iv_txt      = |Patch|
-      iv_act      = |{ zif_abapgit_definitions=>c_action-go_patch }{ lv_dummy_key_param }|
+      io_sub      = lo_toolbar_patch_sub
       iv_class    = |{ lc_action_class } { lc_online_class }|
       iv_li_class = |{ lc_action_class }| ).
 
@@ -48885,6 +48941,11 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
     ls_hotkey_action-description = |Patch|.
     ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_patch.
     ls_hotkey_action-hotkey = |a|.
+    INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
+
+    ls_hotkey_action-description = |Patch My Changes|.
+    ls_hotkey_action-action = zif_abapgit_definitions=>c_action-go_patch_me.
+    ls_hotkey_action-hotkey = |m|.
     INSERT ls_hotkey_action INTO TABLE rt_hotkey_actions.
 
     ls_hotkey_action-description = |Refresh|.
@@ -56274,10 +56335,11 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
     DATA ls_file LIKE LINE OF mt_files.
 
     super->constructor(
-      iv_key    = iv_key
-      is_file   = is_file
-      is_object = is_object
-      it_files  = it_files ).
+      iv_key        = iv_key
+      is_file       = is_file
+      is_object     = is_object
+      it_files      = it_files
+      iv_changed_by = iv_changed_by ).
 
     IF mi_repo->is_offline( ) = abap_true.
       zcx_abapgit_exception=>raise( |Patching is only possible for online repositories.| ).
@@ -56347,6 +56409,7 @@ CLASS zcl_abapgit_gui_page_patch IMPLEMENTATION.
         is_file       = is_file
         is_object     = is_object
         it_files      = it_files
+        iv_changed_by = iv_changed_by
         iv_sci_result = iv_sci_result.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
@@ -59850,6 +59913,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     mo_stage = io_stage.
     mv_check_variant = iv_check_variant.
     mv_followup_action = iv_followup_action.
+    mv_changed_by = iv_changed_by.
     determine_check_variant( ).
     run_code_inspector( ).
 
@@ -59868,7 +59932,8 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
         io_stage                 = io_stage
         iv_check_variant         = iv_check_variant
         iv_raise_when_no_results = iv_raise_when_no_results
-        iv_followup_action       = iv_followup_action.
+        iv_followup_action       = iv_followup_action
+        iv_changed_by            = iv_changed_by.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create( lo_component ).
 
@@ -59958,6 +60023,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
 
           rs_handled-page = zcl_abapgit_gui_page_patch=>create(
             iv_key        = mi_repo->get_key( )
+            iv_changed_by = mv_changed_by
             iv_sci_result = status( ) ).
 
           rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
@@ -160348,8 +160414,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-26T15:40:25.326Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-26T15:40:25.326Z`.
+* abapmerge 0.16.10 - 2026-10-26T17:56:36.943Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-26T17:56:36.943Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
