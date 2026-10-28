@@ -33217,6 +33217,11 @@ CLASS kHGwlBBLPuLkmYTcKxvveIQhGnfrcH IMPLEMENTATION.
                            im_bcp47 = 'ja'
                            iv_text  = 'Japanese' ).
 
+    fill_language_mapping( im_sap1  = 'BC4B'
+                           im_sap2  = 'KK'
+                           im_bcp47 = 'kk'
+                           iv_text  = 'Kazakh' ).
+
     fill_language_mapping( im_sap1  = '3'
                            im_sap2  = 'KO'
                            im_bcp47 = 'ko'
@@ -160414,8 +160419,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-26T17:56:36.943Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-26T17:56:36.943Z`.
+* abapmerge 0.16.10 - 2026-10-28T09:33:23.171Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-28T09:33:23.171Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
