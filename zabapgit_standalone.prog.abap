@@ -41789,9 +41789,12 @@ CLASS kHGwlrVRrOJtQtrmwQhffrvwSNBuVh IMPLEMENTATION.
 
     IF sy-subrc = 0.
 
+      " Without set_functions, SALV hides its standard functions of the
+      " status (filter, sort)
       mo_alv->set_screen_status(
-        report   = sy-cprog
-        pfstatus = c_own_pfstatus ).
+        report        = sy-cprog
+        pfstatus      = c_own_pfstatus
+        set_functions = cl_salv_model_base=>c_functions_all ).
 
     ELSE.
 
@@ -160471,8 +160474,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-28T14:42:21.362Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-28T14:42:21.362Z`.
+* abapmerge 0.16.10 - 2026-10-28T14:45:29.552Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-28T14:45:29.552Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
