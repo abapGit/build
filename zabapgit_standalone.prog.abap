@@ -6319,6 +6319,13 @@ INTERFACE zif_abapgit_exit.
     RAISING
       zcx_abapgit_exception.
 
+  METHODS post_pull
+    IMPORTING
+      !ii_repo TYPE REF TO zif_abapgit_repo
+      !ii_log  TYPE REF TO zif_abapgit_log
+    RAISING
+      zcx_abapgit_exception.
+
   METHODS pre_calculate_repo_status
     IMPORTING
       !is_repo_meta TYPE zif_abapgit_persistence=>ty_repo
@@ -73764,6 +73771,10 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     update_last_deserialize( ).
 
     COMMIT WORK AND WAIT.
+
+    li_exit->post_pull(
+      ii_repo = me
+      ii_log  = ii_log ).
 
   ENDMETHOD.
   METHOD zif_abapgit_repo~deserialize_checks.
@@ -153476,6 +153487,18 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_exit~post_pull.
+
+    IF gi_exit IS NOT INITIAL.
+      TRY.
+          gi_exit->post_pull(
+            ii_repo = ii_repo
+            ii_log  = ii_log ).
+        CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+      ENDTRY.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_exit~pre_calculate_repo_status.
 
     IF gi_exit IS NOT INITIAL.
@@ -160596,8 +160619,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-28T15:07:01.553Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-28T15:07:01.553Z`.
+* abapmerge 0.16.10 - 2026-10-28T16:21:35.397Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-28T16:21:35.397Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
