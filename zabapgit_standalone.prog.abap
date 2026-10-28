@@ -86794,7 +86794,7 @@ CLASS zcl_abapgit_object_vcls IMPLEMENTATION.
                   CHANGING cg_data = lt_vclstruc ).
     io_xml->read( EXPORTING iv_name = 'VCLSTRUDEP_TAB'
                   CHANGING cg_data = lt_vclstrudep ).
-    io_xml->read( EXPORTING iv_name = 'lt_vclstrudep'
+    io_xml->read( EXPORTING iv_name = 'VCLMF_TAB'
                   CHANGING cg_data = lt_vclmf ).
 
     ls_vcldir_entry-author = sy-uname.
@@ -160678,8 +160678,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-28T20:32:54.387Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-28T20:32:54.387Z`.
+* abapmerge 0.16.10 - 2026-10-28T20:51:26.349Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-28T20:51:26.349Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
