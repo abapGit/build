@@ -25751,6 +25751,8 @@ CLASS zcl_abapgit_gui_picklist DEFINITION
         !iv_title         TYPE string DEFAULT 'Choose from list'
         !iv_attr_name     TYPE abap_compname OPTIONAL
         !ii_item_renderer TYPE REF TO zif_abapgit_gui_render_item OPTIONAL
+        !iv_description   TYPE string OPTIONAL
+        !iv_button_label  TYPE string OPTIONAL
       RAISING
         zcx_abapgit_exception.
     METHODS get_result_idx
@@ -25806,6 +25808,8 @@ CLASS zcl_abapgit_gui_picklist DEFINITION
     DATA mv_in_page TYPE abap_bool.
     DATA mv_id TYPE string.
     DATA mv_title TYPE string.
+    DATA mv_description TYPE string.
+    DATA mv_button_label TYPE string.
 
     METHODS get_form_schema
       RETURNING
@@ -30019,6 +30023,8 @@ CLASS zcl_abapgit_popup_branch_list DEFINITION
         !iv_show_new_option TYPE abap_bool DEFAULT abap_false
         !iv_hide_branch     TYPE zif_abapgit_git_definitions=>ty_git_branch-name OPTIONAL
         !iv_hide_head       TYPE abap_bool DEFAULT abap_false
+        !iv_description     TYPE string OPTIONAL
+        !iv_button_label    TYPE string OPTIONAL
       RETURNING
         VALUE(ri_popup)     TYPE REF TO zif_abapgit_html_popup.
 
@@ -30028,7 +30034,9 @@ CLASS zcl_abapgit_popup_branch_list DEFINITION
         !iv_default_branch  TYPE string OPTIONAL
         !iv_show_new_option TYPE abap_bool DEFAULT abap_false
         !iv_hide_branch     TYPE zif_abapgit_git_definitions=>ty_git_branch-name OPTIONAL
-        !iv_hide_head       TYPE abap_bool DEFAULT abap_false.
+        !iv_hide_head       TYPE abap_bool DEFAULT abap_false
+        !iv_description     TYPE string OPTIONAL
+        !iv_button_label    TYPE string OPTIONAL.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -30038,6 +30046,8 @@ CLASS zcl_abapgit_popup_branch_list DEFINITION
     DATA mv_show_new_option TYPE abap_bool.
     DATA mv_hide_branch TYPE zif_abapgit_git_definitions=>ty_git_branch-name.
     DATA mv_hide_head TYPE abap_bool.
+    DATA mv_description TYPE string.
+    DATA mv_button_label TYPE string.
 
     METHODS fetch_branch_list
       RETURNING
@@ -30110,17 +30120,23 @@ CLASS zcl_abapgit_popup_tag_list DEFINITION
     CLASS-METHODS create
       IMPORTING
         iv_url          TYPE string
+        iv_description  TYPE string OPTIONAL
+        iv_button_label TYPE string OPTIONAL
       RETURNING
         VALUE(ri_popup) TYPE REF TO zif_abapgit_html_popup.
 
     METHODS constructor
       IMPORTING
-        iv_url TYPE string.
+        iv_url          TYPE string
+        iv_description  TYPE string OPTIONAL
+        iv_button_label TYPE string OPTIONAL.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
 
     DATA mv_repo_url TYPE string.
+    DATA mv_description TYPE string.
+    DATA mv_button_label TYPE string.
 
     METHODS fetch_tag_list
       RETURNING
@@ -45437,12 +45453,16 @@ ENDCLASS.
 
 CLASS zcl_abapgit_popup_tag_list IMPLEMENTATION.
   METHOD constructor.
-    mv_repo_url = iv_url.
+    mv_repo_url     = iv_url.
+    mv_description  = iv_description.
+    mv_button_label = iv_button_label.
   ENDMETHOD.
   METHOD create.
     CREATE OBJECT ri_popup TYPE zcl_abapgit_popup_tag_list
       EXPORTING
-        iv_url = iv_url.
+        iv_url          = iv_url
+        iv_description  = iv_description
+        iv_button_label = iv_button_label.
   ENDMETHOD.
   METHOD fetch_tag_list.
 
@@ -45475,7 +45495,9 @@ CLASS zcl_abapgit_popup_tag_list IMPLEMENTATION.
       EXPORTING
         iv_title         = 'Choose Tag'
         it_list          = fetch_tag_list( )
-        ii_item_renderer = me.
+        ii_item_renderer = me
+        iv_description   = mv_description
+        iv_button_label  = mv_button_label.
 
   ENDMETHOD.
 ENDCLASS.
@@ -45558,6 +45580,8 @@ CLASS zcl_abapgit_popup_branch_list IMPLEMENTATION.
     mv_show_new_option = iv_show_new_option.
     mv_hide_branch     = iv_hide_branch.
     mv_hide_head       = iv_hide_head.
+    mv_description     = iv_description.
+    mv_button_label    = iv_button_label.
   ENDMETHOD.
   METHOD create.
     CREATE OBJECT ri_popup TYPE zcl_abapgit_popup_branch_list
@@ -45566,7 +45590,9 @@ CLASS zcl_abapgit_popup_branch_list IMPLEMENTATION.
         iv_default_branch  = iv_default_branch
         iv_show_new_option = iv_show_new_option
         iv_hide_branch     = iv_hide_branch
-        iv_hide_head       = iv_hide_head.
+        iv_hide_head       = iv_hide_head
+        iv_description     = iv_description
+        iv_button_label    = iv_button_label.
   ENDMETHOD.
   METHOD fetch_branch_list.
 
@@ -45653,7 +45679,9 @@ CLASS zcl_abapgit_popup_branch_list IMPLEMENTATION.
       EXPORTING
         iv_title         = 'Choose Branch'
         it_list          = fetch_branch_list( )
-        ii_item_renderer = me.
+        ii_item_renderer = me
+        iv_description   = mv_description
+        iv_button_label  = mv_button_label.
 
   ENDMETHOD.
 ENDCLASS.
@@ -46659,6 +46687,8 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
         iv_default_branch  = zcl_abapgit_git_branch_utils=>get_display_name(
                                mi_repo_online->get_selected_branch( ) )
         iv_show_new_option = abap_true
+        iv_description     = 'Select the branch to switch to'
+        iv_button_label    = 'Switch to'
         )->create_picklist(
         )->set_id( zif_abapgit_definitions=>c_action-git_branch_switch
         )->set_in_page( ).
@@ -49167,15 +49197,26 @@ CLASS zcl_abapgit_gui_page_ref_sel IMPLEMENTATION.
           iv_default_branch  = zcl_abapgit_git_branch_utils=>get_display_name(
                                  li_repo_online->get_selected_branch( ) )
           iv_hide_branch     = li_repo_online->get_selected_branch( )
-          iv_show_new_option = abap_true )->create_picklist( ).
+          iv_show_new_option = abap_true
+          iv_description     = 'Select the branch to switch to'
+          iv_button_label    = 'Switch to' )->create_picklist( ).
       WHEN zif_abapgit_definitions=>c_action-git_branch_delete.
         mo_picklist = zcl_abapgit_popup_branch_list=>create(
-          iv_url         = lv_url
-          iv_hide_branch = li_repo_online->get_selected_branch( )
-          iv_hide_head   = abap_true )->create_picklist( ).
-      WHEN zif_abapgit_definitions=>c_action-git_tag_switch
-        OR zif_abapgit_definitions=>c_action-git_tag_delete.
-        mo_picklist = zcl_abapgit_popup_tag_list=>create( lv_url )->create_picklist( ).
+          iv_url          = lv_url
+          iv_hide_branch  = li_repo_online->get_selected_branch( )
+          iv_hide_head    = abap_true
+          iv_description  = 'Select the branch to delete'
+          iv_button_label = 'Delete' )->create_picklist( ).
+      WHEN zif_abapgit_definitions=>c_action-git_tag_switch.
+        mo_picklist = zcl_abapgit_popup_tag_list=>create(
+          iv_url          = lv_url
+          iv_description  = 'Select the tag to switch to'
+          iv_button_label = 'Switch to' )->create_picklist( ).
+      WHEN zif_abapgit_definitions=>c_action-git_tag_delete.
+        mo_picklist = zcl_abapgit_popup_tag_list=>create(
+          iv_url          = lv_url
+          iv_description  = 'Select the tag to delete'
+          iv_button_label = 'Delete' )->create_picklist( ).
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( |Unexpected ref selection action { mv_action }| ).
     ENDCASE.
@@ -62015,7 +62056,9 @@ CLASS zcl_abapgit_html_form IMPLEMENTATION.
 
     FIELD-SYMBOLS <ls_opt> LIKE LINE OF is_field-subitems.
 
-    ii_html->add( |<label{ is_attr-hint }>{ is_field-label }</label>| ).
+    IF is_field-label IS NOT INITIAL.
+      ii_html->add( |<label{ is_attr-hint }>{ is_field-label }</label>| ).
+    ENDIF.
 
     IF is_attr-error IS NOT INITIAL.
       ii_html->add( is_attr-error ).
@@ -62483,6 +62526,11 @@ CLASS zcl_abapgit_gui_picklist IMPLEMENTATION.
     mv_in_page = iv_in_page.
     mv_id      = iv_id.
     mv_title   = iv_title.
+    mv_description  = iv_description.
+    mv_button_label = iv_button_label.
+    IF mv_button_label IS INITIAL.
+      mv_button_label = 'Choose'.
+    ENDIF.
 
     IF mi_item_renderer IS NOT BOUND AND mv_attr_name IS INITIAL.
       zcx_abapgit_exception=>raise( 'Renderer or attr name required' ).
@@ -62501,14 +62549,25 @@ CLASS zcl_abapgit_gui_picklist IMPLEMENTATION.
     FIELD-SYMBOLS <ls_row> TYPE any.
     DATA lv_index TYPE i.
     DATA lv_label TYPE string.
+    DATA lv_title TYPE string.
 
     ro_form = zcl_abapgit_html_form=>create( ).
 
     ASSIGN mr_list->* TO <lt_list>.
 
+    " The description replaces the title, both would say the same
+    IF mv_description IS NOT INITIAL.
+      ro_form->freetext(
+        iv_name = 'description'
+        iv_text = escape( val    = mv_description
+                          format = cl_abap_format=>e_html_text ) ).
+    ELSE.
+      lv_title = mv_title.
+    ENDIF.
+
     ro_form->radio(
       iv_name          = c_radio_name
-      iv_label         = mv_title
+      iv_label         = lv_title
       iv_default_value = '1'
       iv_condense      = boolc( lines( <lt_list> ) <= 15 ) ).
 
@@ -62532,7 +62591,7 @@ CLASS zcl_abapgit_gui_picklist IMPLEMENTATION.
     ENDLOOP.
 
     ro_form->command(
-      iv_label    = 'Choose'
+      iv_label    = mv_button_label
       iv_cmd_type = zif_abapgit_html_form=>c_cmd_type-input_main
       iv_action   = c_event-choose
     )->command(
@@ -160619,8 +160678,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-28T16:21:35.397Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-28T16:21:35.397Z`.
+* abapmerge 0.16.10 - 2026-10-28T20:32:54.387Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-28T20:32:54.387Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
