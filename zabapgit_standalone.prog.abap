@@ -4526,6 +4526,7 @@ INTERFACE zif_abapgit_definitions .
       go_settings                   TYPE string VALUE 'go_settings',
       go_settings_personal          TYPE string VALUE 'go_settings_personal',
       go_stage                      TYPE string VALUE 'go_stage',
+      go_stage_me                   TYPE string VALUE 'go_stage_me',
       go_stage_transport            TYPE string VALUE 'go_stage_transport',
       go_tutorial                   TYPE string VALUE 'go_tutorial',
       goto_message                  TYPE string VALUE 'goto_message',
@@ -29662,6 +29663,9 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
         VALUE(ro_tag_dropdown) TYPE REF TO zcl_abapgit_html_toolbar
       RAISING
         zcx_abapgit_exception .
+    METHODS build_stage_dropdown
+      RETURNING
+        VALUE(ro_stage_dropdown) TYPE REF TO zcl_abapgit_html_toolbar .
     METHODS build_patch_dropdown
       RETURNING
         VALUE(ro_patch_dropdown) TYPE REF TO zcl_abapgit_html_toolbar .
@@ -29767,6 +29771,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         iv_seed          TYPE string OPTIONAL
         iv_sci_result    TYPE zif_abapgit_definitions=>ty_sci_result DEFAULT zif_abapgit_definitions=>c_sci_result-no_run
         ii_obj_filter    TYPE REF TO zif_abapgit_object_filter OPTIONAL
+        iv_changed_by    TYPE syuname OPTIONAL
         ii_force_refresh TYPE abap_bool
       RETURNING
         VALUE(ri_page)   TYPE REF TO zif_abapgit_gui_renderable
@@ -29779,6 +29784,7 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         iv_seed          TYPE string OPTIONAL
         iv_sci_result    TYPE zif_abapgit_definitions=>ty_sci_result DEFAULT zif_abapgit_definitions=>c_sci_result-no_run
         ii_obj_filter    TYPE REF TO zif_abapgit_object_filter OPTIONAL
+        iv_changed_by    TYPE syuname OPTIONAL
         ii_force_refresh TYPE abap_bool
       RAISING
         zcx_abapgit_exception.
@@ -30324,10 +30330,11 @@ CLASS zcl_abapgit_gui_router DEFINITION
         zcx_abapgit_exception .
     METHODS get_page_stage
       IMPORTING
-        !ii_event      TYPE REF TO zif_abapgit_gui_event
-        ii_obj_filter  TYPE REF TO zif_abapgit_object_filter OPTIONAL
+        !ii_event         TYPE REF TO zif_abapgit_gui_event
+        ii_obj_filter     TYPE REF TO zif_abapgit_object_filter OPTIONAL
+        !iv_changed_by_me TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+        VALUE(ri_page)    TYPE REF TO zif_abapgit_gui_renderable
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS jump_object
@@ -38080,10 +38087,13 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '    // Get the innermost tag with the text we want to filter' ).
     lo_buf->add( '    // <td>text</td>: elem = td-tag' ).
     lo_buf->add( '    // <td><span><i></i><a>text</a></span></td>: elem = a-tag' ).
+    lo_buf->add( '    // <td><span><i></i><span>text</span></span></td>: elem = inner span-tag (no link, e.g. user "UNKNOWN")' ).
     lo_buf->add( '    var elem  = row.cells[this.colIndex[attr]];' ).
     lo_buf->add( '    var elemA = elem.getElementsByTagName("A")[0];' ).
+    lo_buf->add( '    var spans = elem.getElementsByTagName("SPAN");' ).
     lo_buf->add( '' ).
     lo_buf->add( '    if (elemA) elem = elemA;' ).
+    lo_buf->add( '    else if (spans.length) elem = spans[spans.length - 1];' ).
     lo_buf->add( '    return {' ).
     lo_buf->add( '      elem     : elem,' ).
     lo_buf->add( '      plainText: this.getPlainText(elem).replace(/ /g, "\u00a0"), // without tags, with encoded spaces' ).
@@ -44534,6 +44544,10 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-go_stage.                        " Go Staging page
         rs_handled-page  = get_page_stage( ii_event ).
         rs_handled-state = get_state_diff( ii_event ).
+      WHEN zif_abapgit_definitions=>c_action-go_stage_me.                     " Go Staging page, own changes only
+        rs_handled-page  = get_page_stage( ii_event         = ii_event
+                                           iv_changed_by_me = abap_true ).
+        rs_handled-state = get_state_diff( ii_event ).
       WHEN zif_abapgit_definitions=>c_action-go_stage_transport.              " Go Staging page by Transport
         rs_handled-page = get_page_stage( ii_event      = ii_event
                                           ii_obj_filter = go_stage_transport( lv_key ) ).
@@ -44646,6 +44660,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
           li_repo        TYPE REF TO zif_abapgit_repo,
           lv_key         TYPE zif_abapgit_persistence=>ty_repo-key,
           lv_seed        TYPE string,
+          lv_user        TYPE syuname,
           lv_sci_result  TYPE zif_abapgit_definitions=>ty_sci_result,
           lx_error       TYPE REF TO cx_sy_move_cast_error.
 
@@ -44668,12 +44683,17 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       zcx_abapgit_exception=>raise( |You are working on a commit, must be on branch| ).
     ENDIF.
 
+    IF iv_changed_by_me = abap_true.
+      lv_user = sy-uname.
+    ENDIF.
+
     IF li_repo->get_local_settings( )-code_inspector_check_variant IS NOT INITIAL.
 
       TRY.
           ri_page = zcl_abapgit_gui_page_code_insp=>create(
             ii_repo                  = li_repo
-            iv_raise_when_no_results = abap_true ).
+            iv_raise_when_no_results = abap_true
+            iv_changed_by            = lv_user ).
 
         CATCH zcx_abapgit_exception.
           lv_sci_result = zif_abapgit_definitions=>c_sci_result-passed.
@@ -44687,6 +44707,7 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
         iv_seed          = lv_seed
         iv_sci_result    = lv_sci_result
         ii_obj_filter    = ii_obj_filter
+        iv_changed_by    = lv_user
         ii_force_refresh = abap_true ).
     ENDIF.
 
@@ -46196,6 +46217,8 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     mv_seed        = iv_seed.
     mv_sci_result  = iv_sci_result.
     mi_obj_filter  = ii_obj_filter.
+    " Same as the "me" link in the "Changed by" column: a filter the user can clear
+    mv_filter_value = to_lower( iv_changed_by ).
 
     " force refresh on stage, to make sure the latest local and remote files are used
     IF ii_force_refresh = abap_true.
@@ -46241,7 +46264,8 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
         iv_seed          = iv_seed
         iv_sci_result    = iv_sci_result
         ii_force_refresh = ii_force_refresh
-        ii_obj_filter    = ii_obj_filter.
+        ii_obj_filter    = ii_obj_filter
+        iv_changed_by    = iv_changed_by.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create(
       iv_page_title         = 'Stage'
@@ -46971,9 +46995,6 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     IF mi_repo->is_offline( ) = abap_true.
       ro_advanced_dropdown->add( iv_txt = 'Export by Transport'
                                  iv_act = |{ zif_abapgit_definitions=>c_action-zip_export_transport }?key={ mv_key }| ).
-    ELSE.
-      ro_advanced_dropdown->add( iv_txt = 'Stage by Transport'
-                                 iv_act = |{ zif_abapgit_definitions=>c_action-go_stage_transport }?key={ mv_key }| ).
     ENDIF.
 
     ro_advanced_dropdown->add( iv_txt = 'Change Repository Package'
@@ -47103,7 +47124,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
                        iv_opt = get_crossout( iv_protected = abap_true
                                               iv_strong    = abap_true ) ).
       ro_toolbar->add( iv_txt = 'Stage'
-                       iv_act = |{ zif_abapgit_definitions=>c_action-go_stage }?key={ mv_key }|
+                       io_sub = build_stage_dropdown( )
                        iv_opt = zif_abapgit_html=>c_html_opt-strong ).
 
       IF mo_repo_aggregated_state->is_unchanged( ) = abap_false. " Any changes
@@ -47206,6 +47227,19 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ro_diff_dropdown->add( iv_txt   = 'My Changes'
                            iv_title = 'Diff only your own changes'
                            iv_act   = |{ zif_abapgit_definitions=>c_action-go_repo_diff_me }?key={ mv_key }| ).
+
+  ENDMETHOD.
+  METHOD build_stage_dropdown.
+
+    CREATE OBJECT ro_stage_dropdown.
+
+    ro_stage_dropdown->add( iv_txt = 'All Changes'
+                            iv_act = |{ zif_abapgit_definitions=>c_action-go_stage }?key={ mv_key }| ).
+    ro_stage_dropdown->add( iv_txt   = 'My Changes'
+                            iv_title = 'Stage with the filter on objects you changed'
+                            iv_act   = |{ zif_abapgit_definitions=>c_action-go_stage_me }?key={ mv_key }| ).
+    ro_stage_dropdown->add( iv_txt = 'By Transport'
+                            iv_act = |{ zif_abapgit_definitions=>c_action-go_stage_transport }?key={ mv_key }| ).
 
   ENDMETHOD.
   METHOD build_patch_dropdown.
@@ -48374,6 +48408,7 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
 
     DATA lo_toolbar TYPE REF TO zcl_abapgit_html_toolbar.
     DATA lo_toolbar_more_sub TYPE REF TO zcl_abapgit_html_toolbar.
+    DATA lo_toolbar_stage_sub TYPE REF TO zcl_abapgit_html_toolbar.
     DATA lo_toolbar_patch_sub TYPE REF TO zcl_abapgit_html_toolbar.
     DATA lo_toolbar_diff_sub TYPE REF TO zcl_abapgit_html_toolbar.
     DATA lv_dummy_key_param TYPE string.
@@ -48388,9 +48423,30 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_class    = |{ lc_action_class } { lc_online_class }|
       iv_li_class = |{ lc_action_class }| ).
 
+    CREATE OBJECT lo_toolbar_stage_sub EXPORTING iv_id = 'toolbar-ovp-stage_sub'.
+
+    lo_toolbar_stage_sub->add(
+      iv_txt      = |All Changes|
+      iv_act      = |{ zif_abapgit_definitions=>c_action-go_stage }{ lv_dummy_key_param }|
+      iv_class    = |{ lc_action_class } { lc_online_class }|
+      iv_li_class = |{ lc_action_class }| ).
+
+    lo_toolbar_stage_sub->add(
+      iv_txt      = |My Changes|
+      iv_title    = |Stage with the filter on objects you changed|
+      iv_act      = |{ zif_abapgit_definitions=>c_action-go_stage_me }{ lv_dummy_key_param }|
+      iv_class    = |{ lc_action_class } { lc_online_class }|
+      iv_li_class = |{ lc_action_class }| ).
+
+    lo_toolbar_stage_sub->add(
+      iv_txt      = |By Transport|
+      iv_act      = |{ zif_abapgit_definitions=>c_action-go_stage_transport }{ lv_dummy_key_param }|
+      iv_class    = |{ lc_action_class } { lc_online_class }|
+      iv_li_class = |{ lc_action_class }| ).
+
     lo_toolbar->add(
       iv_txt      = |Stage|
-      iv_act      = |{ zif_abapgit_definitions=>c_action-go_stage }{ lv_dummy_key_param }|
+      io_sub      = lo_toolbar_stage_sub
       iv_class    = |{ lc_action_class } { lc_online_class }|
       iv_li_class = |{ lc_action_class }| ).
 
@@ -48464,12 +48520,6 @@ CLASS zcl_abapgit_gui_page_repo_over IMPLEMENTATION.
       iv_li_class = |{ lc_action_class }| ).
 
     CREATE OBJECT lo_toolbar_more_sub EXPORTING iv_id = 'toolbar-ovp-more_sub'.
-
-    lo_toolbar_more_sub->add(
-      iv_txt      = |Stage by Transport|
-      iv_act      = |{ zif_abapgit_definitions=>c_action-go_stage_transport }{ lv_dummy_key_param }|
-      iv_class    = |{ lc_action_class } { lc_online_class }|
-      iv_li_class = |{ lc_action_class }| ).
 
     lo_toolbar_more_sub->add(
       iv_txt      = |Export by Transport|
@@ -60012,6 +60062,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
           rs_handled-page   = zcl_abapgit_gui_page_stage=>create(
             ii_repo_online   = li_repo_online
             iv_sci_result    = status( )
+            iv_changed_by    = mv_changed_by
             ii_force_refresh = abap_true ).
 
           rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
@@ -64377,7 +64428,8 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
                         iv_title = lv_title
                         iv_txt   = |{ iv_username }| ).
       ELSE.
-        ri_html->add( iv_username ).
+        " own tag, so the stage filter can mark the name without dropping the icon
+        ri_html->add( |<span>{ iv_username }</span>| ).
       ENDIF.
 
       ri_html->add( '</span>' ).
@@ -160419,8 +160471,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-28T09:33:23.171Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-28T09:33:23.171Z`.
+* abapmerge 0.16.10 - 2026-10-28T14:42:21.362Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-28T14:42:21.362Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
