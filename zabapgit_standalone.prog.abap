@@ -37539,7 +37539,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'var gKeyboard = {' ).
     lo_buf->add( '  order: {' ).
     lo_buf->add( '    sourceViewer: 10, // Ctrl+Shift+?, a troubleshooting key that no page shortcut may take' ).
-    lo_buf->add( '    browserBack : 15, // Alt+Left where the browser does not go back itself (SAP GUI for Java)' ).
+    lo_buf->add( '    browserBack : 15, // Alt+Left in SAP GUI for Java; Escape on the Edge control and WebGUI' ).
     lo_buf->add( '    linkHints   : 20,' ).
     lo_buf->add( '    menus       : 30, // arrow keys through dropdown menus (KeyNavigation)' ).
     lo_buf->add( '    palette     : 40, // the toggle keys of the command palettes' ).
@@ -40190,6 +40190,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// only trigger go_back for a genuine Back press.' ).
     lo_buf->add( 'function redirectBrowserBackToSapEvent(backAction) {' ).
     lo_buf->add( '  backAction = backAction || "go_back";' ).
+    lo_buf->add( '  goBackOnEscape(backAction);' ).
     lo_buf->add( '  if (!window.history || !window.history.pushState) return;' ).
     lo_buf->add( '' ).
     lo_buf->add( '  // Arm the trap: this sentinel entry absorbs the first Back press' ).
@@ -40295,6 +40296,45 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '  // This reuses the page-global sapevent form, so it routes on WebGUI as well' ).
     lo_buf->add( '  // as on the desktop browser controls.' ).
     lo_buf->add( '  submitSapeventForm({}, backAction);' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Escape goes back, as in SAP GUI for Java. There SAP GUI sends Escape as a' ).
+    lo_buf->add( '// graceful go_back itself: an in-page popup treats it as cancel, any other page' ).
+    lo_buf->add( '// goes back, and the start page leaves abapGit. Taking the key here too would go' ).
+    lo_buf->add( '// back twice. On the Edge control and on WebGUI Escape did nothing, so the page' ).
+    lo_buf->add( '// sends that go_back itself. Not on the IE control, where this was never tried.' ).
+    lo_buf->add( '//' ).
+    lo_buf->add( '// Also while typing in a field, as in Java. Not while something the page opened' ).
+    lo_buf->add( '// itself is open: that must not take the page with it. The source viewer stops' ).
+    lo_buf->add( '// every key while it is open, before these handlers see it.' ).
+    lo_buf->add( '//' ).
+    lo_buf->add( '// keypress and keyup are cancelled as well: on the Edge control, an Escape keyup' ).
+    lo_buf->add( '// that reaches SAP GUI leaves abapGit.' ).
+    lo_buf->add( 'function goBackOnEscape(backAction) {' ).
+    lo_buf->add( '  if (!gEnv.isWebGui && gEnv.browserControl !== "Edge") return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function isPageOverlayOpen() {' ).
+    lo_buf->add( '    var hotkeys = document.getElementById("hotkeys");' ).
+    lo_buf->add( '    return CommandPalette.isVisible()' ).
+    lo_buf->add( '      || LinkHints.areHintsDisplayed' ).
+    lo_buf->add( '      || Boolean(hotkeys && hotkeys.style.display !== "none")' ).
+    lo_buf->add( '      || Boolean(document.querySelector(".force-nav-hover"));' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function onEscape(event) {' ).
+    lo_buf->add( '    var isEscape = event.key === "Escape" || event.key === "Esc" || (event.keyCode || event.which) === 27;' ).
+    lo_buf->add( '    if (!isEscape || isPageOverlayOpen()) return;' ).
+    lo_buf->add( '    event.preventDefault();' ).
+    lo_buf->add( '    // A held key repeats keydown, the round trip must start once. Not a flag' ).
+    lo_buf->add( '    // per page: when the user answers "No" to leaving a form with unsaved' ).
+    lo_buf->add( '    // changes, WebGUI keeps this very page, and the next press must work.' ).
+    lo_buf->add( '    if (event.type !== "keydown" || event.repeat) return;' ).
+    lo_buf->add( '    triggerSapEventBack(backAction);' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  ["keydown", "keypress", "keyup"].forEach(function(type) {' ).
+    lo_buf->add( '    gKeyboard.on(type, gKeyboard.order.browserBack, onEscape);' ).
+    lo_buf->add( '  });' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -69198,7 +69238,13 @@ CLASS zcl_abapgit_gui IMPLEMENTATION.
               ii_page = ls_handled-page
               iv_replacing = abap_true ).
           WHEN c_event_state-go_back.
-            back( ).
+            IF back( ) = abap_true.
+              " Back on the start page leaves abapGit, as F3 and Escape do in SAP GUI.
+              " A go_back sapevent (Escape or the browser Back on the Edge control
+              " and WebGUI) ends up here, those keys never reach the screen
+              free( ).
+              SET SCREEN 0.
+            ENDIF.
           WHEN c_event_state-go_back_to_bookmark.
             back( iv_to_bookmark = abap_true ).
           WHEN c_event_state-no_more_act.
@@ -160793,8 +160839,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-29T15:40:14.016Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-29T15:40:14.016Z`.
+* abapmerge 0.16.10 - 2026-10-31T14:07:19.951Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-31T14:07:19.951Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
