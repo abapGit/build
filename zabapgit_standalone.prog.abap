@@ -39082,6 +39082,17 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '// registered before the link hints cannot rely on the key being marked as' ).
     lo_buf->add( '// consumed. A page has at most one LinkHints instance (activateLinkHints).' ).
     lo_buf->add( 'LinkHints.areHintsDisplayed = false;' ).
+    lo_buf->add( 'LinkHints.instance          = null;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Hide the hints as pressing the hint key again does, and drop what a hint code' ).
+    lo_buf->add( '// typed so far, the yank mode and a dropdown the hints opened.' ).
+    lo_buf->add( 'LinkHints.prototype.hide = function() {' ).
+    lo_buf->add( '  if (!this.areHintsDisplayed) return;' ).
+    lo_buf->add( '  if (this.activatedDropdown) this.closeActivatedDropdown();' ).
+    lo_buf->add( '  this.yankModeActive = false;' ).
+    lo_buf->add( '  this.pendingPath    = "";' ).
+    lo_buf->add( '  this.displayHints(false);' ).
+    lo_buf->add( '};' ).
     lo_buf->add( '' ).
     lo_buf->add( 'LinkHints.prototype.displayHints = function(isActivate) {' ).
     lo_buf->add( '  this.areHintsDisplayed      = isActivate;' ).
@@ -39177,7 +39188,50 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( 'function activateLinkHints(linkHintHotKey) {' ).
     lo_buf->add( '  if (!linkHintHotKey) return;' ).
     lo_buf->add( '  var oLinkHint = new LinkHints(linkHintHotKey);' ).
+    lo_buf->add( '  LinkHints.instance = oLinkHint;' ).
     lo_buf->add( '  gKeyboard.on("keypress", gKeyboard.order.linkHints, oLinkHint.getHandler());' ).
+    lo_buf->add( '  closeOverlaysOnEscape();' ).
+    lo_buf->add( '}' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '// Escape closes what the page itself opened: the command palettes and the link' ).
+    lo_buf->add( '// hints (on keydown: the link hints listen to keypress, which Chrome and Edge do' ).
+    lo_buf->add( '// not send for Escape). On the Edge control and on WebGUI only: SAP GUI for Java' ).
+    lo_buf->add( '// takes Escape itself whatever the page does with it, and leaves the page. Not' ).
+    lo_buf->add( '// on the IE control, where this was never tried.' ).
+    lo_buf->add( '//' ).
+    lo_buf->add( '// keypress and keyup of that press are cancelled as well: on the Edge control,' ).
+    lo_buf->add( '// an Escape keyup that reaches SAP GUI leaves abapGit.' ).
+    lo_buf->add( '//' ).
+    lo_buf->add( '// Registered by the link hints and by every palette, so once per page.' ).
+    lo_buf->add( 'var gOverlaysCloseOnEscape = false;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( 'function closeOverlaysOnEscape() {' ).
+    lo_buf->add( '  if (gOverlaysCloseOnEscape || (!gEnv.isWebGui && gEnv.browserControl !== "Edge")) return;' ).
+    lo_buf->add( '  gOverlaysCloseOnEscape = true;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  var isClosing = false;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  function onEscape(event) {' ).
+    lo_buf->add( '    var isEscape = event.key === "Escape" || event.key === "Esc" || (event.keyCode || event.which) === 27;' ).
+    lo_buf->add( '    if (!isEscape) return;' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '    if (event.type === "keydown") {' ).
+    lo_buf->add( '      var hints = LinkHints.instance;' ).
+    lo_buf->add( '      isClosing = CommandPalette.isVisible() || Boolean(hints && hints.areHintsDisplayed);' ).
+    lo_buf->add( '      if (!isClosing) return;' ).
+    lo_buf->add( '      CommandPalette.instances.forEach(function(palette) {' ).
+    lo_buf->add( '        if (palette.elements.palette.style.display !== "none") palette.toggleDisplay(false);' ).
+    lo_buf->add( '      });' ).
+    lo_buf->add( '      if (hints) hints.hide();' ).
+    lo_buf->add( '    }' ).
+    lo_buf->add( '    if (!isClosing) return;' ).
+    lo_buf->add( '    event.preventDefault();' ).
+    lo_buf->add( '    if (event.type === "keyup") isClosing = false;' ).
+    lo_buf->add( '  }' ).
+    lo_buf->add( '' ).
+    lo_buf->add( '  ["keydown", "keypress", "keyup"].forEach(function(type) {' ).
+    lo_buf->add( '    gKeyboard.on(type, gKeyboard.order.linkHints, onEscape);' ).
+    lo_buf->add( '  });' ).
     lo_buf->add( '}' ).
     lo_buf->add( '' ).
     lo_buf->add( '/**********************************************************' ).
@@ -39654,6 +39708,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( 'CommandPalette.prototype.hookEvents = function() {' ).
     lo_buf->add( '  gKeyboard.on("keydown", gKeyboard.order.palette, this.handleToggleKey.bind(this));' ).
+    lo_buf->add( '  closeOverlaysOnEscape();' ).
     lo_buf->add( '  document.addEventListener("mousedown", this.handleOutsideClick.bind(this));' ).
     lo_buf->add( '  this.elements.input.addEventListener("keydown", this.handleInputKeydown.bind(this));' ).
     lo_buf->add( '  this.elements.input.addEventListener("keyup", this.handleInputKey.bind(this));' ).
@@ -39662,9 +39717,7 @@ CLASS zcl_abapgit_ui_factory IMPLEMENTATION.
     lo_buf->add( '' ).
     lo_buf->add( '// Moving the selection on keydown lets a held arrow key repeat, and keeps the' ).
     lo_buf->add( '// caret from jumping to the start or end of the input.' ).
-    lo_buf->add( '// No Escape to close: SAP GUI acts on that key whatever the page does with it.' ).
-    lo_buf->add( '// SAP GUI for Java leaves abapGit, and the Edge control loses the keyboard' ).
-    lo_buf->add( '// focus, so the next toggle key (Ctrl+P) opens the print dialog instead.' ).
+    lo_buf->add( '// Escape closes the palette on the Edge control and WebGUI (closeOverlaysOnEscape).' ).
     lo_buf->add( 'CommandPalette.prototype.handleInputKeydown = function(event) {' ).
     lo_buf->add( '  var arrow = gKeyboard.getVerticalArrow(event);' ).
     lo_buf->add( '  if (arrow === -1) {' ).
@@ -160839,8 +160892,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-10-31T14:07:19.951Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-10-31T14:07:19.951Z`.
+* abapmerge 0.16.10 - 2026-11-01T14:49:21.573Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-01T14:49:21.573Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
