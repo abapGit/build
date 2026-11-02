@@ -26629,6 +26629,7 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION
         iv_raise_when_no_results TYPE abap_bool DEFAULT abap_false
         iv_followup_action       TYPE string DEFAULT c_actions-stage
         iv_changed_by            TYPE syuname OPTIONAL
+        ii_obj_filter            TYPE REF TO zif_abapgit_object_filter OPTIONAL
       RETURNING
         VALUE(ri_page)           TYPE REF TO zif_abapgit_gui_renderable
       RAISING
@@ -26642,6 +26643,7 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION
         iv_raise_when_no_results TYPE abap_bool DEFAULT abap_false
         iv_followup_action       TYPE string DEFAULT c_actions-stage
         iv_changed_by            TYPE syuname OPTIONAL
+        ii_obj_filter            TYPE REF TO zif_abapgit_object_filter OPTIONAL
       RAISING
         zcx_abapgit_exception.
 
@@ -26652,6 +26654,7 @@ CLASS zcl_abapgit_gui_page_code_insp DEFINITION
     DATA mv_check_variant    TYPE sci_chkv.
     DATA mv_followup_action  TYPE string.
     DATA mv_changed_by       TYPE syuname.
+    DATA mi_obj_filter       TYPE REF TO zif_abapgit_object_filter.
 
     METHODS:
       run_code_inspector
@@ -44848,7 +44851,8 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
           ri_page = zcl_abapgit_gui_page_code_insp=>create(
             ii_repo                  = li_repo
             iv_raise_when_no_results = abap_true
-            iv_changed_by            = lv_user ).
+            iv_changed_by            = lv_user
+            ii_obj_filter            = ii_obj_filter ).
 
         CATCH zcx_abapgit_exception.
           lv_sci_result = zif_abapgit_definitions=>c_sci_result-passed.
@@ -60154,6 +60158,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
     mv_check_variant = iv_check_variant.
     mv_followup_action = iv_followup_action.
     mv_changed_by = iv_changed_by.
+    mi_obj_filter = ii_obj_filter.
     determine_check_variant( ).
     run_code_inspector( ).
 
@@ -60173,7 +60178,8 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
         iv_check_variant         = iv_check_variant
         iv_raise_when_no_results = iv_raise_when_no_results
         iv_followup_action       = iv_followup_action
-        iv_changed_by            = iv_changed_by.
+        iv_changed_by            = iv_changed_by
+        ii_obj_filter            = ii_obj_filter.
 
     ri_page = zcl_abapgit_gui_page_hoc=>create( lo_component ).
 
@@ -60248,6 +60254,7 @@ CLASS zcl_abapgit_gui_page_code_insp IMPLEMENTATION.
             ii_repo_online   = li_repo_online
             iv_sci_result    = status( )
             iv_changed_by    = mv_changed_by
+            ii_obj_filter    = mi_obj_filter
             ii_force_refresh = abap_true ).
 
           rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
@@ -160899,8 +160906,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-02T11:09:01.565Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-02T11:09:01.565Z`.
+* abapmerge 0.16.10 - 2026-11-02T11:15:46.302Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-02T11:15:46.302Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
