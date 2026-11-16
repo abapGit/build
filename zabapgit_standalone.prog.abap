@@ -6342,6 +6342,13 @@ INTERFACE zif_abapgit_exit.
     CHANGING
       !ct_files   TYPE zif_abapgit_definitions=>ty_files_item_tt.
 
+  METHODS validate_before_pull
+    IMPORTING
+      !ii_repo   TYPE REF TO zif_abapgit_repo
+      !is_checks TYPE zif_abapgit_definitions=>ty_deserialize_checks OPTIONAL
+    RAISING
+      zcx_abapgit_exception.
+
   METHODS validate_before_push
     IMPORTING
       !is_comment     TYPE zif_abapgit_git_definitions=>ty_comment
@@ -72427,6 +72434,11 @@ CLASS zcl_abapgit_repo_pull IMPLEMENTATION.
       ri_log = mi_repo->create_new_log( 'Pull Log' ).
     ENDIF.
 
+    " the system might have changed while the decision popup was open
+    zcl_abapgit_exit=>get_instance( )->validate_before_pull(
+      ii_repo   = mi_repo
+      is_checks = is_checks ).
+
     " pass decisions to delete
     delete_objects(
       is_checks = is_checks
@@ -73992,6 +74004,8 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
 
     DATA: lt_requirements TYPE zif_abapgit_dot_abapgit=>ty_requirement_tt,
           lt_dependencies TYPE zif_abapgit_apack_definitions=>ty_dependencies.
+
+    zcl_abapgit_exit=>get_instance( )->validate_before_pull( me ).
 
     find_remote_dot_abapgit( ).
     find_remote_dot_apack( ).
@@ -153884,6 +153898,18 @@ CLASS zcl_abapgit_exit IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD zif_abapgit_exit~validate_before_pull.
+
+    IF gi_exit IS NOT INITIAL.
+      TRY.
+          gi_exit->validate_before_pull(
+            ii_repo   = ii_repo
+            is_checks = is_checks ).
+        CATCH cx_sy_ref_is_initial cx_sy_dyn_call_illegal_method ##NO_HANDLER.
+      ENDTRY.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD zif_abapgit_exit~validate_before_push.
 
     IF gi_exit IS NOT INITIAL.
@@ -160964,8 +160990,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-11T13:15:17.925Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-11T13:15:17.925Z`.
+* abapmerge 0.16.10 - 2026-11-16T17:57:23.486Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-16T17:57:23.486Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
