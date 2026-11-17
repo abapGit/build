@@ -99148,7 +99148,7 @@ CLASS ZCL_ABAPGIT_OBJECT_SHI3 IMPLEMENTATION.
     clear_fields( CHANGING cs_head  = ls_head
                            ct_nodes = lt_nodes ).
 
-    SORT lt_titles BY id.
+    SORT lt_titles BY id spras.
     DELETE ADJACENT DUPLICATES FROM lt_titles COMPARING spras id.
 
     SORT lt_texts BY spras node_id.
@@ -160990,8 +160990,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-17T19:13:56.705Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-17T19:13:56.705Z`.
+* abapmerge 0.16.10 - 2026-11-17T19:26:26.979Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-17T19:26:26.979Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
