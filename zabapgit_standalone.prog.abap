@@ -32523,7 +32523,7 @@ CLASS ZCL_ABAPGIT_PATH IMPLEMENTATION.
       ev_filename = iv_fullpath.
     ENDIF.
 
-    ev_filename = cl_http_utility=>unescape_url( escaped = ev_filename ).
+    ev_filename = cl_http_utility=>unescape_url( ev_filename ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -90715,7 +90715,7 @@ CLASS zcl_abapgit_object_suso IMPLEMENTATION.
 
     SELECT SINGLE tabname FROM dd02l INTO lv_tabname WHERE tabname = c_abap_language_table. "#EC CI_NOORDER
     IF sy-subrc = 0.
-      lr_structdescr ?= cl_abap_typedescr=>describe_by_name( p_name = c_abap_language_table ).
+      lr_structdescr ?= cl_abap_typedescr=>describe_by_name( c_abap_language_table ).
       CREATE DATA lr_tobj_attr TYPE HANDLE lr_structdescr.
       ASSIGN lr_tobj_attr->* TO <ls_tobj_attr>.
 
@@ -124842,8 +124842,8 @@ CLASS zcl_abapgit_object_aifc IMPLEMENTATION.
 
     DATA: lx_root TYPE REF TO cx_root.
 
-    lr_structdescr ?= cl_abap_typedescr=>describe_by_name( p_name = '/AIF/T_FINF' ).
-    lr_tabledescr = cl_abap_tabledescr=>create( p_line_type = lr_structdescr ).
+    lr_structdescr ?= cl_abap_typedescr=>describe_by_name( '/AIF/T_FINF' ).
+    lr_tabledescr = cl_abap_tabledescr=>create( lr_structdescr ).
 
     CREATE DATA lr_table TYPE HANDLE lr_tabledescr.
     ASSIGN lr_table->* TO <lt_table>.
@@ -125019,8 +125019,8 @@ CLASS zcl_abapgit_object_aifc IMPLEMENTATION.
           ENDTRY.
 
           CLEAR lr_tabledescr.
-          lr_structdescr ?= cl_abap_typedescr=>describe_by_name( p_name = lr_content->tabname ).
-          lr_tabledescr = cl_abap_tabledescr=>create( p_line_type = lr_structdescr ).
+          lr_structdescr ?= cl_abap_typedescr=>describe_by_name( lr_content->tabname ).
+          lr_tabledescr = cl_abap_tabledescr=>create( lr_structdescr ).
 
           CREATE DATA lr_table TYPE HANDLE lr_tabledescr.
           ASSIGN lr_table->* TO <lt_table>.
@@ -142911,7 +142911,7 @@ CLASS zcl_abapgit_json_path IMPLEMENTATION.
           lx_parse_error  TYPE REF TO cx_sxml_parse_error.
 
     lv_json_xstring = zcl_abapgit_convert=>string_to_xstring_utf8( iv_json ).
-    lo_reader = cl_sxml_string_reader=>create( input = lv_json_xstring ).
+    lo_reader = cl_sxml_string_reader=>create( lv_json_xstring ).
 
     TRY.
         IF lo_reader->read_next_node( ) IS INITIAL.
@@ -160990,8 +160990,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-16T17:57:23.486Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-16T17:57:23.486Z`.
+* abapmerge 0.16.10 - 2026-11-17T19:13:56.705Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-17T19:13:56.705Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
