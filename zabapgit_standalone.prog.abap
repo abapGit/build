@@ -33635,7 +33635,7 @@ CLASS zcl_abapgit_convert_language IMPLEMENTATION.
         no_assignment = 1
         OTHERS        = 2 ).                              "#EC CI_SUBRC
 
-    TRANSLATE rv_spras TO UPPER CASE.
+    rv_spras = to_upper( rv_spras ).
 
   ENDMETHOD.
   METHOD sap1_to_bcp47.
@@ -74670,7 +74670,7 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
       ev_path = '/'.
       ev_filename = iv_str.
     ENDIF.
-    TRANSLATE ev_filename TO LOWER CASE.
+    ev_filename = to_lower( ev_filename ).
 
   ENDMETHOD.
   METHOD load.
@@ -74910,7 +74910,7 @@ CLASS zcl_abapgit_version IMPLEMENTATION.
       CASE sy-tabix.
         WHEN 1.
           rs_version-prerelase = lv_segment.
-          TRANSLATE rs_version-prerelase TO LOWER CASE.
+          rs_version-prerelase = to_lower( rs_version-prerelase ).
         WHEN 2.
           rs_version-prerelase_patch = lv_segment.
       ENDCASE.
@@ -96467,7 +96467,7 @@ CLASS zcl_abapgit_object_smim IMPLEMENTATION.
   METHOD build_filename.
 
     CONCATENATE ms_item-obj_name ms_item-obj_type iv_filename INTO rv_filename SEPARATED BY '.'.
-    TRANSLATE rv_filename TO LOWER CASE.
+    rv_filename = to_lower( rv_filename ).
 
   ENDMETHOD.
   METHOD find_content.
@@ -111083,14 +111083,15 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
       ORDER BY funcname.                                  "#EC CI_SUBRC
 
     LOOP AT lt_enlfdir ASSIGNING <ls_enlfdir>.
-      TRANSLATE <ls_enlfdir>-funcname TO UPPER CASE.
+      <ls_enlfdir>-funcname = to_upper( <ls_enlfdir>-funcname ).
     ENDLOOP.
 
     SORT lt_enlfdir BY funcname ASCENDING.
 
     "Remove anything not in FM attributes table
     LOOP AT rt_functab ASSIGNING <ls_functab>.
-      TRANSLATE <ls_functab> TO UPPER CASE.
+      <ls_functab>-funcname = to_upper( <ls_functab>-funcname ).
+      <ls_functab>-include = to_upper( <ls_functab>-include ).
       lv_index = sy-tabix.
       READ TABLE lt_enlfdir WITH KEY funcname = <ls_functab>-funcname TRANSPORTING NO FIELDS.
       IF sy-subrc <> 0.
@@ -128735,8 +128736,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_DDL IMPLEMENTATION.
               iv_token = lv_right
               iv_offset = ls_token-offset ).
           ENDIF.
-          TRANSLATE ls_dd05m-fortable TO UPPER CASE.
-          TRANSLATE ls_dd05m-forkey TO UPPER CASE.
+          ls_dd05m-fortable = to_upper( ls_dd05m-fortable ).
+          ls_dd05m-forkey = to_upper( ls_dd05m-forkey ).
         ENDIF.
         CLEAR lv_primpos.
         LOOP AT cs_data-dd05m TRANSPORTING NO FIELDS WHERE fieldname = iv_fieldname.
@@ -128812,8 +128813,8 @@ CLASS ZCL_ABAPGIT_OBJECT_TABL_DDL IMPLEMENTATION.
               iv_token = lv_right
               iv_offset = ls_token-offset ).
           ENDIF.
-          TRANSLATE ls_dd36m-shtable TO UPPER CASE.
-          TRANSLATE ls_dd36m-shfield TO UPPER CASE.
+          ls_dd36m-shtable = to_upper( ls_dd36m-shtable ).
+          ls_dd36m-shfield = to_upper( ls_dd36m-shfield ).
         ENDIF.
         CLEAR lv_position.
         LOOP AT cs_data-dd36m TRANSPORTING NO FIELDS WHERE fieldname = iv_fieldname.
@@ -139854,7 +139855,7 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
         ENDIF.
 
         TRANSLATE lv_path USING '/#'.
-        TRANSLATE lv_path TO LOWER CASE.
+        lv_path = to_lower( lv_path ).
         CONCATENATE lv_path '/' INTO lv_path.
 
         rv_path = package_to_path( iv_top     = iv_top
@@ -139938,7 +139939,7 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
           zcx_abapgit_exception=>raise( |Invalid folder logic: { lv_folder_logic }| ).
       ENDCASE.
 
-      TRANSLATE lv_absolute_name TO UPPER CASE.
+      lv_absolute_name = to_upper( lv_absolute_name ).
 
       IF strlen( lv_absolute_name ) > 30.
         zcx_abapgit_exception=>raise( |Package { lv_absolute_name } exceeds ABAP 30-characters name limit| ).
@@ -140228,7 +140229,7 @@ CLASS zcl_abapgit_filename_logic IMPLEMENTATION.
     ENDIF.
 
     IF lv_keep_case = abap_false. " The default behavior is to lowercase all filenames
-      TRANSLATE rv_filename TO LOWER CASE.
+      rv_filename = to_lower( rv_filename ).
     ENDIF.
 
   ENDMETHOD.
@@ -148518,7 +148519,7 @@ CLASS ZCL_ABAPGIT_HTTP_DIGEST IMPLEMENTATION.
     ENDTRY.
 
     rv_hash = lv_hash.
-    TRANSLATE rv_hash TO LOWER CASE.
+    rv_hash = to_lower( rv_hash ).
 
   ENDMETHOD.
   METHOD parse.
@@ -150656,7 +150657,7 @@ CLASS zcl_abapgit_hash IMPLEMENTATION.
     ENDTRY.
 
     rv_sha1 = lv_hash.
-    TRANSLATE rv_sha1 TO LOWER CASE.
+    rv_sha1 = to_lower( rv_sha1 ).
 
   ENDMETHOD.
   METHOD sha1_string.
@@ -150676,7 +150677,7 @@ CLASS zcl_abapgit_hash IMPLEMENTATION.
     ENDTRY.
 
     rv_sha1 = lv_hash.
-    TRANSLATE rv_sha1 TO LOWER CASE.
+    rv_sha1 = to_lower( rv_sha1 ).
 
   ENDMETHOD.
   METHOD sha1_tag.
@@ -150716,7 +150717,7 @@ CLASS zcl_abapgit_git_utils IMPLEMENTATION.
       iv_data   = lv_xstring
       iv_length = 4 ).
 
-    TRANSLATE lv_char4 TO UPPER CASE.
+    lv_char4 = to_upper( lv_char4 ).
     lv_x = lv_char4.
     rv_len = lv_x.
 
@@ -151920,7 +151921,7 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
 
       IF lv_type = zif_abapgit_git_definitions=>c_type-ref_d.
         ls_object-sha1 = lv_ref_delta.
-        TRANSLATE ls_object-sha1 TO LOWER CASE.
+        ls_object-sha1 = to_lower( ls_object-sha1 ).
       ELSE.
         ls_object-sha1 = zcl_abapgit_hash=>sha1(
           iv_type = lv_type
@@ -152101,7 +152102,7 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
       lv_offset = lv_match + 1.
       ls_node-name = lv_name.
       ls_node-sha1 = iv_data+lv_offset(lc_sha_length).
-      TRANSLATE ls_node-sha1 TO LOWER CASE.
+      ls_node-sha1 = to_lower( ls_node-sha1 ).
       APPEND ls_node TO rt_nodes.
 
       lv_cursor = lv_match + 1 + lc_sha_length.
@@ -152168,7 +152169,7 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
           lv_tree_lower   TYPE string,
           lv_parent_lower TYPE string.
     lv_tree_lower = is_commit-tree.
-    TRANSLATE lv_tree_lower TO LOWER CASE.
+    lv_tree_lower = to_lower( lv_tree_lower ).
 
     lv_string = ''.
 
@@ -152177,7 +152178,7 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
 
     IF NOT is_commit-parent IS INITIAL.
       lv_parent_lower = is_commit-parent.
-      TRANSLATE lv_parent_lower TO LOWER CASE.
+      lv_parent_lower = to_lower( lv_parent_lower ).
 
       CONCATENATE 'parent' lv_parent_lower
         INTO lv_tmp SEPARATED BY space.
@@ -152186,7 +152187,7 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
 
     IF NOT is_commit-parent2 IS INITIAL.
       lv_parent_lower = is_commit-parent2.
-      TRANSLATE lv_parent_lower TO LOWER CASE.
+      lv_parent_lower = to_lower( lv_parent_lower ).
 
       CONCATENATE 'parent' lv_parent_lower
         INTO lv_tmp SEPARATED BY space.
@@ -155339,7 +155340,7 @@ CLASS zcl_abapgit_diff_diff3 IMPLEMENTATION.
       ELSEIF lv_literal IS INITIAL AND lv_char = '"' AND iv_ignore_comments = abap_true.
         EXIT.
       ELSEIF lv_literal IS INITIAL AND iv_ignore_case = abap_true.
-        TRANSLATE lv_char TO UPPER CASE.
+        lv_char = to_upper( lv_char ).
       ENDIF.
 
       rv_line = rv_line && lv_char.
@@ -159802,11 +159803,11 @@ CLASS zcl_abapgit_apack_reader IMPLEMENTATION.
 
     FIELD-SYMBOLS: <ls_dependency> TYPE zif_abapgit_apack_definitions=>ty_dependency.
 
-    TRANSLATE ms_cached_descriptor-version TO LOWER CASE.
+    ms_cached_descriptor-version = to_lower( ms_cached_descriptor-version ).
     ms_cached_descriptor-sem_version = zcl_abapgit_version=>conv_str_to_version( ms_cached_descriptor-version ).
 
     LOOP AT ms_cached_descriptor-dependencies ASSIGNING <ls_dependency>.
-      TRANSLATE <ls_dependency>-version TO LOWER CASE.
+      <ls_dependency>-version = to_lower( <ls_dependency>-version ).
       <ls_dependency>-sem_version = zcl_abapgit_version=>conv_str_to_version( <ls_dependency>-version ).
     ENDLOOP.
 
@@ -160990,8 +160991,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-17T19:26:26.979Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-17T19:26:26.979Z`.
+* abapmerge 0.16.10 - 2026-11-18T15:19:59.603Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-18T15:19:59.603Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
