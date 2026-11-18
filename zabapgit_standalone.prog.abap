@@ -22312,11 +22312,12 @@ CLASS zcl_abapgit_stage_changed_by DEFINITION
       BEGIN OF ty_changed_by,
         obj_type TYPE zif_abapgit_definitions=>ty_item-obj_type,
         obj_name TYPE zif_abapgit_definitions=>ty_item-obj_name,
+        path     TYPE string,
         filename TYPE string,
         name     TYPE syuname,
       END OF ty_changed_by .
     TYPES:
-      ty_changed_by_tt TYPE SORTED TABLE OF ty_changed_by WITH UNIQUE KEY obj_type obj_name filename.
+      ty_changed_by_tt TYPE SORTED TABLE OF ty_changed_by WITH UNIQUE KEY obj_type obj_name path filename.
     TYPES:
       BEGIN OF ty_file_user,
         path     TYPE string,
@@ -22343,6 +22344,7 @@ CLASS zcl_abapgit_stage_changed_by DEFINITION
       IMPORTING
         !it_changed_by TYPE ty_changed_by_tt
         !is_item       TYPE zif_abapgit_definitions=>ty_item
+        !iv_path       TYPE string
         !iv_filename   TYPE string
       RETURNING
         VALUE(rv_name) TYPE syuname .
@@ -46642,6 +46644,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
       lv_changed_by = zcl_abapgit_stage_changed_by=>get_name(
         it_changed_by = lt_changed_by
         is_item       = <ls_local>-item
+        iv_path       = <ls_local>-file-path
         iv_filename   = <ls_local>-file-filename ).
 
       READ TABLE lt_transports INTO ls_transport WITH KEY
@@ -46706,6 +46709,7 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
           lv_changed_by = zcl_abapgit_stage_changed_by=>get_name(
             it_changed_by = lt_changed_by
             is_item       = ls_item_remote
+            iv_path       = <ls_remote>-path
             iv_filename   = <ls_remote>-filename ).
         CATCH zcx_abapgit_exception.
           CLEAR: ls_transport, lv_changed_by.
@@ -76140,6 +76144,7 @@ CLASS zcl_abapgit_stage_changed_by IMPLEMENTATION.
     LOOP AT it_files-local INTO ls_local WHERE NOT item IS INITIAL.
       ls_changed_by-obj_type = ls_local-item-obj_type.
       ls_changed_by-obj_name = ls_local-item-obj_name.
+      ls_changed_by-path     = ls_local-file-path.
       ls_changed_by-filename = ls_local-file-filename.
       ls_changed_by-name = zcl_abapgit_objects=>changed_by(
         is_item     = ls_local-item
@@ -76155,6 +76160,7 @@ CLASS zcl_abapgit_stage_changed_by IMPLEMENTATION.
                                       io_dot    = io_dot ).
           ls_changed_by-obj_type = ls_item-obj_type.
           ls_changed_by-obj_name = ls_item-obj_name.
+          ls_changed_by-path     = ls_remote-path.
           ls_changed_by-filename = ls_remote-filename.
           INSERT ls_changed_by INTO TABLE lt_changed_by_remote.
         CATCH zcx_abapgit_exception ##NO_HANDLER.
@@ -76233,6 +76239,7 @@ CLASS zcl_abapgit_stage_changed_by IMPLEMENTATION.
     READ TABLE it_changed_by INTO ls_changed_by WITH TABLE KEY
       obj_type = is_item-obj_type
       obj_name = is_item-obj_name
+      path     = iv_path
       filename = iv_filename.
     IF sy-subrc = 0.
       rv_name = ls_changed_by-name.
@@ -76272,6 +76279,7 @@ CLASS zcl_abapgit_stage_changed_by IMPLEMENTATION.
       ls_user-name     = get_name(
         it_changed_by = lt_changed_by
         is_item       = ls_item
+        iv_path       = <ls_remote>-path
         iv_filename   = <ls_remote>-filename ).
       INSERT ls_user INTO TABLE rt_users.
     ENDLOOP.
@@ -160991,8 +160999,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-18T15:19:59.603Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-18T15:19:59.603Z`.
+* abapmerge 0.16.10 - 2026-11-18T16:35:30.830Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-18T16:35:30.830Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
