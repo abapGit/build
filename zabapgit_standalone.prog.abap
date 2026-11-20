@@ -69084,7 +69084,8 @@ CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
       IMPORTING
         value            = lv_size_c
       EXCEPTIONS
-        entry_not_exists = 1.
+        entry_not_exists = 1
+        OTHERS           = 2.
 
     IF sy-subrc IS NOT INITIAL.
       RETURN.
@@ -69100,7 +69101,8 @@ CLASS zcl_abapgit_gui_asset_manager IMPLEMENTATION.
         mime              = lt_w3mime
       EXCEPTIONS
         wrong_object_type = 1
-        import_error      = 2.
+        import_error      = 2
+        OTHERS            = 3.
 
     IF sy-subrc IS NOT INITIAL.
       RETURN.
@@ -79387,7 +79389,8 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
           not_executed           = 3
           not_exists             = 4
           no_modify_permission   = 5
-          popup_canceled         = 6.
+          popup_canceled         = 6
+          OTHERS                 = 7.
       IF sy-subrc <> 0.
         zcx_abapgit_exception=>raise_t100( ).
       ENDIF.
@@ -82665,7 +82668,8 @@ CLASS zcl_abapgit_object_xinx IMPLEMENTATION.
       IMPORTING
         protname    = lv_protname
       EXCEPTIONS
-        input_error = 0.
+        input_error = 0
+        OTHERS      = 1.
 
     PERFORM logdelete IN PROGRAM rddu0001 USING lv_protname.
 
@@ -83526,7 +83530,8 @@ CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
       CHANGING
         delta                = rs_delta
       EXCEPTIONS
-        inconsistent_objects = 1.
+        inconsistent_objects = 1
+        OTHERS               = 2.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'error from SVRS_MAKE_OBJECT_DELTA' ).
     ENDIF.
@@ -83580,7 +83585,8 @@ CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
       CHANGING
         delta                = rs_delta
       EXCEPTIONS
-        inconsistent_objects = 1.
+        inconsistent_objects = 1
+        OTHERS               = 2.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'error from SVRS_MAKE_OBJECT_DELTA' ).
     ENDIF.
@@ -83649,7 +83655,8 @@ CLASS zcl_abapgit_object_wdyn IMPLEMENTATION.
       CHANGING
         delta                = rs_delta
       EXCEPTIONS
-        inconsistent_objects = 1.
+        inconsistent_objects = 1
+        OTHERS               = 2.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( 'error from SVRS_MAKE_OBJECT_DELTA' ).
     ENDIF.
@@ -85397,7 +85404,8 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
         author_not_existing     = 5
         action_cancelled        = 6
         error_occured           = 7
-        invalid_parameter       = 8 ).
+        invalid_parameter       = 8
+        OTHERS                  = 9 ).
 
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |WAPA - error from create_new: { sy-subrc }| ).
@@ -85474,7 +85482,8 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
             p_pagekey           = ls_pagekey
           EXCEPTIONS
             object_not_existing = 1
-            error_occured       = 2 ).
+            error_occured       = 2
+            OTHERS              = 3 ).
 
         IF sy-subrc <> 0.
           zcx_abapgit_exception=>raise( |Error { sy-subrc } from CL_O2_PAGE=>DELETE_PAGE_FOR_APPLICATION| ).
@@ -85535,7 +85544,8 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
           p_ev_handler = rs_page-event_handlers
         EXCEPTIONS
           page_deleted = 1
-          invalid_call = 2 ).
+          invalid_call = 2
+          OTHERS       = 3 ).
       ASSERT sy-subrc = 0.
 
       lo_page->get_parameters(
@@ -85631,7 +85641,8 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
       EXCEPTIONS
         object_not_existing = 1
         permission_failure  = 2
-        error_occured       = 3 ).
+        error_occured       = 3
+        OTHERS              = 4 ).
     ASSERT sy-subrc = 0.
 
     lo_bsp->set_changeable(
@@ -85655,7 +85666,8 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
           p_pagekey           = ls_pagekey
         EXCEPTIONS
           object_not_existing = 1
-          error_occured       = 2 ).
+          error_occured       = 2
+          OTHERS              = 3 ).
       ASSERT sy-subrc = 0.
     ENDLOOP.
 
@@ -85678,7 +85690,8 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
           p_pagekey           = ls_pagekey
         EXCEPTIONS
           object_not_existing = 1
-          error_occured       = 2 ).
+          error_occured       = 2
+          OTHERS              = 3 ).
       ASSERT sy-subrc = 0.
     ENDLOOP.
 
@@ -85860,7 +85873,8 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
       EXCEPTIONS
         object_not_existing = 1
         permission_failure  = 2
-        error_occured       = 3 ).
+        error_occured       = 3
+        OTHERS              = 4 ).
     rv_bool = boolc( sy-subrc = 0 ).
 
   ENDMETHOD.
@@ -85915,7 +85929,8 @@ CLASS zcl_abapgit_object_wapa IMPLEMENTATION.
       EXCEPTIONS
         object_not_existing = 1
         permission_failure  = 2
-        error_occured       = 3 ).
+        error_occured       = 3
+        OTHERS              = 4 ).
     IF sy-subrc <> 0.
       RETURN.
     ENDIF.
@@ -86068,7 +86083,8 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
         key               = ms_key
       EXCEPTIONS
         wrong_object_type = 1
-        delete_error      = 2.
+        delete_error      = 2
+        OTHERS            = 3.
 
     IF sy-subrc IS NOT INITIAL.
       zcx_abapgit_exception=>raise( 'Cannot delete W3xx data' ).
@@ -86078,7 +86094,8 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
       EXPORTING
         key          = ms_key
       EXCEPTIONS
-        delete_error = 1.
+        delete_error = 1
+        OTHERS       = 2.
 
     IF sy-subrc IS NOT INITIAL.
       zcx_abapgit_exception=>raise( 'Cannot delete W3xx params' ).
@@ -86140,7 +86157,8 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
             binary_tab    = lt_w3mime
             text_tab      = lt_w3html
           EXCEPTIONS
-            failed        = 1.
+            failed        = 1
+            OTHERS        = 2.
         IF sy-subrc IS NOT INITIAL.
           zcx_abapgit_exception=>raise( 'Cannot update W3xx params' ).
         ENDIF.
@@ -86158,7 +86176,8 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
       TABLES
         params       = lt_w3params
       EXCEPTIONS
-        update_error = 1.
+        update_error = 1
+        OTHERS       = 2.
 
     IF sy-subrc IS NOT INITIAL.
       zcx_abapgit_exception=>raise( 'Cannot update W3xx params' ).
@@ -86177,7 +86196,8 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
         html              = lt_w3html
       EXCEPTIONS
         wrong_object_type = 1
-        export_error      = 2.
+        export_error      = 2
+        OTHERS            = 3.
 
     IF sy-subrc IS NOT INITIAL.
       zcx_abapgit_exception=>raise( 'Cannot upload W3xx data' ).
@@ -86302,7 +86322,8 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
         html              = lt_w3html
       EXCEPTIONS
         wrong_object_type = 1
-        import_error      = 2.
+        import_error      = 2
+        OTHERS            = 3.
 
     IF sy-subrc IS NOT INITIAL.
       zcx_abapgit_exception=>raise( 'Cannot read W3xx data' ).
@@ -86315,7 +86336,8 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
       TABLES
         params           = lt_w3params
       EXCEPTIONS
-        entry_not_exists = 1.
+        entry_not_exists = 1
+        OTHERS           = 2.
 
     IF sy-subrc IS NOT INITIAL.
       zcx_abapgit_exception=>raise( 'Cannot read W3xx data' ).
@@ -86336,7 +86358,8 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
           TABLES
             binary_tab   = lt_w3mime
           EXCEPTIONS
-            failed       = 1.
+            failed       = 1
+            OTHERS       = 2.
       WHEN 'HT'.
         CALL FUNCTION 'SCMS_TEXT_TO_XSTRING'
           IMPORTING
@@ -86344,7 +86367,8 @@ CLASS zcl_abapgit_object_w3xx_super IMPLEMENTATION.
           TABLES
             text_tab = lt_w3html
           EXCEPTIONS
-            failed   = 1.
+            failed   = 1
+            OTHERS   = 2.
       WHEN OTHERS.
         zcx_abapgit_exception=>raise( 'Wrong W3xx type' ).
     ENDCASE.
@@ -87297,7 +87321,8 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
           langu    = mv_language
           obj_id   = 'UENC' "Entity Comments
         EXCEPTIONS
-          ret_code = 0.
+          ret_code = 0
+          OTHERS   = 1.
 
       CALL FUNCTION 'SDU_DOCU_DELETE'
         EXPORTING
@@ -87307,7 +87332,8 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
           langu    = mv_language
           obj_id   = 'UEND' "Entity Definition
         EXCEPTIONS
-          ret_code = 0.
+          ret_code = 0
+          OTHERS   = 1.
 
       CALL FUNCTION 'SDU_DOCU_DELETE'
         EXPORTING
@@ -87317,7 +87343,8 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
           langu    = mv_language
           obj_id   = 'UENE' "Entity Example
         EXCEPTIONS
-          ret_code = 0.
+          ret_code = 0
+          OTHERS   = 1.
 
     ENDLOOP.
 
@@ -87344,7 +87371,8 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
           key3     = ls_dm42s-entidfrom
           key4     = ls_dm42s-ebrolnr
         EXCEPTIONS
-          ret_code = 0.
+          ret_code = 0
+          OTHERS   = 1.
 
       CALL FUNCTION 'SDU_DOCU_DELETE'
         EXPORTING
@@ -87355,7 +87383,8 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
           key3     = ls_dm42s-entidfrom
           key4     = ls_dm42s-ebrolnr
         EXCEPTIONS
-          ret_code = 0.
+          ret_code = 0
+          OTHERS   = 1.
 
       CALL FUNCTION 'SDU_DOCU_DELETE'
         EXPORTING
@@ -87366,7 +87395,8 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
           key3     = ls_dm42s-entidfrom
           key4     = ls_dm42s-ebrolnr
         EXCEPTIONS
-          ret_code = 0.
+          ret_code = 0
+          OTHERS   = 1.
 
     ENDLOOP.
   ENDMETHOD.
@@ -87391,7 +87421,8 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
           key2     = ls_dm45l-as4local
           key3     = ls_dm45l-spezid
         EXCEPTIONS
-          ret_code = 0.
+          ret_code = 0
+          OTHERS   = 1.
 
     ENDLOOP.
   ENDMETHOD.
@@ -87566,7 +87597,8 @@ CLASS zcl_abapgit_object_ueno IMPLEMENTATION.
         obj_name   = ms_item-obj_name
         obj_type   = ms_item-obj_type
       EXCEPTIONS
-        wrong_type = 1.
+        wrong_type = 1
+        OTHERS     = 2.
 
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
@@ -88040,7 +88072,8 @@ CLASS zcl_abapgit_object_udmo IMPLEMENTATION.
         obj_name   = ms_object_type-objname
         obj_type   = ms_object_type-objtype
       EXCEPTIONS
-        wrong_type = 1.
+        wrong_type = 1
+        OTHERS     = 2.
 
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
@@ -100847,7 +100880,8 @@ CLASS zcl_abapgit_object_scp1 IMPLEMENTATION.
         profids                  = lt_fatherprofiles
       EXCEPTIONS
         error_in_transport_layer = 1
-        user_abort               = 2.
+        user_abort               = 2
+        OTHERS                   = 3.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |error while deleting SCP1 - TRANSPORT, { sy-subrc }| ).
     ENDIF.
@@ -100859,7 +100893,8 @@ CLASS zcl_abapgit_object_scp1 IMPLEMENTATION.
       TABLES
         fatherprofs = lt_fatherprofiles
       EXCEPTIONS
-        user_abort  = 1.
+        user_abort  = 1
+        OTHERS      = 2.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |error while deleting SCP1 - DB_DELETE, { sy-subrc }| ).
     ENDIF.
@@ -104945,7 +104980,8 @@ CLASS zcl_abapgit_object_nrob IMPLEMENTATION.
       EXPORTING
         object                 = ls_attributes-object
       EXCEPTIONS
-        object_not_initialized = 1.
+        object_not_initialized = 1
+        OTHERS                 = 2.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
@@ -111839,7 +111875,8 @@ CLASS zcl_abapgit_object_fugr IMPLEMENTATION.
       EXPORTING
         function_pool   = lv_pool
       EXCEPTIONS
-        pool_not_exists = 1.
+        pool_not_exists = 1
+        OTHERS          = 2.
     rv_bool = boolc( sy-subrc <> 1 ).
 
     " Skip FUGR generated by CHDO
@@ -123381,7 +123418,8 @@ CLASS zcl_abapgit_object_avar IMPLEMENTATION.
       EXPORTING
         im_descript      = lv_description
       EXCEPTIONS
-        no_authorization = 1 ).
+        no_authorization = 1
+        OTHERS           = 2 ).
     IF sy-subrc <> 0.
       lo_aab->dequeue( ).
       zcx_abapgit_exception=>raise_t100( ).
@@ -123413,7 +123451,8 @@ CLASS zcl_abapgit_object_avar IMPLEMENTATION.
         propt_error           = 3
         var_id_error          = 4
         no_changes_found      = 5
-        cts_error             = 6 ).
+        cts_error             = 6
+        OTHERS                = 7 ).
     IF sy-subrc <> 0.
       lo_aab->dequeue( ).
       zcx_abapgit_exception=>raise_t100( ).
@@ -123476,7 +123515,8 @@ CLASS zcl_abapgit_object_avar IMPLEMENTATION.
       IMPORTING
         ex_descript = lv_description
       EXCEPTIONS
-        no_descript_found = 1 ).
+        no_descript_found = 1
+        OTHERS            = 2 ).
     IF sy-subrc = 0.
       io_xml->add( iv_name = 'DESCRIPTION'
                    ig_data = lv_description ).
@@ -125421,7 +125461,7 @@ CLASS zcl_abapgit_object_acid IMPLEMENTATION.
 
     lo_aab->get_descript(
       IMPORTING ex_descript = lv_description
-      EXCEPTIONS no_description_found = 1 ).
+      EXCEPTIONS no_description_found = 1 OTHERS = 2 ).
 
     io_xml->add( iv_name = 'DESCRIPTION'
                  ig_data = lv_description ).
@@ -131468,7 +131508,8 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
         unexpected_error           = 2
         intern_err                 = 3
         no_access                  = 4
-        object_locked_and_modified = 5 ).
+        object_locked_and_modified = 5
+        OTHERS                     = 6 ).
     IF sy-subrc = 0.
       " Package already exists. We assume this is fine. Its properties might be changed later at
       " DEVC deserialization.
@@ -131591,7 +131632,8 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
         unexpected_error           = 2
         intern_err                 = 3
         no_access                  = 4
-        object_locked_and_modified = 5 ).
+        object_locked_and_modified = 5
+        OTHERS                     = 6 ).
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise_t100( ).
     ENDIF.
@@ -131643,7 +131685,8 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
         unexpected_error           = 2
         intern_err                 = 3
         no_access                  = 4
-        object_locked_and_modified = 5 ).
+        object_locked_and_modified = 5
+        OTHERS                     = 6 ).
     rv_bool = boolc( sy-subrc <> 1 ).
 
   ENDMETHOD.
@@ -131878,7 +131921,8 @@ CLASS zcl_abapgit_sap_package IMPLEMENTATION.
         undefined_name       = 1
         wrong_name_prefix    = 2
         reserved_local_name  = 3
-        invalid_package_name = 4 ).
+        invalid_package_name = 4
+        OTHERS               = 5 ).
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Package name { mv_package } is not valid| ).
     ENDIF.
@@ -132654,7 +132698,8 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
       RECEIVING
         result              = rv_program
       EXCEPTIONS
-        method_not_existing = 1 ).
+        method_not_existing = 1
+        OTHERS              = 2 ).
     IF sy-subrc = 0.
       RETURN.
     ENDIF.
@@ -133370,7 +133415,8 @@ CLASS zcl_abapgit_oo_class IMPLEMENTATION.
       RECEIVING
         result             = lt_methods
       EXCEPTIONS
-        class_not_existing = 1 ).
+        class_not_existing = 1
+        OTHERS             = 2 ).
 
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Class { lv_class_name } not existing| ).
@@ -156773,7 +156819,8 @@ CLASS zcl_abapgit_data_utils IMPLEMENTATION.
       RECEIVING
         p_descr_ref    = lo_type
       EXCEPTIONS
-        type_not_found = 1 ).
+        type_not_found = 1
+        OTHERS         = 2 ).
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Table { iv_name } not found for data serialization| ).
     ENDIF.
@@ -156940,7 +156987,8 @@ CLASS zcl_abapgit_data_utils IMPLEMENTATION.
             p_field_list = <lt_ddfields>
           EXCEPTIONS
             not_found    = 1
-            no_ddic_type = 2 ).
+            no_ddic_type = 2
+            OTHERS       = 3 ).
         IF sy-subrc <> 0.
           zcx_abapgit_exception=>raise( |Table { iv_name } not found| ).
         ENDIF.
@@ -161143,8 +161191,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-20T00:17:57.961Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-20T00:17:57.961Z`.
+* abapmerge 0.16.10 - 2026-11-20T09:00:07.539Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-20T09:00:07.539Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
