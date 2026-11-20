@@ -44692,7 +44692,9 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       lv_package TYPE devclass.
 
     lv_package = iv_package.
-    TRANSLATE lv_package USING '/#'.
+    lv_package = translate( val  = lv_package
+                            from = `/`
+                            to   = `#` ).
     CONCATENATE lv_package '_' sy-datlo '_' sy-timlo '.zip' INTO lv_default.
 
     li_fe_serv = zcl_abapgit_ui_factory=>get_frontend_services( ).
@@ -77373,7 +77375,7 @@ CLASS zcl_abapgit_persistence_repo IMPLEMENTATION.
     ENDLOOP.
 
     SHIFT rv_next_repo_id RIGHT DELETING TRAILING space.
-    TRANSLATE rv_next_repo_id USING ' 0'.
+    OVERLAY rv_next_repo_id WITH '000000000000'.
 
   ENDMETHOD.
   METHOD get_repo_from_content.
@@ -132159,7 +132161,7 @@ CLASS zcl_abapgit_oo_serializer IMPLEMENTATION.
       OR iv_type = seop_ext_class_testclasses.
 
     ls_include-rootname = is_clskey-clsname.
-    TRANSLATE ls_include-rootname USING ' ='.
+    OVERLAY ls_include-rootname WITH '=============================='.
     ls_include-categorya = iv_type(1).
     ls_include-codea = iv_type+1(4).
 
@@ -135358,7 +135360,7 @@ CLASS zcl_abapgit_object_enho_class IMPLEMENTATION.
     lt_includes = io_class->get_enh_method_includes( ).
     LOOP AT lt_includes ASSIGNING <ls_include>.
       lv_include = io_class->if_enh_tool~get_name( ).
-      TRANSLATE lv_include USING ' ='.
+      OVERLAY lv_include WITH '========================================'.
       lv_include+30 = 'EM'.
       lv_include+32(8) = <ls_include>-includenr.
 
@@ -139960,7 +139962,9 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
             lv_parentcl }, child: { iv_package }| ).
         ENDIF.
 
-        TRANSLATE lv_path USING '/#'.
+        lv_path = translate( val  = lv_path
+                             from = `/`
+                             to   = `#` ).
         lv_path = to_lower( lv_path ).
         CONCATENATE lv_path '/' INTO lv_path.
 
@@ -140033,7 +140037,9 @@ CLASS zcl_abapgit_folder_logic IMPLEMENTATION.
       CASE lv_folder_logic.
         WHEN zif_abapgit_dot_abapgit=>c_folder_logic-full.
           lv_absolute_name = lv_new.
-          TRANSLATE lv_absolute_name USING '#/'.
+          lv_absolute_name = translate( val  = lv_absolute_name
+                                        from = `#`
+                                        to   = `/` ).
           IF iv_top(1) = '$'.
             CONCATENATE '$' lv_absolute_name INTO lv_absolute_name.
           ENDIF.
@@ -143984,8 +143990,10 @@ CLASS kHGwlpuwVGRXmbkWZJMoYWDnXPYsQA IMPLEMENTATION. "DEPRECATED
 
     REPLACE ALL OCCURRENCES OF `__` IN rv_result WITH `*`.
 
-    TRANSLATE rv_result TO LOWER CASE.
-    TRANSLATE rv_result USING `/_:_~_`.
+    rv_result = to_lower( rv_result ).
+    rv_result = translate( val  = rv_result
+                           from = `/:~`
+                           to   = `___` ).
 
     IF mv_first_json_upper = abap_true.
       lv_from = 1.
@@ -143995,7 +144003,7 @@ CLASS kHGwlpuwVGRXmbkWZJMoYWDnXPYsQA IMPLEMENTATION. "DEPRECATED
 
     SPLIT rv_result AT `_` INTO TABLE lt_tokens.
     LOOP AT lt_tokens ASSIGNING <token> FROM lv_from.
-      TRANSLATE <token>(1) TO UPPER CASE.
+      <token>(1) = to_upper( <token>(1) ).
     ENDLOOP.
 
     CONCATENATE LINES OF lt_tokens INTO rv_result.
@@ -144087,7 +144095,7 @@ CLASS kHGwlpuwVGRXmbkWZJMoWRsLzEdjUi IMPLEMENTATION.
     SPLIT cv_name AT `_` INTO TABLE lt_tokens.
     DELETE lt_tokens WHERE table_line IS INITIAL.
     LOOP AT lt_tokens ASSIGNING <token> FROM lv_from.
-      TRANSLATE <token>+0(1) TO UPPER CASE.
+      <token>+0(1) = to_upper( <token>+0(1) ).
     ENDLOOP.
 
     CONCATENATE LINES OF lt_tokens INTO cv_name.
@@ -157928,7 +157936,9 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
     rv_filename = |{ is_trkorr-trkorr }_{ is_trkorr-as4text }_{ mv_timestamp }{ c_zip_ext }|.
 
     " Remove reserved characters (for Windows based systems)
-    TRANSLATE rv_filename USING '/ \ : " * > < ? | '.
+    rv_filename = translate( val  = rv_filename
+                             from = `/\:"*><?|`
+                             to   = `         ` ).
 
     rv_filename = |{ mv_full_folder }{ mv_separator }{ rv_filename }|.
 
@@ -161191,8 +161201,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-20T09:00:07.539Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-20T09:00:07.539Z`.
+* abapmerge 0.16.10 - 2026-11-20T12:52:43.916Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-20T12:52:43.916Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
