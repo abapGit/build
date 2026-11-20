@@ -5423,10 +5423,21 @@ INTERFACE zif_abapgit_sap_report.
   METHODS read_report
     IMPORTING
       iv_name          TYPE syrepid
-      iv_state         TYPE r3state OPTIONAL
+      iv_state         TYPE r3state DEFAULT 'A'
       is_item          TYPE zif_abapgit_definitions=>ty_item OPTIONAL
     RETURNING
       VALUE(rt_source) TYPE abaptxt255_tab
+    RAISING
+      zcx_abapgit_exception.
+
+  METHODS read_textpool
+    IMPORTING
+      iv_name            TYPE syrepid
+      iv_language        TYPE sy-langu
+      iv_state           TYPE r3state DEFAULT 'A'
+      is_item            TYPE zif_abapgit_definitions=>ty_item OPTIONAL
+    RETURNING
+      VALUE(rt_textpool) TYPE textpool_table
     RAISING
       zcx_abapgit_exception.
 
@@ -5438,7 +5449,7 @@ INTERFACE zif_abapgit_sap_report.
       iv_program_type   TYPE c OPTIONAL
       iv_extension_type TYPE c OPTIONAL
       iv_package        TYPE devclass
-      iv_version        TYPE uccheck
+      iv_version        TYPE uccheck OPTIONAL
       is_item           TYPE zif_abapgit_definitions=>ty_item OPTIONAL
     RAISING
       zcx_abapgit_exception.
@@ -21168,6 +21179,7 @@ CLASS zcl_abapgit_objects_program DEFINITION
         !is_progdir TYPE zif_abapgit_sap_report=>ty_progdir
         !it_source  TYPE abaptxt255_tab
         !iv_title   TYPE repti
+        !iv_package TYPE devclass
         !iv_state   TYPE progdir-state DEFAULT c_state-inactive
       RAISING
         zcx_abapgit_exception .
@@ -79402,6 +79414,7 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
         is_progdir = is_progdir
         it_source  = it_source
         iv_title   = lv_title
+        iv_package = iv_package
         iv_state   = c_state-off ).
     ELSE.
       insert_program(
@@ -79444,7 +79457,8 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       update_program(
         is_progdir = is_progdir
         it_source  = it_source
-        iv_title   = lv_title ).
+        iv_title   = lv_title
+        iv_package = iv_package ).
     ELSE.
       insert_program(
         is_progdir = is_progdir
@@ -80084,36 +80098,6 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
       lv_program_name = iv_program.
     ENDIF.
 
-    zcl_abapgit_language=>set_current_language( mv_language ).
-
-    " Active source is read below
-    CALL FUNCTION 'RPY_PROGRAM_READ'
-      EXPORTING
-        program_name     = lv_program_name
-        with_includelist = abap_false
-        with_lowercase   = abap_true
-        only_texts       = abap_true
-      TABLES
-        textelements     = lt_tpool
-      EXCEPTIONS
-        cancelled        = 1
-        not_found        = 2
-        permission_error = 3
-        OTHERS           = 4.
-
-    IF sy-subrc = 2.
-      zcl_abapgit_language=>restore_login_language( ).
-      RETURN.
-    ELSEIF sy-subrc <> 0.
-      zcl_abapgit_language=>restore_login_language( ).
-      zcx_abapgit_exception=>raise_t100( ).
-    ENDIF.
-
-    zcl_abapgit_language=>restore_login_language( ).
-
-    " RPY_PROGRAM_READ does not return the active code if an inactive version exists, and it ignores
-    " errors of READ REPORT (empty source after other programs were changed in the same session).
-    " Therefore, explicitly request active source code
     li_report = zcl_abapgit_factory=>get_sap_report( ).
 
     lt_source = li_report->read_report(
@@ -80123,6 +80107,11 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
     ls_progdir = li_report->read_progdir(
       iv_name  = lv_program_name
       iv_state = c_state-active ).
+
+    lt_tpool = li_report->read_textpool(
+      iv_name     = lv_program_name
+      iv_language = mv_language
+      iv_state    = c_state-active ).
 
     clear_abap_language_version( CHANGING cv_abap_language_version = ls_progdir-uccheck ).
 
@@ -80298,20 +80287,32 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
   ENDMETHOD.
   METHOD update_program.
 
+    DATA lt_act_source TYPE abaptxt255_tab.
+
+    " Get active source before update
+    IF iv_state IS NOT INITIAL.
+      lt_act_source = zcl_abapgit_factory=>get_sap_report( )->read_report( is_progdir-name ).
+    ENDIF.
+
     zcl_abapgit_language=>set_current_language( mv_language ).
 
-    CALL FUNCTION 'RPY_INCLUDE_UPDATE'
+    " There are bugs in RPY_INCLUDE_UPDATE: The workarea isn't updated correctly and there is a
+    " performance issue when updating program index esp. for maintenance function groups.
+    " We therefore use RPY_PROGRAM_UPDATE which does not have these problems.
+    CALL FUNCTION 'RPY_PROGRAM_UPDATE'
       EXPORTING
-        include_name     = is_progdir-name
-        title_string     = iv_title
-        save_inactive    = iv_state
+        development_class = iv_package
+        program_name      = is_progdir-name
+        program_type      = is_progdir-subc
+        title_string      = iv_title
+        save_inactive     = iv_state
       TABLES
-        source_extended  = it_source
+        source_extended   = it_source
       EXCEPTIONS
-        not_found        = 1
-        cancelled        = 2
-        permission_error = 3
-        OTHERS           = 4.
+        cancelled         = 1
+        permission_error  = 2
+        not_found         = 3
+        OTHERS            = 4.
 
     IF sy-subrc <> 0.
       zcl_abapgit_language=>restore_login_language( ).
@@ -80331,6 +80332,15 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
     ENDIF.
 
     zcl_abapgit_language=>restore_login_language( ).
+
+    " Restore active source which was overwritten by RPY_PROGRAM_UPDATE
+    IF iv_state IS NOT INITIAL.
+      zcl_abapgit_factory=>get_sap_report( )->insert_report(
+        iv_name    = is_progdir-name
+        it_source  = lt_act_source
+        iv_package = iv_package
+        iv_state   = c_state-active ).
+    ENDIF.
 
   ENDMETHOD.
 ENDCLASS.
@@ -131228,7 +131238,9 @@ CLASS zcl_abapgit_sap_report IMPLEMENTATION.
 
     " In lower releases, INSERT REPORT does not support setting ABAP Language version (VERSION)
     " Therefore, update the flag directly
-    UPDATE progdir SET uccheck = iv_version WHERE name = iv_name AND state = iv_state.
+    IF iv_version IS SUPPLIED.
+      UPDATE progdir SET uccheck = iv_version WHERE name = iv_name AND state = iv_state.
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_sap_report~read_progdir.
@@ -131283,6 +131295,24 @@ CLASS zcl_abapgit_sap_report IMPLEMENTATION.
     IF sy-subrc <> 0.
       zcx_abapgit_exception=>raise( |Error reading report { iv_name }| ).
     ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_sap_report~read_textpool.
+
+    ASSERT iv_state CA ' AI'.
+
+    authorization_check(
+      iv_mode = 'SHOW'
+      is_item = is_item ).
+
+    IF iv_state IS INITIAL.
+      READ TEXTPOOL iv_name INTO rt_textpool LANGUAGE iv_language.
+    ELSE.
+      READ TEXTPOOL iv_name INTO rt_textpool LANGUAGE iv_language STATE iv_state.
+    ENDIF.
+
+    " Ignore errors since some programs/includes don't have a textpool
+    ASSERT sy-subrc >= 0.
 
   ENDMETHOD.
   METHOD zif_abapgit_sap_report~update_progdir.
@@ -161113,8 +161143,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-19T09:37:22.963Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-19T09:37:22.963Z`.
+* abapmerge 0.16.10 - 2026-11-20T00:17:57.961Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-20T00:17:57.961Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
