@@ -138061,7 +138061,7 @@ CLASS zcl_abapgit_serialize IMPLEMENTATION.
         IF NOT lv_mess IS INITIAL.
           mi_log->add_error( lv_mess ).
         ELSE.
-          mi_log->add_error( |{ sy-msgv1 }{ sy-msgv2 }{ sy-msgv3 }{ sy-msgv3 }| ).
+          mi_log->add_error( |{ sy-msgv1 }{ sy-msgv2 }{ sy-msgv3 }{ sy-msgv4 }| ).
         ENDIF.
       ENDIF.
     ELSE.
@@ -161201,8 +161201,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-20T12:52:43.916Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-20T12:52:43.916Z`.
+* abapmerge 0.16.10 - 2026-11-21T13:03:36.987Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-21T13:03:36.987Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
