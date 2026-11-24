@@ -144019,10 +144019,8 @@ CLASS kHGwlpuwVGRXmbkWZJMoYWDnXPYsQA IMPLEMENTATION. "DEPRECATED
 
     REPLACE ALL OCCURRENCES OF `__` IN rv_result WITH `*`.
 
-    rv_result = to_lower( rv_result ).
-    rv_result = translate( val  = rv_result
-                           from = `/:~`
-                           to   = `___` ).
+    TRANSLATE rv_result TO LOWER CASE.
+    TRANSLATE rv_result USING `/_:_~_`.
 
     IF mv_first_json_upper = abap_true.
       lv_from = 1.
@@ -144032,7 +144030,7 @@ CLASS kHGwlpuwVGRXmbkWZJMoYWDnXPYsQA IMPLEMENTATION. "DEPRECATED
 
     SPLIT rv_result AT `_` INTO TABLE lt_tokens.
     LOOP AT lt_tokens ASSIGNING <token> FROM lv_from.
-      <token>(1) = to_upper( <token>(1) ).
+      TRANSLATE <token>(1) TO UPPER CASE.
     ENDLOOP.
 
     CONCATENATE LINES OF lt_tokens INTO rv_result.
@@ -144124,7 +144122,7 @@ CLASS kHGwlpuwVGRXmbkWZJMoWRsLzEdjUi IMPLEMENTATION.
     SPLIT cv_name AT `_` INTO TABLE lt_tokens.
     DELETE lt_tokens WHERE table_line IS INITIAL.
     LOOP AT lt_tokens ASSIGNING <token> FROM lv_from.
-      <token>+0(1) = to_upper( <token>+0(1) ).
+      TRANSLATE <token>+0(1) TO UPPER CASE.
     ENDLOOP.
 
     CONCATENATE LINES OF lt_tokens INTO cv_name.
@@ -161344,8 +161342,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-24T17:13:17.630Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-24T17:13:17.630Z`.
+* abapmerge 0.16.10 - 2026-11-24T17:22:58.837Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-24T17:22:58.837Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
