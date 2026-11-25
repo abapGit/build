@@ -4267,6 +4267,11 @@ INTERFACE zif_abapgit_definitions .
   TYPES:
     ty_files TYPE STANDARD TABLE OF zif_abapgit_git_definitions=>ty_file WITH DEFAULT KEY.
   TYPES:
+    BEGIN OF ty_zip_result,
+      xstr       TYPE xstring,
+      incomplete TYPE abap_bool,
+    END OF ty_zip_result.
+  TYPES:
     ty_yes_no         TYPE c LENGTH 1,
     ty_yes_no_partial TYPE c LENGTH 1.
   TYPES:
@@ -8195,7 +8200,7 @@ CLASS zcl_abapgit_transport DEFINITION
         !iv_logic          TYPE string OPTIONAL
         !is_trkorr         TYPE trwbo_request_header OPTIONAL
       RETURNING
-        VALUE(rv_xstr)     TYPE xstring
+        VALUE(rs_zip)      TYPE zif_abapgit_definitions=>ty_zip_result
       RAISING
         zcx_abapgit_exception .
 
@@ -22905,7 +22910,7 @@ CLASS zcl_abapgit_zip DEFINITION
         !iv_show_log       TYPE abap_bool DEFAULT abap_true
         !it_filter         TYPE zif_abapgit_definitions=>ty_tadir_tt OPTIONAL
       RETURNING
-        VALUE(rv_xstr)     TYPE xstring
+        VALUE(rs_result)   TYPE zif_abapgit_definitions=>ty_zip_result
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS export_object
@@ -22919,10 +22924,12 @@ CLASS zcl_abapgit_zip DEFINITION
         zcx_abapgit_exception .
     CLASS-METHODS export_package
       IMPORTING
-        !iv_package        TYPE devclass
-        !iv_folder_logic   TYPE string
-        !iv_main_lang_only TYPE abap_bool
-        !iv_ign_subpkg     TYPE abap_bool OPTIONAL
+        !iv_package          TYPE devclass
+        !iv_folder_logic     TYPE string
+        !iv_main_lang_only   TYPE abap_bool
+        !iv_ign_subpkg       TYPE abap_bool OPTIONAL
+      RETURNING
+        VALUE(rv_incomplete) TYPE abap_bool
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS load
@@ -22941,6 +22948,9 @@ CLASS zcl_abapgit_zip DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
+    CLASS-METHODS confirm_incomplete_export
+      RAISING
+        zcx_abapgit_exception .
     CLASS-METHODS filename
       IMPORTING
         !iv_str      TYPE string
@@ -29130,6 +29140,7 @@ CLASS zcl_abapgit_gui_page_ex_pckage DEFINITION
         export_package TYPE string VALUE 'export-package',
         choose_package TYPE string VALUE 'choose-object-type',
       END OF c_event.
+
     DATA mo_form TYPE REF TO zcl_abapgit_html_form.
     DATA mo_form_data TYPE REF TO zcl_abapgit_string_map.
     DATA mo_validation_log TYPE REF TO zcl_abapgit_string_map.
@@ -29140,6 +29151,8 @@ CLASS zcl_abapgit_gui_page_ex_pckage DEFINITION
         VALUE(ro_form) TYPE REF TO zcl_abapgit_html_form.
 
     METHODS export_package
+      RETURNING
+        VALUE(rv_incomplete) TYPE abap_bool
       RAISING
         zcx_abapgit_exception.
 ENDCLASS.
@@ -50502,7 +50515,7 @@ CLASS zcl_abapgit_gui_page_ex_pckage IMPLEMENTATION.
     lv_ign_subpkg     = mo_form_data->get( c_id-ignore_subpackages ).
     lv_main_lang_only = mo_form_data->get( c_id-main_lang_only ).
 
-    zcl_abapgit_zip=>export_package(
+    rv_incomplete = zcl_abapgit_zip=>export_package(
       iv_package        = lv_package
       iv_folder_logic   = lv_folder_logic
       iv_ign_subpkg     = lv_ign_subpkg
@@ -50558,8 +50571,10 @@ CLASS zcl_abapgit_gui_page_ex_pckage IMPLEMENTATION.
         IF mo_validation_log->is_empty( ) = abap_false.
           rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
         ELSE.
-          export_package( ).
           MESSAGE 'Package successfully exported' TYPE 'S'.
+          IF export_package( ) = abap_true.
+            MESSAGE 'Incomplete ZIP exported; some objects were skipped' TYPE 'W'.
+          ENDIF.
           rs_handled-state = zcl_abapgit_gui=>c_event_state-go_back.
         ENDIF.
 
@@ -74647,11 +74662,17 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 
     FREE lo_serialize.
 
-    IF li_log->count( ) > 0 AND iv_show_log = abap_true.
+    IF li_log->get_log_level( ) = zif_abapgit_log=>c_log_level-error.
+      IF iv_show_log = abap_true.
+        zcl_abapgit_log_viewer=>show_log( li_log ).
+      ENDIF.
+
+      rs_result-incomplete = abap_true.
+    ELSEIF li_log->count( ) > 0 AND iv_show_log = abap_true.
       zcl_abapgit_log_viewer=>show_log( li_log ).
     ENDIF.
 
-    rv_xstr = encode_files( lt_zip ).
+    rs_result-xstr = encode_files( lt_zip ).
 
   ENDMETHOD.
   METHOD export_object.
@@ -74710,10 +74731,11 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
     DATA: ls_local_settings  TYPE zif_abapgit_persistence=>ty_repo-local_settings,
           lo_dot_abapgit     TYPE REF TO zcl_abapgit_dot_abapgit,
           lo_frontend_serv   TYPE REF TO zif_abapgit_frontend_services,
+          ls_export_result   TYPE zif_abapgit_definitions=>ty_zip_result,
           lv_default         TYPE string,
           lv_package_escaped TYPE string,
           lv_path            TYPE string,
-          lv_zip_xstring     TYPE xstring.
+          lv_title           TYPE string.
 
     ls_local_settings-main_language_only = iv_main_lang_only.
     ls_local_settings-ignore_subpackages = iv_ign_subpkg.
@@ -74725,21 +74747,44 @@ CLASS ZCL_ABAPGIT_ZIP IMPLEMENTATION.
 
     lv_package_escaped = iv_package.
     REPLACE ALL OCCURRENCES OF '/' IN lv_package_escaped WITH '#'.
-    lv_default = |{ lv_package_escaped }_{ sy-datlo }_{ sy-timlo }.zip|.
 
-    lv_zip_xstring = export(
+    ls_export_result = export(
       is_local_settings = ls_local_settings
       iv_package        = iv_package
       io_dot_abapgit    = lo_dot_abapgit ).
 
+    lv_default = |{ lv_package_escaped }_{ sy-datlo }_{ sy-timlo }.zip|.
+    lv_title = `Package Export`.
+    IF ls_export_result-incomplete = abap_true.
+      confirm_incomplete_export( ).
+      lv_default = |{ lv_package_escaped }_{ sy-datlo }_{ sy-timlo }_INCOMPLETE.zip|.
+      lv_title = `Package Export (INCOMPLETE)`.
+    ENDIF.
+
     lv_path = lo_frontend_serv->show_file_save_dialog(
-      iv_title            = 'Package Export'
-      iv_extension        = 'zip'
+      iv_title            = lv_title
+      iv_extension        = `zip`
       iv_default_filename = lv_default ).
 
     lo_frontend_serv->file_download(
       iv_path = lv_path
-      iv_xstr = lv_zip_xstring ).
+      iv_xstr = ls_export_result-xstr ).
+
+    rv_incomplete = ls_export_result-incomplete.
+
+  ENDMETHOD.
+  METHOD confirm_incomplete_export.
+
+    IF zcl_abapgit_ui_factory=>get_popups( )->popup_to_confirm(
+         iv_titlebar              = `Incomplete ZIP export`
+         iv_text_question         = `Some objects failed. Export the rest as an incomplete ZIP?`
+         iv_text_button_1         = `Export partial ZIP`
+         iv_text_button_2         = `Cancel export`
+         iv_default_button        = '2'
+         iv_popup_type            = `ICON_MESSAGE_WARNING`
+         iv_display_cancel_button = abap_true ) <> '1'.
+      RAISE EXCEPTION TYPE zcx_abapgit_cancel.
+    ENDIF.
 
   ENDMETHOD.
   METHOD filename.
@@ -157992,7 +158037,11 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr DEFINITION FINAL.
     TYPES ty_folder TYPE string.
     TYPES ty_filename TYPE string.
 
-    CONSTANTS c_zip_ext TYPE string VALUE '.zip'.
+    CONSTANTS:
+      BEGIN OF c_zip,
+        extension         TYPE string VALUE '.zip',
+        incomplete_suffix TYPE string VALUE '_INCOMPLETE',
+      END OF c_zip.
 
     METHODS constructor
       IMPORTING
@@ -158035,6 +158084,7 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr DEFINITION FINAL.
     METHODS get_filename
       IMPORTING
         is_trkorr          TYPE trwbo_request_header
+        iv_incomplete      TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(rv_filename) TYPE ty_filename.
 
@@ -158088,8 +158138,15 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
 
   METHOD get_filename.
 
+    DATA lv_incomplete_suffix TYPE string.
+
+    IF iv_incomplete = abap_true.
+      lv_incomplete_suffix = c_zip-incomplete_suffix.
+    ENDIF.
+
     " Generate filename
-    rv_filename = |{ is_trkorr-trkorr }_{ is_trkorr-as4text }_{ mv_timestamp }{ c_zip_ext }|.
+    rv_filename = |{ is_trkorr-trkorr }_{ is_trkorr-as4text }_{ mv_timestamp }|
+      && |{ lv_incomplete_suffix }{ c_zip-extension }|.
 
     " Remove reserved characters (for Windows based systems)
     rv_filename = translate( val  = rv_filename
@@ -158102,17 +158159,21 @@ CLASS kHGwlFZZSwYWAxVpEdIbDiDKiqhGgr IMPLEMENTATION.
 
   METHOD generate_files.
 
-    DATA: ls_trkorr       LIKE LINE OF it_trkorr,
-          lv_zipbinstring TYPE xstring.
+    DATA: ls_trkorr     LIKE LINE OF it_trkorr,
+          ls_zip_result TYPE zif_abapgit_definitions=>ty_zip_result.
 
     LOOP AT it_trkorr INTO ls_trkorr.
 
-      lv_zipbinstring = zcl_abapgit_transport_mass=>zip( is_trkorr         = ls_trkorr
-                                                         iv_logic          = ig_logic
-                                                         iv_show_log_popup = abap_false ).
+      ls_zip_result = zcl_abapgit_transport_mass=>zip(
+        is_trkorr         = ls_trkorr
+        iv_logic          = ig_logic
+        iv_show_log_popup = abap_false ).
 
-      zcl_abapgit_zip=>save_binstring_to_localfile( iv_binstring = lv_zipbinstring
-                                                    iv_filename  = get_filename( ls_trkorr ) ).
+      zcl_abapgit_zip=>save_binstring_to_localfile(
+        iv_binstring = ls_zip_result-xstr
+        iv_filename  = get_filename(
+          is_trkorr     = ls_trkorr
+          iv_incomplete = ls_zip_result-incomplete ) ).
 
     ENDLOOP.
 
@@ -158513,7 +158574,7 @@ CLASS zcl_abapgit_transport IMPLEMENTATION.
       lo_dot_abapgit->set_folder_logic( zcl_abapgit_ui_factory=>get_popups( )->popup_folder_logic( ) ).
     ENDIF.
 
-    rv_xstr = zcl_abapgit_zip=>export(
+    rs_zip = zcl_abapgit_zip=>export(
       iv_package        = lv_package
       io_dot_abapgit    = lo_dot_abapgit
       is_local_settings = ls_local_settings
@@ -161357,8 +161418,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-25T09:18:08.275Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-25T09:18:08.275Z`.
+* abapmerge 0.16.10 - 2026-11-25T16:45:53.918Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-25T16:45:53.918Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
