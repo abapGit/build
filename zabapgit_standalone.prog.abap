@@ -139249,7 +139249,11 @@ CLASS zcl_abapgit_objects_check IMPLEMENTATION.
           buffer_overflow = 3
           unknown_error   = 4
           OTHERS          = 5.
-      IF sy-subrc <> 0 OR lv_subrc <> 0.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise(
+          |DD_EXISTS_DATA failed for { <ls_result>-obj_name }, subrc = { sy-subrc }| ).
+      ENDIF.
+      IF lv_subrc <> 0.
         CONTINUE.
       ENDIF.
 
@@ -161428,8 +161432,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-25T16:54:41.665Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-25T16:54:41.665Z`.
+* abapmerge 0.16.10 - 2026-11-25T16:58:42.030Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-25T16:58:42.030Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
