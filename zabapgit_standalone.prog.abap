@@ -10942,9 +10942,9 @@ CLASS zcl_abapgit_url DEFINITION
         VALUE(rv_abapgit) TYPE abap_bool .
     CLASS-METHODS url_address
       IMPORTING
-        !iv_url          TYPE string
+        !iv_url           TYPE string
       RETURNING
-        VALUE(rv_adress) TYPE string
+        VALUE(rv_address) TYPE string
       RAISING
         zcx_abapgit_exception.
   PROTECTED SECTION.
@@ -148391,7 +148391,8 @@ CLASS zcl_abapgit_url IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-    rv_adress = |{ lv_host }{ lv_path }{ lv_name }|.
+    " the host is case-insensitive, the path may not be
+    rv_address = |{ to_lower( lv_host ) }{ lv_path }{ lv_name }|.
 
   ENDMETHOD.
   METHOD validate.
@@ -161342,8 +161343,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-24T17:22:58.837Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-24T17:22:58.837Z`.
+* abapmerge 0.16.10 - 2026-11-25T08:29:46.775Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-25T08:29:46.775Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
