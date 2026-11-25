@@ -72240,7 +72240,8 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
           lv_branch_name LIKE iv_branch_name,
           lv_key         TYPE zif_abapgit_persistence=>ty_repo-key,
           lo_dot_abapgit TYPE REF TO zcl_abapgit_dot_abapgit,
-          lv_url         TYPE string.
+          lv_url         TYPE string,
+          lx_error       TYPE REF TO zcx_abapgit_exception.
     ASSERT NOT iv_url IS INITIAL
       AND NOT iv_package IS INITIAL.
 
@@ -72300,8 +72301,17 @@ CLASS zcl_abapgit_repo_srv IMPLEMENTATION.
 
     ri_repo->set_local_settings( ls_repo-local_settings ).
 
-    ri_repo->refresh( ).
-    ri_repo->find_remote_dot_abapgit( ).
+    " First access to the remote (e.g. login) happens here. If it fails,
+    " remove the repo again so no orphaned entry is left behind. The HTTP call
+    " already committed the insert, so the delete must be committed as well
+    TRY.
+        ri_repo->refresh( ).
+        ri_repo->find_remote_dot_abapgit( ).
+      CATCH zcx_abapgit_exception INTO lx_error.
+        zif_abapgit_repo_srv~delete( ri_repo ).
+        COMMIT WORK.
+        RAISE EXCEPTION lx_error.
+    ENDTRY.
 
   ENDMETHOD.
   METHOD zif_abapgit_repo_srv~purge.
@@ -161418,8 +161428,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-25T16:45:53.918Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-25T16:45:53.918Z`.
+* abapmerge 0.16.10 - 2026-11-25T16:54:41.665Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-25T16:54:41.665Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
