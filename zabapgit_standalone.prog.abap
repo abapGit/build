@@ -559,6 +559,7 @@ CLASS zcl_abapgit_git_time DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_tag DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_porcelain DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_pack DEFINITION DEFERRED.
+CLASS zcl_abapgit_git_objects DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_delta DEFINITION DEFERRED.
 CLASS zcl_abapgit_git_commit DEFINITION DEFERRED.
@@ -9546,6 +9547,50 @@ CLASS zcl_abapgit_git_factory DEFINITION
       gi_v2 TYPE REF TO zif_abapgit_gitv2_porcelain.
 
 ENDCLASS.
+CLASS zcl_abapgit_git_objects DEFINITION
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS build_files
+      IMPORTING
+        !iv_commit      TYPE zif_abapgit_git_definitions=>ty_sha1
+        !it_objects     TYPE zif_abapgit_definitions=>ty_objects_tt
+      RETURNING
+        VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS full_tree
+      IMPORTING
+        !it_objects        TYPE zif_abapgit_definitions=>ty_objects_tt
+        !iv_parent         TYPE zif_abapgit_git_definitions=>ty_sha1
+      RETURNING
+        VALUE(rt_expanded) TYPE zif_abapgit_git_definitions=>ty_expanded_tt
+      RAISING
+        zcx_abapgit_exception .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CLASS-METHODS walk
+      IMPORTING
+        !it_objects TYPE zif_abapgit_definitions=>ty_objects_tt
+        !iv_sha1    TYPE zif_abapgit_git_definitions=>ty_sha1
+        !iv_path    TYPE string
+      CHANGING
+        !ct_files   TYPE zif_abapgit_git_definitions=>ty_files_tt
+      RAISING
+        zcx_abapgit_exception .
+    CLASS-METHODS walk_tree
+      IMPORTING
+        !it_objects        TYPE zif_abapgit_definitions=>ty_objects_tt
+        !iv_tree           TYPE zif_abapgit_git_definitions=>ty_sha1
+        !iv_base           TYPE string
+      RETURNING
+        VALUE(rt_expanded) TYPE zif_abapgit_git_definitions=>ty_expanded_tt
+      RAISING
+        zcx_abapgit_exception .
+ENDCLASS.
 CLASS zcl_abapgit_git_pack DEFINITION
   CREATE PUBLIC .
 
@@ -9783,14 +9828,6 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
         !is_tag TYPE zif_abapgit_git_definitions=>ty_git_tag
       RAISING
         zcx_abapgit_exception .
-    CLASS-METHODS full_tree
-      IMPORTING
-        !it_objects        TYPE zif_abapgit_definitions=>ty_objects_tt
-        !iv_parent         TYPE zif_abapgit_git_definitions=>ty_sha1
-      RETURNING
-        VALUE(rt_expanded) TYPE zif_abapgit_git_definitions=>ty_expanded_tt
-      RAISING
-        zcx_abapgit_exception .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -9826,32 +9863,6 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
         !it_expanded      TYPE zif_abapgit_git_definitions=>ty_expanded_tt
       RETURNING
         VALUE(rt_folders) TYPE ty_folders_tt .
-    CLASS-METHODS pull
-      IMPORTING
-        !iv_commit      TYPE zif_abapgit_git_definitions=>ty_sha1
-        !it_objects     TYPE zif_abapgit_definitions=>ty_objects_tt
-      RETURNING
-        VALUE(rt_files) TYPE zif_abapgit_git_definitions=>ty_files_tt
-      RAISING
-        zcx_abapgit_exception.
-    CLASS-METHODS walk
-      IMPORTING
-        !it_objects TYPE zif_abapgit_definitions=>ty_objects_tt
-        !iv_sha1    TYPE zif_abapgit_git_definitions=>ty_sha1
-        !iv_path    TYPE string
-      CHANGING
-        !ct_files   TYPE zif_abapgit_git_definitions=>ty_files_tt
-      RAISING
-        zcx_abapgit_exception .
-    CLASS-METHODS walk_tree
-      IMPORTING
-        !it_objects        TYPE zif_abapgit_definitions=>ty_objects_tt
-        !iv_tree           TYPE zif_abapgit_git_definitions=>ty_sha1
-        !iv_base           TYPE string
-      RETURNING
-        VALUE(rt_expanded) TYPE zif_abapgit_git_definitions=>ty_expanded_tt
-      RAISING
-        zcx_abapgit_exception .
     CLASS-METHODS receive_pack_push
       IMPORTING
         !is_comment     TYPE zif_abapgit_git_definitions=>ty_comment
@@ -9864,7 +9875,6 @@ CLASS zcl_abapgit_git_porcelain DEFINITION
       EXPORTING
         !ev_new_commit  TYPE zif_abapgit_git_definitions=>ty_sha1
         !et_new_objects TYPE zif_abapgit_definitions=>ty_objects_tt
-        !ev_new_tree    TYPE zif_abapgit_git_definitions=>ty_sha1
       RAISING
         zcx_abapgit_exception .
     CLASS-METHODS create_annotated_tag
@@ -76785,13 +76795,13 @@ CLASS zcl_abapgit_merge IMPLEMENTATION.
     ms_merge-common = find_first_common( it_list1 = lt_asource
                                          it_list2 = lt_atarget ).
 
-    ms_merge-stree = zcl_abapgit_git_porcelain=>full_tree(
+    ms_merge-stree = zcl_abapgit_git_objects=>full_tree(
       it_objects = mt_objects
       iv_parent  = ms_merge-source-sha1 ).
-    ms_merge-ttree = zcl_abapgit_git_porcelain=>full_tree(
+    ms_merge-ttree = zcl_abapgit_git_objects=>full_tree(
       it_objects = mt_objects
       iv_parent  = ms_merge-target-sha1 ).
-    ms_merge-ctree = zcl_abapgit_git_porcelain=>full_tree(
+    ms_merge-ctree = zcl_abapgit_git_objects=>full_tree(
       it_objects = mt_objects
       iv_parent  = ms_merge-common-commit ).
 
@@ -151607,47 +151617,6 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
-  METHOD full_tree.
-
-    DATA: ls_object LIKE LINE OF it_objects,
-          ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
-
-    READ TABLE it_objects INTO ls_object
-      WITH KEY type COMPONENTS
-        type = zif_abapgit_git_definitions=>c_type-commit
-        sha1 = iv_parent.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'commit not found' ).
-    ENDIF.
-    ls_commit = zcl_abapgit_git_pack=>decode_commit( ls_object-data ).
-
-    rt_expanded = walk_tree( it_objects = it_objects
-                             iv_tree    = ls_commit-tree
-                             iv_base    = '/' ).
-
-  ENDMETHOD.
-  METHOD pull.
-
-    DATA: ls_object TYPE zif_abapgit_definitions=>ty_object,
-          ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
-
-    READ TABLE it_objects INTO ls_object
-      WITH KEY type COMPONENTS
-        type = zif_abapgit_git_definitions=>c_type-commit
-        sha1 = iv_commit.
-
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Commit/Branch not found.' ).
-    ENDIF.
-
-    ls_commit = zcl_abapgit_git_pack=>decode_commit( ls_object-data ).
-
-    walk( EXPORTING it_objects = it_objects
-                    iv_sha1    = ls_commit-tree
-                    iv_path    = '/'
-          CHANGING  ct_files   = rt_files ).
-
-  ENDMETHOD.
   METHOD pull_by_branch.
 
     zcl_abapgit_git_transport=>upload_pack_by_branch(
@@ -151659,8 +151628,9 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
         et_objects      = rs_result-objects
         ev_branch       = rs_result-commit ).
 
-    rs_result-files = pull( iv_commit  = rs_result-commit
-                            it_objects = rs_result-objects ).
+    rs_result-files = zcl_abapgit_git_objects=>build_files(
+      iv_commit  = rs_result-commit
+      it_objects = rs_result-objects ).
 
   ENDMETHOD.
   METHOD pull_by_commit.
@@ -151674,8 +151644,9 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
         et_objects      = rs_result-objects
         ev_commit       = rs_result-commit ).
 
-    rs_result-files = pull( iv_commit  = rs_result-commit
-                            it_objects = rs_result-objects ).
+    rs_result-files = zcl_abapgit_git_objects=>build_files(
+      iv_commit  = rs_result-commit
+      it_objects = rs_result-objects ).
 
   ENDMETHOD.
   METHOD push.
@@ -151683,7 +151654,6 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
     DATA: lt_expanded TYPE zif_abapgit_git_definitions=>ty_expanded_tt,
           lt_blobs    TYPE zif_abapgit_git_definitions=>ty_files_tt,
           lv_sha1     TYPE zif_abapgit_git_definitions=>ty_sha1,
-          lv_new_tree TYPE zif_abapgit_git_definitions=>ty_sha1,
           lt_trees    TYPE ty_trees_tt,
           lt_stage    TYPE zif_abapgit_definitions=>ty_stage_tt.
 
@@ -151691,8 +151661,9 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
                    <ls_updated> LIKE LINE OF rs_result-updated_files,
                    <ls_exp>     LIKE LINE OF lt_expanded.
 
-    lt_expanded = full_tree( it_objects = it_old_objects
-                             iv_parent  = iv_parent ).
+    lt_expanded = zcl_abapgit_git_objects=>full_tree(
+      it_objects = it_old_objects
+      iv_parent  = iv_parent ).
 
     lt_stage = io_stage->get_all( ).
     LOOP AT lt_stage ASSIGNING <ls_stage>.
@@ -151752,16 +151723,14 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
         it_blobs       = lt_blobs
       IMPORTING
         ev_new_commit  = rs_result-branch
-        et_new_objects = rs_result-new_objects
-        ev_new_tree    = lv_new_tree ).
+        et_new_objects = rs_result-new_objects ).
 
     IF rs_result IS SUPPLIED.
       APPEND LINES OF it_old_objects TO rs_result-new_objects.
 
-      walk( EXPORTING it_objects = rs_result-new_objects
-                      iv_sha1    = lv_new_tree
-                      iv_path    = '/'
-            CHANGING  ct_files   = rs_result-new_files ).
+      rs_result-new_files = zcl_abapgit_git_objects=>build_files(
+        iv_commit  = rs_result-branch
+        it_objects = rs_result-new_objects ).
     ENDIF.
 
   ENDMETHOD.
@@ -151860,96 +151829,6 @@ CLASS zcl_abapgit_git_porcelain IMPLEMENTATION.
       iv_new         = ev_new_commit
       iv_branch_name = iv_branch_name
       iv_pack        = lv_pack ).
-
-    ev_new_tree = ls_commit-tree.
-
-  ENDMETHOD.
-  METHOD walk.
-
-    DATA: lv_path  TYPE string,
-          ls_file  LIKE LINE OF ct_files,
-          lt_nodes TYPE zcl_abapgit_git_pack=>ty_nodes_tt.
-
-    FIELD-SYMBOLS: <ls_tree> LIKE LINE OF it_objects,
-                   <ls_blob> LIKE LINE OF it_objects,
-                   <ls_node> LIKE LINE OF lt_nodes.
-    READ TABLE it_objects ASSIGNING <ls_tree>
-      WITH KEY type COMPONENTS
-        type = zif_abapgit_git_definitions=>c_type-tree
-        sha1 = iv_sha1.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'Walk, tree not found' ).
-    ENDIF.
-
-    lt_nodes = zcl_abapgit_git_pack=>decode_tree( <ls_tree>-data ).
-
-    LOOP AT lt_nodes ASSIGNING <ls_node>.
-      IF <ls_node>-chmod = zif_abapgit_git_definitions=>c_chmod-file.
-        READ TABLE it_objects ASSIGNING <ls_blob>
-          WITH KEY type COMPONENTS
-            type = zif_abapgit_git_definitions=>c_type-blob
-            sha1 = <ls_node>-sha1.
-        IF sy-subrc <> 0.
-          zcx_abapgit_exception=>raise( 'Walk, blob not found' ).
-        ENDIF.
-
-        CLEAR ls_file.
-        ls_file-path     = iv_path.
-        ls_file-filename = <ls_node>-name.
-        ls_file-data     = <ls_blob>-data.
-        ls_file-sha1     = <ls_blob>-sha1.
-        APPEND ls_file TO ct_files.
-      ENDIF.
-    ENDLOOP.
-
-    LOOP AT lt_nodes ASSIGNING <ls_node> WHERE chmod = zif_abapgit_git_definitions=>c_chmod-dir.
-      CONCATENATE iv_path <ls_node>-name '/' INTO lv_path.
-
-      walk( EXPORTING it_objects = it_objects
-                      iv_sha1    = <ls_node>-sha1
-                      iv_path    = lv_path
-            CHANGING  ct_files   = ct_files ).
-    ENDLOOP.
-
-  ENDMETHOD.
-  METHOD walk_tree.
-
-    DATA: ls_object   LIKE LINE OF it_objects,
-          lt_expanded LIKE rt_expanded,
-          lt_nodes    TYPE zcl_abapgit_git_pack=>ty_nodes_tt.
-
-    FIELD-SYMBOLS: <ls_exp>  LIKE LINE OF rt_expanded,
-                   <ls_node> LIKE LINE OF lt_nodes.
-    READ TABLE it_objects INTO ls_object
-      WITH KEY type COMPONENTS
-        type = zif_abapgit_git_definitions=>c_type-tree
-        sha1 = iv_tree.
-    IF sy-subrc <> 0.
-      zcx_abapgit_exception=>raise( 'tree not found' ).
-    ENDIF.
-    lt_nodes = zcl_abapgit_git_pack=>decode_tree( ls_object-data ).
-
-    LOOP AT lt_nodes ASSIGNING <ls_node>.
-      CASE <ls_node>-chmod.
-        WHEN zif_abapgit_git_definitions=>c_chmod-file
-            OR zif_abapgit_git_definitions=>c_chmod-executable
-            OR zif_abapgit_git_definitions=>c_chmod-symbolic_link
-            OR zif_abapgit_git_definitions=>c_chmod-submodule.
-          APPEND INITIAL LINE TO rt_expanded ASSIGNING <ls_exp>.
-          <ls_exp>-path  = iv_base.
-          <ls_exp>-name  = <ls_node>-name.
-          <ls_exp>-sha1  = <ls_node>-sha1.
-          <ls_exp>-chmod = <ls_node>-chmod.
-        WHEN zif_abapgit_git_definitions=>c_chmod-dir.
-          lt_expanded = walk_tree(
-            it_objects = it_objects
-            iv_tree    = <ls_node>-sha1
-            iv_base    = iv_base && <ls_node>-name && '/' ).
-          APPEND LINES OF lt_expanded TO rt_expanded.
-        WHEN OTHERS.
-          zcx_abapgit_exception=>raise( |walk_tree: unknown chmod { <ls_node>-chmod }| ).
-      ENDCASE.
-    ENDLOOP.
 
   ENDMETHOD.
 ENDCLASS.
@@ -152679,6 +152558,141 @@ CLASS zcl_abapgit_git_pack IMPLEMENTATION.
     IF cv_data(4) <> lv_adler32.
       zcx_abapgit_exception=>raise( |Wrong Adler checksum| ).
     ENDIF.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_git_objects IMPLEMENTATION.
+  METHOD build_files.
+
+    DATA: ls_object TYPE zif_abapgit_definitions=>ty_object,
+          ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
+
+    READ TABLE it_objects INTO ls_object
+      WITH KEY type COMPONENTS
+        type = zif_abapgit_git_definitions=>c_type-commit
+        sha1 = iv_commit.
+
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Commit/Branch not found.' ).
+    ENDIF.
+
+    ls_commit = zcl_abapgit_git_pack=>decode_commit( ls_object-data ).
+
+    walk( EXPORTING it_objects = it_objects
+                    iv_sha1    = ls_commit-tree
+                    iv_path    = '/'
+          CHANGING  ct_files   = rt_files ).
+
+  ENDMETHOD.
+
+  METHOD full_tree.
+
+    DATA: ls_object LIKE LINE OF it_objects,
+          ls_commit TYPE zcl_abapgit_git_pack=>ty_commit.
+
+    READ TABLE it_objects INTO ls_object
+      WITH KEY type COMPONENTS
+        type = zif_abapgit_git_definitions=>c_type-commit
+        sha1 = iv_parent.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'commit not found' ).
+    ENDIF.
+    ls_commit = zcl_abapgit_git_pack=>decode_commit( ls_object-data ).
+
+    rt_expanded = walk_tree( it_objects = it_objects
+                             iv_tree    = ls_commit-tree
+                             iv_base    = '/' ).
+
+  ENDMETHOD.
+
+  METHOD walk.
+
+    DATA: lv_path  TYPE string,
+          ls_file  LIKE LINE OF ct_files,
+          lt_nodes TYPE zcl_abapgit_git_pack=>ty_nodes_tt.
+
+    FIELD-SYMBOLS: <ls_tree> LIKE LINE OF it_objects,
+                   <ls_blob> LIKE LINE OF it_objects,
+                   <ls_node> LIKE LINE OF lt_nodes.
+    READ TABLE it_objects ASSIGNING <ls_tree>
+      WITH KEY type COMPONENTS
+        type = zif_abapgit_git_definitions=>c_type-tree
+        sha1 = iv_sha1.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'Walk, tree not found' ).
+    ENDIF.
+
+    lt_nodes = zcl_abapgit_git_pack=>decode_tree( <ls_tree>-data ).
+
+    LOOP AT lt_nodes ASSIGNING <ls_node>.
+      IF <ls_node>-chmod = zif_abapgit_git_definitions=>c_chmod-file.
+        READ TABLE it_objects ASSIGNING <ls_blob>
+          WITH KEY type COMPONENTS
+            type = zif_abapgit_git_definitions=>c_type-blob
+            sha1 = <ls_node>-sha1.
+        IF sy-subrc <> 0.
+          zcx_abapgit_exception=>raise( 'Walk, blob not found' ).
+        ENDIF.
+
+        CLEAR ls_file.
+        ls_file-path     = iv_path.
+        ls_file-filename = <ls_node>-name.
+        ls_file-data     = <ls_blob>-data.
+        ls_file-sha1     = <ls_blob>-sha1.
+        APPEND ls_file TO ct_files.
+      ENDIF.
+    ENDLOOP.
+
+    LOOP AT lt_nodes ASSIGNING <ls_node> WHERE chmod = zif_abapgit_git_definitions=>c_chmod-dir.
+      CONCATENATE iv_path <ls_node>-name '/' INTO lv_path.
+
+      walk( EXPORTING it_objects = it_objects
+                      iv_sha1    = <ls_node>-sha1
+                      iv_path    = lv_path
+            CHANGING  ct_files   = ct_files ).
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD walk_tree.
+
+    DATA: ls_object   LIKE LINE OF it_objects,
+          lt_expanded LIKE rt_expanded,
+          lt_nodes    TYPE zcl_abapgit_git_pack=>ty_nodes_tt.
+
+    FIELD-SYMBOLS: <ls_exp>  LIKE LINE OF rt_expanded,
+                   <ls_node> LIKE LINE OF lt_nodes.
+    READ TABLE it_objects INTO ls_object
+      WITH KEY type COMPONENTS
+        type = zif_abapgit_git_definitions=>c_type-tree
+        sha1 = iv_tree.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( 'tree not found' ).
+    ENDIF.
+    lt_nodes = zcl_abapgit_git_pack=>decode_tree( ls_object-data ).
+
+    LOOP AT lt_nodes ASSIGNING <ls_node>.
+      CASE <ls_node>-chmod.
+        WHEN zif_abapgit_git_definitions=>c_chmod-file
+            OR zif_abapgit_git_definitions=>c_chmod-executable
+            OR zif_abapgit_git_definitions=>c_chmod-symbolic_link
+            OR zif_abapgit_git_definitions=>c_chmod-submodule.
+          APPEND INITIAL LINE TO rt_expanded ASSIGNING <ls_exp>.
+          <ls_exp>-path  = iv_base.
+          <ls_exp>-name  = <ls_node>-name.
+          <ls_exp>-sha1  = <ls_node>-sha1.
+          <ls_exp>-chmod = <ls_node>-chmod.
+        WHEN zif_abapgit_git_definitions=>c_chmod-dir.
+          lt_expanded = walk_tree(
+            it_objects = it_objects
+            iv_tree    = <ls_node>-sha1
+            iv_base    = iv_base && <ls_node>-name && '/' ).
+          APPEND LINES OF lt_expanded TO rt_expanded.
+        WHEN OTHERS.
+          zcx_abapgit_exception=>raise( |walk_tree: unknown chmod { <ls_node>-chmod }| ).
+      ENDCASE.
+    ENDLOOP.
+
   ENDMETHOD.
 ENDCLASS.
 
@@ -153671,7 +153685,7 @@ CLASS zcl_abapgit_gitv2_porcelain IMPLEMENTATION.
       iv_url  = iv_url
       it_sha1 = lt_sha1 ).
 
-    rt_expanded = zcl_abapgit_git_porcelain=>full_tree(
+    rt_expanded = zcl_abapgit_git_objects=>full_tree(
       it_objects = lt_objects
       iv_parent  = iv_sha1 ).
 
@@ -161343,8 +161357,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-25T08:29:46.775Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-25T08:29:46.775Z`.
+* abapmerge 0.16.10 - 2026-11-25T09:18:08.275Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-25T09:18:08.275Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
