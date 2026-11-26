@@ -80860,12 +80860,37 @@ CLASS zcl_abapgit_objects_program IMPLEMENTATION.
 
     DATA: ls_vari  TYPE ty_vari,
           ls_varid TYPE varid,
-          lt_varis TYPE ty_varikey_tt.
+          lt_varis TYPE ty_varikey_tt,
+          lt_dynnr TYPE ty_vari_dynnr_tt.
 
     FIELD-SYMBOLS: <ls_varikey> LIKE LINE OF lt_varis,
                    <ls_object>  LIKE LINE OF ls_vari-objects.
 
     lt_varis = get_varis_for_report( iv_program_name ).
+
+    IF lt_varis IS NOT INITIAL.
+      " RS_VARIANT_CONTENTS_255 can trigger message A093 in RSDBRUNT
+      " when the selection screen cannot be loaded or generated.
+      CLEAR lt_dynnr.
+
+      CALL FUNCTION 'RS_ALL_SELECTIONSCREENS'
+        EXPORTING
+          program             = iv_program_name
+        TABLES
+          dynnr               = lt_dynnr
+        EXCEPTIONS
+          type_s              = 1
+          load_sscr_error     = 2
+          no_selectionscreens = 3
+          not_existent        = 4
+          read_header_error   = 5
+          OTHERS              = 6.
+      IF sy-subrc <> 0.
+        zcx_abapgit_exception=>raise(
+          |Cannot serialize variants for report { iv_program_name }: | &&
+          |selection screen check failed ({ sy-msgid } { sy-msgno }, RC { sy-subrc })| ).
+      ENDIF.
+    ENDIF.
 
     LOOP AT lt_varis ASSIGNING <ls_varikey>.
       CLEAR: ls_vari,
@@ -162071,8 +162096,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-26T14:48:26.361Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-26T14:48:26.361Z`.
+* abapmerge 0.16.10 - 2026-11-26T19:15:35.974Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-26T19:15:35.974Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
