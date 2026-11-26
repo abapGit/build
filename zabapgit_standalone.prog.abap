@@ -175,6 +175,7 @@ CLASS zcl_abapgit_popup_code_insp DEFINITION DEFERRED.
 CLASS zcl_abapgit_popup_branch_list DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_tutorial DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_tags DEFINITION DEFERRED.
+CLASS zcl_abapgit_gui_page_stats DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_stage DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_run_bckg DEFINITION DEFERRED.
 CLASS zcl_abapgit_gui_page_repo_view DEFINITION DEFERRED.
@@ -256,6 +257,7 @@ CLASS zcl_abapgit_syntax_highlighter DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_factory DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_css DEFINITION DEFERRED.
 CLASS zcl_abapgit_syntax_abap DEFINITION DEFERRED.
+CLASS zcl_abapgit_statistics DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_status DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_srv DEFINITION DEFERRED.
 CLASS zcl_abapgit_repo_push DEFINITION DEFERRED.
@@ -4521,6 +4523,7 @@ INTERFACE zif_abapgit_definitions .
       go_commit                     TYPE string VALUE 'go_commit',
       go_db                         TYPE string VALUE 'go_db',
       go_debuginfo                  TYPE string VALUE 'go_debuginfo',
+      go_statistics                 TYPE string VALUE 'go_statistics',
       go_explore                    TYPE string VALUE 'go_explore',
       go_file_diff                  TYPE string VALUE 'go_file_diff',
       go_home                       TYPE string VALUE 'go_home',
@@ -6885,6 +6888,8 @@ INTERFACE zif_abapgit_repo .
   METHODS get_files_local
     IMPORTING
       !ii_log         TYPE REF TO zif_abapgit_log OPTIONAL
+      !iv_force       TYPE abap_bool DEFAULT abap_false
+        PREFERRED PARAMETER ii_log
     RETURNING
       VALUE(rt_files) TYPE zif_abapgit_definitions=>ty_files_item_tt
     RAISING
@@ -21978,7 +21983,8 @@ CLASS zcl_abapgit_persistence_db DEFINITION
       c_type_repo_data  TYPE zif_abapgit_persistence=>ty_type VALUE 'REPO_DATA' ##NO_TEXT,
       c_type_background TYPE zif_abapgit_persistence=>ty_type VALUE 'BACKGROUND' ##NO_TEXT,
       c_type_packages   TYPE zif_abapgit_persistence=>ty_type VALUE 'PACKAGES' ##NO_TEXT,
-      c_type_user       TYPE zif_abapgit_persistence=>ty_type VALUE 'USER' ##NO_TEXT.
+      c_type_user       TYPE zif_abapgit_persistence=>ty_type VALUE 'USER' ##NO_TEXT,
+      c_type_statistics TYPE zif_abapgit_persistence=>ty_type VALUE 'STATISTICS' ##NO_TEXT.
 
     CLASS-METHODS get_instance
       RETURNING
@@ -23662,6 +23668,53 @@ CLASS zcl_abapgit_repo_status DEFINITION
 
   PROTECTED SECTION.
   PRIVATE SECTION.
+ENDCLASS.
+CLASS zcl_abapgit_statistics DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    TYPES:
+      ty_size TYPE p LENGTH 16 DECIMALS 0,
+      BEGIN OF ty_repo,
+        key             TYPE zif_abapgit_persistence=>ty_repo-key,
+        name            TYPE string,
+        url             TYPE string,
+        package         TYPE devclass,
+        offline         TYPE abap_bool,
+        favorite        TYPE abap_bool,
+        write_protected TYPE abap_bool,
+        host            TYPE string,
+        objects         TYPE i,
+        files           TYPE i,
+        size            TYPE ty_size,
+        error           TYPE string,
+      END OF ty_repo,
+      ty_repos TYPE STANDARD TABLE OF ty_repo WITH DEFAULT KEY,
+      BEGIN OF ty_snapshot,
+        refreshed_at TYPE timestamp,
+        repos        TYPE ty_repos,
+      END OF ty_snapshot.
+
+    CLASS-METHODS read
+      RETURNING VALUE(rs_snapshot) TYPE ty_snapshot
+      RAISING zcx_abapgit_exception.
+    CLASS-METHODS refresh
+      RETURNING VALUE(rs_snapshot) TYPE ty_snapshot
+      RAISING zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    CLASS-METHODS collect
+      IMPORTING ii_repo        TYPE REF TO zif_abapgit_repo
+                iv_favorite    TYPE abap_bool
+      RETURNING VALUE(rs_repo) TYPE ty_repo
+      RAISING zcx_abapgit_exception.
+    CLASS-METHODS host
+      IMPORTING iv_url         TYPE string
+      RETURNING VALUE(rv_host) TYPE string.
+    CLASS-METHODS measure
+      IMPORTING it_files TYPE zif_abapgit_definitions=>ty_files_item_tt
+      CHANGING cs_repo   TYPE ty_repo.
 ENDCLASS.
 CLASS zcl_abapgit_syntax_factory DEFINITION
   ABSTRACT
@@ -30049,6 +30102,37 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
     METHODS handle_picklist_state
       RAISING
         zcx_abapgit_exception .
+ENDCLASS.
+CLASS zcl_abapgit_gui_page_stats DEFINITION
+  FINAL
+  INHERITING FROM zcl_abapgit_gui_component
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    INTERFACES zif_abapgit_gui_page_title.
+    INTERFACES zif_abapgit_gui_event_handler.
+    INTERFACES zif_abapgit_gui_menu_provider.
+    INTERFACES zif_abapgit_gui_renderable.
+    INTERFACES zif_abapgit_html_table.
+
+    CLASS-METHODS create
+      RETURNING VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
+      RAISING zcx_abapgit_exception.
+    METHODS constructor RAISING zcx_abapgit_exception.
+
+  PRIVATE SECTION.
+    DATA ms_snapshot TYPE zcl_abapgit_statistics=>ty_snapshot.
+    DATA mo_table TYPE REF TO zcl_abapgit_html_table.
+    DATA ms_sorting TYPE zif_abapgit_html_table=>ty_sorting_state.
+    METHODS create_table
+      RETURNING VALUE(ro_table) TYPE REF TO zcl_abapgit_html_table.
+    CLASS-METHODS format_size
+      IMPORTING iv_size        TYPE zcl_abapgit_statistics=>ty_size
+      RETURNING VALUE(rv_size) TYPE string.
+    CLASS-METHODS sort_repositories
+      IMPORTING it_repos        TYPE zcl_abapgit_statistics=>ty_repos
+                is_sorting      TYPE zif_abapgit_html_table=>ty_sorting_state
+      RETURNING VALUE(rt_repos) TYPE zcl_abapgit_statistics=>ty_repos.
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_tags DEFINITION
   INHERITING FROM zcl_abapgit_gui_component
@@ -44814,6 +44898,9 @@ CLASS zcl_abapgit_gui_router IMPLEMENTATION.
       WHEN zif_abapgit_definitions=>c_action-go_debuginfo.                   " Go debug info
         rs_handled-page  = zcl_abapgit_gui_page_debuginfo=>create( ).
         rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
+      WHEN zif_abapgit_definitions=>c_action-go_statistics.
+        rs_handled-page  = zcl_abapgit_gui_page_stats=>create( ).
+        rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
       WHEN zif_abapgit_definitions=>c_action-go_settings.                    " Go global settings
         rs_handled-page  = zcl_abapgit_gui_page_sett_glob=>create( ).
         rs_handled-state = get_state_settings( ii_event ).
@@ -46322,6 +46409,298 @@ CLASS zcl_abapgit_gui_page_tags IMPLEMENTATION.
                                    io_validation_log = mo_validation_log ) ).
 
     ri_html->add( `</div>` ).
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_gui_page_stats IMPLEMENTATION.
+  METHOD constructor.
+    super->constructor( ).
+    ms_snapshot = zcl_abapgit_statistics=>read( ).
+    mo_table = create_table( ).
+  ENDMETHOD.
+  METHOD create.
+    DATA lo_component TYPE REF TO zcl_abapgit_gui_page_stats.
+    CREATE OBJECT lo_component.
+    ri_page = zcl_abapgit_gui_page_hoc=>create( lo_component ).
+  ENDMETHOD.
+  METHOD create_table.
+
+    ms_sorting-column_id = 'favorite'.
+    ms_sorting-descending = abap_true.
+    ro_table = zcl_abapgit_html_table=>create(
+      ii_renderer = me
+      is_initial_sorting_state = ms_sorting ).
+    ro_table->define_column( iv_column_id = 'favorite'
+                             iv_column_title = 'Fav'
+    )->define_column( iv_column_id = 'offline'
+                      iv_column_title = 'Type'
+    )->define_column( iv_column_id = 'name'
+                      iv_column_title = 'Repository'
+    )->define_column( iv_column_id = 'package'
+                      iv_column_title = 'Package'
+    )->define_column( iv_column_id = 'host'
+                      iv_column_title = 'Host'
+    )->define_column( iv_column_id = 'write_protected'
+                      iv_column_title = 'Write protected'
+    )->define_column( iv_column_id = 'objects'
+                      iv_column_title = 'TADIR objects'
+    )->define_column( iv_column_id = 'files'
+                      iv_column_title = 'Local files'
+    )->define_column( iv_column_id = 'size'
+                      iv_column_title = 'Size'
+    )->define_column( iv_column_id = 'error'
+                      iv_column_title = 'Status' ).
+
+  ENDMETHOD.
+  METHOD format_size.
+
+    DATA lv_size TYPE p LENGTH 16 DECIMALS 2.
+
+    IF iv_size >= 1024 * 1024 * 1024.
+      lv_size = iv_size / 1024 / 1024 / 1024.
+      rv_size = |{ lv_size } GB|.
+    ELSEIF iv_size >= 1024 * 1024.
+      lv_size = iv_size / 1024 / 1024.
+      rv_size = |{ lv_size } MB|.
+    ELSEIF iv_size >= 1024.
+      lv_size = iv_size / 1024.
+      rv_size = |{ lv_size } KB|.
+    ELSE.
+      rv_size = |{ iv_size } Bytes|.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD sort_repositories.
+
+    DATA lv_field TYPE abap_compname.
+
+    rt_repos = it_repos.
+    SORT rt_repos BY name ASCENDING package ASCENDING.
+    CASE is_sorting-column_id.
+      WHEN 'favorite' OR 'name' OR 'package' OR 'offline' OR 'host'
+        OR 'write_protected' OR 'objects' OR 'files' OR 'size' OR 'error'.
+        lv_field = to_upper( is_sorting-column_id ).
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
+    " Keep description order within equal values, especially the favorite groups.
+    IF is_sorting-descending = abap_true.
+      SORT rt_repos STABLE BY (lv_field) DESCENDING.
+    ELSE.
+      SORT rt_repos STABLE BY (lv_field) ASCENDING.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_event_handler~on_event.
+
+    DATA lv_key TYPE zif_abapgit_persistence=>ty_repo-key.
+
+    IF ii_event->mv_action = 'refresh'.
+      ms_snapshot = zcl_abapgit_statistics=>refresh( ).
+      rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+    ELSEIF ii_event->mv_action = zif_abapgit_definitions=>c_action-go_repo.
+      lv_key = ii_event->query( )->get( 'KEY' ).
+      rs_handled-page = zcl_abapgit_gui_page_repo_view=>create( lv_key ).
+      zcl_abapgit_persist_factory=>get_user( )->set_repo_show( lv_key ).
+      rs_handled-state = zcl_abapgit_gui=>c_event_state-new_page.
+    ELSEIF mo_table->process_sorting_request( ii_event->mv_action ) = abap_true.
+      ms_sorting = zcl_abapgit_html_table=>detect_sorting_request( ii_event->mv_action ).
+      rs_handled-state = zcl_abapgit_gui=>c_event_state-re_render.
+    ENDIF.
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_menu_provider~get_menu.
+    ro_toolbar = zcl_abapgit_html_toolbar=>create( 'toolbar-statistics' )->add(
+      iv_txt = 'Refresh'
+      iv_act = 'refresh'
+    )->add(
+      iv_txt = 'Back'
+      iv_act = zif_abapgit_definitions=>c_action-go_back ).
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_page_title~get_page_title.
+    rv_title = 'Statistics'.
+  ENDMETHOD.
+  METHOD zif_abapgit_html_table~get_row_attrs.
+    " No additional row attributes required.
+  ENDMETHOD.
+  METHOD zif_abapgit_html_table~render_cell.
+
+    DATA ls_repo TYPE zcl_abapgit_statistics=>ty_repo.
+    DATA lv_content TYPE string.
+    DATA lv_icon TYPE string.
+    DATA lv_hint TYPE string.
+
+    ls_repo = is_row.
+    lv_content = iv_value.
+    CASE iv_column_id.
+      WHEN 'name'.
+        IF ls_repo-key IS NOT INITIAL.
+          rs_render-html = zcl_abapgit_html=>create( ).
+          rs_render-html->add_a(
+            iv_txt = escape( val = ls_repo-name
+                             format = cl_abap_format=>e_html_text )
+            iv_act = |{ zif_abapgit_definitions=>c_action-go_repo }?key={ ls_repo-key }| ).
+          RETURN.
+        ENDIF.
+      WHEN 'host'.
+        IF ls_repo-offline = abap_false AND ls_repo-url IS NOT INITIAL.
+          rs_render-html = zcl_abapgit_html=>create( ).
+          rs_render-html->add_a(
+            iv_txt = escape( val = ls_repo-host
+                             format = cl_abap_format=>e_html_text )
+            iv_act = escape( val = ls_repo-url
+                             format = cl_abap_format=>e_html_attr )
+            iv_typ = zif_abapgit_html=>c_action_type-url ).
+          RETURN.
+        ENDIF.
+      WHEN 'package'.
+        rs_render-html = zcl_abapgit_gui_chunk_lib=>render_package_name( ls_repo-package ).
+        RETURN.
+      WHEN 'offline'.
+        lv_icon = 'cloud-upload-alt/darkgrey'.
+        lv_hint = 'Online'.
+        IF ls_repo-offline = abap_true.
+          lv_icon = 'plug/darkgrey'.
+          lv_hint = 'Offline'.
+        ENDIF.
+        rs_render-html = zcl_abapgit_html=>create( ).
+        rs_render-html->add_icon( iv_name = lv_icon
+                                  iv_hint = lv_hint ).
+        RETURN.
+      WHEN 'favorite'.
+        lv_icon = 'star/grey'.
+        lv_hint = 'Not a favorite'.
+        IF ls_repo-favorite = abap_true.
+          lv_icon = 'star/blue'.
+          lv_hint = 'Favorite'.
+        ENDIF.
+        rs_render-html = zcl_abapgit_html=>create( ).
+        rs_render-html->add_icon( iv_name = lv_icon
+                                  iv_hint = lv_hint ).
+        RETURN.
+      WHEN 'write_protected'.
+        IF ls_repo-write_protected = abap_true.
+          rs_render-html = zcl_abapgit_html=>create( ).
+          rs_render-html->add_icon( iv_name = 'lock/grey70'
+                                    iv_hint = 'Locked from Pulls' ).
+        ENDIF.
+        RETURN.
+      WHEN 'size'.
+        lv_content = format_size( ls_repo-size ).
+      WHEN 'error'.
+        IF ls_repo-error IS INITIAL.
+          lv_content = 'OK'.
+        ENDIF.
+    ENDCASE.
+    rs_render-content = escape( val = lv_content
+                                format = cl_abap_format=>e_html_text ).
+
+  ENDMETHOD.
+  METHOD zif_abapgit_gui_renderable~render.
+
+    DATA ls_repo TYPE zcl_abapgit_statistics=>ty_repo.
+    DATA lv_online TYPE i.
+    DATA lv_offline TYPE i.
+    DATA lv_favorites TYPE i.
+    DATA lv_protected TYPE i.
+    DATA lv_github TYPE i.
+    DATA lv_gitlab TYPE i.
+    DATA lv_others TYPE i.
+    DATA lv_objects TYPE i.
+    DATA lv_files TYPE i.
+    DATA lv_objects_min TYPE i.
+    DATA lv_objects_avg TYPE p LENGTH 16 DECIMALS 2.
+    DATA lv_objects_max TYPE i.
+    DATA lv_files_min TYPE i.
+    DATA lv_files_avg TYPE p LENGTH 16 DECIMALS 2.
+    DATA lv_files_max TYPE i.
+    DATA lv_size TYPE zcl_abapgit_statistics=>ty_size.
+    DATA lv_errors TYPE i.
+
+    register_handlers( ).
+    ri_html = zcl_abapgit_html=>create( ).
+    ri_html->add( '<div class="repo-overview">' ).
+    IF ms_snapshot-refreshed_at IS INITIAL.
+      ri_html->add( '<p>No saved statistics. Choose Refresh to serialize all repositories locally.</p>' ).
+      ri_html->add( '</div>' ).
+      RETURN.
+    ENDIF.
+
+    LOOP AT ms_snapshot-repos INTO ls_repo.
+      IF sy-tabix = 1 OR ls_repo-objects < lv_objects_min.
+        lv_objects_min = ls_repo-objects.
+      ENDIF.
+      IF ls_repo-objects > lv_objects_max.
+        lv_objects_max = ls_repo-objects.
+      ENDIF.
+      IF sy-tabix = 1 OR ls_repo-files < lv_files_min.
+        lv_files_min = ls_repo-files.
+      ENDIF.
+      IF ls_repo-files > lv_files_max.
+        lv_files_max = ls_repo-files.
+      ENDIF.
+      IF ls_repo-offline = abap_true.
+        lv_offline = lv_offline + 1.
+      ELSE.
+        lv_online = lv_online + 1.
+        CASE ls_repo-host.
+          WHEN 'GitHub'.
+            lv_github = lv_github + 1.
+          WHEN 'GitLab'.
+            lv_gitlab = lv_gitlab + 1.
+          WHEN OTHERS.
+            lv_others = lv_others + 1.
+        ENDCASE.
+      ENDIF.
+      IF ls_repo-favorite = abap_true.
+        lv_favorites = lv_favorites + 1.
+      ENDIF.
+      IF ls_repo-write_protected = abap_true.
+        lv_protected = lv_protected + 1.
+      ENDIF.
+      IF ls_repo-error IS NOT INITIAL.
+        lv_errors = lv_errors + 1.
+      ENDIF.
+      lv_objects = lv_objects + ls_repo-objects.
+      lv_files = lv_files + ls_repo-files.
+      lv_size = lv_size + ls_repo-size.
+    ENDLOOP.
+    IF ms_snapshot-repos IS NOT INITIAL.
+      lv_objects_avg = lv_objects / lines( ms_snapshot-repos ).
+      lv_files_avg = lv_files / lines( ms_snapshot-repos ).
+    ENDIF.
+
+    ri_html->add( |<p>Last refresh: { ms_snapshot-refreshed_at TIMESTAMP = ISO } UTC</p>| ).
+    ri_html->add( '<p>Saved statistics for the current user. Refresh serializes local files without fetching remotes.</p>' ).
+    ri_html->add( '<table class="default-table"><tbody>' ).
+    ri_html->add( |<tr><th>Total repositories</th><td>{ lines( ms_snapshot-repos ) }</td></tr>| ).
+    ri_html->add( |<tr><th>Online repositories</th><td>{ lv_online }</td></tr>| ).
+    ri_html->add( |<tr><th>Offline repositories</th><td>{ lv_offline }</td></tr>| ).
+    ri_html->add( |<tr><th>Favorites</th><td>{ lv_favorites }</td></tr>| ).
+    ri_html->add( |<tr><th>Write protected repositories</th><td>{ lv_protected }</td></tr>| ).
+    ri_html->add( |<tr><th>GitHub / GitLab / Others (online)</th>| &&
+      |<td>{ lv_github } / { lv_gitlab } / { lv_others }</td></tr>| ).
+    ri_html->add( |<tr><th>TADIR objects</th><td>{ lv_objects }</td></tr>| ).
+    ri_html->add( |<tr><th>TADIR objects per repo (min / avg / max)</th>| &&
+      |<td>{ lv_objects_min } / { lv_objects_avg } / { lv_objects_max }</td></tr>| ).
+    ri_html->add( |<tr><th>Local files</th><td>{ lv_files }</td></tr>| ).
+    ri_html->add( |<tr><th>Local files per repo (min / avg / max)</th>| &&
+      |<td>{ lv_files_min } / { lv_files_avg } / { lv_files_max }</td></tr>| ).
+    ri_html->add( |<tr><th>Total file size</th><td>{ format_size( lv_size ) }</td></tr>| ).
+    ri_html->add( '</tbody></table>' ).
+    IF lv_errors > 0.
+      ri_html->add( |<p class="attention">{ lv_errors } repositories have errors. | &&
+        |Counts may be incomplete; see details below.</p>| ).
+    ENDIF.
+    ri_html->add( '<p>Hosts classify github.com and gitlab.com; other hosts, '
+      && 'including self-hosted services, count as Others.</p>' ).
+    ri_html->add( mo_table->render(
+      it_data = sort_repositories( it_repos = ms_snapshot-repos
+                                  is_sorting = ms_sorting )
+      is_sorting_state = ms_sorting
+      iv_id = 'statistics-repositories'
+      iv_css_class = 'default-table' ) ).
+    ri_html->add( '</div>' ).
 
   ENDMETHOD.
 ENDCLASS.
@@ -63573,6 +63952,10 @@ CLASS zcl_abapgit_gui_menus IMPLEMENTATION.
         iv_act = zif_abapgit_definitions=>c_action-ie_devtools ).
     ENDIF.
 
+    ro_menu->add(
+      iv_txt = 'Statistics'
+      iv_act = zif_abapgit_definitions=>c_action-go_statistics ).
+
   ENDMETHOD.
   METHOD back.
 
@@ -71443,6 +71826,152 @@ CLASS ZCL_ABAPGIT_SYNTAX_ABAP IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_statistics IMPLEMENTATION.
+  METHOD collect.
+
+    DATA lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    DATA lt_files TYPE zif_abapgit_definitions=>ty_files_item_tt.
+    DATA li_log TYPE REF TO zif_abapgit_log.
+    DATA lt_messages TYPE zif_abapgit_log=>ty_log_outs.
+    DATA ls_message LIKE LINE OF lt_messages.
+    DATA lx_error TYPE REF TO zcx_abapgit_exception.
+
+    rs_repo-key = ii_repo->get_key( ).
+    rs_repo-name = ii_repo->get_name( ).
+    rs_repo-package = ii_repo->get_package( ).
+    rs_repo-offline = ii_repo->is_offline( ).
+    rs_repo-favorite = iv_favorite.
+    rs_repo-write_protected = ii_repo->get_local_settings( )-write_protected.
+    IF rs_repo-offline = abap_false.
+      rs_repo-url = ii_repo->ms_data-url.
+      rs_repo-host = host( ii_repo->ms_data-url ).
+    ENDIF.
+
+    " A failing TADIR read must not prevent attempting serialization.
+    TRY.
+        lt_tadir = ii_repo->get_tadir_objects( ).
+        rs_repo-objects = lines( lt_tadir ).
+      CATCH zcx_abapgit_exception INTO lx_error.
+        rs_repo-error = lx_error->get_text( ).
+    ENDTRY.
+
+    TRY.
+        CREATE OBJECT li_log TYPE zcl_abapgit_log.
+        " Force serialization while preserving the remote cache.
+        lt_files = ii_repo->get_files_local( ii_log = li_log
+                                            iv_force = abap_true ).
+        measure( EXPORTING it_files = lt_files CHANGING cs_repo = rs_repo ).
+        lt_messages = li_log->get_messages( ).
+        LOOP AT lt_messages INTO ls_message WHERE type = 'E' OR type = 'A'.
+          rs_repo-error = |{ rs_repo-error } { ls_message-text }|.
+        ENDLOOP.
+      CATCH zcx_abapgit_exception INTO lx_error.
+        rs_repo-error = |{ rs_repo-error } { lx_error->get_text( ) }|.
+    ENDTRY.
+    CONDENSE rs_repo-error.
+
+  ENDMETHOD.
+  METHOD host.
+
+    DATA lv_host TYPE string.
+
+    rv_host = 'Others'.
+    TRY.
+        lv_host = to_lower( zcl_abapgit_url=>host( iv_url ) ).
+        IF lv_host = 'https://github.com' OR lv_host = 'http://github.com'.
+          rv_host = 'GitHub'.
+        ELSEIF lv_host = 'https://gitlab.com' OR lv_host = 'http://gitlab.com'.
+          rv_host = 'GitLab'.
+        ENDIF.
+      CATCH zcx_abapgit_exception ##NO_HANDLER.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD measure.
+
+    FIELD-SYMBOLS <ls_file> LIKE LINE OF it_files.
+
+    cs_repo-files = lines( it_files ).
+    CLEAR cs_repo-size.
+    LOOP AT it_files ASSIGNING <ls_file>.
+      cs_repo-size = cs_repo-size + xstrlen( <ls_file>-file-data ).
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD read.
+
+    DATA lv_xml TYPE string.
+    DATA li_input TYPE REF TO zif_abapgit_xml_input.
+    DATA lt_repos TYPE zif_abapgit_persistence=>ty_repos.
+    DATA ls_repo LIKE LINE OF lt_repos.
+    FIELD-SYMBOLS <ls_saved> LIKE LINE OF rs_snapshot-repos.
+
+    TRY.
+        lv_xml = zcl_abapgit_persistence_db=>get_instance( )->read(
+          iv_type = zcl_abapgit_persistence_db=>c_type_statistics
+          iv_value = sy-uname ).
+      CATCH zcx_abapgit_not_found.
+        RETURN.
+    ENDTRY.
+    CREATE OBJECT li_input TYPE zcl_abapgit_xml_input EXPORTING iv_xml = lv_xml.
+    li_input->read( EXPORTING iv_name = 'STATISTICS' CHANGING cg_data = rs_snapshot ).
+
+    " Complete navigation metadata in older snapshots without serializing.
+    lt_repos = zcl_abapgit_persist_factory=>get_repo( )->list( ).
+    LOOP AT rs_snapshot-repos ASSIGNING <ls_saved>
+        WHERE key IS INITIAL OR ( offline = abap_false AND url IS INITIAL ).
+      READ TABLE lt_repos INTO ls_repo WITH KEY package = <ls_saved>-package offline = <ls_saved>-offline.
+      IF sy-subrc = 0.
+        IF <ls_saved>-key IS INITIAL.
+          <ls_saved>-key = ls_repo-key.
+        ENDIF.
+        IF <ls_saved>-offline = abap_false AND <ls_saved>-url IS INITIAL.
+          <ls_saved>-url = ls_repo-url.
+        ENDIF.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD refresh.
+
+    DATA lt_repos TYPE zif_abapgit_repo_srv=>ty_repo_list.
+    DATA li_repo LIKE LINE OF lt_repos.
+    DATA ls_repo TYPE ty_repo.
+    DATA li_output TYPE REF TO zif_abapgit_xml_output.
+    DATA li_progress TYPE REF TO zif_abapgit_progress.
+    DATA lv_current TYPE i.
+    DATA lt_favorites TYPE zif_abapgit_persist_user=>ty_favorites.
+    DATA lv_favorite TYPE abap_bool.
+
+    lt_repos = zcl_abapgit_repo_srv=>get_instance( )->list( ).
+    lt_favorites = zcl_abapgit_persist_factory=>get_user( )->get_favorites( ).
+    li_progress = zcl_abapgit_progress=>get_instance( lines( lt_repos ) ).
+    LOOP AT lt_repos INTO li_repo.
+      lv_current = lv_current + 1.
+      li_progress->show( iv_current = lv_current
+                         iv_text = |Statistics: { li_repo->get_package( ) }| ).
+      READ TABLE lt_favorites WITH KEY table_line = li_repo->get_key( ) TRANSPORTING NO FIELDS.
+      lv_favorite = boolc( sy-subrc = 0 ).
+      ls_repo = collect( ii_repo = li_repo
+                         iv_favorite = lv_favorite ).
+      APPEND ls_repo TO rs_snapshot-repos.
+    ENDLOOP.
+    li_progress->off( ).
+    SORT rs_snapshot-repos BY name package.
+    GET TIME STAMP FIELD rs_snapshot-refreshed_at.
+
+    CREATE OBJECT li_output TYPE zcl_abapgit_xml_output.
+    li_output->add( iv_name = 'STATISTICS'
+                    ig_data = rs_snapshot ).
+    zcl_abapgit_persistence_db=>get_instance( )->modify(
+      iv_type = zcl_abapgit_persistence_db=>c_type_statistics
+      iv_value = sy-uname
+      iv_data = li_output->render( ) ).
+    COMMIT WORK AND WAIT.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS kHGwlVCHrsAtuwxHoXzuQzYvAOqpyr DEFINITION DEFERRED.
 * renamed: zcl_abapgit_repo_status :: lcl_status_consistency_checks
 CLASS kHGwlVCHrsAtuwxHoXzuQzYvAOqpyr DEFINITION FINAL.
@@ -74256,7 +74785,7 @@ CLASS zcl_abapgit_repo IMPLEMENTATION.
     DATA lo_serialize TYPE REF TO zcl_abapgit_serialize.
 
     " Serialization happened before and no refresh request
-    IF lines( mt_local ) > 0 AND mv_request_local_refresh = abap_false.
+    IF lines( mt_local ) > 0 AND mv_request_local_refresh = abap_false AND iv_force = abap_false.
       rt_files = mt_local.
       RETURN.
     ENDIF.
@@ -77914,7 +78443,8 @@ CLASS zcl_abapgit_persistence_db IMPLEMENTATION.
       iv_type = c_type_user OR
       iv_type = c_type_settings OR
       iv_type = c_type_background OR
-      iv_type = c_type_packages ).
+      iv_type = c_type_packages OR
+      iv_type = c_type_statistics ).
       zcx_abapgit_exception=>raise( |Invalid DB entry type [{ iv_type }]| ).
     ENDIF.
 
@@ -161541,8 +162071,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-26T11:14:30.414Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-26T11:14:30.414Z`.
+* abapmerge 0.16.10 - 2026-11-26T14:48:26.361Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-26T14:48:26.361Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
