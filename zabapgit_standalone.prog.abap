@@ -4756,9 +4756,14 @@ INTERFACE zif_abapgit_cts_api .
     RAISING
       zcx_abapgit_exception .
 
+  "! Returns the transports the objects are currently in, read in bulk
+  "! @parameter it_items | Objects
+  "! @parameter iv_requests | Return the request instead of the task that locks the object
+  "! @parameter rt_transports | Transport per object, objects in no transport are left out
   METHODS get_transports_for_list
     IMPORTING
       !it_items            TYPE zif_abapgit_definitions=>ty_items_tt
+      !iv_requests         TYPE abap_bool DEFAULT abap_false
     RETURNING
       VALUE(rt_transports) TYPE ty_transport_list
     RAISING
@@ -8148,6 +8153,12 @@ CLASS zcl_abapgit_cts_api DEFINITION
         !iv_object_type         TYPE trobjtype
       RETURNING
         VALUE(rv_transportable) TYPE abap_bool .
+
+    "! Replace each task by its request; requests and other values are kept
+    "! @parameter ct_transports | Transport per object
+    METHODS replace_tasks_by_requests
+      CHANGING
+        !ct_transports TYPE zif_abapgit_cts_api=>ty_transport_list.
 
     "! Insert logical object into customizing request
     "! @parameter iv_transport | Transport
@@ -25164,6 +25175,7 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         !iv_obj_name    TYPE zif_abapgit_definitions=>ty_repo_item-obj_name OPTIONAL
         !iv_interactive TYPE abap_bool DEFAULT abap_true
         !iv_icon_only   TYPE abap_bool DEFAULT abap_false
+        !iv_description TYPE string OPTIONAL
       RETURNING
         VALUE(ri_html)  TYPE REF TO zif_abapgit_html
       RAISING
@@ -29726,6 +29738,21 @@ CLASS zcl_abapgit_gui_page_repo_view DEFINITION
     DATA mv_key TYPE zif_abapgit_persistence=>ty_value .
     DATA mv_are_changes_recorded_in_tr TYPE abap_bool .
     DATA mo_ref_selection TYPE REF TO zcl_abapgit_gui_page_ref_sel.
+
+    TYPES:
+      BEGIN OF ty_transport_description,
+        trkorr      TYPE trkorr,
+        description TYPE string,
+      END OF ty_transport_description.
+
+    " Descriptions read during one render, as many items share a transport
+    DATA mt_transport_descriptions TYPE HASHED TABLE OF ty_transport_description WITH UNIQUE KEY trkorr.
+
+    METHODS get_transport_description
+      IMPORTING
+        !iv_trkorr            TYPE trkorr
+      RETURNING
+        VALUE(rv_description) TYPE string.
 
     METHODS render_head_line
       RETURNING
@@ -47695,6 +47722,20 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
+  METHOD get_transport_description.
+
+    DATA ls_description LIKE LINE OF mt_transport_descriptions.
+
+    READ TABLE mt_transport_descriptions INTO ls_description WITH TABLE KEY trkorr = iv_trkorr.
+    IF sy-subrc <> 0.
+      ls_description-trkorr      = iv_trkorr.
+      ls_description-description = zcl_abapgit_factory=>get_cts_api( )->read_description( iv_trkorr ).
+      INSERT ls_description INTO TABLE mt_transport_descriptions.
+    ENDIF.
+
+    rv_description = ls_description-description.
+
+  ENDMETHOD.
   METHOD is_repo_lang_logon_lang.
     rv_repo_lang_is_logon_lang = boolc( mi_repo->get_dot_abapgit( )->get_main_language( ) = sy-langu ).
   ENDMETHOD.
@@ -47963,10 +48004,13 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
 
     ri_html->add( '<td class="transport">' ).
 
-    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_transport(
-      iv_transport = is_item-transport
-      iv_obj_type  = is_item-obj_type
-      iv_obj_name  = is_item-obj_name ) ).
+    IF is_item-transport IS NOT INITIAL.
+      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_transport(
+        iv_transport   = is_item-transport
+        iv_obj_type    = is_item-obj_type
+        iv_obj_name    = is_item-obj_name
+        iv_description = get_transport_description( is_item-transport ) ) ).
+    ENDIF.
 
     ri_html->add( '</td>' ).
 
@@ -48251,6 +48295,7 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
     ENDIF.
 
     CREATE OBJECT mo_repo_aggregated_state.
+    CLEAR mt_transport_descriptions.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
 
@@ -64702,7 +64747,11 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    lv_title = zcl_abapgit_factory=>get_cts_api( )->read_description( iv_transport ).
+    IF iv_description IS SUPPLIED.
+      lv_title = iv_description.
+    ELSE.
+      lv_title = zcl_abapgit_factory=>get_cts_api( )->read_description( iv_transport ).
+    ENDIF.
 
     lv_jump = |{ zif_abapgit_definitions=>c_action-jump_transport }?transport={ iv_transport }|.
 
@@ -73162,18 +73211,40 @@ CLASS zcl_abapgit_repo_content_list IMPLEMENTATION.
   ENDMETHOD.
   METHOD determine_transports.
 
-    DATA ls_item TYPE zif_abapgit_definitions=>ty_item.
+    DATA lt_items TYPE zif_abapgit_definitions=>ty_items_tt.
+    DATA ls_item LIKE LINE OF lt_items.
+    DATA lt_transports TYPE zif_abapgit_cts_api=>ty_transport_list.
+    DATA ls_transport LIKE LINE OF lt_transports.
 
     FIELD-SYMBOLS <ls_item> LIKE LINE OF ct_repo_items.
 
-    LOOP AT ct_repo_items ASSIGNING <ls_item>.
+    LOOP AT ct_repo_items ASSIGNING <ls_item> WHERE obj_type IS NOT INITIAL AND obj_name IS NOT INITIAL.
       ls_item-obj_type = <ls_item>-obj_type.
       ls_item-obj_name = <ls_item>-obj_name.
-      TRY.
-          <ls_item>-transport = zcl_abapgit_factory=>get_cts_api( )->get_transport_for_object( ls_item ).
-        CATCH zcx_abapgit_exception ##NO_HANDLER.
-          " Ignore errors related to object check when trying to get transport
-      ENDTRY.
+      APPEND ls_item TO lt_items.
+    ENDLOOP.
+
+    IF lt_items IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    " One read of all locks instead of a lock check per object
+    TRY.
+        lt_transports = zcl_abapgit_factory=>get_cts_api( )->get_transports_for_list(
+          it_items    = lt_items
+          iv_requests = abap_true ).
+      CATCH zcx_abapgit_exception.
+        " Ignore errors related to object check when trying to get transports
+        RETURN.
+    ENDTRY.
+
+    LOOP AT ct_repo_items ASSIGNING <ls_item> WHERE obj_type IS NOT INITIAL AND obj_name IS NOT INITIAL.
+      READ TABLE lt_transports INTO ls_transport WITH TABLE KEY
+        obj_type = <ls_item>-obj_type
+        obj_name = <ls_item>-obj_name.
+      IF sy-subrc = 0.
+        <ls_item>-transport = ls_transport-trkorr.
+      ENDIF.
     ENDLOOP.
 
   ENDMETHOD.
@@ -158996,6 +159067,43 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
 
     rv_transportable = boolc( lv_type_check_result CA 'RTL' OR iv_object_type = 'TABU' ).
   ENDMETHOD.
+  METHOD replace_tasks_by_requests.
+
+    TYPES:
+      BEGIN OF ty_parent,
+        trkorr  TYPE e070-trkorr,
+        strkorr TYPE e070-strkorr,
+      END OF ty_parent.
+
+    DATA lt_trkorr TYPE SORTED TABLE OF trkorr WITH UNIQUE KEY table_line.
+    DATA lt_parents TYPE HASHED TABLE OF ty_parent WITH UNIQUE KEY trkorr.
+    DATA ls_parent LIKE LINE OF lt_parents.
+
+    FIELD-SYMBOLS <ls_transport> LIKE LINE OF ct_transports.
+
+    LOOP AT ct_transports ASSIGNING <ls_transport>
+        WHERE trkorr <> zif_abapgit_definitions=>c_multiple_transports.
+      INSERT <ls_transport>-trkorr INTO TABLE lt_trkorr.
+    ENDLOOP.
+
+    IF lt_trkorr IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    SELECT trkorr strkorr FROM e070
+      INTO TABLE lt_parents
+      FOR ALL ENTRIES IN lt_trkorr
+      WHERE trkorr = lt_trkorr-table_line
+        AND strkorr <> space ##SUBRC_OK.
+
+    LOOP AT ct_transports ASSIGNING <ls_transport>.
+      READ TABLE lt_parents INTO ls_parent WITH TABLE KEY trkorr = <ls_transport>-trkorr.
+      IF sy-subrc = 0.
+        <ls_transport>-trkorr = ls_parent-strkorr.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
   METHOD zif_abapgit_cts_api~change_transport_type.
 
     DATA:
@@ -159256,10 +159364,7 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
 * TR_CHECK_OBJECT_LOCK
 
 * avoid database lookups in TLOCK for each item,
-    SELECT * FROM tlock INTO TABLE lt_tlock.
-    IF sy-subrc <> 0.
-      RETURN.
-    ENDIF.
+    SELECT * FROM tlock INTO TABLE lt_tlock ##SUBRC_OK.
 
     LOOP AT it_items ASSIGNING <ls_item>.
       CLEAR lv_request.
@@ -159301,6 +159406,10 @@ CLASS zcl_abapgit_cts_api IMPLEMENTATION.
       ENDIF.
 
     ENDLOOP.
+
+    IF iv_requests = abap_true.
+      replace_tasks_by_requests( CHANGING ct_transports = rt_transports ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD zif_abapgit_cts_api~get_transport_for_object.
@@ -161432,8 +161541,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-25T16:58:42.030Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-25T16:58:42.030Z`.
+* abapmerge 0.16.10 - 2026-11-26T11:14:30.414Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-26T11:14:30.414Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
