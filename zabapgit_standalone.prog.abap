@@ -12881,7 +12881,14 @@ CLASS zcl_abapgit_ecatt_helper DEFINITION
         RETURNING
           VALUE(ri_template_over_all) TYPE REF TO if_ixml_document
         RAISING
-          cx_ecatt_apl.
+          cx_ecatt_apl,
+
+      is_object_loaded
+        IMPORTING
+          io_object        TYPE REF TO cl_apl_ecatt_object
+          ix_error         TYPE REF TO cx_root
+        RETURNING
+          VALUE(rv_loaded) TYPE abap_bool.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -115382,6 +115389,10 @@ CLASS zcl_abapgit_object_ecatt_super IMPLEMENTATION.
                  iv_object_type    = lv_object_type
                  io_download       = lo_download ).
 
+    IF lv_xml IS INITIAL.
+      zcx_abapgit_exception=>raise( |ECATT, empty xml, { mv_object_name }| ).
+    ENDIF.
+
     li_document = cl_ixml_80_20=>parse_to_document( stream_xstring = lv_xml ).
 
     rs_change_information-ldate = get_changed_date( li_document ).
@@ -136676,7 +136687,10 @@ CLASS ZCL_ABAPGIT_ECATT_VAL_OBJ_DOWN IMPLEMENTATION.
           IMPORTING
             re_object   = ecatt_object ).
       CATCH cx_ecatt INTO ex_ecatt.
-        RETURN.
+        IF zcl_abapgit_ecatt_helper=>is_object_loaded( io_object = ecatt_object
+                                                       ix_error  = ex_ecatt ) = abap_false.
+          RETURN.
+        ENDIF.
     ENDTRY.
 
     lv_partyp = cl_apl_ecatt_const=>params_type_par.
@@ -136914,7 +136928,10 @@ CLASS zcl_abapgit_ecatt_system_downl IMPLEMENTATION.
           IMPORTING
             re_object   = ecatt_object ).
       CATCH cx_ecatt INTO ex_ecatt.
-        RETURN.
+        IF zcl_abapgit_ecatt_helper=>is_object_loaded( io_object = ecatt_object
+                                                       ix_error  = ex_ecatt ) = abap_false.
+          RETURN.
+        ENDIF.
     ENDTRY.
 
     set_attributes_to_template( ).
@@ -137164,7 +137181,10 @@ CLASS zcl_abapgit_ecatt_sp_download IMPLEMENTATION.
           IMPORTING
             re_object   = ecatt_object ).
       CATCH cx_ecatt INTO ex_ecatt.
-        RETURN.
+        IF zcl_abapgit_ecatt_helper=>is_object_loaded( io_object = ecatt_object
+                                                       ix_error  = ex_ecatt ) = abap_false.
+          RETURN.
+        ENDIF.
     ENDTRY.
 
     set_attributes_to_template( ).
@@ -137258,7 +137278,10 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
           IMPORTING
             re_object   = ecatt_object ).
       CATCH cx_ecatt INTO ex_ecatt.
-        RETURN.
+        IF zcl_abapgit_ecatt_helper=>is_object_loaded( io_object = ecatt_object
+                                                       ix_error  = ex_ecatt ) = abap_false.
+          RETURN.
+        ENDIF.
     ENDTRY.
 
     toolname = ecatt_object->attrib->get_tool_name( ).
@@ -137628,6 +137651,25 @@ CLASS zcl_abapgit_ecatt_script_downl IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_ecatt_helper IMPLEMENTATION.
+  METHOD is_object_loaded.
+
+    " cl_apl_ecatt_object=>show_object also raises warnings, for example about
+    " unused command interfaces, after the object has been read completely.
+    " CL_APL_ECATT_DOWNLOAD carries on after any exception. Carry on as well,
+    " but not if the object is missing or the exception aborts the load.
+
+    FIELD-SYMBOLS <lv_abort_flag> TYPE any.
+
+    IF io_object IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    ASSIGN ix_error->('ABORT_FLAG') TO <lv_abort_flag>.
+    IF sy-subrc = 0 AND <lv_abort_flag> IS INITIAL.
+      rv_loaded = abap_true.
+    ENDIF.
+
+  ENDMETHOD.
   METHOD build_xml_of_object.
 
     " downport of CL_APL_ECATT_DOWNLOAD=>BUILD_XML_OF_OBJECT
@@ -137807,7 +137849,10 @@ CLASS ZCL_ABAPGIT_ECATT_DATA_DOWNL IMPLEMENTATION.
           IMPORTING
             re_object   = ecatt_object ).
       CATCH cx_ecatt INTO ex_ecatt.
-        RETURN.
+        IF zcl_abapgit_ecatt_helper=>is_object_loaded( io_object = ecatt_object
+                                                       ix_error  = ex_ecatt ) = abap_false.
+          RETURN.
+        ENDIF.
     ENDTRY.
 
     typ = im_object_type.
@@ -137884,7 +137929,10 @@ CLASS ZCL_ABAPGIT_ECATT_CONFIG_DOWNL IMPLEMENTATION.
           IMPORTING
             re_object   = ecatt_object ).
       CATCH cx_ecatt INTO ex_ecatt.
-        RETURN.
+        IF zcl_abapgit_ecatt_helper=>is_object_loaded( io_object = ecatt_object
+                                                       ix_error  = ex_ecatt ) = abap_false.
+          RETURN.
+        ENDIF.
     ENDTRY.
 
     lv_partyp = cl_apl_ecatt_const=>params_type_par.
@@ -162096,8 +162144,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-26T19:15:35.974Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-26T19:15:35.974Z`.
+* abapmerge 0.16.10 - 2026-11-27T00:03:21.277Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-27T00:03:21.277Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
