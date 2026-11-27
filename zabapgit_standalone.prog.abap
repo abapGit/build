@@ -141,6 +141,7 @@ INTERFACE zif_abapgit_data_config DEFERRED.
 INTERFACE zif_abapgit_default_transport DEFERRED.
 INTERFACE zif_abapgit_cts_api DEFERRED.
 INTERFACE zif_abapgit_background DEFERRED.
+INTERFACE zif_abapgit_aunit_runner DEFERRED.
 INTERFACE zif_abapgit_apack_definitions DEFERRED.
 CLASS zcl_abapgit_injector DEFINITION DEFERRED.
 CLASS zcl_abapgit_factory DEFINITION DEFERRED.
@@ -601,6 +602,11 @@ CLASS zcl_abapgit_background_push_fi DEFINITION DEFERRED.
 CLASS zcl_abapgit_background_push_au DEFINITION DEFERRED.
 CLASS zcl_abapgit_background_pull DEFINITION DEFERRED.
 CLASS zcl_abapgit_background DEFINITION DEFERRED.
+CLASS zcl_abapgit_aunit_result DEFINITION DEFERRED.
+CLASS zcl_abapgit_aunit_objects DEFINITION DEFERRED.
+CLASS zcl_abapgit_aunit_modern DEFINITION DEFERRED.
+CLASS zcl_abapgit_aunit_factory DEFINITION DEFERRED.
+CLASS zcl_abapgit_aunit_classic DEFINITION DEFERRED.
 CLASS zcl_abapgit_apack_writer DEFINITION DEFERRED.
 CLASS zcl_abapgit_apack_reader DEFINITION DEFERRED.
 CLASS zcl_abapgit_apack_migration DEFINITION DEFERRED.
@@ -1334,6 +1340,49 @@ CLASS zcx_abapgit_type_not_supported IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
+INTERFACE zif_abapgit_aunit_runner.
+
+  TYPES:
+    BEGIN OF ty_method,
+      name        TYPE string,
+      failure     TYPE string,
+      has_runtime TYPE abap_bool,
+      runtime_ms  TYPE i,
+    END OF ty_method,
+    ty_methods_tt TYPE STANDARD TABLE OF ty_method WITH DEFAULT KEY.
+
+  TYPES:
+    BEGIN OF ty_class,
+      name    TYPE string,
+      methods TYPE ty_methods_tt,
+    END OF ty_class,
+    ty_classes_tt TYPE STANDARD TABLE OF ty_class WITH DEFAULT KEY.
+
+  TYPES:
+    BEGIN OF ty_program,
+      obj_type TYPE tadir-object,
+      obj_name TYPE tadir-obj_name,
+      name     TYPE string,
+      classes  TYPE ty_classes_tt,
+    END OF ty_program,
+    ty_programs_tt TYPE STANDARD TABLE OF ty_program WITH DEFAULT KEY.
+
+  TYPES:
+    BEGIN OF ty_result,
+      errors   TYPE string_table,
+      programs TYPE ty_programs_tt,
+      summary  TYPE string,
+    END OF ty_result.
+
+  "! Runs the unit tests for all objects in the repository
+  METHODS run
+    RETURNING
+      VALUE(rs_result) TYPE ty_result
+    RAISING
+      zcx_abapgit_exception.
+
+ENDINTERFACE.
 
 INTERFACE zif_abapgit_background .
   TYPES:
@@ -7948,6 +7997,224 @@ CLASS zcl_abapgit_apack_writer DEFINITION
   PRIVATE SECTION.
 
     DATA ms_manifest_descriptor TYPE zif_abapgit_apack_definitions=>ty_descriptor .
+ENDCLASS.
+CLASS zcl_abapgit_aunit_classic DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_aunit_runner.
+
+    "! Runs the tests via CL_AUCV_TEST_RUNNER_STANDARD.
+    "! Raises an exception if not available in the system, either SAPLSAUCV_GUI_RUNNER
+    "! does not exist in old releases or passport=>get is private in releases NW >= 756
+    METHODS constructor
+      IMPORTING
+        !ii_repo TYPE REF TO zif_abapgit_repo
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_key,
+        obj_name TYPE tadir-obj_name,
+        obj_type TYPE tadir-object,
+      END OF ty_key,
+      ty_keys_tt TYPE STANDARD TABLE OF ty_key WITH DEFAULT KEY.
+
+    DATA mi_repo TYPE REF TO zif_abapgit_repo.
+
+    METHODS build_keys
+      RETURNING
+        VALUE(rt_keys) TYPE ty_keys_tt
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS create_runner
+      RETURNING
+        VALUE(ro_runner) TYPE REF TO object
+      RAISING
+        zcx_abapgit_exception.
+
+    "! Returns an object of type IF_SAUNIT_INTERNAL_RESULT
+    METHODS run_aunit
+      IMPORTING
+        !it_keys        TYPE ty_keys_tt
+      RETURNING
+        VALUE(ro_aunit) TYPE REF TO object
+      RAISING
+        zcx_abapgit_exception.
+
+ENDCLASS.
+CLASS zcl_abapgit_aunit_factory DEFINITION.
+  PUBLIC SECTION.
+    "! Classic runner if available, otherwise the modern one.
+    "! Raises an exception if neither is supported in the release
+    CLASS-METHODS get_runner
+      IMPORTING
+        !ii_repo         TYPE REF TO zif_abapgit_repo
+      RETURNING
+        VALUE(ri_runner) TYPE REF TO zif_abapgit_aunit_runner
+      RAISING
+        zcx_abapgit_exception.
+ENDCLASS.
+CLASS zcl_abapgit_aunit_modern DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    INTERFACES zif_abapgit_aunit_runner.
+
+    "! Runs the tests via CL_AUNIT_FACTORY, with the listener of CL_SAUNIT_GUI_SERVICE
+    "! collecting the results. All calls are dynamic, as the AUnit API does not exist
+    "! in all releases. Raises an exception if the API is not available in the system
+    METHODS constructor
+      IMPORTING
+        !ii_repo TYPE REF TO zif_abapgit_repo
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CONSTANTS c_enum_risk_level_critical TYPE string VALUE 'IF_AUNIT_ATTRIBUTE_ENUMS=>C_RISK_LEVEL-CRITICAL'.
+    CONSTANTS c_enum_duration_long TYPE string VALUE 'IF_AUNIT_ATTRIBUTE_ENUMS=>C_DURATION-LONG'.
+
+    DATA mi_repo TYPE REF TO zif_abapgit_repo.
+
+    METHODS create_listener
+      RETURNING
+        VALUE(ro_listener) TYPE REF TO object
+      RAISING
+        zcx_abapgit_exception.
+
+    "! Returns a data reference of type REF TO IF_AUNIT_LISTENER
+    METHODS cast_listener
+      IMPORTING
+        !io_listener       TYPE REF TO object
+      RETURNING
+        VALUE(rr_listener) TYPE REF TO data
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS create_task
+      IMPORTING
+        !io_listener   TYPE REF TO object
+      RETURNING
+        VALUE(ro_task) TYPE REF TO object
+      RAISING
+        zcx_abapgit_exception.
+
+    METHODS restrict
+      IMPORTING
+        !io_task         TYPE REF TO object
+      RETURNING
+        VALUE(rt_errors) TYPE string_table.
+
+    METHODS add_objects
+      IMPORTING
+        !io_task         TYPE REF TO object
+        !it_tadir        TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RETURNING
+        VALUE(rt_errors) TYPE string_table.
+
+    METHODS contains_test_cases
+      IMPORTING
+        !io_task       TYPE REF TO object
+      RETURNING
+        VALUE(rv_bool) TYPE abap_bool.
+
+    METHODS run_task
+      IMPORTING
+        !io_task     TYPE REF TO object
+        !io_listener TYPE REF TO object
+      RAISING
+        zcx_abapgit_exception.
+
+    "! Returns an object of type IF_SAUNIT_INTERNAL_RESULT
+    METHODS get_result
+      IMPORTING
+        !io_listener    TYPE REF TO object
+      RETURNING
+        VALUE(ro_aunit) TYPE REF TO object
+      RAISING
+        zcx_abapgit_exception.
+
+ENDCLASS.
+CLASS zcl_abapgit_aunit_objects DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    "! Objects of the repository to pass to ABAP Unit, includes are skipped
+    "! as they cannot be run on their own
+    CLASS-METHODS get
+      IMPORTING
+        !ii_repo        TYPE REF TO zif_abapgit_repo
+      RETURNING
+        VALUE(rt_tadir) TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES ty_programs_tt TYPE SORTED TABLE OF progname WITH UNIQUE KEY table_line.
+
+    CLASS-METHODS select_includes
+      IMPORTING
+        !it_tadir          TYPE zif_abapgit_definitions=>ty_tadir_tt
+      RETURNING
+        VALUE(rt_includes) TYPE ty_programs_tt.
+
+ENDCLASS.
+CLASS zcl_abapgit_aunit_result DEFINITION
+  FINAL
+  CREATE PUBLIC.
+
+  PUBLIC SECTION.
+
+    "! Converts an AUnit result of type IF_SAUNIT_INTERNAL_RESULT,
+    "! accessed dynamically as it does not exist in all releases
+    CLASS-METHODS from_aunit
+      IMPORTING
+        !io_aunit        TYPE REF TO object
+      RETURNING
+        VALUE(rs_result) TYPE zif_abapgit_aunit_runner=>ty_result
+      RAISING
+        zcx_abapgit_exception.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CLASS-METHODS parse_errors
+      IMPORTING
+        !it_indices      TYPE ANY TABLE
+      RETURNING
+        VALUE(rt_errors) TYPE string_table.
+
+    CLASS-METHODS parse_programs
+      IMPORTING
+        !it_programs       TYPE ANY TABLE
+        !it_indices        TYPE ANY TABLE
+      RETURNING
+        VALUE(rt_programs) TYPE zif_abapgit_aunit_runner=>ty_programs_tt.
+
+    CLASS-METHODS parse_method
+      IMPORTING
+        !is_method       TYPE any
+        !it_indices      TYPE ANY TABLE
+        !iv_program_ndx  TYPE sy-tabix
+        !iv_class_ndx    TYPE sy-tabix
+        !iv_method_ndx   TYPE sy-tabix
+      RETURNING
+        VALUE(rs_method) TYPE zif_abapgit_aunit_runner=>ty_method.
+
 ENDCLASS.
 CLASS zcl_abapgit_background DEFINITION
   CREATE PUBLIC .
@@ -26885,9 +27152,8 @@ CLASS zcl_abapgit_gui_page_runit DEFINITION
 
     METHODS constructor
       IMPORTING
-        !ii_repo TYPE REF TO zif_abapgit_repo
-      RAISING
-        zcx_abapgit_exception.
+        !ii_repo   TYPE REF TO zif_abapgit_repo
+        !ii_runner TYPE REF TO zif_abapgit_aunit_runner.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -26897,37 +27163,14 @@ CLASS zcl_abapgit_gui_page_runit DEFINITION
         rerun TYPE string VALUE 'rerun' ##NO_TEXT,
       END OF c_actions .
 
-    TYPES:
-      BEGIN OF ty_key,
-        obj_name TYPE tadir-obj_name,
-        obj_type TYPE tadir-object,
-      END OF ty_key,
-      ty_keys_tt TYPE STANDARD TABLE OF ty_key WITH DEFAULT KEY.
-
     DATA mi_repo TYPE REF TO zif_abapgit_repo.
-    DATA mv_summary TYPE string.
+    DATA mi_runner TYPE REF TO zif_abapgit_aunit_runner.
 
-    METHODS build_tadir
-      RETURNING
-        VALUE(rt_tadir) TYPE ty_keys_tt
-      RAISING
-        zcx_abapgit_exception.
-
-    METHODS run
-      RETURNING
-        VALUE(ro_result) TYPE REF TO object
-      RAISING
-        zcx_abapgit_exception.
-
-    METHODS get_text_for_method
+    METHODS render_method
       IMPORTING
-        !is_method      TYPE any
-        !it_indices     TYPE ANY TABLE
-        !iv_program_ndx TYPE sy-tabix
-        !iv_class_ndx   TYPE sy-tabix
-        !iv_method_ndx  TYPE sy-tabix
+        !is_method     TYPE zif_abapgit_aunit_runner=>ty_method
       RETURNING
-        VALUE(rv_text)  TYPE string.
+        VALUE(rv_html) TYPE string.
 
 ENDCLASS.
 CLASS zcl_abapgit_gui_page_syntax DEFINITION
@@ -59945,40 +60188,25 @@ CLASS zcl_abapgit_gui_page_syntax IMPLEMENTATION.
 ENDCLASS.
 
 CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
-  METHOD build_tadir.
-
-    DATA lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
-    DATA ls_tadir LIKE LINE OF lt_tadir.
-    DATA ls_row   LIKE LINE OF rt_tadir.
-
-    lt_tadir = mi_repo->get_tadir_objects( ).
-
-    LOOP AT lt_tadir INTO ls_tadir.
-      CLEAR ls_row.
-      ls_row-obj_type = ls_tadir-object.
-      ls_row-obj_name = ls_tadir-obj_name.
-      APPEND ls_row TO rt_tadir.
-    ENDLOOP.
-
-  ENDMETHOD.
   METHOD constructor.
 
     super->constructor( ).
     mi_repo = ii_repo.
-
-    TRY.
-        CALL METHOD ('\PROGRAM=SAPLSAUCV_GUI_RUNNER\CLASS=PASSPORT')=>get.
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( |Not supported in your NW release| ).
-    ENDTRY.
+    mi_runner = ii_runner.
 
   ENDMETHOD.
   METHOD create.
 
     DATA lo_component TYPE REF TO zcl_abapgit_gui_page_runit.
+    DATA li_runner    TYPE REF TO zif_abapgit_aunit_runner.
 
     TRY.
-        CREATE OBJECT lo_component EXPORTING ii_repo = ii_repo.
+        li_runner = zcl_abapgit_aunit_factory=>get_runner( ii_repo ).
+
+        CREATE OBJECT lo_component
+          EXPORTING
+            ii_repo   = ii_repo
+            ii_runner = li_runner.
 
         ri_page = zcl_abapgit_gui_page_hoc=>create(
           iv_page_title         = |Unit Tests|
@@ -59987,8 +60215,7 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
 
       CATCH zcx_abapgit_exception.
 
-        " Fallback as either SAPLSAUCV_GUI_RUNNER is not available in old releases
-        " or passport=>get is private in newer releases NW >= 756
+        " Fallback if neither runner is supported in the release
         ri_page = zcl_abapgit_gui_page_code_insp=>create(
                     ii_repo          = ii_repo
                     iv_check_variant = 'SWF_ABAP_UNIT' ).
@@ -59996,106 +60223,27 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-  METHOD get_text_for_method.
+  METHOD render_method.
 
-    DATA lv_params         TYPE string.
-    DATA lv_runtime        TYPE timestampl.
-    DATA lv_msec           TYPE string.
+    DATA lv_text    TYPE string.
+    DATA lv_runtime TYPE string.
 
-    FIELD-SYMBOLS <ls_alert_by_index> TYPE any.
-    FIELD-SYMBOLS <lt_alerts>         TYPE ANY TABLE.
-    FIELD-SYMBOLS <ls_alert>          TYPE any.
-    FIELD-SYMBOLS <lt_params>         TYPE string_table.
-    FIELD-SYMBOLS <lv_any>            TYPE any.
-    FIELD-SYMBOLS <lv_start>          TYPE timestampl.
-    FIELD-SYMBOLS <lv_end>            TYPE timestampl.
-
-    READ TABLE it_indices WITH KEY
-      ('PROGRAM_NDX') = iv_program_ndx
-      ('CLASS_NDX')   = iv_class_ndx
-      ('METHOD_NDX')  = iv_method_ndx
-      ASSIGNING <ls_alert_by_index>.
-    IF sy-subrc = 0.
-      ASSIGN COMPONENT 'ALERTS' OF STRUCTURE <ls_alert_by_index> TO <lt_alerts>.
-      LOOP AT <lt_alerts> ASSIGNING <ls_alert>.
-        ASSIGN COMPONENT 'HEADER-PARAMS' OF STRUCTURE <ls_alert> TO <lt_params>.
-        LOOP AT <lt_params> INTO lv_params.
-          rv_text = lv_params.
-        ENDLOOP.
-      ENDLOOP.
+    IF is_method-has_runtime = abap_true.
+      lv_runtime = |{ is_method-runtime_ms } ms|.
     ENDIF.
 
-    CLEAR: lv_msec, lv_runtime.
-    ASSIGN COMPONENT 'INFO-START_ON' OF STRUCTURE is_method TO <lv_start>.
-    IF sy-subrc = 0.
-      ASSIGN COMPONENT 'INFO-END_ON' OF STRUCTURE is_method TO <lv_end>.
-      IF sy-subrc = 0.
-        TRY.
-            lv_runtime = cl_abap_tstmp=>subtract(
-              tstmp1 = <lv_end>
-              tstmp2 = <lv_start> ) * 1000.
-            lv_msec = |{ lv_runtime  DECIMALS = 0 } ms|.
-          CATCH cx_parameter_invalid ##NO_HANDLER. "ignore
-        ENDTRY.
-      ENDIF.
-    ENDIF.
-
-    IF rv_text IS INITIAL.
-      rv_text = |<span class="boxed green-filled-set">PASSED</span>|.
-      IF lv_runtime > 100.
-        rv_text = rv_text && | <span class="warning">{ lv_msec }</span>|.
+    IF is_method-failure IS INITIAL.
+      lv_text = |<span class="boxed green-filled-set">PASSED</span>|.
+      IF is_method-runtime_ms > 100.
+        lv_text = lv_text && | <span class="warning">{ lv_runtime }</span>|.
       ELSE.
-        rv_text = rv_text && | <span class="success">{ lv_msec }</span>|.
+        lv_text = lv_text && | <span class="success">{ lv_runtime }</span>|.
       ENDIF.
     ELSE.
-      rv_text = |<span class="boxed red-filled-set">{ rv_text }</span>|.
+      lv_text = |<span class="boxed red-filled-set">{ is_method-failure }</span>|.
     ENDIF.
 
-    ASSIGN COMPONENT 'INFO-NAME' OF STRUCTURE is_method TO <lv_any>.
-    rv_text = |<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <lv_any> }</td><td>{ rv_text }</td></tr>|.
-
-  ENDMETHOD.
-  METHOD run.
-
-    DATA lo_passport TYPE REF TO object.
-    DATA lo_runner   TYPE REF TO object.
-    DATA lo_timer    TYPE REF TO zcl_abapgit_timer.
-    DATA lt_keys     TYPE ty_keys_tt.
-    DATA li_result   TYPE REF TO data.
-    FIELD-SYMBOLS <li_result> TYPE any.
-
-    lt_keys = build_tadir( ).
-
-    lo_timer = zcl_abapgit_timer=>create( iv_count = lines( lt_keys ) )->start( ).
-
-    TRY.
-        CALL METHOD ('\PROGRAM=SAPLSAUCV_GUI_RUNNER\CLASS=PASSPORT')=>get
-          RECEIVING
-            result = lo_passport.
-
-        CALL METHOD ('CL_AUCV_TEST_RUNNER_STANDARD')=>create
-          EXPORTING
-            i_passport = lo_passport
-          RECEIVING
-            result     = lo_runner.
-      CATCH cx_root.
-        zcx_abapgit_exception=>raise( |Not supported in your NW release| ).
-    ENDTRY.
-
-    CREATE DATA li_result TYPE REF TO ('IF_SAUNIT_INTERNAL_RESULT').
-    ASSIGN li_result->* TO <li_result>.
-
-    CALL METHOD lo_runner->('RUN_FOR_PROGRAM_KEYS')
-      EXPORTING
-        i_limit_on_duration_category = '36' " long
-        i_limit_on_risk_level        = '33' " critical
-        i_program_keys               = lt_keys
-      IMPORTING
-        e_aunit_result               = <li_result>.
-
-    mv_summary = lo_timer->end( ).
-
-    ro_result = <li_result>.
+    rv_html = |<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ is_method-name }</td><td>{ lv_text }</td></tr>|.
 
   ENDMETHOD.
   METHOD zif_abapgit_gui_event_handler~on_event.
@@ -60124,29 +60272,13 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
   ENDMETHOD.
   METHOD zif_abapgit_gui_renderable~render.
 
-    DATA lo_result         TYPE REF TO object.
-    DATA lv_program_ndx    TYPE i.
-    DATA lv_class_ndx      TYPE i.
-    DATA lv_text           TYPE string.
-    DATA lv_count          TYPE i.
-    DATA lv_params         TYPE string.
-    DATA ls_item           TYPE zif_abapgit_definitions=>ty_repo_item.
+    DATA ls_result TYPE zif_abapgit_aunit_runner=>ty_result.
+    DATA lv_error  TYPE string.
+    DATA ls_item   TYPE zif_abapgit_definitions=>ty_repo_item.
 
-    FIELD-SYMBOLS <ls_task_data>      TYPE any.
-    FIELD-SYMBOLS <lt_programs>       TYPE ANY TABLE.
-    FIELD-SYMBOLS <ls_alert_by_index> TYPE any.
-    FIELD-SYMBOLS <lt_indices>        TYPE ANY TABLE.
-    FIELD-SYMBOLS <lt_alerts>         TYPE ANY TABLE.
-    FIELD-SYMBOLS <lt_classes>        TYPE ANY TABLE.
-    FIELD-SYMBOLS <lt_methods>        TYPE ANY TABLE.
-    FIELD-SYMBOLS <ls_alert>          TYPE any.
-    FIELD-SYMBOLS <ls_program>        TYPE any.
-    FIELD-SYMBOLS <ls_class>          TYPE any.
-    FIELD-SYMBOLS <ls_method>         TYPE any.
-    FIELD-SYMBOLS <lv_any>            TYPE any.
-    FIELD-SYMBOLS <lt_text_info>      TYPE ANY TABLE.
-    FIELD-SYMBOLS <ls_text_info>      TYPE any.
-    FIELD-SYMBOLS <lt_params>         TYPE string_table.
+    FIELD-SYMBOLS <ls_program> TYPE zif_abapgit_aunit_runner=>ty_program.
+    FIELD-SYMBOLS <ls_class>   TYPE zif_abapgit_aunit_runner=>ty_class.
+    FIELD-SYMBOLS <ls_method>  TYPE zif_abapgit_aunit_runner=>ty_method.
     register_handlers( ).
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
@@ -60155,87 +60287,45 @@ CLASS zcl_abapgit_gui_page_runit IMPLEMENTATION.
     ri_html->add( zcl_abapgit_gui_chunk_lib=>render_repo_top( ii_repo        = mi_repo
                                                               iv_show_commit = abap_false ) ).
 
-    lo_result = run( ).
+    ls_result = mi_runner->run( ).
 
-    ASSIGN lo_result->('F_TASK_DATA') TO <ls_task_data>.
-    ASSIGN COMPONENT 'ALERTS_BY_INDICIES' OF STRUCTURE <ls_task_data> TO <lt_indices>.
-    ASSIGN COMPONENT 'PROGRAMS' OF STRUCTURE <ls_task_data> TO <lt_programs>.
-
-    IF <lt_programs> IS INITIAL.
+    IF ls_result-programs IS INITIAL.
       ri_html->add( '<div class="ci-head">' ).
       ri_html->add( 'No unit tests found' ).
+      ri_html->add( '</div>' ).
       ri_html->add( '</div>' ).
       RETURN.
     ENDIF.
 
     ri_html->add( |<table class="unit_tests">| ).
-
-    LOOP AT <lt_indices> ASSIGNING <ls_alert_by_index>.
-      ASSIGN COMPONENT 'ALERTS' OF STRUCTURE <ls_alert_by_index> TO <lt_alerts>.
-      LOOP AT <lt_alerts> ASSIGNING <ls_alert> WHERE ('KIND = ''F'' OR KIND = ''S'' OR KIND = ''E'' OR KIND = ''W''').
-        CLEAR lv_text.
-        ASSIGN COMPONENT 'HEADER-PARAMS' OF STRUCTURE <ls_alert> TO <lt_params>.
-        LOOP AT <lt_params> INTO lv_params.
-          lv_text = lv_text && lv_params.
-        ENDLOOP.
-
-        ASSIGN COMPONENT 'TEXT_INFOS' OF STRUCTURE <ls_alert> TO <lt_text_info>.
-        LOOP AT <lt_text_info> ASSIGNING <ls_text_info>.
-          ASSIGN COMPONENT 'PARAMS' OF STRUCTURE <ls_text_info> TO <lt_params>.
-          LOOP AT <lt_params> INTO lv_params.
-            lv_text = lv_text && lv_params.
-          ENDLOOP.
-        ENDLOOP.
-        IF lv_text NP '*SAUNIT_NO_TEST_CLASS*'.
-          ri_html->add( |<tr><td><span class="boxed red-filled-set">{ lv_text }</span></td></tr>| ).
-          lv_count = lv_count + 1.
-        ENDIF.
-      ENDLOOP.
+    LOOP AT ls_result-errors INTO lv_error.
+      ri_html->add( |<tr><td><span class="boxed red-filled-set">{ lv_error }</span></td></tr>| ).
     ENDLOOP.
-
     ri_html->add( '</table>' ).
 
     ri_html->add( '<div class="ci-head">' ).
-    ri_html->add( |Unit tests completed with <strong>{ lv_count } errors</strong> ({ mv_summary })| ).
+    ri_html->add( |Unit tests completed with <strong>{ lines( ls_result-errors ) } errors</strong>|
+      && | ({ ls_result-summary })| ).
     ri_html->add( '</div>' ).
 
     ri_html->add( |<hr><table class="unit_tests">| ).
 
-    LOOP AT <lt_programs> ASSIGNING <ls_program>.
-      CLEAR ls_item.
-      lv_program_ndx = sy-tabix.
-
-      ASSIGN COMPONENT 'INFO-KEY-OBJ_TYPE' OF STRUCTURE <ls_program> TO <lv_any>.
-      IF sy-subrc = 0.
-        ls_item-obj_type = <lv_any>.
-        ASSIGN COMPONENT 'INFO-KEY-OBJ_NAME' OF STRUCTURE <ls_program> TO <lv_any>.
-        ls_item-obj_name = <lv_any>.
+    LOOP AT ls_result-programs ASSIGNING <ls_program>.
+      IF <ls_program>-obj_type IS NOT INITIAL.
+        CLEAR ls_item.
+        ls_item-obj_type = <ls_program>-obj_type.
+        ls_item-obj_name = <ls_program>-obj_name.
         ri_html->add( |<tr><td>{ zcl_abapgit_gui_chunk_lib=>get_item_icon( ls_item ) } { ls_item-obj_type }|
           && | { zcl_abapgit_gui_chunk_lib=>get_item_link( ls_item ) }</td><td></td></tr>| ).
       ELSE.
-        " KEY field does not exist in 750
-        ASSIGN COMPONENT 'INFO-NAME' OF STRUCTURE <ls_program> TO <lv_any>.
-        ri_html->add( |<tr><td>{ <lv_any> }</td><td></td></tr>| ).
+        ri_html->add( |<tr><td>{ <ls_program>-name }</td><td></td></tr>| ).
       ENDIF.
 
-      ASSIGN COMPONENT 'CLASSES' OF STRUCTURE <ls_program> TO <lt_classes>.
+      LOOP AT <ls_program>-classes ASSIGNING <ls_class>.
+        ri_html->add( |<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;{ <ls_class>-name }</td><td></td></tr>| ).
 
-      LOOP AT <lt_classes> ASSIGNING <ls_class>.
-        lv_class_ndx = sy-tabix.
-
-        ASSIGN COMPONENT 'INFO-NAME' OF STRUCTURE <ls_class> TO <lv_any>.
-        ri_html->add( |<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;{ <lv_any> }</td><td></td></tr>| ).
-        ASSIGN COMPONENT 'METHODS' OF STRUCTURE <ls_class> TO <lt_methods>.
-
-        LOOP AT <lt_methods> ASSIGNING <ls_method>.
-
-          ri_html->add( get_text_for_method(
-            is_method      = <ls_method>
-            it_indices     = <lt_indices>
-            iv_program_ndx = lv_program_ndx
-            iv_class_ndx   = lv_class_ndx
-            iv_method_ndx  = sy-tabix ) ).
-
+        LOOP AT <ls_class>-methods ASSIGNING <ls_method>.
+          ri_html->add( render_method( <ls_method> ) ).
         ENDLOOP.
       ENDLOOP.
     ENDLOOP.
@@ -160827,6 +160917,558 @@ CLASS zcl_abapgit_background IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
+CLASS zcl_abapgit_aunit_result IMPLEMENTATION.
+  METHOD from_aunit.
+
+    FIELD-SYMBOLS <ls_task_data> TYPE any.
+    FIELD-SYMBOLS <lt_indices>   TYPE ANY TABLE.
+    FIELD-SYMBOLS <lt_programs>  TYPE ANY TABLE.
+
+    IF io_aunit IS NOT BOUND.
+      RETURN.
+    ENDIF.
+
+    ASSIGN io_aunit->('F_TASK_DATA') TO <ls_task_data>.
+    IF sy-subrc <> 0.
+      zcx_abapgit_exception=>raise( |Unexpected AUnit result format| ).
+    ENDIF.
+    ASSIGN COMPONENT 'ALERTS_BY_INDICIES' OF STRUCTURE <ls_task_data> TO <lt_indices>.
+    ASSIGN COMPONENT 'PROGRAMS' OF STRUCTURE <ls_task_data> TO <lt_programs>.
+
+    rs_result-errors = parse_errors( <lt_indices> ).
+
+    rs_result-programs = parse_programs(
+      it_programs = <lt_programs>
+      it_indices  = <lt_indices> ).
+
+  ENDMETHOD.
+  METHOD parse_errors.
+
+    DATA lv_text  TYPE string.
+    DATA lv_param TYPE string.
+
+    FIELD-SYMBOLS <ls_alert_by_index> TYPE any.
+    FIELD-SYMBOLS <lt_alerts>         TYPE ANY TABLE.
+    FIELD-SYMBOLS <ls_alert>          TYPE any.
+    FIELD-SYMBOLS <lt_params>         TYPE string_table.
+    FIELD-SYMBOLS <lt_text_info>      TYPE ANY TABLE.
+    FIELD-SYMBOLS <ls_text_info>      TYPE any.
+
+    LOOP AT it_indices ASSIGNING <ls_alert_by_index>.
+      ASSIGN COMPONENT 'ALERTS' OF STRUCTURE <ls_alert_by_index> TO <lt_alerts>.
+      LOOP AT <lt_alerts> ASSIGNING <ls_alert> WHERE ('KIND = ''F'' OR KIND = ''S'' OR KIND = ''E'' OR KIND = ''W''').
+        CLEAR lv_text.
+        ASSIGN COMPONENT 'HEADER-PARAMS' OF STRUCTURE <ls_alert> TO <lt_params>.
+        LOOP AT <lt_params> INTO lv_param.
+          lv_text = lv_text && lv_param.
+        ENDLOOP.
+
+        ASSIGN COMPONENT 'TEXT_INFOS' OF STRUCTURE <ls_alert> TO <lt_text_info>.
+        LOOP AT <lt_text_info> ASSIGNING <ls_text_info>.
+          ASSIGN COMPONENT 'PARAMS' OF STRUCTURE <ls_text_info> TO <lt_params>.
+          LOOP AT <lt_params> INTO lv_param.
+            lv_text = lv_text && lv_param.
+          ENDLOOP.
+        ENDLOOP.
+
+        IF lv_text NP '*SAUNIT_NO_TEST_CLASS*'.
+          APPEND lv_text TO rt_errors.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD parse_method.
+
+    DATA lv_param   TYPE string.
+    DATA lv_runtime TYPE timestampl.
+
+    FIELD-SYMBOLS <ls_alert_by_index> TYPE any.
+    FIELD-SYMBOLS <lt_alerts>         TYPE ANY TABLE.
+    FIELD-SYMBOLS <ls_alert>          TYPE any.
+    FIELD-SYMBOLS <lt_params>         TYPE string_table.
+    FIELD-SYMBOLS <lv_any>            TYPE any.
+    FIELD-SYMBOLS <lv_start>          TYPE timestampl.
+    FIELD-SYMBOLS <lv_end>            TYPE timestampl.
+
+    ASSIGN COMPONENT 'INFO-NAME' OF STRUCTURE is_method TO <lv_any>.
+    IF sy-subrc = 0.
+      rs_method-name = <lv_any>.
+    ENDIF.
+
+    READ TABLE it_indices WITH KEY
+      ('PROGRAM_NDX') = iv_program_ndx
+      ('CLASS_NDX')   = iv_class_ndx
+      ('METHOD_NDX')  = iv_method_ndx
+      ASSIGNING <ls_alert_by_index>.
+    IF sy-subrc = 0.
+      ASSIGN COMPONENT 'ALERTS' OF STRUCTURE <ls_alert_by_index> TO <lt_alerts>.
+      LOOP AT <lt_alerts> ASSIGNING <ls_alert>.
+        ASSIGN COMPONENT 'HEADER-PARAMS' OF STRUCTURE <ls_alert> TO <lt_params>.
+        LOOP AT <lt_params> INTO lv_param.
+          rs_method-failure = lv_param.
+        ENDLOOP.
+      ENDLOOP.
+    ENDIF.
+
+    ASSIGN COMPONENT 'INFO-START_ON' OF STRUCTURE is_method TO <lv_start>.
+    IF sy-subrc = 0.
+      ASSIGN COMPONENT 'INFO-END_ON' OF STRUCTURE is_method TO <lv_end>.
+      IF sy-subrc = 0.
+        TRY.
+            lv_runtime = cl_abap_tstmp=>subtract(
+              tstmp1 = <lv_end>
+              tstmp2 = <lv_start> ) * 1000.
+            rs_method-runtime_ms  = lv_runtime.
+            rs_method-has_runtime = abap_true.
+          CATCH cx_parameter_invalid ##NO_HANDLER. "ignore
+        ENDTRY.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD parse_programs.
+
+    DATA ls_program     TYPE zif_abapgit_aunit_runner=>ty_program.
+    DATA ls_class       TYPE zif_abapgit_aunit_runner=>ty_class.
+    DATA ls_method      TYPE zif_abapgit_aunit_runner=>ty_method.
+    DATA lv_program_ndx TYPE sy-tabix.
+    DATA lv_class_ndx   TYPE sy-tabix.
+    DATA lv_method_ndx  TYPE sy-tabix.
+
+    FIELD-SYMBOLS <ls_program> TYPE any.
+    FIELD-SYMBOLS <lt_classes> TYPE ANY TABLE.
+    FIELD-SYMBOLS <ls_class>   TYPE any.
+    FIELD-SYMBOLS <lt_methods> TYPE ANY TABLE.
+    FIELD-SYMBOLS <ls_method>  TYPE any.
+    FIELD-SYMBOLS <lv_any>     TYPE any.
+
+    LOOP AT it_programs ASSIGNING <ls_program>.
+      lv_program_ndx = sy-tabix.
+      CLEAR ls_program.
+
+      ASSIGN COMPONENT 'INFO-NAME' OF STRUCTURE <ls_program> TO <lv_any>.
+      IF sy-subrc = 0.
+        ls_program-name = <lv_any>.
+      ENDIF.
+
+      " KEY field does not exist in 750
+      ASSIGN COMPONENT 'INFO-KEY-OBJ_TYPE' OF STRUCTURE <ls_program> TO <lv_any>.
+      IF sy-subrc = 0.
+        ls_program-obj_type = <lv_any>.
+        ASSIGN COMPONENT 'INFO-KEY-OBJ_NAME' OF STRUCTURE <ls_program> TO <lv_any>.
+        IF sy-subrc = 0.
+          ls_program-obj_name = <lv_any>.
+        ENDIF.
+      ENDIF.
+
+      ASSIGN COMPONENT 'CLASSES' OF STRUCTURE <ls_program> TO <lt_classes>.
+      LOOP AT <lt_classes> ASSIGNING <ls_class>.
+        lv_class_ndx = sy-tabix.
+        CLEAR ls_class.
+
+        ASSIGN COMPONENT 'INFO-NAME' OF STRUCTURE <ls_class> TO <lv_any>.
+        IF sy-subrc = 0.
+          ls_class-name = <lv_any>.
+        ENDIF.
+
+        ASSIGN COMPONENT 'METHODS' OF STRUCTURE <ls_class> TO <lt_methods>.
+        LOOP AT <lt_methods> ASSIGNING <ls_method>.
+          lv_method_ndx = sy-tabix.
+          ls_method = parse_method(
+            is_method      = <ls_method>
+            it_indices     = it_indices
+            iv_program_ndx = lv_program_ndx
+            iv_class_ndx   = lv_class_ndx
+            iv_method_ndx  = lv_method_ndx ).
+          APPEND ls_method TO ls_class-methods.
+        ENDLOOP.
+
+        APPEND ls_class TO ls_program-classes.
+      ENDLOOP.
+
+      APPEND ls_program TO rt_programs.
+    ENDLOOP.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_aunit_objects IMPLEMENTATION.
+  METHOD get.
+
+    DATA lt_includes TYPE ty_programs_tt.
+
+    FIELD-SYMBOLS <ls_tadir> LIKE LINE OF rt_tadir.
+
+    rt_tadir = ii_repo->get_tadir_objects( ).
+
+    lt_includes = select_includes( rt_tadir ).
+
+    LOOP AT rt_tadir ASSIGNING <ls_tadir> WHERE object = 'PROG'.
+      READ TABLE lt_includes WITH TABLE KEY table_line = <ls_tadir>-obj_name TRANSPORTING NO FIELDS.
+      IF sy-subrc = 0.
+        DELETE rt_tadir.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD select_includes.
+
+    DATA lt_programs TYPE ty_programs_tt.
+    DATA lv_program  TYPE progname.
+
+    FIELD-SYMBOLS <ls_tadir> LIKE LINE OF it_tadir.
+
+    LOOP AT it_tadir ASSIGNING <ls_tadir> WHERE object = 'PROG'.
+      lv_program = <ls_tadir>-obj_name.
+      INSERT lv_program INTO TABLE lt_programs.
+    ENDLOOP.
+
+    IF lt_programs IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    SELECT progname FROM reposrc
+      INTO TABLE rt_includes
+      FOR ALL ENTRIES IN lt_programs
+      WHERE progname = lt_programs-table_line
+      AND r3state = 'A'
+      AND subc = 'I'.                                   "#EC CI_SUBRC
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_aunit_modern IMPLEMENTATION.
+  METHOD add_objects.
+
+    DATA ls_tadir   LIKE LINE OF it_tadir.
+    DATA lv_program TYPE progname.
+    DATA lv_error   TYPE string.
+    DATA lx_error   TYPE REF TO cx_root.
+
+    " an object that cannot be added must not prevent the tests of the other objects
+    LOOP AT it_tadir INTO ls_tadir.
+      lv_program = ls_tadir-obj_name.
+      TRY.
+          CASE ls_tadir-object.
+            WHEN 'CLAS'.
+              CALL METHOD io_task->('IF_AUNIT_TASK~ADD_CLASS_POOL')
+                EXPORTING
+                  class = lv_program.
+            WHEN 'PROG'.
+              CALL METHOD io_task->('IF_AUNIT_TASK~ADD_PROGRAM')
+                EXPORTING
+                  program = lv_program.
+            WHEN 'FUGR'.
+              CALL METHOD io_task->('IF_AUNIT_TASK~ADD_FUNCTION_GROUP')
+                EXPORTING
+                  fugr_name = lv_program.
+          ENDCASE.
+        CATCH cx_root INTO lx_error.
+          lv_error = |{ ls_tadir-object } { ls_tadir-obj_name }: { lx_error->get_text( ) }|.
+          APPEND lv_error TO rt_errors.
+      ENDTRY.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD cast_listener.
+
+    DATA lx_error TYPE REF TO cx_root.
+
+    FIELD-SYMBOLS <li_listener> TYPE any.
+
+    TRY.
+        CREATE DATA rr_listener TYPE REF TO ('IF_AUNIT_LISTENER').
+        ASSIGN rr_listener->* TO <li_listener>.
+        <li_listener> ?= io_listener.
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    mi_repo = ii_repo.
+
+    " check that the API is available in this release
+    create_listener( ).
+
+  ENDMETHOD.
+  METHOD contains_test_cases.
+
+    TRY.
+        CALL METHOD io_task->('IF_AUNIT_TASK~CONTAINS_TEST_CASES')
+          RECEIVING
+            result = rv_bool.
+      CATCH cx_root.
+        " not available in all releases, then the task is run anyhow
+        rv_bool = abap_true.
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD create_listener.
+
+    DATA lx_error TYPE REF TO cx_root.
+
+    TRY.
+        CALL METHOD ('CL_SAUNIT_GUI_SERVICE')=>create_listener
+          RECEIVING
+            result = ro_listener.
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD create_task.
+
+    DATA lo_factory  TYPE REF TO object.
+    DATA lr_listener TYPE REF TO data.
+    DATA lx_error    TYPE REF TO cx_root.
+
+    FIELD-SYMBOLS <li_listener> TYPE any.
+
+    lr_listener = cast_listener( io_listener ).
+    ASSIGN lr_listener->* TO <li_listener>.
+
+    TRY.
+        CREATE OBJECT lo_factory TYPE ('CL_AUNIT_FACTORY').
+
+        CALL METHOD lo_factory->('CREATE_TASK')
+          EXPORTING
+            listener = <li_listener>
+          RECEIVING
+            result   = ro_task.
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD get_result.
+
+    DATA lx_error TYPE REF TO cx_root.
+
+    TRY.
+        CALL METHOD io_listener->('IF_SAUNIT_INTERNAL_LISTENER~GET_RESULT_AFTER_END_OF_TASK')
+          RECEIVING
+            result = ro_aunit.
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD restrict.
+
+    DATA lv_error TYPE string.
+    DATA lx_error TYPE REF TO cx_root.
+
+    FIELD-SYMBOLS <lv_value> TYPE any.
+
+    " the constants have the types of the parameters
+    ASSIGN (c_enum_risk_level_critical) TO <lv_value>.
+    IF sy-subrc <> 0.
+      lv_error = |Restrict risk level: { c_enum_risk_level_critical } not found|.
+      APPEND lv_error TO rt_errors.
+    ELSE.
+      TRY.
+          CALL METHOD io_task->('IF_AUNIT_TASK~RESTRICT_RISK_LEVEL')
+            EXPORTING
+              max_risk_level = <lv_value>.
+        CATCH cx_root INTO lx_error.
+          lv_error = |Restrict risk level: { lx_error->get_text( ) }|.
+          APPEND lv_error TO rt_errors.
+      ENDTRY.
+    ENDIF.
+
+    ASSIGN (c_enum_duration_long) TO <lv_value>.
+    IF sy-subrc <> 0.
+      lv_error = |Restrict duration category: { c_enum_duration_long } not found|.
+      APPEND lv_error TO rt_errors.
+    ELSE.
+      TRY.
+          CALL METHOD io_task->('IF_AUNIT_TASK~RESTRICT_DURATION_CATEGORY')
+            EXPORTING
+              max_duration_category = <lv_value>.
+        CATCH cx_root INTO lx_error.
+          lv_error = |Restrict duration category: { lx_error->get_text( ) }|.
+          APPEND lv_error TO rt_errors.
+      ENDTRY.
+    ENDIF.
+
+  ENDMETHOD.
+  METHOD run_task.
+
+    DATA lr_listener TYPE REF TO data.
+    DATA lx_error    TYPE REF TO cx_root.
+
+    FIELD-SYMBOLS <li_listener> TYPE any.
+
+    lr_listener = cast_listener( io_listener ).
+    ASSIGN lr_listener->* TO <li_listener>.
+
+    TRY.
+        CALL METHOD io_task->('IF_AUNIT_TASK~RUN')
+          EXPORTING
+            listener = <li_listener>.
+      CATCH cx_sy_dyn_call_param_not_found.
+        " RUN has no listener parameter in all releases, then the listener from CREATE_TASK is used
+        TRY.
+            CALL METHOD io_task->('IF_AUNIT_TASK~RUN').
+          CATCH cx_root INTO lx_error.
+            zcx_abapgit_exception=>raise_with_text( lx_error ).
+        ENDTRY.
+      CATCH cx_root INTO lx_error.
+        zcx_abapgit_exception=>raise_with_text( lx_error ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_aunit_runner~run.
+
+    DATA lt_tadir    TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    DATA lo_timer    TYPE REF TO zcl_abapgit_timer.
+    DATA lo_listener TYPE REF TO object.
+    DATA lo_task     TYPE REF TO object.
+    DATA lo_aunit    TYPE REF TO object.
+    DATA lt_errors   TYPE string_table.
+    DATA lt_add      TYPE string_table.
+    DATA lv_summary  TYPE string.
+
+    lt_tadir = zcl_abapgit_aunit_objects=>get( mi_repo ).
+
+    lo_timer = zcl_abapgit_timer=>create( iv_count = lines( lt_tadir ) )->start( ).
+
+    lo_listener = create_listener( ).
+    lo_task = create_task( lo_listener ).
+
+    lt_errors = restrict( lo_task ).
+
+    lt_add = add_objects(
+      io_task  = lo_task
+      it_tadir = lt_tadir ).
+    APPEND LINES OF lt_add TO lt_errors.
+
+    IF contains_test_cases( lo_task ) = abap_true.
+      run_task(
+        io_task     = lo_task
+        io_listener = lo_listener ).
+      lo_aunit = get_result( lo_listener ).
+    ENDIF.
+
+    lv_summary = lo_timer->end( ).
+
+    rs_result = zcl_abapgit_aunit_result=>from_aunit( lo_aunit ).
+    rs_result-summary = lv_summary.
+    APPEND LINES OF lt_errors TO rs_result-errors.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS zcl_abapgit_aunit_factory IMPLEMENTATION.
+
+  METHOD get_runner.
+    TRY.
+        CREATE OBJECT ri_runner TYPE zcl_abapgit_aunit_classic
+          EXPORTING
+            ii_repo = ii_repo.
+      CATCH zcx_abapgit_exception.
+        CREATE OBJECT ri_runner TYPE zcl_abapgit_aunit_modern
+          EXPORTING
+            ii_repo = ii_repo.
+    ENDTRY.
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS zcl_abapgit_aunit_classic IMPLEMENTATION.
+  METHOD build_keys.
+
+    DATA lt_tadir TYPE zif_abapgit_definitions=>ty_tadir_tt.
+    DATA ls_tadir LIKE LINE OF lt_tadir.
+    DATA ls_key   LIKE LINE OF rt_keys.
+
+    lt_tadir = zcl_abapgit_aunit_objects=>get( mi_repo ).
+
+    LOOP AT lt_tadir INTO ls_tadir.
+      CLEAR ls_key.
+      ls_key-obj_type = ls_tadir-object.
+      ls_key-obj_name = ls_tadir-obj_name.
+      APPEND ls_key TO rt_keys.
+    ENDLOOP.
+
+  ENDMETHOD.
+  METHOD constructor.
+
+    mi_repo = ii_repo.
+
+    TRY.
+        CALL METHOD ('\PROGRAM=SAPLSAUCV_GUI_RUNNER\CLASS=PASSPORT')=>get.
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( |Not supported in your NW release| ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD create_runner.
+
+    DATA lo_passport TYPE REF TO object.
+
+    TRY.
+        CALL METHOD ('\PROGRAM=SAPLSAUCV_GUI_RUNNER\CLASS=PASSPORT')=>get
+          RECEIVING
+            result = lo_passport.
+
+        CALL METHOD ('CL_AUCV_TEST_RUNNER_STANDARD')=>create
+          EXPORTING
+            i_passport = lo_passport
+          RECEIVING
+            result     = ro_runner.
+      CATCH cx_root.
+        zcx_abapgit_exception=>raise( |Not supported in your NW release| ).
+    ENDTRY.
+
+  ENDMETHOD.
+  METHOD run_aunit.
+
+    DATA lo_runner TYPE REF TO object.
+    DATA li_result TYPE REF TO data.
+
+    FIELD-SYMBOLS <li_result> TYPE any.
+
+    lo_runner = create_runner( ).
+
+    CREATE DATA li_result TYPE REF TO ('IF_SAUNIT_INTERNAL_RESULT').
+    ASSIGN li_result->* TO <li_result>.
+
+    CALL METHOD lo_runner->('RUN_FOR_PROGRAM_KEYS')
+      EXPORTING
+        i_limit_on_duration_category = '36' " long
+        i_limit_on_risk_level        = '33' " critical
+        i_program_keys               = it_keys
+      IMPORTING
+        e_aunit_result               = <li_result>.
+
+    ro_aunit = <li_result>.
+
+  ENDMETHOD.
+  METHOD zif_abapgit_aunit_runner~run.
+
+    DATA lo_aunit   TYPE REF TO object.
+    DATA lo_timer   TYPE REF TO zcl_abapgit_timer.
+    DATA lt_keys    TYPE ty_keys_tt.
+    DATA lv_summary TYPE string.
+
+    lt_keys = build_keys( ).
+
+    lo_timer = zcl_abapgit_timer=>create( iv_count = lines( lt_keys ) )->start( ).
+
+    lo_aunit = run_aunit( lt_keys ).
+
+    lv_summary = lo_timer->end( ).
+
+    rs_result = zcl_abapgit_aunit_result=>from_aunit( lo_aunit ).
+    rs_result-summary = lv_summary.
+
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS zcl_abapgit_apack_writer IMPLEMENTATION.
   METHOD constructor.
     ms_manifest_descriptor = is_apack_manifest_descriptor.
@@ -162144,8 +162786,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-27T07:41:19.336Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-27T07:41:19.336Z`.
+* abapmerge 0.16.10 - 2026-11-27T09:41:21.485Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-27T09:41:21.485Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
