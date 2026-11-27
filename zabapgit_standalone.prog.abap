@@ -73248,6 +73248,7 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
   METHOD fetch_remote.
 
     DATA: li_progress TYPE REF TO zif_abapgit_progress,
+          lv_commit   TYPE zif_abapgit_git_definitions=>ty_sha1,
           ls_pull     TYPE zcl_abapgit_git_porcelain=>ty_pull_result.
 
     IF mv_request_remote_refresh = abap_false.
@@ -73259,13 +73260,24 @@ CLASS zcl_abapgit_repo_online IMPLEMENTATION.
     li_progress->show( iv_current = 1
                        iv_text    = 'Fetch remote files' ).
 
-    IF get_selected_commit( ) IS INITIAL.
-      ls_pull = zcl_abapgit_git_porcelain=>pull_by_branch( iv_url         = get_url( )
-                                                           iv_branch_name = get_selected_branch( ) ).
-    ELSE.
-      ls_pull = zcl_abapgit_git_porcelain=>pull_by_commit( iv_url         = get_url( )
-                                                           iv_commit_hash = get_selected_commit( ) ).
+    lv_commit = get_selected_commit( ).
+    IF lv_commit IS INITIAL.
+      lv_commit = zcl_abapgit_git_factory=>get_git_transport(
+        )->branches( get_url( )
+        )->find_by_name( get_selected_branch( ) )-sha1.
     ENDIF.
+
+    IF lv_commit = mv_current_commit.
+      " same commit as already fetched, rebuild files from the objects in memory
+      set_files_remote( zcl_abapgit_git_objects=>build_files(
+        iv_commit  = mv_current_commit
+        it_objects = mt_objects ) ).
+      RETURN.
+    ENDIF.
+
+    ls_pull = zcl_abapgit_git_porcelain=>pull_by_commit(
+      iv_url         = get_url( )
+      iv_commit_hash = lv_commit ).
 
     set_files_remote( ls_pull-files ).
     set_objects( ls_pull-objects ).
@@ -162786,8 +162798,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-27T09:41:21.485Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-27T09:41:21.485Z`.
+* abapmerge 0.16.10 - 2026-11-27T17:09:26.849Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-27T17:09:26.849Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
