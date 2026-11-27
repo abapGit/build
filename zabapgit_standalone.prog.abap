@@ -25439,6 +25439,11 @@ CLASS zcl_abapgit_gui_chunk_lib DEFINITION
         !iv_text       TYPE string
       RETURNING
         VALUE(ri_html) TYPE REF TO zif_abapgit_html .
+    CLASS-METHODS render_main_language_warning
+      IMPORTING
+        !iv_main_language TYPE spras
+      RETURNING
+        VALUE(ri_html)    TYPE REF TO zif_abapgit_html .
     CLASS-METHODS render_infopanel
       IMPORTING
         !iv_div_id     TYPE string
@@ -30330,9 +30335,6 @@ CLASS zcl_abapgit_gui_page_stage DEFINITION
         VALUE(ri_page) TYPE REF TO zif_abapgit_gui_renderable
       RAISING
         zcx_abapgit_exception .
-    METHODS render_main_language_warning
-      RETURNING
-        VALUE(ri_html) TYPE REF TO zif_abapgit_html .
     METHODS count_default_files_to_commit
       RETURNING
         VALUE(rv_count) TYPE i .
@@ -47483,21 +47485,6 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
     ri_html->add( '</table>' ).
 
   ENDMETHOD.
-  METHOD render_main_language_warning.
-
-    DATA lv_main_language TYPE spras.
-
-    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
-
-    lv_main_language = mi_repo->get_dot_abapgit( )->get_main_language( ).
-
-    IF lv_main_language <> sy-langu.
-      ri_html->add( zcl_abapgit_gui_chunk_lib=>render_warning_banner(
-                        |Caution: Main language of the repo is '{ lv_main_language }', |
-                     && |but you're logged on in '{ sy-langu }'| ) ).
-    ENDIF.
-
-  ENDMETHOD.
   METHOD render_scripts.
 
     CREATE OBJECT ri_html TYPE zcl_abapgit_html.
@@ -47759,7 +47746,8 @@ CLASS zcl_abapgit_gui_page_stage IMPLEMENTATION.
       iv_show_commit        = abap_false
       iv_interactive_branch = abap_true
       iv_sci_result         = mv_sci_result ) ).
-    ri_html->add( render_main_language_warning( ) ).
+    ri_html->add( zcl_abapgit_gui_chunk_lib=>render_main_language_warning(
+      mi_repo->get_dot_abapgit( )->get_main_language( ) ) ).
 
     ri_html->add( '<div class="stage-container">' ).
     ri_html->add( render_actions( ) ).
@@ -48965,6 +48953,9 @@ CLASS zcl_abapgit_gui_page_repo_view IMPLEMENTATION.
           io_news               = lo_news
           iv_show_edit          = abap_true
           iv_interactive_branch = abap_true ) ).
+
+        ri_html->add( zcl_abapgit_gui_chunk_lib=>render_main_language_warning(
+          mi_repo->get_dot_abapgit( )->get_main_language( ) ) ).
 
         ri_html->add( zcl_abapgit_gui_chunk_lib=>render_news( io_news = lo_news ) ).
 
@@ -64707,6 +64698,24 @@ CLASS zcl_abapgit_gui_chunk_lib IMPLEMENTATION.
     APPEND `</ul>` TO lt_fragments.
 
     rv_html = concat_lines_of( lt_fragments ).
+
+  ENDMETHOD.
+  METHOD render_main_language_warning.
+
+    DATA lv_main_language TYPE string.
+    DATA lv_logon_language TYPE string.
+
+    CREATE OBJECT ri_html TYPE zcl_abapgit_html.
+
+    IF iv_main_language <> sy-langu.
+      lv_main_language = |{ zcl_abapgit_convert_language=>sap1_to_text( iv_main_language ) } |
+        && |({ zcl_abapgit_convert_language=>conversion_exit_isola_output( iv_main_language ) })|.
+      lv_logon_language = |{ zcl_abapgit_convert_language=>sap1_to_text( sy-langu ) } |
+        && |({ zcl_abapgit_convert_language=>conversion_exit_isola_output( sy-langu ) })|.
+      ri_html->add( render_warning_banner(
+        |Caution: Main language of the repo is { lv_main_language }, |
+        && |but you're logged on in { lv_logon_language }| ) ).
+    ENDIF.
 
   ENDMETHOD.
   METHOD render_news.
@@ -162798,8 +162807,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-27T17:09:26.849Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-27T17:09:26.849Z`.
+* abapmerge 0.16.10 - 2026-11-27T20:10:38.409Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-27T20:10:38.409Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
