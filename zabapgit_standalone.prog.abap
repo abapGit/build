@@ -33344,7 +33344,7 @@ CLASS kHGwlBBLPuLkmYTcKxvveIQhGnfrcH IMPLEMENTATION.
     IF sy-subrc = 0.
       re_text = lv_language_mapping-text.
     ELSE.
-      re_text = 'Unknonw language'.
+      re_text = 'Unknown language'.
     ENDIF.
   ENDMETHOD.
 
@@ -162807,8 +162807,8 @@ AT SELECTION-SCREEN.
 
 ****************************************************
 INTERFACE lif_abapmerge_marker.
-* abapmerge 0.16.10 - 2026-11-27T20:10:38.409Z
-  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-27T20:10:38.409Z`.
+* abapmerge 0.16.10 - 2026-11-27T21:12:51.125Z
+  CONSTANTS c_merge_timestamp TYPE string VALUE `2026-11-27T21:12:51.125Z`.
   CONSTANTS c_abapmerge_version TYPE string VALUE `0.16.10`.
 ENDINTERFACE.
 ****************************************************
